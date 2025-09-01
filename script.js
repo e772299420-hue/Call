@@ -1,4 +1,3 @@
-
 // إعدادات Firebase
 const firebaseConfig = {
     databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
@@ -13,7 +12,7 @@ const database = firebase.database();
 const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms';
 
 // رابط تطبيق الويب الذي نشرته من Google Apps Script
-const DRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbxI1JTjuE8FcvORcW56clvMGgIyShuHkA20FMh7Nfob5fFMHpZoKLB8pr2Sy6r_5YPc/exec';
+const DRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbw8FFR6JFtKkUxTEOcOjNUWAsOzOCJUvD-j6iIzgspr5i_mYb1QqgaF4a7lxrgFfHI4/exec';
 
 // رفع الصور إلى Google Drive
 async function uploadImagesToDrive(files) {
@@ -1053,22 +1052,27 @@ async function displayMerchants() {
 
 // وظائف التاجر
 async function loadMerchantData() {
+    if (!currentUser || !currentUser.id) return;
+    
     try {
-        await loadDropdownData();
-        await loadMerchantProducts();
+        const productsSnapshot = await database.ref('products').orderByChild('merchantId').equalTo(currentUser.id).once('value');
+        const products = productsSnapshot.val() || {};
         
-        // تحميل موقع التاجر إذا كان محفوظاً
-        if (currentUser && currentUser.id) {
-            const locationSnapshot = await database.ref(`merchants/${currentUser.id}/location`).once('value');
-            const location = locationSnapshot.val();
-            if (location) {
-                currentLocation = location;
-                updateLocationStatus(true);
-            }
-        }
+        const productsList = Object.entries(products).map(([id, product]) => ({
+            ...product,
+            id
+        }));
+        
+        // ترتيب المنتجات حسب تاريخ الإضافة (الأحدث أولاً)
+        productsList.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        
+        displayMerchantProducts(productsList);
+        
+        // تحديث عداد المنتجات
+        document.getElementById('products-count').textContent = productsList.length;
         
     } catch (error) {
-        console.error('خطأ في تحميل بيانات التاجر:', error);
+        console.error('خطأ في تحميل منتجات التاجر:', error);
     }
 }
 
@@ -1415,7 +1419,7 @@ function showLoading(show) {
     if (show) {
         document.body.style.cursor = 'wait';
     } else {
-        document.body.style.cursor = 'default';
+    document.body.style.cursor = 'default';
     }
 }
 
