@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المنتجات</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+    <!-- واجهة الزائر -->
+    <div id="visitor-screen" class="screen active">
+        <header>
+            <div class="header-content">
+                <h1><i class="fas fa-store"></i> سوق المحافظات</h1>
+                <button id="menu-btn" class="menu-btn">
+                    <i class="fas fa-bars"></i> القائمة
+                </button>
+            </div>
+        </header>
+
+        <div class="filters-container">
+            <div class="filters">
+                <select id="filter-governorate">
+                    <option value="">جميع المحافظات</option>
+                </select>
+                <select id="filter-area">
+                    <option value="">جميع المناطق</option>
+                </select>
+                <select id="filter-merchant">
+                    <option value="">جميع التجار</option>
+                </select>
+                <select id="filter-category">
+                    <option value="">جميع الأقسام</option>
+                </select>
+                <select id="filter-availability">
+                    <option value="">الكل</option>
+                    <option value="available">المنتجات المتوفرة</option>
+                    <option value="unavailable">المنتجات المنتهية</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="products-grid" class="products-grid"></div>
+        
+        <div id="no-products" class="no-products hidden">
+            <i class="fas fa-box-open"></i>
+            <p>لا توجد منتجات مطابقة للبحث</p>
+        </div>
+    </div>
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen" class="screen">
+        <div class="login-container">
+            <div class="login-header">
+                <h2><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</h2>
+                <button id="close-login" class="close-btn">&times;</button>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label><i class="fas fa-user-tag"></i> نوع المستخدم:</label>
+                    <select id="user-type" required>
+                        <option value="">اختر نوع المستخدم</option>
+                        <option value="admin">أدمن</option>
+                        <option value="merchant">تاجر</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> اسم المستخدم:</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> كلمة المرور:</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> دخول
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- شاشة الأدمن -->
+    <div id="admin-screen" class="screen">
+        <header>
+            <div class="header-content">
+                <h1><i class="fas fa-user-shield"></i> لوحة الأدمن</h1>
+                <button id="admin-logout" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> خروج
+                </button>
+            </div>
+        </header>
+        
+        <div class="admin-tabs">
+            <button class="tab-btn active" data-tab="governorates">
+                <i class="fas fa-map-marked-alt"></i> المحافظات
+            </button>
+            <button class="tab-btn" data-tab="categories">
+                <i class="fas fa-tags"></i> الأقسام
+            </button>
+            <button class="tab-btn" data-tab="merchants">
+                <i class="fas fa-users"></i> التجار
+            </button>
+        </div>
+
+        <!-- إدارة المحافظات -->
+        <div id="governorates-tab" class="tab-content active">
+            <div class="form-section">
+                <h3><i class="fas fa-plus-circle"></i> إضافة محافظة</h3>
+                <form id="add-governorate-form">
+                    <div class="input-group">
+                        <input type="text" id="governorate-name" placeholder="اسم المحافظة" required>
+                        <button type="submit" class="btn-primary">إضافة</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="form-section">
+                <h3><i class="fas fa-plus-circle"></i> إضافة منطقة</h3>
+                <form id="add-area-form">
+                    <div class="input-group">
+                        <select id="area-governorate" required>
+                            <option value="">اختر المحافظة</option>
+                        </select>
+                        <input type="text" id="area-name" placeholder="اسم المنطقة" required>
+                        <button type="submit" class="btn-primary">إضافة</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div id="governorates-list" class="data-list">
+                <h3><i class="fas fa-list"></i> قائمة المحافظات والمناطق</h3>
+                <div id="governorates-content"></div>
+            </div>
+        </div>
+
+        <!-- إدارة الأقسام -->
+        <div id="categories-tab" class="tab-content">
+            <div class="form-section">
+                <h3><i class="fas fa-plus-circle"></i> إضافة قسم</h3>
+                <form id="add-category-form">
+                    <div class="input-group">
+                        <input type="text" id="category-name" placeholder="اسم القسم" required>
+                        <button type="submit" class="btn-primary">إضافة</button>
+                    </div>
+                </form>
+            </div>
+            <div id="categories-list" class="data-list">
+                <h3><i class="fas fa-list"></i> قائمة الأقسام</h3>
+                <div id="categories-content"></div>
+            </div>
+        </div>
+
+        <!-- إدارة التجار -->
+        <div id="merchants-tab" class="tab-content">
+            <div class="form-section">
+                <h3><i class="fas fa-user-plus"></i> إضافة تاجر</h3>
+                <form id="add-merchant-form">
+                    <div class="form-row">
+                        <input type="text" id="merchant-username" placeholder="اسم المستخدم" required>
+                        <input type="password" id="merchant-password" placeholder="كلمة المرور" required>
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="merchant-name" placeholder="اسم التاجر" required>
+                        <select id="merchant-governorate" required>
+                            <option value="">اختر المحافظة</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <select id="merchant-area" required>
+                            <option value="">اختر المنطقة</option>
+                        </select>
+                        <button type="submit" class="btn-primary">إضافة التاجر</button>
+                    </div>
+                </form>
+            </div>
+            <div id="merchants-list" class="data-list">
+                <h3><i class="fas fa-list"></i> قائمة التجار</h3>
+                <div id="merchants-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة التاجر -->
+    <div id="merchant-screen" class="screen">
+        <header>
+            <div class="header-content">
+                <h1><i class="fas fa-store"></i> لوحة التاجر</h1>
+                <div class="header-actions">
+                    <button id="get-location" class="location-btn">
+                        <i class="fas fa-map-marker-alt"></i> تحديد موقعي
+                    </button>
+                    <button id="merchant-logout" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> خروج
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="location-status" id="location-status">
+            <i class="fas fa-info-circle"></i>
+            <span id="location-text">لم يتم تحديد الموقع بعد</span>
+        </div>
+
+        <div class="merchant-tabs">
+            <button class="tab-btn active" data-tab="add-product">
+                <i class="fas fa-plus-circle"></i> إضافة منتج
+            </button>
+            <button class="tab-btn" data-tab="my-products">
+                <i class="fas fa-boxes"></i> منتجاتي
+            </button>
+        </div>
+
+        <!-- إضافة منتج -->
+        <div id="add-product-tab" class="tab-content active">
+            <div class="form-section">
+                <h3><i class="fas fa-plus-circle"></i> إضافة منتج جديد</h3>
+                <form id="add-product-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>اسم المنتج:</label>
+                            <input type="text" id="product-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>السعر:</label>
+                            <input type="number" id="product-price" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>وصف المنتج:</label>
+                        <textarea id="product-description" rows="3" placeholder="وصف تفصيلي للمنتج"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>الحالة:</label>
+                            <select id="product-availability" required>
+                                <option value="available">متوفر</option>
+                                <option value="unavailable">منتهي</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>القسم:</label>
+                            <select id="product-category" required>
+                                <option value="">اختر القسم</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>صور المنتج:</label>
+                        <div class="image-upload-section">
+                            <input type="file" id="product-images" multiple accept="image/*" class="hidden">
+                            <button type="button" id="select-images" class="upload-btn">
+                                <i class="fas fa-images"></i> اختيار الصور
+                            </button>
+                            <div id="upload-progress" class="upload-progress hidden"></div>
+                            <div id="uploaded-images" class="uploaded-images"></div>
+                            <input type="hidden" id="image-ids" name="imageIds">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary btn-large">
+                        <i class="fas fa-plus-circle"></i> إضافة المنتج
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- منتجات التاجر -->
+        <div id="my-products-tab" class="tab-content">
+            <div class="products-header">
+                <h3><i class="fas fa-boxes"></i> منتجاتي</h3>
+                <div class="products-count">
+                    <span id="products-count">0</span> منتج
+                </div>
+            </div>
+            <div id="merchant-products-grid" class="products-grid"></div>
+        </div>
+    </div>
+
+    <!-- نافذة عرض الصور -->
+    <div id="image-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">معرض الصور</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="image-gallery">
+                <div class="main-image-container">
+                    <img id="modal-image" src="" alt="">
+                    <div class="image-counter">
+                        <span id="current-image">1</span> / <span id="total-images">1</span>
+                    </div>
+                </div>
+                <div class="gallery-controls">
+                    <button id="prev-image" class="nav-btn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button id="next-image" class="nav-btn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </div>
+                <div class="thumbnail-strip" id="thumbnail-strip"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة التأكيد -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>تأكيد العملية</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message"></p>
+                <div class="modal-actions">
+                    <button id="confirm-yes" class="btn-danger">نعم</button>
+                    <button id="confirm-no" class="btn-secondary">لا</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- في قسم رفع الصور -->
+<div id="upload-progress" class="hidden">
+  <div class="progress-bar">
+    <div class="progress-fill"></div>
+  </div>
+  <span class="progress-text">جاري الرفع...</span>
+</div>
+
+<div id="uploaded-images" class="uploaded-images-grid"></div>
+
+<!-- CSS للتنسيق -->
+<style>
+.uploaded-image-container {
+  position: relative;
+  display: inline-block;
+  margin: 5px;
+}
+
+.uploaded-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #10b981;
+  transition: width 0.3s ease;
+}
+
+.hidden {
+  display: none;
+}
+</style>
+
+    <script src="script.js"></script>
+</body>
+</html>
