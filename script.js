@@ -12,7 +12,7 @@ const database = firebase.database();
 const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms';
 
 // رابط تطبيق الويب الذي نشرته من Google Apps Script
-const DRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbw8FFR6JFtKkUxTEOcOjNUWAsOzOCJUvD-j6iIzgspr5i_mYb1QqgaF4a7lxrgFfHI4/exec';
+const DRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbwk7cLtyeG1lC--OUvfHJB8VQHccabTjPxbWbEmFjqQPbRxOrOGvMpjncFk2R9r8RNL/exec';
 
 // رفع الصور إلى Google Drive
 async function uploadImagesToDrive(files) {
