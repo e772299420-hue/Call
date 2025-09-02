@@ -1,6 +1,6 @@
 // إعدادات Firebase
 const firebaseConfig = {
-    databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+    databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/" // استبدل برابط قاعدة بياناتك
 };
 
 // تهيئة Firebase
@@ -8,90 +8,8 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // إعدادات Google Drive
-// معرف مجلد Google Drive
-const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms';
-
-// رابط تطبيق الويب الذي نشرته من Google Apps Script
-const DRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbwk7cLtyeG1lC--OUvfHJB8VQHccabTjPxbWbEmFjqQPbRxOrOGvMpjncFk2R9r8RNL/exec';
-
-// رفع الصور إلى Google Drive
-async function uploadImagesToDrive(files) {
-    const uploadedImageIds = [];
-    
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('folderId', DRIVE_FOLDER_ID); // تحديد المجلد
-        
-        try {
-            const response = await fetch(DRIVE_API_URL, {
-                method: 'POST',
-                body: formData
-            });
-            
-            // إضافة فحص لحالة الرد
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`خطأ في استجابة الخادم: ${response.status} - ${errorText}`);
-            }
-
-            const data = await response.json();
-            if (data && data.fileId) {
-                uploadedImageIds.push(data.fileId); // معرف الصورة بعد الرفع
-            } else {
-                console.error('فشل رفع الصورة:', file.name, data);
-                // رفع خطأ واضح إذا كان الرد لا يحتوي على fileId
-                throw new Error('فشل رفع الصورة: لا يوجد معرف ملف في الرد.');
-            }
-            
-        } catch (error) {
-            console.error('خطأ في رفع الصورة:', file.name, error);
-            throw new Error(`فشل رفع الصورة: ${error.message}`);
-        }
-    }
-    
-    return uploadedImageIds;
-}
-
-// دالة معالجة اختيار الصور التي تستخدم Google Drive
-// ملاحظة: تم دمج هذه الدالة مع الدالة المشابهة في الكود الأصلي
-async function handleImageSelection(e) {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    
-    const progressElement = document.getElementById('upload-progress');
-    const uploadedImagesElement = document.getElementById('uploaded-images');
-    
-    progressElement.classList.remove('hidden');
-    progressElement.textContent = 'جاري رفع الصور...';
-    uploadedImagesElement.innerHTML = '';
-    
-    try {
-        const imageIds = await uploadImagesToDrive(files);
-        
-        imageIds.forEach((id, index) => {
-            const img = document.createElement('img');
-            img.className = 'uploaded-image';
-            // استخدام blob URL للعرض الفوري
-            img.src = URL.createObjectURL(files[index]);
-            img.title = files[index].name;
-            uploadedImagesElement.appendChild(img);
-        });
-        
-        // تحديث متغير uploadedImageIds العام
-        uploadedImageIds = imageIds; 
-        document.getElementById('image-ids').value = imageIds.join(',');
-        progressElement.textContent = `تم رفع ${imageIds.length} صورة بنجاح`;
-        
-    } catch (error) {
-        console.error('حدث خطأ في رفع الصور:', error);
-        progressElement.textContent = 'حدث خطأ في رفع الصور';
-        // إضافة رسالة واضحة للمستخدم
-        showAlert('حدث خطأ في رفع الصور: ' + error.message, 'error');
-    }
-}
+const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms'; // استبدل بمعرف مجلدك
+const DRIVE_API_URL ='https://script.google.com/macros/s/AKfycbwk7cLtyeG1lC--OUvfHJB8VQHccabTjPxbWbEmFjqQPbRxOrOGvMpjncFk2R9r8RNL/exec'  
 
 // متغيرات عامة
 let currentUser = null;
@@ -101,6 +19,185 @@ let allProducts = [];
 let currentImageGallery = [];
 let currentImageIndex = 0;
 let uploadedImageIds = [];
+
+// تحويل الملف إلى Base64
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// رفع الصور إلى Google Drive باستخدام Base64
+async function uploadImagesToDrive(files) {
+    const uploadedImageIds = [];
+    const progressElement = document.getElementById('upload-progress');
+    const progressFill = progressElement.querySelector('.progress-fill');
+    const progressText = progressElement.querySelector('.progress-text');
+    
+    const totalFiles = files.length;
+    
+    for (let i = 0; i < totalFiles; i++) {
+        const file = files[i];
+        
+        try {
+            // تحديث شريط التقدم
+            const progressPercent = ((i + 1) / totalFiles) * 100;
+            if (progressFill) {
+                progressFill.style.width = `${progressPercent}%`;
+            }
+            if (progressText) {
+                progressText.textContent = `جاري رفع الصورة ${i + 1} من ${totalFiles}: ${file.name}`;
+            }
+            
+            // تحويل الملف إلى Base64
+            const base64Data = await fileToBase64(file);
+            
+            // إعداد البيانات للإرسال
+            const formData = new FormData();
+            formData.append('fileData', base64Data);
+            formData.append('fileName', file.name);
+            formData.append('mimeType', file.type);
+            formData.append('folderId', DRIVE_FOLDER_ID);
+            
+            const response = await fetch(DRIVE_API_URL, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`خطأ HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success && data.fileId) {
+                uploadedImageIds.push(data.fileId);
+                console.log(`تم رفع الصورة بنجاح: ${file.name} - ID: ${data.fileId}`);
+            } else {
+                console.error('فشل رفع الصورة:', file.name, data);
+                throw new Error(data.error || 'فشل رفع الصورة: استجابة غير صالحة');
+            }
+            
+        } catch (error) {
+            console.error('خطأ في رفع الصورة:', file.name, error);
+            throw new Error(`فشل رفع الصورة ${file.name}: ${error.message}`);
+        }
+    }
+    
+    if (progressText) {
+        progressText.textContent = `تم رفع ${uploadedImageIds.length} صورة بنجاح`;
+        progressText.style.color = 'var(--success-color)';
+    }
+    
+    return uploadedImageIds;
+}
+
+// معالجة اختيار الصور
+async function handleImageSelection(e) {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    // التحقق من نوع الملفات
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const invalidFiles = files.filter(file => !validTypes.includes(file.type));
+    
+    if (invalidFiles.length > 0) {
+        showAlert('يرجى اختيار ملفات صور صالحة فقط (JPEG, PNG, GIF, WebP)', 'warning');
+        return;
+    }
+    
+    // التحقق من حجم الملفات (5MB لكل ملف)
+    const maxSize = 5 * 1024 * 1024;
+    const oversizedFiles = files.filter(file => file.size > maxSize);
+    
+    if (oversizedFiles.length > 0) {
+        showAlert('حجم الصورة يجب أن يكون أقل من 5 ميجابايت', 'warning');
+        return;
+    }
+    
+    const progressElement = document.getElementById('upload-progress');
+    const uploadedImagesElement = document.getElementById('uploaded-images');
+    
+    progressElement.classList.remove('hidden');
+    uploadedImagesElement.innerHTML = '';
+    
+    // إعادة تعيين شريط التقدم
+    const progressFill = progressElement.querySelector('.progress-fill');
+    const progressText = progressElement.querySelector('.progress-text');
+    if (progressFill) progressFill.style.width = '0%';
+    if (progressText) {
+        progressText.textContent = 'جاري رفع الصور...';
+        progressText.style.color = 'var(--info-color)';
+    }
+    
+    try {
+        const imageIds = await uploadImagesToDrive(files);
+        
+        // عرض الصور المرفوعة
+        imageIds.forEach((id, index) => {
+            const container = document.createElement('div');
+            container.className = 'uploaded-image-container';
+            
+            const img = document.createElement('img');
+            img.className = 'uploaded-image';
+            img.src = getDriveImageUrl(id);
+            img.alt = files[index].name;
+            img.title = files[index].name;
+            img.onclick = () => openImageGallery([id], files[index].name);
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-image-btn';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = 'إزالة الصورة';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                removeUploadedImage(container, id);
+            };
+            
+            container.appendChild(img);
+            container.appendChild(removeBtn);
+            uploadedImagesElement.appendChild(container);
+        });
+        
+        uploadedImageIds = imageIds;
+        document.getElementById('image-ids').value = imageIds.join(',');
+        
+        showAlert(`تم رفع ${imageIds.length} صورة بنجاح`, 'success');
+        
+    } catch (error) {
+        console.error('حدث خطأ في رفع الصور:', error);
+        if (progressText) {
+            progressText.textContent = 'حدث خطأ في رفع الصور';
+            progressText.style.color = 'var(--danger-color)';
+        }
+        showAlert('حدث خطأ في رفع الصور: ' + error.message, 'error');
+    } finally {
+        setTimeout(() => {
+            progressElement.classList.add('hidden');
+        }, 3000);
+    }
+}
+
+// إزالة صورة مرفوعة
+function removeUploadedImage(container, imageId) {
+    container.remove();
+    uploadedImageIds = uploadedImageIds.filter(id => id !== imageId);
+    document.getElementById('image-ids').value = uploadedImageIds.join(',');
+    
+    const remainingImages = document.querySelectorAll('.uploaded-image-container').length;
+    if (remainingImages === 0) {
+        document.getElementById('upload-progress').classList.add('hidden');
+    }
+    
+    showAlert('تم إزالة الصورة', 'info');
+}
 
 // تهيئة التطبيق
 document.addEventListener('DOMContentLoaded', function() {
@@ -1132,7 +1229,7 @@ async function addProduct(e) {
         document.getElementById('upload-progress').classList.add('hidden');
         uploadedImageIds = [];
         
-        await loadMerchantProducts();
+        await loadMerchantData();
         await loadProducts(); // تحديث المنتجات في واجهة الزائر
         
         showAlert('تم إضافة المنتج بنجاح', 'success');
@@ -1142,32 +1239,6 @@ async function addProduct(e) {
         showAlert('حدث خطأ في إضافة المنتج', 'error');
     } finally {
         showLoading(false);
-    }
-}
-
-// تحميل منتجات التاجر
-async function loadMerchantProducts() {
-    if (!currentUser || !currentUser.id) return;
-    
-    try {
-        const productsSnapshot = await database.ref('products').orderByChild('merchantId').equalTo(currentUser.id).once('value');
-        const products = productsSnapshot.val() || {};
-        
-        const productsList = Object.entries(products).map(([id, product]) => ({
-            ...product,
-            id
-        }));
-        
-        // ترتيب المنتجات حسب تاريخ الإضافة (الأحدث أولاً)
-        productsList.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        
-        displayMerchantProducts(productsList);
-        
-        // تحديث عداد المنتجات
-        document.getElementById('products-count').textContent = productsList.length;
-        
-    } catch (error) {
-        console.error('خطأ في تحميل منتجات التاجر:', error);
     }
 }
 
@@ -1202,7 +1273,7 @@ async function deleteProduct(productId) {
         showLoading(true);
         
         await database.ref(`products/${productId}`).remove();
-        await loadMerchantProducts();
+        await loadMerchantData();
         await loadProducts(); // تحديث المنتجات في واجهة الزائر
         
         showAlert('تم حذف المنتج بنجاح', 'success');
@@ -1398,28 +1469,56 @@ function generateId(text) {
         .replace(/[^\w]/g, '');
 }
 
+// نظام التنبيهات المحسن
 function showAlert(message, type = 'info') {
-    // يمكنك تطوير نظام تنبيهات أكثر تقدماً هنا
-    console.log(`${type.toUpperCase()}: ${message}`);
+    const alertContainer = document.getElementById('alert-container');
     
-    // للتطوير السريع، استخدام alert
-    if (type === 'error') {
-        alert(`خطأ: ${message}`);
-    } else if (type === 'success') {
-        alert(`نجح: ${message}`);
-    } else if (type === 'warning') {
-        alert(`تحذير: ${message}`);
-    } else {
-        alert(message);
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    
+    const icon = getAlertIcon(type);
+    alert.innerHTML = `
+        <div class="alert-content">
+            <i class="${icon}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="alert-close">&times;</button>
+    `;
+    
+    // إضافة التنبيه
+    alertContainer.appendChild(alert);
+    
+    // تحريك التنبيه للداخل
+    setTimeout(() => alert.classList.add('show'), 100);
+    
+    // إزالة التنبيه تلقائياً
+    setTimeout(() => {
+        alert.classList.remove('show');
+        setTimeout(() => alert.remove(), 300);
+    }, 5000);
+    
+    // إزالة التنبيه عند النقر على زر الإغلاق
+    alert.querySelector('.alert-close').addEventListener('click', () => {
+        alert.classList.remove('show');
+        setTimeout(() => alert.remove(), 300);
+    });
+}
+
+function getAlertIcon(type) {
+    switch (type) {
+        case 'success': return 'fas fa-check-circle';
+        case 'error': return 'fas fa-times-circle';
+        case 'warning': return 'fas fa-exclamation-triangle';
+        case 'info': return 'fas fa-info-circle';
+        default: return 'fas fa-info-circle';
     }
 }
 
 function showLoading(show) {
-    // يمكنك إضافة مؤشر تحميل هنا
     if (show) {
         document.body.style.cursor = 'wait';
     } else {
-    document.body.style.cursor = 'default';
+        document.body.style.cursor = 'default';
     }
 }
 
