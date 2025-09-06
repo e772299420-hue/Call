@@ -93,6 +93,42 @@
     margin-right: 5px;
 }
 
+/* ===== حقل nam_usr فوق التذييل ===== */
+.nam-usr-container {
+    position: fixed;
+    bottom: 60px; /* فوق التذييل مباشرة */
+    left: 50%;
+    transform: translateX(-50%);
+    background: transparent; /* خلفية شفافة */
+    border-radius: 8px;
+    padding: 10px;
+    width: 280px;
+    z-index: 998;
+    text-align: center;
+}
+
+.nam-usr-field {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.2); /* خلفية شبه شفافة */
+    color: white;
+    text-align: center;
+    backdrop-filter: blur(5px); /* تأثير ضبابي */
+}
+
+.nam-usr-field::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.nam-usr-field:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
 /* ===== التذييل ===== */
 .footer {
     position: fixed;
@@ -118,7 +154,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 80px 20px 70px 20px; /* تقليل المسافة العلوية */
+    padding: 80px 20px 70px 20px;
     position: relative;
 }
 
@@ -127,8 +163,8 @@ body {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 20px; /* تقليل المسافة بين البطاقات */
-    max-width: 1000px; /* جعل العرض أقل لتقارب البطاقات */
+    gap: 20px;
+    max-width: 1000px;
     width: 100%;
 }
 
@@ -136,7 +172,7 @@ body {
     background: white;
     border-radius: 15px;
     overflow: hidden;
-    width: 300px; /* جعل البطاقات أكبر قليلاً */
+    width: 300px;
     text-align: center;
     box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     transition: transform 0.3s, box-shadow 0.3s, filter 0.3s;
@@ -216,12 +252,21 @@ body {
     width: 100%;
 }
 
+/* ===== حقل الإدخال - مخفي الآن ===== */
+.input-container {
+    display: none; /* إخفاء الحاوية الأصلية */
+}
+
+.transfer-btn {
+    display: none; /* إخفاء زر نقل البيانات */
+}
+
 /* ===== استجابة الهواتف ===== */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
         align-items: center;
-        gap: 15px; /* تقليل المسافة أكثر للهواتف */
+        gap: 15px;
     }
     
     .card {
@@ -233,6 +278,11 @@ body {
         left: 10px;
         padding: 8px 12px;
         font-size: 0.9rem;
+    }
+    
+    .nam-usr-container {
+        width: 90%;
+        max-width: 280px;
     }
     
     .merchant-section {
@@ -259,7 +309,7 @@ body {
     </div>
     <div class="merchant-section">
         <div class="management-name">منتجات وأصناف المتجر</div>
-        <div class="merchant-name">تاجر: محمد أحمد</div>
+        <div class="merchant-name" id="user-display-name">تاجر: جاري التحميل...</div>
     </div>
 </header>
 
@@ -268,10 +318,26 @@ body {
     <i class="fas fa-arrow-left"></i> رجوع
 </a>
 
+<!-- حقل nam_usr فوق التذييل -->
+<div class="nam-usr-container">
+    <input type="text" id="nam_usr" class="nam-usr-field" placeholder="أدخل بيانات nam_usr هنا">
+</div>
+
+<!-- حقل الإدخال الأصلي (مخفي) -->
+<div class="input-container">
+    <div class="input-group">
+        <label class="input-label" for="nam_usr_original">حقل nam_usr:</label>
+        <input type="text" id="nam_usr_original" class="input-field" placeholder="أدخل البيانات هنا">
+    </div>
+    <button class="transfer-btn" onclick="transferData()">
+        <i class="fas fa-exchange-alt"></i> نقل البيانات إلى globaluser
+    </button>
+</div>
+
 <!-- الحاوية الرئيسية للبطاقات -->
 <div class="container">
     <!-- تعديل بيانات التاجر -->
-    <div class="card" onclick="window.location.href='ub_tager.html'">
+    <div class="card" onclick="navigateToEditMerchant()">
         <div class="card-header">
             <i class="fas fa-user-edit"></i>
             <h2>تعديل بيانات التاجر</h2>
@@ -319,5 +385,168 @@ body {
     جميع الحقوق محفوظة لدى شركة المميز سوفت للأنظمة المحاسبية المتكاملة © 2023
 </footer>
 
+<script>
+// اسم التاجر الثابت
+let globaluser = "globaluser";
+
+// كائن تخزين بيانات المستخدم بشكل عام (جلوبال)
+const globalUser = {
+    data: null,
+    
+    // دالة لتخزين بيانات المستخدم
+    setUserData: function(userData) {
+        this.data = userData;
+        localStorage.setItem('globalUserData', JSON.stringify(userData));
+        updateUserDisplay();
+        updateNamUsrField();
+    },
+    
+    // دالة لاسترجاع بيانات المستخدم
+    getUserData: function() {
+        if (this.data) {
+            return this.data;
+        }
+        
+        const storedData = localStorage.getItem('globalUserData');
+        if (storedData) {
+            this.data = JSON.parse(storedData);
+            return this.data;
+        }
+        
+        return null;
+    },
+    
+    // دالة للحصول على اسم المستخدم
+    getUsername: function() {
+        const userData = this.getUserData();
+        return userData ? userData.username : 'زائر';
+    },
+    
+    // دالة للحصول على اسم التاجر
+    getMerchantName: function() {
+        const userData = this.getUserData();
+        return userData ? (userData.name || userData.username) : 'زائر';
+    },
+    
+    // دالة للحصول على معرف المستخدم
+    getUserId: function() {
+        const userData = this.getUserData();
+        return userData ? userData.id : null;
+    },
+    
+    // دالة للتحقق من وجود مستخدم مسجل
+    isLoggedIn: function() {
+        return this.getUserData() !== null;
+    },
+    
+    // دالة لتسجيل الخروج
+    logout: function() {
+        this.data = null;
+        localStorage.removeItem('globalUserData');
+        updateUserDisplay();
+        updateNamUsrField();
+    }
+};
+
+// دالة لتحديث عرض اسم المستخدم في واجهة المستخدم
+function updateUserDisplay() {
+    const userDisplayElement = document.getElementById('user-display-name');
+    const userData = globalUser.getUserData();
+    
+    if (userData) {
+        userDisplayElement.textContent = `تاجر: ${globalUser.getMerchantName()}`;
+    } else {
+        userDisplayElement.textContent = `تاجر: ${globaluser}`;
+    }
+}
+
+// دالة لتحديث حقل nam_usr ببيانات الجلوبال
+function updateNamUsrField() {
+    const namUsrField = document.getElementById('nam_usr');
+    const userData = globalUser.getUserData();
+    
+    if (userData) {
+        namUsrField.value = userData.username || userData.name || globaluser;
+    } else {
+        namUsrField.value = globaluser;
+    }
+}
+
+// دالة للانتقال إلى صفحة تعديل بيانات التاجر مع نقل اسم التاجر
+function navigateToEditMerchant() {
+    // نقل البيانات من حقل nam_usr إلى الجلوبال قبل الانتقال
+    const namUsrField = document.getElementById('nam_usr');
+    const namUsrValue = namUsrField.value.trim();
+    
+    if (namUsrValue) {
+        // تحديث المتغير globaluser بالبيانات من الحقل
+        globaluser = namUsrValue;
+        
+        // تحديث بيانات المستخدم في الجلوبال
+        const currentUserData = globalUser.getUserData() || {};
+        const updatedUserData = {
+            ...currentUserData,
+            username: namUsrValue,
+            name: namUsrValue
+        };
+        globalUser.setUserData(updatedUserData);
+    }
+    
+    // تخزين اسم التاجر في localStorage لنقله للصفحة الأخرى
+    localStorage.setItem('merchantToEdit', globaluser);
+    
+    // الانتقال إلى صفحة تعديل بيانات التاجر
+    window.location.href = 'ub_tager.html';
+}
+
+// دالة لنقل البيانات من حقل nam_usr إلى globaluser
+function transferData() {
+    const namUsrField = document.getElementById('nam_usr');
+    const namUsrValue = namUsrField.value.trim();
+    
+    if (!namUsrValue) {
+        alert('حقل nam_usr فارغ. يرجى إدخال البيانات أولاً.');
+        return;
+    }
+    
+    // نقل البيانات من الحقل إلى المتغير globaluser
+    globaluser = namUsrValue;
+    
+    // تحديث بيانات المستخدم في الجلوبال
+    const currentUserData = globalUser.getUserData() || {};
+    const updatedUserData = {
+        ...currentUserData,
+        username: namUsrValue,
+        name: namUsrValue
+    };
+    globalUser.setUserData(updatedUserData);
+    
+    alert('تم نقل البيانات بنجاح إلى globaluser');
+}
+
+// عند تحميل الصفحة، تحديث عرض اسم المستخدم
+document.addEventListener('DOMContentLoaded', function() {
+    updateUserDisplay();
+    updateNamUsrField();
+    
+    // إذا لم تكن هناك بيانات مستخدم، إنشاء بيانات افتراضية بناءً على globaluser
+    if (!globalUser.getUserData()) {
+        const defaultUserData = {
+            id: 'default_merchant',
+            username: globaluser,
+            name: globaluser,
+            type: 'merchant',
+            loginTime: new Date().toISOString(),
+            governorate: 'الرياض',
+            area: 'الملز',
+            mobile: '0551234567',
+            phone: '0112345678',
+            createdAt: new Date().toISOString()
+        };
+        globalUser.setUserData(defaultUserData);
+    }
+});
+</script>
+
 </body>
-</html>
+    </html>
