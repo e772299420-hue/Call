@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بيانات التاجر - السوق الشامل</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* ===== الشريط العلوي ===== */
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 1000;
+            flex-direction: row-reverse;
+        }
+
+        .app-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .app-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            margin-right: 10px;
+            overflow: hidden;
+            background: white;
+            padding: 5px;
+        }
+
+        .app-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .app-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .merchant-section {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .management-name {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .merchant-name {
+            font-size: 16px;
+            color: white;
+            font-weight: 500;
+        }
+
+        /* ===== زر الرجوع ===== */
+        .back-button {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(25, 118, 210, 0.9);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+            z-index: 999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background-color: #1976D2;
+            transform: translateY(-2px);
+        }
+
+        .back-button i {
+            margin-right: 5px;
+        }
+
+        /* ===== التذييل ===== */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: rgba(25, 118, 210, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        /* ===== محتوى الصفحة ===== */
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 80px 20px 70px 20px;
+            position: relative;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 1200px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .merchant-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 18px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .merchant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid rgba(106, 17, 203, 0.2);
+            padding-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .merchant-name-card {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding: 5px 0;
+        }
+        
+        .merchant-status {
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .status-active {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+        }
+        
+        .status-inactive {
+            background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+            color: white;
+        }
+        
+        .merchant-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        
+        .detail-item {
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .detail-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .detail-label {
+            font-weight: 700;
+            color: #6a11cb;
+            margin-bottom: 8px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .detail-label i {
+            margin-left: 8px;
+            font-size: 16px;
+        }
+        
+        .detail-value {
+            font-size: 16px;
+            color: #2c3e50;
+            padding: 12px 15px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 12px;
+            min-height: 45px;
+            word-break: break-all;
+            border: 1px solid rgba(106, 17, 203, 0.1);
+        }
+        
+        .detail-value a {
+            color: #2575fc;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .detail-value a:hover {
+            color: #6a11cb;
+            text-decoration: underline;
+        }
+        
+        .editable {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #6a11cb;
+            box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.2);
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 16px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(106, 17, 203, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #78909c 0%, #546e7a 100%);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(120, 144, 156, 0.4);
+        }
+        
+        .btn i {
+            margin-left: 8px;
+        }
+        
+        .no-merchant {
+            text-align: center;
+            padding: 50px 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 18px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+        }
+        
+        .no-merchant i {
+            font-size: 60px;
+            color: #b0bec5;
+            margin-bottom: 20px;
+        }
+        
+        .no-merchant h2 {
+            color: #5a6b7c;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        
+        .no-merchant p {
+            color: #78909c;
+            margin-bottom: 25px;
+            font-size: 16px;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(243, 243, 243, 0.6);
+            border-top: 5px solid #6a11cb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .location-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .location-group input {
+            flex: 1;
+        }
+        
+        .btn-location {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
+        }
+        
+        .btn-location:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        /* ===== تنسيق الإشعارات ===== */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast {
+            padding: 15px 20px;
+            border-radius: 12px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 300px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .toast.success {
+            background: rgba(76, 175, 80, 0.9);
+        }
+        
+        .toast.error {
+            background: rgba(244, 67, 54, 0.9);
+        }
+        
+        .toast.info {
+            background: rgba(33, 150, 243, 0.9);
+        }
+        
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toast-icon {
+            font-size: 20px;
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        
+        .toast-close:hover {
+            opacity: 1;
+        }
+        
+        .toast-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            width: 100%;
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+        }
+        
+        .toast-progress-bar {
+            height: 100%;
+            background: white;
+            animation: progressBar 10s linear forwards;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes progressBar {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        
+        .loading-spinner-btn {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        /* ===== استجابة الهواتف ===== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .merchant-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-self: stretch;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .toast {
+                min-width: unset;
+                width: calc(100% - 40px);
+                margin: 0 20px;
+            }
+            
+            .location-group {
+                flex-direction: column;
+            }
+            
+            .back-button {
+                top: 75px;
+                left: 10px;
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .merchant-section {
+                flex-direction: row;
+                align-items: center;
+                font-size: 12px;
+            }
+            
+            .app-name {
+                font-size: 16px;
+            }
+
+            .merchant-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- الشريط العلوي -->
+<header class="top-header">
+    <div class="app-info">
+        <div class="app-logo">
+            <img src="https://github.com/T772299420/Call/raw/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png" alt="شعار السوق الشامل">
+        </div>
+        <div class="app-name">السوق الشامل</div>
+    </div>
+    <div class="merchant-section">
+        <div class="management-name">تعديل بيانات التاجر</div>
+        <div class="merchant-name" id="user-display-name">تاجر: جاري التحميل...</div>
+    </div>
+</header>
+
+<!-- زر الرجوع -->
+<a href="manjr_tagr_snf.html" class="back-button">
+    <i class="fas fa-arrow-left"></i> رجوع
+</a>
+
+<div class="container">
+    <div id="loadingIndicator" style="text-align: center; padding: 40px;">
+        <div class="loading-spinner"></div>
+        <p>جاري تحميل بيانات التاجر...</p>
+    </div>
+
+    <div id="merchantData" class="merchant-card" style="display: none;">
+        <div class="merchant-header">
+            <h2 class="merchant-name-card" id="merchantName">اسم التاجر</h2>
+            <div class="merchant-status" id="merchantStatus">نشط</div>
+        </div>
+        
+        <div class="merchant-details">
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-store"></i> اسم المتجر</div>
+                <div class="detail-value" id="merchantNameValue">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-user"></i> اسم المستخدم</div>
+                <div class="detail-value" id="username">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-phone"></i> رقم الهاتف الثابت</div>
+                <div class="detail-value" id="phone">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-mobile-alt"></i> رقم الجوال/واتساب</div>
+                <div class="detail-value" id="mobile">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-network-wired"></i> أيبي هاتف العميل</div>
+                <div class="detail-value" id="ip">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-map-marker-alt"></i> الموقع</div>
+                <div class="location-group">
+                    <input type="text" class="detail-value" id="location" placeholder="إحداثيات الموقع (خط العرض, خط الطول)" readonly>
+                    <button type="button" class="btn-location" id="get-location-btn">
+                        <i class="fas fa-map-marker-alt"></i> تحديد الموقع
+                    </button>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fab fa-facebook"></i> رابط الفيسبوك</div>
+                <div class="detail-value" id="facebook">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fab fa-instagram"></i> رابط انستجرام</div>
+                <div class="detail-value" id="instagram">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fab fa-twitter"></i> رابط تويتر</div>
+                <div class="detail-value" id="twitter">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fab fa-youtube"></i> رابط يوتيوب</div>
+                <div class="detail-value" id="youtube">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fab fa-google"></i> رابط موقع جوجل</div>
+                <div class="detail-value" id="google">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-key"></i> كلمة المرور</div>
+                <div class="detail-value" id="password">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-calendar-alt"></i> تاريخ التسجيل</div>
+                <div class="detail-value" id="createdAt">قيد التحميل...</div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button id="editBtn" class="btn btn-primary">
+                <i class="fas fa-edit"></i> تعديل البيانات
+            </button>
+            <button id="saveBtn" class="btn btn-success" style="display: none;">
+                <i class="fas fa-save"></i> حفظ التعديلات
+            </button>
+            <button id="cancelBtn" class="btn btn-secondary" style="display: none;">
+                <i class="fas fa-times"></i> إلغاء
+            </button>
+        </div>
+    </div>
+    
+    <div id="noMerchant" class="no-merchant" style="display: none;">
+        <i class="fas fa-store-slash"></i>
+        <h2 id="noMerchantTitle">لا يوجد تاجر</h2>
+        <p id="noMerchantDesc">لم يتم العثور على أي تاجر في قاعدة البيانات.</p>
+    </div>
+</div>
+
+<!-- التذييل -->
+<footer class="footer">
+    جميع الحقوق محفوظة لدى شركة المميز سوفت للأنظمة المحاسبية المتكاملة © 2023
+</footer>
+
+<!-- حاوية الإشعارات -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    // تهيئة Firebase
+    const firebaseConfig = {
+        databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+    };
+    
+    // تهيئة Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    
+    // عناصر DOM
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const merchantData = document.getElementById('merchantData');
+    const noMerchant = document.getElementById('noMerchant');
+    const noMerchantTitle = document.getElementById('noMerchantTitle');
+    const noMerchantDesc = document.getElementById('noMerchantDesc');
+    const merchantName = document.getElementById('merchantName');
+    const merchantNameValue = document.getElementById('merchantNameValue');
+    const merchantStatus = document.getElementById('merchantStatus');
+    const username = document.getElementById('username');
+    const phone = document.getElementById('phone');
+    const mobile = document.getElementById('mobile');
+    const ip = document.getElementById('ip');
+    const locationField = document.getElementById('location');
+    const facebook = document.getElementById('facebook');
+    const instagram = document.getElementById('instagram');
+    const twitter = document.getElementById('twitter');
+    const youtube = document.getElementById('youtube');
+    const google = document.getElementById('google');
+    const password = document.getElementById('password');
+    const createdAt = document.getElementById('createdAt');
+    const editBtn = document.getElementById('editBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const getLocationBtn = document.getElementById('get-location-btn');
+    const toastContainer = document.getElementById('toastContainer');
+    const userDisplayElement = document.getElementById('user-display-name');
+    
+    // بيانات المحافظات والتاجر الحالي
+    let governoratesData = {};
+    let currentMerchant = null;
+    let originalData = {};
+    
+    // كائن تخزين بيانات المستخدم بشكل عام (جلوبال)
+    const globalUser = {
+        data: null,
+        
+        // دالة لتخزين بيانات المستخدم
+        setUserData: function(userData) {
+            this.data = userData;
+            localStorage.setItem('globalUserData', JSON.stringify(userData));
+            updateUserDisplay();
+        },
+        
+        // دالة لاسترجاع بيانات المستخدم
+        getUserData: function() {
+            if (this.data) {
+                return this.data;
+            }
+            
+            const storedData = localStorage.getItem('globalUserData');
+            if (storedData) {
+                this.data = JSON.parse(storedData);
+                return this.data;
+            }
+            
+            return null;
+        },
+        
+        // دالة للحصول على اسم المستخدم
+        getUsername: function() {
+            const userData = this.getUserData();
+            return userData ? userData.username : 'زائر';
+        },
+        
+        // دالة للحصول على اسم التاجر
+        getMerchantName: function() {
+            const userData = this.getUserData();
+            return userData ? (userData.name || userData.username) : 'زائر';
+        },
+        
+        // دالة للحصول على معرف المستخدم
+        getUserId: function() {
+            const userData = this.getUserData();
+            return userData ? userData.id : null;
+        },
+        
+        // دالة للتحقق من وجود مستخدم مسجل
+        isLoggedIn: function() {
+            return this.getUserData() !== null;
+        },
+        
+        // دالة لتسجيل الخروج
+        logout: function() {
+            this.data = null;
+            localStorage.removeItem('globalUserData');
+            updateUserDisplay();
+        }
+    };
+    
+    // دالة لتحديث عرض اسم المستخدم في واجهة المستخدم
+    function updateUserDisplay() {
+        const userData = globalUser.getUserData();
+        
+        if (userData) {
+            userDisplayElement.textContent = `تاجر: ${globalUser.getMerchantName()}`;
+        } else {
+            userDisplayElement.textContent = `تاجر: جاري التحميل...`;
+        }
+    }
+    
+    // دالة لعرض الإشعارات
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icon = type === 'success' ? 'fa-check-circle' : 
+                    type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+        
+        toast.innerHTML = `
+            <div class="toast-content">
+                <i class="fas ${icon} toast-icon"></i>
+                <span>${message}</span>
+            </div>
+            <button class="toast-close">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="toast-progress">
+                <div class="toast-progress-bar"></div>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        // إضافة حدث إغلاق عند النقر على زر الإغلاق
+        const closeBtn = toast.querySelector('.toast-close');
+        closeBtn.addEventListener('click', () => {
+            toast.style.opacity = '0';
+            setTimeout(() => {
+                toastContainer.removeChild(toast);
+            }, 300);
+        });
+        
+        // إزالة الإشعار تلقائياً после 10 ثوان
+        setTimeout(() => {
+            if (toast.parentNode === toastContainer) {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }
+        }, 10000);
+    }
+    
+    // تهيئة الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        // الحصول على اسم المستخدم من localStorage
+        const merchantToEdit = localStorage.getItem('merchantToEdit') || 'globaluser';
+        
+        // تحديث عرض اسم المستخدم
+        updateUserDisplay();
+        
+        // تحميل بيانات التاجر
+        loadGovernorates();
+        findMerchantByUsername(merchantToEdit);
+        
+        // إعداد مستمع الأحداث للأزرار
+        editBtn.addEventListener('click', enableEditing);
+        saveBtn.addEventListener('click', saveChanges);
+        cancelBtn.addEventListener('click', cancelEditing);
+        getLocationBtn.addEventListener('click', getCurrentLocation);
+        
+        // السماح بالإدخال اليدوي للموقع
+        locationField.readOnly = false;
+        
+        // إذا لم تكن هناك بيانات مستخدم، إنشاء بيانات افتراضية
+        if (!globalUser.getUserData()) {
+            const defaultUserData = {
+                id: 'default_merchant',
+                username: merchantToEdit,
+                name: merchantToEdit,
+                type: 'merchant',
+                loginTime: new Date().toISOString(),
+                governorate: 'الرياض',
+                area: 'الملز',
+                mobile: '0551234567',
+                phone: '0112345678',
+                createdAt: new Date().toISOString()
+            };
+            globalUser.setUserData(defaultUserData);
+        }
+    });
+    
+    // تحميل المحافظات
+    async function loadGovernorates() {
+        try {
+            const snapshot = await database.ref('governorates').once('value');
+            governoratesData = snapshot.val() || {};
+        } catch (error) {
+            console.error('خطأ في تحميل المحافظات:', error);
+        }
+    }
+    
+    // البحث عن التاجر باسم المستخدم المحدد
+    async function findMerchantByUsername(usernameToFind) {
+        try {
+            loadingIndicator.style.display = 'block';
+            merchantData.style.display = 'none';
+            noMerchant.style.display = 'none';
+            
+            // جلب جميع التجار من قاعدة البيانات
+            const merchantsSnapshot = await database.ref('merchants').once('value');
+            const merchants = merchantsSnapshot.val();
+            
+            if (!merchants) {
+                loadingIndicator.style.display = 'none';
+                noMerchantTitle.textContent = "لا توجد بيانات للتجار";
+                noMerchantDesc.textContent = "قاعدة بيانات التجار فارغة.";
+                noMerchant.style.display = 'block';
+                return;
+            }
+            
+            // البحث عن التاجر الذي يطابق اسم المستخدم المطلوب
+            let foundMerchant = null;
+            let merchantId = null;
+            
+            Object.keys(merchants).forEach(key => {
+                const merchant = merchants[key];
+                // البحث في حقل username
+                if (merchant.username && merchant.username.toLowerCase() === usernameToFind.toLowerCase()) {
+                    foundMerchant = merchant;
+                    merchantId = key;
+                }
+            });
+            
+            if (!foundMerchant) {
+                loadingIndicator.style.display = 'none';
+                noMerchantTitle.textContent = `لا يوجد تاجر باسم المستخدم "${usernameToFind}"`;
+                noMerchantDesc.textContent = `لم يتم العثور على تاجر باسم المستخدم "${usernameToFind}" في قاعدة البيانات.`;
+                noMerchant.style.display = 'block';
+                return;
+            }
+            
+            // تخزين بيانات التاجر
+            currentMerchant = {
+                id: merchantId,
+                ...foundMerchant
+            };
+            
+            // عرض بيانات التاجر
+            displayMerchant(currentMerchant);
+            
+        } catch (error) {
+            console.error('خطأ في تحميل بيانات التاجر:', error);
+            loadingIndicator.style.display = 'none';
+            noMerchantTitle.textContent = "حدث خطأ في تحميل البيانات";
+            noMerchantDesc.textContent = `خطأ: ${error.message}`;
+            noMerchant.style.display = 'block';
+        }
+    }
+    
+    // عرض بيانات التاجر
+    function displayMerchant(merchant) {
+        merchantName.textContent = merchant.name || 'غير معروف';
+        merchantNameValue.textContent = merchant.name || 'غير معروف';
+        
+        merchantStatus.textContent = merchant.status === 'active' ? 'نشط' : 'موقف';
+        merchantStatus.className = `merchant-status status-${merchant.status || 'active'}`;
+        
+        username.textContent = merchant.username || 'غير معروف';
+        phone.textContent = merchant.phone || 'غير معروف';
+        mobile.textContent = merchant.mobile || 'غير معروف';
+        ip.textContent = merchant.ip || 'غير معروف';
+        locationField.value = merchant.location || '';
+        
+        // عرض روابط التواصل الاجتماعي
+        facebook.innerHTML = merchant.facebook ? `<a href="${merchant.facebook}" target="_blank">${merchant.facebook}</a>` : 'غير معروف';
+        instagram.innerHTML = merchant.instagram ? `<a href="${merchant.instagram}" target="_blank">${merchant.instagram}</a>` : 'غير معروف';
+        twitter.innerHTML = merchant.twitter ? `<a href="${merchant.twitter}" target="_blank">${merchant.twitter}</a>` : 'غير معروف';
+        youtube.innerHTML = merchant.youtube ? `<a href="${merchant.youtube}" target="_blank">${merchant.youtube}</a>` : 'غير معروف';
+        google.innerHTML = merchant.google ? `<a href="${merchant.google}" target="_blank">${merchant.google}</a>` : 'غير معروف';
+        
+        password.textContent = merchant.password || 'غير معروف';
+        createdAt.textContent = merchant.createdAt ? new Date(merchant.createdAt).toLocaleDateString('ar-EG') : 'غير معروف';
+        
+        loadingIndicator.style.display = 'none';
+        merchantData.style.display = 'block';
+    }
+    
+    // تحديد الموقع الحالي
+    function getCurrentLocation() {
+        if (!navigator.geolocation) {
+            showToast('المتصفح لا يدعم خدمات تحديد الموقع', 'error');
+            return;
+        }
+        
+        const originalHtml = getLocationBtn.innerHTML;
+        getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديد...';
+        getLocationBtn.disabled = true;
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const location = `${lat}, ${lng}`;
+                locationField.value = location;
+                getLocationBtn.innerHTML = originalHtml;
+                getLocationBtn.disabled = false;
+                showToast('تم تحديد موقعك بنجاح', 'success');
+                
+                // حفظ الموقع في localStorage للاستخدام لاحقاً
+                localStorage.setItem('lastLocation', location);
+            },
+            function(error) {
+                console.error('خطأ في تحديد الموقع:', error);
+                
+                // محاولة استخدام الموقع المخزن مسبقاً
+                const lastLocation = localStorage.getItem('lastLocation');
+                if (lastLocation) {
+                    locationField.value = lastLocation;
+                    showToast('تم استخدام آخر موقع معروف', 'info');
+                } else {
+                    let errorMessage = 'فشل في تحديد الموقع';
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'تم رفض الإذن لتحديد الموقع. يرجى السماح بالوصول إلى الموقع';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'معلومات الموقع غير متوفرة حالياً';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'انتهت مهلة طلب الموقع';
+                            break;
+                    }
+                    
+                    showToast(errorMessage, 'error');
+                }
+                
+                getLocationBtn.innerHTML = originalHtml;
+                getLocationBtn.disabled = false;
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 300000
+            }
+        );
+    }
+    
+    // تمكين وضع التعديل
+    function enableEditing() {
+        // حفظ البيانات الأصلية
+        originalData = {
+            name: merchantNameValue.textContent,
+            username: username.textContent,
+            phone: phone.textContent,
+            mobile: mobile.textContent,
+            ip: ip.textContent,
+            location: locationField.value,
+            facebook: facebook.textContent,
+            instagram: instagram.textContent,
+            twitter: twitter.textContent,
+            youtube: youtube.textContent,
+            google: google.textContent,
+            password: password.textContent
+        };
+        
+        // جعل الحقول قابلة للتعديل
+        const editableFields = [
+            merchantNameValue, username, phone, mobile, 
+            ip, locationField, facebook, instagram,
+            twitter, youtube, google, password
+        ];
+        
+        editableFields.forEach(field => {
+            field.contentEditable = true;
+            field.classList.add('editable');
+        });
+        
+        // تمكين زر تحديد الموقع
+        getLocationBtn.disabled = false;
+        
+        // إظهار أزرار الحفظ والإلغاء وإخفاء زر التعديل
+        editBtn.style.display = 'none';
+        saveBtn.style.display = 'inline-flex';
+        cancelBtn.style.display = 'inline-flex';
+    }
+    
+    // حفظ التعديلات
+    async function saveChanges() {
+        try {
+            // تجميع البيانات المعدلة
+            const updatedData = {
+                name: merchantNameValue.textContent,
+                username: username.textContent,
+                phone: phone.textContent,
+                mobile: mobile.textContent,
+                ip: ip.textContent,
+                location: locationField.value,
+                facebook: facebook.textContent,
+                instagram: instagram.textContent,
+                twitter: twitter.textContent,
+                youtube: youtube.textContent,
+                google: google.textContent,
+                password: password.textContent,
+                // الحفاظ على البيانات الأخرى كما هي
+                status: currentMerchant.status,
+                createdAt: currentMerchant.createdAt,
+                governorate: currentMerchant.governorate,
+                area: currentMerchant.area
+            };
+            
+            // تحديث البيانات في Firebase
+            await database.ref(`merchants/${currentMerchant.id}`).update(updatedData);
+            
+            // تحديث بيانات التاجر الحالية
+            currentMerchant = {
+                ...currentMerchant,
+                ...updatedData
+            };
+            
+            // تحديث اسم التاجر في العنوان
+            merchantName.textContent = currentMerchant.name;
+            
+            // تعطيل وضع التعديل
+            disableEditing();
+            
+            showToast('تم حفظ التعديلات بنجاح', 'success');
+            
+        } catch (error) {
+            console.error('خطأ في حفظ التعديلات:', error);
+            showToast('حدث خطأ أثناء حفظ التعديلات', 'error');
+        }
+    }
+    
+    // إلغاء التعديلات
+    function cancelEditing() {
+        // استعادة البيانات الأصلية
+        merchantNameValue.textContent = originalData.name;
+        username.textContent = originalData.username;
+        phone.textContent = originalData.phone;
+        mobile.textContent = originalData.mobile;
+        ip.textContent = originalData.ip;
+        locationField.value = originalData.location;
+        facebook.textContent = originalData.facebook;
+        instagram.textContent = originalData.instagram;
+        twitter.textContent = originalData.twitter;
+        youtube.textContent = originalData.youtube;
+        google.textContent = originalData.google;
+        password.textContent = originalData.password;
+        
+        // تعطيل وضع التعديل
+        disableEditing();
+    }
+    
+    // تعطيل وضع التعديل
+    function disableEditing() {
+        const editableFields = [
+            merchantNameValue, username, phone, mobile, 
+            ip, locationField, facebook, instagram,
+            twitter, youtube, google, password
+        ];
+        
+        editableFields.forEach(field => {
+            field.contentEditable = false;
+            field.classList.remove('editable');
+        });
+        
+        // تعطيل زر تحديد الموقع
+        getLocationBtn.disabled = true;
+        
+        // إظهار زر التعديل وإخفاء أزرار الحفظ والإلغاء
+        editBtn.style.display = 'inline-flex';
+        saveBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+    }
+</script>
+
+</body>
+</html>
