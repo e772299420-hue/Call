@@ -68,9 +68,10 @@
             border-radius: 10px;
             margin-right: 12px;
             overflow: hidden;
-            background: white;
-            padding: 5px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            /* إزالة الخلفية البيضاء */
+            background: transparent;
+            padding: 0;
+            box-shadow: none;
         }
 
         .app-logo img {
@@ -362,7 +363,7 @@
         }
         
         @keyframes spin {
-            0% { transform: rotate(0deg); }
+           0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
         
@@ -1001,167 +1002,3 @@
                 console.error('خطأ في تحديد الموقع:', error);
                 
                 // محاولة استخدام الموقع المخزن مسبقاً
-                const lastLocation = localStorage.getItem('lastLocation');
-                if (lastLocation) {
-                    locationField.value = lastLocation;
-                    showToast('تم استخدام آخر موقع معروف', 'info');
-                } else {
-                    let errorMessage = 'فشل في تحديد الموقع';
-                    
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            errorMessage = 'تم رفض الإذن لتحديد الموقع. يرجى السماح بالوصول إلى الموقع';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errorMessage = 'معلومات الموقع غير متوفرة حالياً';
-                            break;
-                        case error.TIMEOUT:
-                            errorMessage = 'انتهت مهلة طلب الموقع';
-                            break;
-                    }
-                    
-                    showToast(errorMessage, 'error');
-                }
-                
-                getLocationBtn.innerHTML = originalHtml;
-                getLocationBtn.disabled = false;
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 300000
-            }
-        );
-    }
-    
-    // تمكين وضع التعديل
-    function enableEditing() {
-        // حفظ البيانات الأصلية
-        originalData = {
-            name: merchantNameValue.textContent,
-            username: username.textContent,
-            phone: phone.textContent,
-            mobile: mobile.textContent,
-            ip: ip.textContent,
-            location: locationField.value,
-            facebook: facebook.textContent,
-            instagram: instagram.textContent,
-            twitter: twitter.textContent,
-            youtube: youtube.textContent,
-            google: google.textContent,
-            password: password.textContent
-        };
-        
-        // جعل الحقول قابلة للتعديل
-        const editableFields = [
-            merchantNameValue, username, phone, mobile, 
-            ip, locationField, facebook, instagram,
-            twitter, youtube, google, password
-        ];
-        
-        editableFields.forEach(field => {
-            field.contentEditable = true;
-            field.classList.add('editable');
-        });
-        
-        // تمكين زر تحديد الموقع
-        getLocationBtn.disabled = false;
-        
-        // إظهار أزرار الحفظ والإلغاء وإخفاء زر التعديل
-        editBtn.style.display = 'none';
-        saveBtn.style.display = 'inline-flex';
-        cancelBtn.style.display = 'inline-flex';
-    }
-    
-    // حفظ التعديلات
-    async function saveChanges() {
-        try {
-            // تجميع البيانات المعدلة
-            const updatedData = {
-                name: merchantNameValue.textContent,
-                username: username.textContent,
-                phone: phone.textContent,
-                mobile: mobile.textContent,
-                ip: ip.textContent,
-                location: locationField.value,
-                facebook: facebook.textContent,
-                instagram: instagram.textContent,
-                twitter: twitter.textContent,
-                youtube: youtube.textContent,
-                google: google.textContent,
-                password: password.textContent,
-                // الحفاظ على البيانات الأخرى كما هي
-                status: currentMerchant.status,
-                createdAt: currentMerchant.createdAt,
-                governorate: currentMerchant.governorate,
-                area: currentMerchant.area
-            };
-            
-            // تحديث البيانات في Firebase
-            await database.ref(`merchants/${currentMerchant.id}`).update(updatedData);
-            
-            // تحديث بيانات التاجر الحالية
-            currentMerchant = {
-                ...currentMerchant,
-                ...updatedData
-            };
-            
-            // تحديث اسم التاجر في العنوان
-            merchantName.textContent = currentMerchant.name;
-            
-            // تعطيل وضع التعديل
-            disableEditing();
-            
-            showToast('تم حفظ التعديلات بنجاح', 'success');
-            
-        } catch (error) {
-            console.error('خطأ في حفظ التعديلات:', error);
-            showToast('حدث خطأ أثناء حفظ التعديلات', 'error');
-        }
-    }
-    
-    // إلغاء التعديلات
-    function cancelEditing() {
-        // استعادة البيانات الأصلية
-        merchantNameValue.textContent = originalData.name;
-        username.textContent = originalData.username;
-        phone.textContent = originalData.phone;
-        mobile.textContent = originalData.mobile;
-        ip.textContent = originalData.ip;
-        locationField.value = originalData.location;
-        facebook.textContent = originalData.facebook;
-        instagram.textContent = originalData.instagram;
-        twitter.textContent = originalData.twitter;
-        youtube.textContent = originalData.youtube;
-        google.textContent = originalData.google;
-        password.textContent = originalData.password;
-        
-        // تعطيل وضع التعديل
-        disableEditing();
-    }
-    
-    // تعطيل وضع التعديل
-    function disableEditing() {
-        const editableFields = [
-            merchantNameValue, username, phone, mobile, 
-            ip, locationField, facebook, instagram,
-            twitter, youtube, google, password
-        ];
-        
-        editableFields.forEach(field => {
-            field.contentEditable = false;
-            field.classList.remove('editable');
-        });
-        
-        // تعطيل زر تحديد الموقع
-        getLocationBtn.disabled = true;
-        
-        // إظهار زر التعديل وإخفاء أزرار الحفظ والإلغاء
-        editBtn.style.display = 'inline-flex';
-        saveBtn.style.display = 'none';
-        cancelBtn.style.display = 'none';
-    }
-</script>
-
-</body>
-</html>
