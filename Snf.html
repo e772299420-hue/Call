@@ -74,7 +74,7 @@
             align-items: center;
         }
 
-        .menu-btn, .logout-btn, .location-btn {
+        .menu-btn {
             background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
             color: white;
             border: none;
@@ -89,7 +89,7 @@
             gap: 0.5rem;
         }
 
-        .menu-btn:hover, .logout-btn:hover, .location-btn:hover {
+        .menu-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
@@ -576,6 +576,30 @@
             color: var(--dark-color);
         }
 
+        .error-details {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--danger-color);
+            display: none;
+        }
+
+        .error-details pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .debug-toggle {
+            color: var(--info-color);
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            display: inline-block;
+        }
+
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -679,6 +703,12 @@
                         <button type="submit" class="btn-primary btn-large">
                             <i class="fas fa-save"></i> حفظ الصنف
                         </button>
+
+                        <div id="error-details" class="error-details">
+                            <h4>تفاصيل الخطأ:</h4>
+                            <pre id="error-message"></pre>
+                            <span class="debug-toggle" onclick="toggleFirebaseDebug()">تفعيل وضع التصحيح</span>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -716,8 +746,15 @@
         };
 
         // تهيئة Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        let database;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log("تم تهيئة Firebase بنجاح");
+        } catch (error) {
+            console.error("خطأ في تهيئة Firebase:", error);
+            showAlert("خطأ في تهيئة قاعدة البيانات: " + error.message, "error", error);
+        }
 
         // إعدادات Google Drive
         const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms';
@@ -726,6 +763,7 @@
         // متغيرات عامة
         let uploadedImageIds = [];
         let allProducts = [];
+        let firebaseDebugMode = false;
 
         // تحويل الملف إلى Base64
         function fileToBase64(file) {
@@ -867,7 +905,7 @@
                 console.error('حدث خطأ في رفع الصور:', error);
                 progressText.textContent = 'حدث خطأ في رفع الصور';
                 progressText.style.color = 'var(--danger-color)';
-                showAlert('حدث خطأ في رفع الصور: ' + error.message, 'error');
+                showAlert('حدث خطأ في رفع الصور: ' + error.message, 'error', error);
             }
         }
 
@@ -895,6 +933,10 @@
             try {
                 showLoading(true, 'products-container');
                 
+                if (!database) {
+                    throw new Error("قاعدة البيانات غير مهيئة");
+                }
+                
                 const productsSnapshot = await database.ref('products').once('value');
                 const products = productsSnapshot.val() || {};
                 
@@ -910,7 +952,7 @@
                 
             } catch (error) {
                 console.error('خطأ في تحميل المنتجات:', error);
-                showAlert('حدث خطأ في تحميل المنتجات', 'error');
+                showAlert('حدث خطأ في تحميل المنتجات', 'error', error);
             } finally {
                 showLoading(false, 'products-container');
             }
@@ -1003,6 +1045,10 @@
             try {
                 showLoading(true);
                 
+                if (!database) {
+                    throw new Error("قاعدة البيانات غير مهيئة");
+                }
+                
                 const productId = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                 const productData = {
                     name: name,
@@ -1013,6 +1059,11 @@
                     imageIds: uploadedImageIds,
                     createdAt: Date.now()
                 };
+                
+                if (firebaseDebugMode) {
+                    console.log("بيانات المنتج المراد حفظها:", productData);
+                    console.log("المسار في قاعدة البيانات:", `products/${productId}`);
+                }
                 
                 await database.ref(`products/${productId}`).set(productData);
                 
@@ -1029,7 +1080,7 @@
                 
             } catch (error) {
                 console.error('خطأ في إضافة المنتج:', error);
-                showAlert('حدث خطأ في إضافة المنتج', 'error');
+                showAlert('حدث خطأ في إضافة المنتج', 'error', error);
             } finally {
                 showLoading(false);
             }
@@ -1044,6 +1095,10 @@
             try {
                 showLoading(true);
                 
+                if (!database) {
+                    throw new Error("قاعدة البيانات غير مهيئة");
+                }
+                
                 await database.ref(`products/${productId}`).remove();
                 
                 showAlert('تم حذف المنتج بنجاح', 'success');
@@ -1053,7 +1108,7 @@
                 
             } catch (error) {
                 console.error('خطأ في حذف المنتج:', error);
-                showAlert('حدث خطأ في حذف المنتج', 'error');
+                showAlert('حدث خطأ في حذف المنتج', 'error', error);
             } finally {
                 showLoading(false);
             }
@@ -1146,8 +1201,8 @@
             }
         }
 
-        // عرض التنبيهات
-        function showAlert(message, type) {
+        // عرض التنبيهات مع تفاصيل الخطأ
+        function showAlert(message, type, error = null) {
             const alertContainer = document.getElementById('alert-container');
             const alert = document.createElement('div');
             alert.className = `alert alert-${type}`;
@@ -1167,6 +1222,15 @@
             
             alertContainer.appendChild(alert);
             
+            // إضافة تفاصيل الخطأ إذا كان هناك خطأ
+            if (error && type === 'error') {
+                const errorDetails = document.getElementById('error-details');
+                const errorMessage = document.getElementById('error-message');
+                
+                errorMessage.textContent = error.stack || error.message || error;
+                errorDetails.style.display = 'block';
+            }
+            
             // تحريك التنبيه للداخل
             setTimeout(() => alert.classList.add('show'), 100);
             
@@ -1181,6 +1245,23 @@
                 alert.classList.remove('show');
                 setTimeout(() => alert.remove(), 300);
             });
+        }
+
+        // تبديل وضع التصحيح
+        function toggleFirebaseDebug() {
+            firebaseDebugMode = !firebaseDebugMode;
+            const debugToggle = document.querySelector('.debug-toggle');
+            
+            if (firebaseDebugMode) {
+                debugToggle.textContent = "تعطيل وضع التصحيح";
+                debugToggle.style.color = "var(--warning-color)";
+                console.log("تم تفعيل وضع التصحيح. سيتم عرض تفاصيل العمليات في الكونسول.");
+                showAlert("تم تفعيل وضع التصحيح", "info");
+            } else {
+                debugToggle.textContent = "تفعيل وضع التصحيح";
+                debugToggle.style.color = "var(--info-color)";
+                console.log("تم تعطيل وضع التصحيح.");
+            }
         }
 
         // تهيئة الصفحة
@@ -1205,4 +1286,4 @@
         });
     </script>
 </body>
-  </html>
+</html>
