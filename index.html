@@ -66,9 +66,9 @@
     }
 
     @keyframes pulse {
-        0% { transform: scale(1); }
+        from { transform: scale(1); }
         50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
+        to { transform: scale(1); }
     }
 
     .intro-logo i { 
@@ -80,7 +80,7 @@
     @keyframes rotate {
         0% { transform: rotateY(0deg); }
         50% { transform: rotateY(180deg); }
-       100% { transform: rotateY(360deg); }
+        100% { transform: rotateY(360deg); }
     }
 
     .intro-title { 
@@ -432,7 +432,7 @@
     </button>
     <div class="logo">
         <h1>السوق الشامل</h1>
-        <img src="" alt=""> <!-- تم إزالة الشعار السابق -->
+        <img src="https://github.com/T772299420/Call/raw/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png" alt="شعار السوق الشامل">
     </div>
 </div>
 
@@ -486,7 +486,7 @@
             <div class="product-img"><i class="fas fa-image fa-3x"></i></div>
             <div class="product-info">
                 <div class="product-title">منتج مميز رقم 5</div>
-                <div class="product-price">350 ريال</div>
+                <div class="product-price">350 Riyal</div>
                 <a href="#" class="product-btn">إضافة إلى السلة</a>
             </div>
         </div>
@@ -559,6 +559,59 @@ const firebaseConfig = {
 // تهيئة Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+
+// كائن تخزين بيانات المستخدم بشكل عام (جلوبال)
+const globalUser = {
+    data: null,
+    
+    // دالة لتخزين بيانات المستخدم
+    setUserData: function(userData) {
+        this.data = userData;
+        // تخزين البيانات في localStorage للاحتفاظ بها بعد إعادة التحميل
+        localStorage.setItem('globalUserData', JSON.stringify(userData));
+        console.log('تم تخزين بيانات المستخدم:', userData);
+    },
+    
+    // دالة لاسترجاع بيانات المستخدم
+    getUserData: function() {
+        if (this.data) {
+            return this.data;
+        }
+        
+        // محاولة استرجاع البيانات من localStorage
+        const storedData = localStorage.getItem('globalUserData');
+        if (storedData) {
+            this.data = JSON.parse(storedData);
+            return this.data;
+        }
+        
+        return null;
+    },
+    
+    // دالة للحصول على اسم المستخدم
+    getUsername: function() {
+        const userData = this.getUserData();
+        return userData ? userData.username : 'زائر';
+    },
+    
+    // دالة للحصول على معرف المستخدم
+    getUserId: function() {
+        const userData = this.getUserData();
+        return userData ? userData.id : null;
+    },
+    
+    // دالة للتحقق من وجود مستخدم مسجل
+    isLoggedIn: function() {
+        return this.getUserData() !== null;
+    },
+    
+    // دالة لتسجيل الخروج
+    logout: function() {
+        this.data = null;
+        localStorage.removeItem('globalUserData');
+        console.log('تم تسجيل الخروج');
+    }
+};
 
 const menuBtn = document.getElementById('menuBtn');
 const dropdownMenu = document.getElementById('dropdownMenu');
@@ -700,7 +753,7 @@ commercialLoginForm.addEventListener('submit', async function(e){
             throw new Error('يرجى ملء جميع الحقول');
         }
         
-        // إنشاء معرف التاجر بنفس الطريقة المستخدمة في كود إدارة التجار
+        // إنشاء معرف التاجر بنفس الطريقة المستخدمة в коде إدارة التجار
         const merchantId = generateId(username);
         
         // جلب بيانات التاجر من Firebase باستخدام المعرف الصحيح
@@ -722,8 +775,22 @@ commercialLoginForm.addEventListener('submit', async function(e){
             throw new Error('المستخدم تم توقيفه من قبل مسؤول النظام');
         }
         
+        // تخزين بيانات المستخدم في الكائن الجلوبال
+        const userDataToStore = {
+            id: merchantId,
+            username: username,
+            name: merchantData.name || username,
+            commercialName: merchantData.commercialName || '',
+            email: merchantData.email || '',
+            phone: merchantData.phone || '',
+            type: 'merchant',
+            loginTime: new Date().toISOString()
+        };
+        
+        globalUser.setUserData(userDataToStore);
+        
         // إظهار إشعار النجاح
-        showToast('تم تسجيل الدخول بنجاح! سيتم التوجيه...', 'success');
+        showToast('تم تسجيل الدخول بنجاح! مرحباً ' + username, 'success');
         
         // إعادة تعيين النموذج
         commercialLoginForm.reset();
@@ -772,8 +839,19 @@ adminLoginForm.addEventListener('submit', async function(e){
             throw new Error('كلمة المرور غير صحيحة');
         }
         
+        // تخزين بيانات المستخدم في الكائن الجلوبال
+        const userDataToStore = {
+            id: username,
+            username: username,
+            name: adminData.name || username,
+            type: 'admin',
+            loginTime: new Date().toISOString()
+        };
+        
+        globalUser.setUserData(userDataToStore);
+        
         // إظهار إشعار النجاح
-        showToast('تم تسجيل الدخول بنجاح! سيتم التوجيه...', 'success');
+        showToast('تم تسجيل الدخول بنجاح! مرحباً ' + username, 'success');
         
         // إعادة تعيين النموذج
         adminLoginForm.reset();
@@ -794,6 +872,15 @@ adminLoginForm.addEventListener('submit', async function(e){
     }
 });
 
+// التحقق من وجود مستخدم مسجل مسبقاً عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    const userData = globalUser.getUserData();
+    if (userData) {
+        console.log('تم اكتشاف مستخدم مسجل مسبقاً:', userData.username);
+        // يمكنك هنا تحديث واجهة المستخدم لإظهار معلومات المستخدم
+    }
+});
+
 // إخفاء شاشة البداية بعد 3 ثواني مع تأثير انتقالي
 setTimeout(hideIntroScreen, 3000);
 
@@ -801,5 +888,6 @@ setTimeout(hideIntroScreen, 3000);
 window.addEventListener('load', checkScroll);
 window.addEventListener('scroll', checkScroll);
 </script>
+
 </body>
-</html>
+   </html>
