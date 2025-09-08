@@ -600,6 +600,7 @@
         overflow: hidden;
         margin: 15px 0;
         border: 1px solid #e9ecef;
+        z-index: 1; /* تأكد من أن الخريطة فوق العناصر الأخرى */
     }
     
     .distance-info {
@@ -1503,7 +1504,15 @@ async function showMerchantDetails(merchantId) {
         
         // عرض الخريطة إذا كان هناك موقع
         if (merchantData.location) {
-            showMerchantOnMap(merchantData.location, merchantData.name || merchantData.commercialName);
+            // تأكد من أن عنصر الخريطة مرئي
+            merchantMap.style.display = 'block';
+            merchantMap.style.height = '200px'; // تأكد من وجود ارتفاع
+            merchantMap.style.width = '100%';   // تأكد من وجود عرض
+            
+            // تهيئة الخريطة بعد تأكد ظهور النافذة
+            setTimeout(() => {
+                showMerchantOnMap(merchantData.location, merchantData.name || merchantData.commercialName);
+            }, 100);
         } else {
             merchantMap.style.display = 'none';
             distanceInfo.style.display = 'none';
@@ -1523,28 +1532,52 @@ function showMerchantOnMap(location, merchantName) {
     merchantMap.style.display = 'block';
     distanceInfo.style.display = 'block';
     
-    // تهيئة الخريطة إذا لم تكن موجودة
-    if (!merchantLocationMap) {
+    // مسح الخريطة الحالية إذا كانت موجودة
+    if (merchantLocationMap) {
+        merchantLocationMap.remove();
+        merchantLocationMap = null;
+    }
+    
+    // إعادة إنشاء عنصر الخريطة إذا لزم الأمر
+    if (!document.getElementById('merchantMap')._leaflet_id) {
+        // تهيئة الخريطة
         merchantLocationMap = L.map('merchantMap').setView([location.lat, location.lng], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(merchantLocationMap);
+        
+        // إضافة علامة للمتجر
+        L.marker([location.lat, location.lng])
+            .addTo(merchantLocationMap)
+            .bindPopup(merchantName)
+            .openPopup();
+            
+        // إعادة حساب حجم الخريطة بعد تهيئتها
+        setTimeout(() => {
+            if (merchantLocationMap) {
+                merchantLocationMap.invalidateSize();
+            }
+        }, 300);
     } else {
+        // إذا كانت الخريطة موجودة بالفعل، فقط حدّث العرض
         merchantLocationMap.setView([location.lat, location.lng], 13);
+        
+        // مسح العلامات السابقة
+        merchantLocationMap.eachLayer(layer => {
+            if (layer instanceof L.Marker) {
+                merchantLocationMap.removeLayer(layer);
+            }
+        });
+        
+        // إضافة علامة جديدة
+        L.marker([location.lat, location.lng])
+            .addTo(merchantLocationMap)
+            .bindPopup(merchantName)
+            .openPopup();
+            
+        // إعادة حساب الحجم
+        merchantLocationMap.invalidateSize();
     }
-    
-    // مسح العلامات السابقة
-    merchantLocationMap.eachLayer(layer => {
-        if (layer instanceof L.Marker) {
-            merchantLocationMap.removeLayer(layer);
-        }
-    });
-    
-    // إضافة علامة للمتجر
-    L.marker([location.lat, location.lng])
-        .addTo(merchantLocationMap)
-        .bindPopup(merchantName)
-        .openPopup();
     
     // حساب المسافة إذا كان الموقع الحالي متاحاً
     if (currentPosition) {
