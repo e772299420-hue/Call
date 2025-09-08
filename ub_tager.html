@@ -496,6 +496,60 @@
             margin-right: 10px;
         }
         
+        /* ===== أنماط جديدة لتحسين واجهة تحديد الموقع ===== */
+        .location-accuracy {
+            font-size: 12px;
+            color: var(--gray);
+            margin-top: 5px;
+            display: block;
+        }
+        
+        .location-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        
+        .map-preview {
+            height: 150px;
+            margin-top: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+            border: 2px solid var(--info);
+            box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
+        }
+        
+        .map-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .location-info {
+            background: rgba(33, 150, 243, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .location-info p {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .location-info .label {
+            font-weight: bold;
+            color: var(--info);
+        }
+        
         /* ===== استجابة الهواتف ===== */
         @media (max-width: 768px) {
             .container {
@@ -547,6 +601,10 @@
 
             .merchant-details {
                 grid-template-columns: 1fr;
+            }
+            
+            .map-preview {
+                height: 120px;
             }
         }
     </style>
@@ -618,6 +676,7 @@
                         <i class="fas fa-map-marker-alt"></i> تحديد الموقع
                     </button>
                 </div>
+                <!-- سيتم إضافة معلومات الدقة والخريطة هنا ديناميكياً -->
             </div>
             
             <div class="detail-item">
@@ -726,6 +785,7 @@
     let governoratesData = {};
     let currentMerchant = null;
     let originalData = {};
+    let locationWatchId = null;
     
     // كائن تخزين بيانات المستخدم بشكل عام (جلوبال)
     const globalUser = {
@@ -971,9 +1031,25 @@
         
         loadingIndicator.style.display = 'none';
         merchantData.style.display = 'block';
+        
+        // إذا كان هناك موقع مخزن، عرض معلوماته
+        if (merchant.location) {
+            const locationParts = merchant.location.split(',');
+            if (locationParts.length === 2) {
+                const lat = parseFloat(locationParts[0]);
+                const lng = parseFloat(locationParts[1]);
+                showMapPreview(lat, lng);
+                
+                // محاولة الحصول على دقة الموقع المخزنة
+                const lastAccuracy = localStorage.getItem('lastLocationAccuracy');
+                if (lastAccuracy) {
+                    showLocationAccuracy(parseFloat(lastAccuracy));
+                }
+            }
+        }
     }
     
-    // تحديد الموقع الحالي
+    // تحديد الموقع الحالي بدقة عالية
     function getCurrentLocation() {
         if (!navigator.geolocation) {
             showToast('المتصفح لا يدعم خدمات تحديد الموقع', 'error');
@@ -981,57 +1057,232 @@
         }
         
         const originalHtml = getLocationBtn.innerHTML;
-        getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديد...';
+        getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديد بدقة عالية...';
         getLocationBtn.disabled = true;
         
-        navigator.geolocation.getCurrentPosition(
+        // خيارات دقة عالية
+        const geoOptions = {
+            enableHighAccuracy: true,
+            timeout: 30000,  // زيادة الوقت إلى 30 ثانية
+            maximumAge: 0    // عدم استخدام المواقع المخزنة مؤقتاً
+        };
+        
+        // إيقاف أي عملية تحديد موقع سابقة
+        if (locationWatchId !== null) {
+            navigator.geolocation.clearWatch(locationWatchId);
+        }
+        
+        // طلب تحديد الموقع
+        locationWatchId = navigator.geolocation.watchPosition(
             function(position) {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                const location = `${lat}, ${lng}`;
-                locationField.value = location;
-                getLocationBtn.innerHTML = originalHtml;
-                getLocationBtn.disabled = false;
-                showToast('تم تحديد موقعك بنجاح', 'success');
+                const accuracy = position.coords.accuracy;
                 
-                // حفظ الموقع في localStorage للاستخدام لاحقاً
-                localStorage.setItem('lastLocation', location);
+                // إذا كانت الدقة أقل من 50 متر، نعتبرها مقبولة
+                if (accuracy <= 50) {
+                    // إيقاف متابعة الموقع بعد الحصول على بيانات دقيقة
+                    navigator.geolocation.clearWatch(locationWatchId);
+                    locationWatchId = null;
+                    
+                    const location = `${lat}, ${lng}`;
+                    locationField.value = location;
+                    
+                    // حفظ الموقع في localStorage
+                    localStorage.setItem('lastLocation', location);
+                    localStorage.setItem('lastLocationAccuracy', accuracy.toString());
+                    localStorage.setItem('lastLocationTimestamp', new Date().toISOString());
+                    
+                    // عرض دقة الموقع
+                    showLocationAccuracy(accuracy);
+                    
+                    // عرض خريطة معاينة
+                    showMapPreview(lat, lng);
+                    
+                    getLocationBtn.innerHTML = originalHtml;
+                    getLocationBtn.disabled = false;
+                    
+                    showToast(`تم تحديد موقعك بدقة عالية (${Math.round(accuracy)} متر)`, 'success');
+                } else {
+                    // إذا كانت الدقة غير كافية، نستمر في المحاولة مع عرض التقدم
+                    showLocationAccuracy(accuracy, true);
+                    getLocationBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري تحسين الدقة (${Math.round(accuracy)}م)`;
+                }
             },
             function(error) {
+                // إيقاف المتابعة في حالة الخطأ
+                if (locationWatchId !== null) {
+                    navigator.geolocation.clearWatch(locationWatchId);
+                    locationWatchId = null;
+                }
+                
                 console.error('خطأ في تحديد الموقع:', error);
+                
+                let errorMessage = 'فشل في تحديد الموقع';
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = 'تم رفض الإذن لتحديد الموقع. يرجى السماح بالوصول إلى الموقع في إعدادات المتصفح';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = 'معلومات الموقع غير متوفرة حالياً. تأكد من اتصال الإنترنت وخدمة GPS';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = 'انتهت مهلة طلب الموقع. حاول مرة أخرى في منطقة ذات إشارة أفضل';
+                        break;
+                }
+                
+                showToast(errorMessage, 'error');
                 
                 // محاولة استخدام الموقع المخزن مسبقاً
                 const lastLocation = localStorage.getItem('lastLocation');
+                const lastAccuracy = localStorage.getItem('lastLocationAccuracy');
+                const lastTimestamp = localStorage.getItem('lastLocationTimestamp');
+                
                 if (lastLocation) {
-                    locationField.value = lastLocation;
-                    showToast('تم استخدام آخر موقع معروف', 'info');
-                } else {
-                    let errorMessage = 'فشل في تحديد الموقع';
+                    const timeDiff = lastTimestamp ? Math.round((new Date() - new Date(lastTimestamp)) / (1000 * 60)) : null;
                     
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            errorMessage = 'تم رفض الإذن لتحديد الموقع. يرجى السماح بالوصول إلى الموقع';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errorMessage = 'معلومات الموقع غير متوفرة حالياً';
-                            break;
-                        case error.TIMEOUT:
-                            errorMessage = 'انتهت مهلة طلب الموقع';
-                            break;
+                    if (!timeDiff || timeDiff < 1440) { // إذا كان الموقع أقل من 24 ساعة
+                        locationField.value = lastLocation;
+                        if (lastAccuracy) {
+                            showLocationAccuracy(parseFloat(lastAccuracy));
+                        }
+                        showToast('تم استخدام آخر موقع معروف', 'info');
+                    } else {
+                        showToast('آخر موقع معروف قديم جداً', 'warning');
                     }
-                    
-                    showToast(errorMessage, 'error');
                 }
                 
                 getLocationBtn.innerHTML = originalHtml;
                 getLocationBtn.disabled = false;
             },
-            {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 300000
-            }
+            geoOptions
         );
+        
+        // إضافة وقت إضافي للتعامل مع الحالات التي لا يستجيب فيها watchPosition
+        setTimeout(() => {
+            if (locationWatchId !== null) {
+                navigator.geolocation.clearWatch(locationWatchId);
+                locationWatchId = null;
+                
+                if (getLocationBtn.disabled) {
+                    getLocationBtn.innerHTML = originalHtml;
+                    getLocationBtn.disabled = false;
+                    showToast('انتهت مهلة محاولة تحديد الموقع', 'warning');
+                    
+                    // محاولة استخدام الموقع المخزن مسبقاً
+                    const lastLocation = localStorage.getItem('lastLocation');
+                    if (lastLocation) {
+                        locationField.value = lastLocation;
+                        const lastAccuracy = localStorage.getItem('lastLocationAccuracy');
+                        if (lastAccuracy) {
+                            showLocationAccuracy(parseFloat(lastAccuracy));
+                        }
+                    }
+                }
+            }
+        }, 31000); // أكثر من timeout بـ 1 ثانية
+    }
+    
+    // دالة مساعدة لعرض دقة الموقع
+    function showLocationAccuracy(accuracy, isImproving = false) {
+        // إزالة أي عنصر دقة موجود مسبقاً
+        const existingAccuracy = document.getElementById('location-accuracy');
+        if (existingAccuracy) {
+            existingAccuracy.remove();
+        }
+        
+        // إنشاء عنصر لعرض دقة الموقع
+        const accuracyElement = document.createElement('span');
+        accuracyElement.id = 'location-accuracy';
+        accuracyElement.className = 'location-accuracy';
+        
+        let accuracyText = '';
+        if (accuracy < 20) {
+            accuracyText = `دقة عالية جداً (≈ ${Math.round(accuracy)} متر)`;
+            accuracyElement.style.color = 'var(--success)';
+        } else if (accuracy < 50) {
+            accuracyText = `دقة جيدة (≈ ${Math.round(accuracy)} متر)`;
+            accuracyElement.style.color = 'var(--info)';
+        } else if (accuracy < 100) {
+            accuracyText = `دقة متوسطة (≈ ${Math.round(accuracy)} متر)`;
+            accuracyElement.style.color = 'var(--warning)';
+        } else {
+            accuracyText = `دقة منخفضة (≈ ${Math.round(accuracy)} متر)`;
+            accuracyElement.style.color = 'var(--danger)';
+        }
+        
+        if (isImproving) {
+            accuracyText += ' - جاري تحسين الدقة...';
+        }
+        
+        accuracyElement.textContent = accuracyText;
+        
+        // إضافة عنصر الدقة بعد حقل الموقع
+        locationField.parentNode.appendChild(accuracyElement);
+    }
+    
+    // دالة لعرض معاينة الخريطة
+    function showMapPreview(lat, lng) {
+        // إزالة أي معاينة خريطة موجودة مسبقاً
+        const existingMap = document.getElementById('map-preview');
+        if (existingMap) {
+            existingMap.remove();
+        }
+        
+        // إزالة أي أزرار إضافية
+        const existingButtons = locationField.parentNode.querySelectorAll('button.map-toggle');
+        existingButtons.forEach(button => button.remove());
+        
+        // إنشاء عنصر الخريطة
+        const mapElement = document.createElement('div');
+        mapElement.id = 'map-preview';
+        mapElement.className = 'map-preview';
+        
+        // إنشاء iframe للخريطة
+        const mapIframe = document.createElement('iframe');
+        mapIframe.src = `https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+        mapIframe.loading = 'lazy';
+        mapIframe.referrerPolicy = 'no-referrer-when-downgrade';
+        
+        mapElement.appendChild(mapIframe);
+        
+        // إضافة الخريطة بعد عنصر الدقة أو حقل الموقع
+        const accuracyElement = document.getElementById('location-accuracy');
+        if (accuracyElement) {
+            accuracyElement.parentNode.insertBefore(mapElement, accuracyElement.nextSibling);
+        } else {
+            locationField.parentNode.appendChild(mapElement);
+        }
+        
+        // إظهار الخريطة
+        mapElement.style.display = 'block';
+        
+        // إضافة زر لإخفاء الخريطة
+        const hideMapButton = document.createElement('button');
+        hideMapButton.textContent = 'إخفاء الخريطة';
+        hideMapButton.className = 'btn btn-small btn-secondary map-toggle';
+        hideMapButton.style.marginTop = '5px';
+        hideMapButton.onclick = function() {
+            mapElement.style.display = 'none';
+            this.style.display = 'none';
+            showMapButton.style.display = 'block';
+        };
+        
+        // إضافة زر لإظهار الخريطة
+        const showMapButton = document.createElement('button');
+        showMapButton.textContent = 'عرض الخريطة';
+        showMapButton.className = 'btn btn-small btn-info map-toggle';
+        showMapButton.style.marginTop = '5px';
+        showMapButton.style.display = 'none';
+        showMapButton.onclick = function() {
+            mapElement.style.display = 'block';
+            this.style.display = 'none';
+            hideMapButton.style.display = 'block';
+        };
+        
+        mapElement.parentNode.appendChild(hideMapButton);
+        mapElement.parentNode.appendChild(showMapButton);
     }
     
     // تمكين وضع التعديل
@@ -1071,11 +1322,48 @@
         editBtn.style.display = 'none';
         saveBtn.style.display = 'inline-flex';
         cancelBtn.style.display = 'inline-flex';
+        
+        // إذا كان هناك موقع مخزن، عرض دقته
+        const lastAccuracy = localStorage.getItem('lastLocationAccuracy');
+        if (lastAccuracy) {
+            showLocationAccuracy(parseFloat(lastAccuracy));
+        }
+        
+        // إذا كان هناك موقع مخزن، عرض معاينة الخريطة
+        const lastLocation = localStorage.getItem('lastLocation');
+        if (lastLocation) {
+            const locationParts = lastLocation.split(',');
+            if (locationParts.length === 2) {
+                const lat = parseFloat(locationParts[0]);
+                const lng = parseFloat(locationParts[1]);
+                showMapPreview(lat, lng);
+            }
+        }
     }
     
     // حفظ التعديلات
     async function saveChanges() {
         try {
+            // التحقق من صحة الموقع إذا كان موجوداً
+            const locationValue = locationField.value.trim();
+            if (locationValue) {
+                const locationParts = locationValue.split(',');
+                if (locationParts.length !== 2 || 
+                    isNaN(parseFloat(locationParts[0])) || 
+                    isNaN(parseFloat(locationParts[1]))) {
+                    showToast('صيغة الموقع غير صحيحة. يجب أن تكون بالشكل: خط العرض, خط الطول', 'error');
+                    return;
+                }
+                
+                const lat = parseFloat(locationParts[0]);
+                const lng = parseFloat(locationParts[1]);
+                
+                if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                    showToast('قيم الإحداثيات غير صحيحة. خط العرض يجب بين -90 و 90، وخط الطول بين -180 و 180', 'error');
+                    return;
+                }
+            }
+            
             // تجميع البيانات المعدلة
             const updatedData = {
                 name: merchantNameValue.textContent,
@@ -1083,7 +1371,7 @@
                 phone: phone.textContent,
                 mobile: mobile.textContent,
                 ip: ip.textContent,
-                location: locationField.value,
+                location: locationValue,
                 facebook: facebook.textContent,
                 instagram: instagram.textContent,
                 twitter: twitter.textContent,
@@ -1156,10 +1444,34 @@
         // تعطيل زر تحديد الموقع
         getLocationBtn.disabled = true;
         
+        // إزالة عنصر دقة الموقع
+        const accuracyElement = document.getElementById('location-accuracy');
+        if (accuracyElement) {
+            accuracyElement.remove();
+        }
+        
+        // إزالة معاينة الخريطة وأزرارها
+        const mapElement = document.getElementById('map-preview');
+        if (mapElement) {
+            mapElement.remove();
+        }
+        
+        // إزالة أي أزرار إضافية
+        const buttons = locationField.parentNode.querySelectorAll('button.map-toggle');
+        buttons.forEach(button => {
+            button.remove();
+        });
+        
         // إظهار زر التعديل وإخفاء أزرار الحفظ والإلغاء
         editBtn.style.display = 'inline-flex';
         saveBtn.style.display = 'none';
         cancelBtn.style.display = 'none';
+        
+        // إيقاف أي عملية تحديد موقع جارية
+        if (locationWatchId !== null) {
+            navigator.geolocation.clearWatch(locationWatchId);
+            locationWatchId = null;
+        }
     }
 </script>
 
