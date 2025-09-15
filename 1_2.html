@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>عرض المنتجات</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<style>
+/* تنسيق عام */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body { 
+  font-family: Tahoma, sans-serif; 
+  background: #ffffff; 
+  margin: 0; 
+  padding-top: 70px; /* مساحة للهيدر الثابت */
+  padding-bottom: 60px; /* مساحة للفوتر الثابت */
+}
+
+/* الهيدر الثابت */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: #007bff;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.app-name {
+  flex-grow: 1;
+  text-align: center;
+  font-size: 18px;
+}
+
+.screen-name {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+/* الفوتر الثابت */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #007bff;
+  color: white;
+  text-align: center;
+  padding: 15px;
+  z-index: 1000;
+  font-size: 14px;
+}
+
+/* محتوى الصفحة */
+.page-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h2 { 
+  text-align:center; 
+  margin:20px 0; 
+  color: #333;
+}
+
+.products { 
+  display:grid; 
+  grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); 
+  gap:20px; 
+  padding:20px; 
+}
+
+.card {
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  border-radius:15px; 
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08); 
+  overflow:hidden; 
+  padding:15px; 
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+.card:hover { 
+  transform: translateY(-5px); 
+  box-shadow:0 10px 20px rgba(0,0,0,0.15); 
+}
+
+.images-preview { 
+  display:flex; 
+  gap:10px; 
+  flex-wrap:wrap; 
+  margin-bottom:15px; 
+  justify-content:center; 
+}
+.images-preview img { 
+  width:150px; 
+  height:150px; 
+  object-fit:cover; 
+  border-radius:50%; /* صور دائرية */
+  cursor:pointer; 
+  transition:0.3s;
+  border: 3px solid #007bff;
+}
+.images-preview img:hover { 
+  transform: scale(1.05); 
+  border-color: #0056b3;
+}
+
+.icons { 
+  display:flex; 
+  justify-content:space-around; 
+  margin:15px 0; 
+}
+.icon { 
+  cursor:pointer; 
+  font-size:20px; 
+  display:flex; 
+  align-items:center; 
+  gap:5px; 
+  color:#007bff; 
+  transition:0.3s; 
+}
+.icon:hover { 
+  color:#0056b3; 
+}
+
+.buttons { 
+  display:flex; 
+  gap:5px; 
+  margin:5px 0; 
+  flex-wrap:wrap; 
+  justify-content:center; 
+}
+.buttons button { 
+  padding:5px 8px; 
+  font-size:12px; 
+  cursor:pointer; 
+  border-radius:5px; 
+  border:1px solid #007bff; 
+  background:#fff; 
+  color:#007bff; 
+}
+
+.info h3 { 
+  margin:0; 
+  font-size:18px; 
+  color:#333; 
+  text-align: center;
+}
+.info p { 
+  margin:5px 0; 
+  font-size:14px; 
+  color:#444; 
+  text-align: center;
+}
+.merchant-info { 
+  display: flex; 
+  flex-direction: column;
+  gap: 5px; 
+  margin: 10px 0; 
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+.merchant-name { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  gap: 5px; 
+  cursor: pointer; 
+  color: #007bff; 
+  font-weight: bold; 
+  transition: 0.3s; 
+  text-align: center;
+}
+.merchant-name:hover { 
+  color: #0056b3; 
+  text-decoration: underline;
+}
+
+.merchant-distance {
+  font-size: 14px;
+  color: #28a745;
+  font-weight: bold;
+  margin-top: 5px;
+  text-align: center;
+}
+
+.merchant-btn { 
+  margin-top:10px; 
+  padding:7px 12px; 
+  border-radius:8px; 
+  background:#007bff; 
+  color:#fff; 
+  border:none; 
+  cursor:pointer; 
+  font-weight:bold; 
+  transition:0.3s; 
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+.merchant-btn:hover { 
+  background:#0056b3; 
+}
+
+.comments-container { 
+  display:none; 
+  flex-direction:column; 
+  gap:5px; 
+  margin-top:10px; 
+  background:#f1f3f6; 
+  padding:10px; 
+  border-radius:10px; 
+}
+.comments-container div:first-child { 
+  max-height:150px; 
+  overflow-y:auto; 
+}
+.comments-container input { 
+  padding:5px; 
+  width:calc(100% - 60px); 
+  border-radius:5px; 
+  border:1px solid #ccc; 
+}
+.comments-container button { 
+  padding:5px 10px; 
+  border:none; 
+  border-radius:5px; 
+  background:#007bff; 
+  color:#fff; 
+  cursor:pointer; 
+  transition:0.3s; 
+}
+.comments-container button:hover { 
+  background:#0056b3; 
+}
+
+/* Lightbox */
+#lightbox {
+  position: fixed; 
+  top:0; 
+  left:0; 
+  width:100%; 
+  height:100%; 
+  background: rgba(0,0,0,0.9);
+  display:none; 
+  align-items:center; 
+  justify-content:center; 
+  z-index:1000; 
+  overflow:hidden;
+}
+#lightbox img { 
+  width:100%; 
+  height:100%; 
+  object-fit:contain; 
+  transform:rotate(0deg) scale(0.2); 
+  transition: transform 0.6s ease; 
+}
+
+/* Modal للتاجر */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1001;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+.modal-content {
+  background-color: #fefefe;
+  margin: 10% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 600px;
+  border-radius: 10px;
+  position: relative;
+}
+.close {
+  color: #aaa;
+  float: left;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #007bff;
+}
+
+.location-access {
+  text-align: center;
+  padding: 10px;
+  background-color: #ffc107;
+  color: #856404;
+  border-radius: 5px;
+  margin: 10px 0;
+}
+
+.error {
+  text-align: center;
+  padding: 20px;
+  color: #dc3545;
+  background-color: #f8d7da;
+  border-radius: 5px;
+  margin: 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- الهيدر الثابت -->
+<header class="header">
+  <div class="header-content">
+    <div class="logo">AZ</div>
+    <div class="app-name">AZ التسويق الشامل</div>
+    <div class="screen-name">عرض المنتجات</div>
+  </div>
+</header>
+
+<!-- المحتوى الرئيسي -->
+<div class="page-content">
+  <h2>قائمة المنتجات المتوفرة</h2>
+  <div class="products" id="products"></div>
+</div>
+
+<!-- الفوتر الثابت -->
+<footer class="footer">
+  جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة
+</footer>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="this.style.display='none'">
+  <img id="lightbox-img" src="">
+</div>
+
+<!-- Modal للتاجر -->
+<div id="merchantModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <div id="merchantInfo"></div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = { databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// متغير عام لتخزين اسم التاجر
+window.merchantName = '';
+
+// متغيرات لتخزين موقع المستخدم
+let userLocation = null;
+let locationAccess = false;
+
+// طلب إذن الموقع عند تحميل الصفحة
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      userLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      };
+      locationAccess = true;
+      // إعادة تحميل المنتجات بعد الحصول على الموقع
+      loadProducts();
+    },
+    (error) => {
+      console.error("Error getting location:", error);
+      locationAccess = false;
+      // تحميل المنتجات بدون معلومات الموقع
+      loadProducts();
+    }
+  );
+} else {
+  console.error("Geolocation is not supported by this browser.");
+  loadProducts();
+}
+
+// دالة لتحويل تنسيق "lat,lon" إلى كائن {latitude, longitude}
+function parseLocation(locationString) {
+  if (!locationString) return null;
+  
+  try {
+    const [lat, lon] = locationString.split(',').map(coord => parseFloat(coord.trim()));
+    if (!isNaN(lat) && !isNaN(lon)) {
+      return { latitude: lat, longitude: lon };
+    }
+  } catch (error) {
+    console.error("Error parsing location:", error);
+  }
+  
+  return null;
+}
+
+// دالة لحساب المسافة بين موقعين باستخدام Haversine formula
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // نصف قطر الأرض بالكيلومترات
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2); 
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const distance = R * c; // المسافة بالكيلومترات
+  return distance;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI/180);
+}
+
+// تنسيق عرض المسافة
+function formatDistance(distance) {
+  if (distance < 1) {
+    return Math.round(distance * 1000) + " متر";
+  } else {
+    return distance.toFixed(1) + " كم";
+  }
+}
+
+function formatDriveUrl(url) {
+  if (!url) return [];
+  let id = "";
+  if (url.includes("/d/")) id = url.split("/d/")[1].split("/")[0];
+  else if (url.includes("id=")) id = new URLSearchParams(url.split("?")[1]).get("id");
+  else if (url.includes("drive.usercontent.google.com")) id = new URLSearchParams(url.split("?")[1]).get("id");
+  if (!id) return [url];
+  return [`https://drive.google.com/thumbnail?id=${id}`];
+}
+
+function createPreviewImage(url, container) {
+  const img = document.createElement("img");
+  img.src = url;
+  img.onclick = () => {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    lightboxImg.src = url;
+    lightbox.style.display = 'flex';
+    setTimeout(()=>{ lightboxImg.style.transform="rotate(360deg) scale(1)"; },50);
+  };
+  container.appendChild(img);
+}
+
+function updateImages(urls, cardId) {
+  if (!urls || urls.length === 0) return;
+  const card = document.getElementById(cardId);
+  const displayDiv = card.querySelector(".images-preview");
+  displayDiv.innerHTML="";
+  urls.forEach(url=>{
+    const formatted = formatDriveUrl(url);
+    formatted.forEach(fUrl=> createPreviewImage(fUrl, displayDiv));
+  });
+}
+
+// دالة لفتح صفحة التاجر
+function openMerchantPage(merchantName) {
+  window.merchantName = merchantName;
+  window.open("ard_tagr.html", "_blank");
+}
+
+// دالة لتحميل معلومات التاجر وعرضها في المودال
+async function loadMerchantInfo(userId, merchantName) {
+  try {
+    const merchantSnap = await db.ref(`merchants/${userId}`).once("value");
+    const merchant = merchantSnap.val();
+    
+    if (merchant) {
+      const merchantInfoDiv = document.getElementById("merchantInfo");
+      
+      merchantInfoDiv.innerHTML = `
+        <h2>${merchant.name || merchantName || "تاجر"}</h2>
+        <p><strong>البريد الإلكتروني:</strong> ${merchant.email || "غير متوفر"}</p>
+        <p><strong>رقم الهاتف:</strong> ${merchant.phone || "غير متوفر"}</p>
+        <p><strong>الحالة:</strong> ${merchant.status || "غير معروف"}</p>
+      `;
+      
+      const modal = document.getElementById("merchantModal");
+      modal.style.display = "block";
+    }
+  } catch (error) {
+    console.error("Error loading merchant info:", error);
+  }
+}
+
+// إغلاق المودال عند النقر على X
+document.querySelector(".close").addEventListener("click", function() {
+  document.getElementById("merchantModal").style.display = "none";
+});
+
+// إغلاق المودال عند النقر خارج المحتوى
+window.addEventListener("click", function(event) {
+  const modal = document.getElementById("merchantModal");
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+});
+
+async function loadProducts() {
+  try {
+    const [productsSnap, merchantsSnap] = await Promise.all([
+      db.ref("products").once("value"),
+      db.ref("merchants").once("value")
+    ]);
+    
+    const products = productsSnap.val();
+    const merchants = merchantsSnap.val();
+    const container = document.getElementById("products");
+    
+    // إضافة رسالة تحميل
+    container.innerHTML = '<div class="loading">جاري تحميل المنتجات...</div>';
+    
+    // إذا لم يكن موقع المستخدم متاحاً بعد، ننتظر قليلاً
+    if (navigator.geolocation && !userLocation && !locationAccess) {
+      setTimeout(loadProducts, 1000);
+      return;
+    }
+    
+    // التحقق من وجود منتجات
+    if (!products) {
+      container.innerHTML = '<div class="error">لا توجد منتجات متاحة حالياً</div>';
+      return;
+    }
+    
+    container.innerHTML = "";
+
+    for(let pid in products){
+      const product = products[pid];
+      
+      // التحقق من وجود المنتج وبياناته الأساسية
+      if (!product || !product.userId) continue;
+      
+      const merchant = merchants ? merchants[product.userId] : null;
+      
+      // تخطي المنتجات التي لا يوجد لها تاجر أو غير نشطة
+      if(!merchant || merchant.status!=="active" || product.availability!=="available") continue;
+
+      const card = document.createElement("div");
+      card.className="card"; card.id="card-"+pid;
+
+      const displayDiv=document.createElement("div");
+      displayDiv.className="images-preview"; card.appendChild(displayDiv);
+
+      const infoDiv=document.createElement("div"); infoDiv.className="info";
+      
+      // حساب المسافة إذا كان موقع التاجر متاحاً
+      let distanceInfo = "";
+      if (userLocation && merchant.location) {
+        try {
+          const parsedLocation = parseLocation(merchant.location);
+          if (parsedLocation) {
+            const distance = calculateDistance(
+              userLocation.latitude, 
+              userLocation.longitude,
+              parsedLocation.latitude,
+              parsedLocation.longitude
+            );
+            distanceInfo = `<div class="merchant-distance">على بعد: ${formatDistance(distance)}</div>`;
+          }
+        } catch (error) {
+          console.error("Error calculating distance:", error);
+        }
+      }
+      
+      // استخدام name بدلاً من username
+      const merchantName = merchant.name || merchant.username || "تاجر";
+      
+      infoDiv.innerHTML=`
+        <h3>${product.name || "منتج بدون اسم"}</h3>
+        <p>${product.description || ""}</p>
+        <p>السعر: ${product.price || "غير محدد"} ريال</p>
+        <div class="merchant-info">
+          <div class="merchant-name" onclick="openMerchantPage('${merchantName}')">
+            ${merchantName} 👈
+          </div>
+          ${distanceInfo}
+          ${!locationAccess && merchant.location ? '<div class="location-access">لم يتم الوصول إلى موقعك لعرض المسافة</div>' : ''}
+        </div>
+      `;
+      card.appendChild(infoDiv);
+
+      const iconsDiv=document.createElement("div"); iconsDiv.className="icons";
+      iconsDiv.innerHTML=`
+        <div class="icon like">👍 <span class="like-count">0</span></div>
+        <div class="icon dislike">👎 <span class="dislike-count">0</span></div>
+        <div class="icon views">👁️ <span class="view-count">0</span></div>
+        <div class="icon comment">💬 <span class="comment-count">0</span></div>
+      `;
+      card.appendChild(iconsDiv);
+
+      const merchantBtn=document.createElement("button"); 
+      merchantBtn.className="merchant-btn"; 
+      merchantBtn.textContent="عرض بيانات التاجر"; 
+      merchantBtn.onclick=()=>{
+        loadMerchantInfo(product.userId, merchantName);
+      }
+      card.appendChild(merchantBtn);
+
+      const commentsDiv=document.createElement("div"); commentsDiv.className="comments-container";
+      commentsDiv.innerHTML=`<div></div><div style="display:flex;gap:5px;margin-top:5px;"><input type="text" placeholder="أضف تعليق..."><button>إرسال</button></div>`;
+      card.appendChild(commentsDiv);
+
+      container.appendChild(card);
+
+      let urlsArray=[];
+      if(Array.isArray(product.imageUrls)) {
+        urlsArray=product.imageUrls;
+      } else if(typeof product.imageUrls==="string") {
+        urlsArray=product.imageUrls.split(",");
+      }
+      
+      if(urlsArray.length > 0 && urlsArray[0]) {
+        updateImages([urlsArray[0]], card.id);
+      }
+
+      const likeEl = iconsDiv.querySelector(".like"); 
+      const dislikeEl = iconsDiv.querySelector(".dislike");
+      const viewEl = iconsDiv.querySelector(".views span");
+      const commentEl = iconsDiv.querySelector(".comment");
+      const commentCountEl = iconsDiv.querySelector(".comment-count");
+      const commentsInput=commentsDiv.querySelector("input"); 
+      const commentsBtn=commentsDiv.querySelector("button");
+      const commentsList=commentsDiv.querySelector("div:first-child");
+
+      // تحميل وحفظ عدد المشاهدات
+      try {
+        const viewRef=db.ref(`products_stats/${pid}/views`);
+        let currentViews = (await viewRef.once("value")).val() || 0;
+        currentViews++; 
+        viewRef.set(currentViews); 
+        viewEl.textContent=currentViews;
+      } catch (error) {
+        console.error("Error loading views:", error);
+      }
+
+      // تحميل وحفظ الإعجابات
+      try {
+        const likesRef=db.ref(`products_stats/${pid}/likes`);
+        const dislikesRef=db.ref(`products_stats/${pid}/dislikes`);
+        let likesData=(await likesRef.once("value")).val() || [];
+        let dislikesData=(await dislikesRef.once("value")).val() || [];
+        
+        function updateCounts(){ 
+          likeEl.querySelector("span").textContent=likesData.length;
+          dislikeEl.querySelector("span").textContent=dislikesData.length; 
+        }
+        updateCounts();
+
+        likeEl.onclick=()=>{
+          const uid = navigator.userAgent + Math.random().toString(36).substring(2); // معرف فريد للمستخدم
+          if(likesData.includes(uid)) return;
+          likesData.push(uid);
+          dislikesData=dislikesData.filter(x=>x!==uid);
+          likesRef.set(likesData); 
+          dislikesRef.set(dislikesData);
+          updateCounts();
+        }
+        
+        dislikeEl.onclick=()=>{
+          const uid = navigator.userAgent + Math.random().toString(36).substring(2); // معرف فريد للمستخدم
+          if(dislikesData.includes(uid)) return;
+          dislikesData.push(uid);
+          likesData=likesData.filter(x=>x!==uid);
+          likesRef.set(likesData); 
+          dislikesRef.set(dislikesData);
+          updateCounts();
+        }
+      } catch (error) {
+        console.error("Error loading likes/dislikes:", error);
+      }
+
+      commentEl.onclick=()=>{
+        if(commentsDiv.style.display==="flex") commentsDiv.style.display="none";
+        else { commentsDiv.style.display="flex"; commentsInput.focus(); }
+      }
+
+      // تحميل التعليقات السابقة
+      try {
+        const commentsRef = db.ref(`products_stats/${pid}/comments`);
+        const existingComments = (await commentsRef.once("value")).val() || [];
+        
+        // تحديث عداد التعليقات
+        commentCountEl.textContent = existingComments.length;
+        
+        if (existingComments.length > 0) {
+          commentsList.innerHTML = "";
+          existingComments.forEach(comment => {
+            commentsList.innerHTML += `<p>${comment}</p>`;
+          });
+        }
+
+        commentsBtn.onclick=async ()=>{
+          const val=commentsInput.value.trim();
+          if(val==="") return;
+          
+          // إضافة التعليق الجديد إلى القائمة
+          commentsList.innerHTML+=`<p>${val}</p>`;
+          commentsInput.value="";
+          
+          // تحديث عداد التعليقات
+          commentCountEl.textContent = parseInt(commentCountEl.textContent) + 1;
+          
+          // حفظ التعليقات في قاعدة البيانات
+          const allComments = [];
+          commentsList.querySelectorAll("p").forEach(p => allComments.push(p.textContent));
+          await commentsRef.set(allComments);
+        }
+      } catch (error) {
+        console.error("Error loading comments:", error);
+      }
+    }
+  } catch (error) {
+    console.error("Error loading products:", error);
+    const container = document.getElementById("products");
+    container.innerHTML = '<div class="error">حدث خطأ في تحميل المنتجات. يرجى المحاولة مرة أخرى.</div>';
+  }
+
+  document.addEventListener("click",function(e){
+    document.querySelectorAll(".card").forEach(card=>{
+      const commentsDiv = card.querySelector(".comments-container");
+      if(commentsDiv.style.display==="flex" && !card.contains(e.target)){
+        commentsDiv.style.display="none";
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>
