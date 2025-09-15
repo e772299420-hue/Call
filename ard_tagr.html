@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>خريطة التجار</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<style>
+html, body { height: 100%; margin: 0; font-family: Tahoma, sans-serif; }
+body { display: flex; flex-direction: column; }
+header { background: #007bff; color: #fff; padding: 10px 20px; position: sticky; top: 0; font-size: 18px; font-weight: bold; z-index: 1001; }
+#container { display: flex; flex: 1; }
+#map { flex: 1; }
+#merchants-list { width: 300px; overflow-y: auto; background: #f0f2f5; padding: 10px; }
+.merchant-item { padding: 8px; margin-bottom: 5px; background: #fff; border-radius: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.merchant-name { font-weight: bold; }
+.merchant-ip { font-size: 12px; color: #555; }
+.merchant-route { font-size: 12px; color: #d00; margin-top: 3px; }
+#mapType { position: absolute; top: 50px; left: 10px; z-index: 1000; background: #fff; padding: 5px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+footer { text-align:center; padding:10px; background:#f0f2f5; font-size:12px; }
+</style>
+</head>
+<body>
+
+<header>التاجر: <span id="globalMerchantName"></span></header>
+<div id="mapType">
+    نوع الخريطة: 
+    <select id="mapSelect">
+        <option value="street">Street</option>
+        <option value="satellite">Satellite</option>
+        <option value="terrain">Terrain</option>
+    </select>
+</div>
+
+<div id="container">
+    <div id="merchants-list"></div>
+    <div id="map"></div>
+</div>
+
+<footer>جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة</footer>
+
+<script>
+const globalMerchantName = localStorage.getItem("merchantName") || "اسم التاجر"; 
+document.getElementById("globalMerchantName").textContent = globalMerchantName;
+
+// Firebase
+const firebaseConfig = {
+    apiKey: "ضع_مفتاحك_هنا",
+    authDomain: "chat-fat-free-default-rtdb.firebaseapp.com",
+    databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/",
+    projectId: "chat-fat-free-default-rtdb",
+    storageBucket: "chat-fat-free-default-rtdb.appspot.com",
+    messagingSenderId: "ضع_المعرف_هنا",
+    appId: "ضع_المعرف_هنا"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const map = L.map('map').setView([20, 47], 6);
+
+// خرائط
+const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
+const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' });
+const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '© OpenTopoMap' });
+streetLayer.addTo(map);
+
+const mapSelect = document.getElementById('mapSelect');
+mapSelect.addEventListener('change', () => {
+    const type = mapSelect.value;
+    map.eachLayer(layer => map.removeLayer(layer));
+    if (userMarker) userMarker.addTo(map);
+    if (currentRoute) currentRoute.addTo(map);
+    if (type==='street') streetLayer.addTo(map);
+    else if(type==='satellite') satelliteLayer.addTo(map);
+    else if(type==='terrain') terrainLayer.addTo(map);
+});
+
+const merchantsListDiv = document.getElementById('merchants-list');
+let currentRoute = null;
+let userMarker = null;
+
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((position) => {
+        const userCoords = [position.coords.latitude, position.coords.longitude];
+        userMarker = L.marker(userCoords).addTo(map).bindPopup("موقعك الحالي").openPopup();
+
+        const merchantsRef = db.ref('merchants');
+        merchantsRef.on('value', (snapshot) => {
+            merchantsListDiv.innerHTML = '';
+            const merchants = snapshot.val();
+            let matchedMerchantCoords = null;
+            let matchedMerchantKey = null;
+
+            for(let key in merchants){
+                const merchant = merchants[key];
+                if(!merchant.location) continue;
+                const coords = merchant.location.split(',').map(Number);
+                if(coords.length!==2 || coords.some(isNaN)) continue;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('merchant-item');
+                itemDiv.innerHTML = `<div class="merchant-name">${merchant.name || 'غير محدد'}</div>
+                                     <div class="merchant-ip">${merchant.location}</div>
+                                     <div class="merchant-route">جارٍ حساب المسافة...</div>`;
+                merchantsListDiv.appendChild(itemDiv);
+
+                if(merchant.name === globalMerchantName){
+                    matchedMerchantCoords = coords;
+                    matchedMerchantKey = key;
+                    L.marker(coords).addTo(map).bindPopup(merchant.name).openPopup();
+                    map.setView(coords, 15);
+                }
+
+                itemDiv.onclick = () => {
+                    if(currentRoute) map.removeControl(currentRoute);
+                    currentRoute = L.Routing.control({
+                        waypoints:[userCoords, coords],
+                        lineOptions:{styles:[{color:'red',weight:5}]},
+                        router: L.Routing.osrmv1({ serviceUrl:'https://router.project-osrm.org/route/v1'}),
+                        addWaypoints:false, draggableWaypoints:false, fitSelectedRoutes:true, show:false
+                    }).on('routesfound', e=>{
+                        const route = e.routes[0];
+                        const distance = (route.summary.totalDistance/1000).toFixed(2);
+                        const duration = Math.ceil(route.summary.totalTime/60);
+                        itemDiv.querySelector('.merchant-route').innerHTML = `المسافة: ${distance} كم | الوقت: ${duration} دقيقة`;
+                    }).addTo(map);
+                }
+            }
+
+            // إذا وُجد التاجر المطابق، نرسم Route مباشرة
+            if(matchedMerchantCoords){
+                if(currentRoute) map.removeControl(currentRoute);
+                currentRoute = L.Routing.control({
+                    waypoints:[userCoords, matchedMerchantCoords],
+                    lineOptions:{styles:[{color:'blue',weight:5}]},
+                    router: L.Routing.osrmv1({ serviceUrl:'https://router.project-osrm.org/route/v1'}),
+                    addWaypoints:false, draggableWaypoints:false, fitSelectedRoutes:true, show:false
+                }).on('routesfound', e=>{
+                    const route = e.routes[0];
+                    const distance = (route.summary.totalDistance/1000).toFixed(2);
+                    const duration = Math.ceil(route.summary.totalTime/60);
+                    const matchedDiv = document.querySelectorAll('.merchant-item').find(div => div.querySelector('.merchant-name').textContent===globalMerchantName);
+                    if(matchedDiv) matchedDiv.querySelector('.merchant-route').innerHTML = `المسافة: ${distance} كم | الوقت: ${duration} دقيقة`;
+                }).addTo(map);
+            }
+        });
+    }, ()=>alert('تعذر الحصول على موقعك الحالي'));
+} else {
+    alert('متصفحك لا يدعم تحديد الموقع');
+}
+</script>
+</body>
+</html>
