@@ -202,6 +202,21 @@
             transform: translateY(-1px);
         }
 
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
         .tabs {
             display: flex;
             justify-content: center;
@@ -837,6 +852,38 @@
             padding-top: 1rem;
             border-top: 1px dashed #e2e8f0;
         }
+
+        /* تأكيد الحذف */
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            display: none;
+        }
+
+        .confirm-content {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
     </style>
 </head>
 <body>
@@ -979,6 +1026,19 @@
         </div>
     </div>
 
+    <!-- نافذة تأكيد الحذف -->
+    <div class="confirm-dialog" id="delete-confirm-dialog">
+        <div class="confirm-content">
+            <h3><i class="fas fa-exclamation-triangle"></i> تأكيد الحذف</h3>
+            <p>هل أنت متأكد من أنك تريد حذف هذا المنتج؟</p>
+            <p>هذا الإجراء لا يمكن التراجع عنه.</p>
+            <div class="confirm-buttons">
+                <button class="btn-secondary" id="cancel-delete">إلغاء</button>
+                <button class="btn-danger" id="confirm-delete">نعم، احذف</button>
+            </div>
+        </div>
+    </div>
+
     <div class="loading-overlay" id="global-loading">
         <div class="loading-spinner"></div>
     </div>
@@ -1015,6 +1075,7 @@
         let firebaseDebugMode = false;
         let isEditing = false;
         let currentEditProductId = null;
+        let productToDelete = null;
 
         // كائن تخزين بيانات المستخدم بشكل عام (جلوبال)
         const globalUser = {
@@ -1120,7 +1181,7 @@
                 }, 300);
             });
             
-            // إزالة الإشعار تلقائياً بعد 5 ثوان
+            // إزالة الإشعار تلقائياً после 5 ثوان
             setTimeout(() => {
                 if (toast.parentNode === toastContainer) {
                     toast.style.opacity = '0';
@@ -1548,6 +1609,9 @@
                             <button class="btn-secondary edit-btn" data-id="${product.id}">
                                 <i class="fas fa-edit"></i> تعديل
                             </button>
+                            <button class="btn-danger delete-btn" data-id="${product.id}">
+                                <i class="fas fa-trash"></i> حذف
+                            </button>
                         </div>
                     </div>
                 `;
@@ -1567,6 +1631,13 @@
                     const productId = this.dataset.id;
                     editProduct(productId);
                 });
+                
+                // إضافة مستمعي الأحداث لأزرار الحذف
+                const deleteBtn = card.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', function() {
+                    const productId = this.dataset.id;
+                    confirmDeleteProduct(productId);
+                });
             });
         }
 
@@ -1575,6 +1646,52 @@
             if (!categoryId) return '';
             const category = allCategories.find(cat => cat.id === categoryId);
             return category ? category.name : '';
+        }
+
+        // تأكيد حذف المنتج
+        function confirmDeleteProduct(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            
+            if (!product) {
+                showToast('لم يتم العثور على المنتج', 'error');
+                return;
+            }
+            
+            productToDelete = productId;
+            const dialog = document.getElementById('delete-confirm-dialog');
+            dialog.style.display = 'flex';
+        }
+
+        // حذف المنتج من قاعدة البيانات
+        async function deleteProduct() {
+            if (!productToDelete) return;
+            
+            try {
+                showGlobalLoading(true);
+                
+                if (!database) {
+                    throw new Error("قاعدة البيانات غير مهيئة");
+                }
+                
+                // حذف المنتج من قاعدة البيانات
+                await database.ref(`products/${productToDelete}`).remove();
+                
+                showToast('تم حذف المنتج بنجاح', 'success');
+                
+                // إغلاق نافذة التأكيد
+                const dialog = document.getElementById('delete-confirm-dialog');
+                dialog.style.display = 'none';
+                
+                // تحميل المنتجات مرة أخرى
+                loadProducts();
+                
+            } catch (error) {
+                console.error('خطأ في حذف المنتج:', error);
+                showToast('حدث خطأ في حذف المنتج', 'error');
+            } finally {
+                showGlobalLoading(false);
+                productToDelete = null;
+            }
         }
 
         // إضافة منتج
@@ -1849,10 +1966,18 @@
                 addProductForm.addEventListener('submit', addProduct);
             }
             
+            // أحداث نافذة تأكيد الحذف
+            document.getElementById('cancel-delete').addEventListener('click', function() {
+                document.getElementById('delete-confirm-dialog').style.display = 'none';
+                productToDelete = null;
+            });
+            
+            document.getElementById('confirm-delete').addEventListener('click', deleteProduct);
+            
             // تحميل الأقسام والمنتجات عند فتح الصفحة
             loadCategories();
             loadProducts();
         });
     </script>
 </body>
-    </html>
+</html>
