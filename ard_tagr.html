@@ -1,54 +1,278 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<title>خريطة التجار</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<style>
-html, body { height: 100%; margin: 0; font-family: Tahoma, sans-serif; }
-body { display: flex; flex-direction: column; }
-header { 
-    background: #007bff; 
-    color: #fff; 
-    padding: 10px 20px; 
-    position: sticky; 
-    top: 0; 
-    font-size: 18px; 
-    font-weight: bold; 
-    z-index: 1001; 
-    display: flex;
-    align-items: center;
-}
-#container { display: flex; flex: 1; }
-#map { flex: 1; }
-#merchants-list { width: 300px; overflow-y: auto; background: #f0f2f5; padding: 10px; }
-.merchant-item { padding: 8px; margin-bottom: 5px; background: #fff; border-radius: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.merchant-name { font-weight: bold; }
-.merchant-ip { font-size: 12px; color: #555; }
-.merchant-route { font-size: 12px; color: #d00; margin-top: 3px; }
-#mapType { position: absolute; top: 50px; left: 10px; z-index: 1000; background: #fff; padding: 5px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-footer { text-align:center; padding:10px; background:#f0f2f5; font-size:12px; }
-
-/* إضافة نمط لاسم التاجر باللون الأحمر */
-.merchant-name-red {
-    color: #ff0000;
-    margin-right: 5px;
-    font-weight: bold;
-    text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خريطة التجار - تفاصيل التاجر</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #f8f9fa;
+            --accent-color: #28a745;
+            --text-color: #333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: var(--text-color);
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background: var(--primary-color);
+            color: #fff;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: Tahoma;
+        }
+        
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        #container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 120px);
+        }
+        
+        #merchant-details {
+            width: 400px;
+            overflow-y: auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        #map {
+            flex: 1;
+        }
+        
+        .merchant-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .merchant-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            margin-left: 15px;
+        }
+        
+        .merchant-info {
+            flex: 1;
+        }
+        
+        .merchant-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+        
+        .merchant-category {
+            color: var(--light-text);
+            font-size: 14px;
+        }
+        
+        .details-section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .detail-item {
+            display: flex;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+        
+        .detail-icon {
+            width: 24px;
+            height: 24px;
+            margin-left: 10px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .detail-content {
+            flex: 1;
+        }
+        
+        .detail-label {
+            font-size: 12px;
+            color: var(--light-text);
+            margin-bottom: 3px;
+        }
+        
+        .detail-value {
+            font-size: 16px;
+            word-break: break-word;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .social-link {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--secondary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .social-link:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        #mapType {
+            position: absolute;
+            top: 70px;
+            left: 10px;
+            z-index: 1000;
+            background: #fff;
+            padding: 8px;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            font-family: Tahoma;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 15px;
+            background: var(--secondary-color);
+            font-size: 14px;
+            color: var(--light-text);
+            margin-top: auto;
+        }
+        
+        .route-info {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            margin-top: 10px;
+            font-family: Tahoma;
+        }
+        
+        @media (max-width: 768px) {
+            #container {
+                flex-direction: column;
+            }
+            
+            #merchant-details {
+                width: 100%;
+                height: 40%;
+            }
+            
+            #map {
+                width: 100%;
+                height: 60%;
+            }
+            
+            .merchant-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .merchant-avatar {
+                margin-left: 0;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
 </head>
 <body>
 
 <header>
-    <span>التاجر:</span>
-    <span id="globalMerchantName" class="merchant-name-red"></span>
+    <div class="header-content">
+        <button class="back-button" onclick="goBack()">
+            <i class="fas fa-arrow-right"></i> رجوع
+        </button>
+        <span>تفاصيل التاجر</span>
+    </div>
+    <span id="globalMerchantName"></span>
 </header>
+
 <div id="mapType">
     نوع الخريطة: 
     <select id="mapSelect">
@@ -59,18 +283,25 @@ footer { text-align:center; padding:10px; background:#f0f2f5; font-size:12px; }
 </div>
 
 <div id="container">
-    <div id="merchants-list"></div>
+    <div id="merchant-details">
+        <!-- سيتم ملء هذه المنطقة ببيانات التاجر -->
+    </div>
     <div id="map"></div>
 </div>
 
 <footer>جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة</footer>
 
 <script>
-// التعديل هنا: استخدام selectedMerchant بدلاً من merchantName
-const globalMerchantName = localStorage.getItem("selectedMerchant") || "اسم التاجر"; 
-document.getElementById("globalMerchantName").textContent = globalMerchantName;
+// دالة للعودة إلى الصفحة السابقة
+function goBack() {
+    window.history.back();
+}
 
-// Firebase
+// الحصول على اسم التاجر من localStorage
+const selectedMerchantName = localStorage.getItem("selectedMerchant") || "التاجر";
+document.getElementById("globalMerchantName").textContent = selectedMerchantName;
+
+// تهيئة Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyCZPqfq2Q6edvLkMogu1jR6RgLkLf-gQk0",
     authDomain: "chat-fat-free-default-rtdb.firebaseapp.com",
@@ -83,97 +314,375 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// تهيئة الخريطة
 const map = L.map('map').setView([20, 47], 6);
 
-// خرائط
+// إعداد طبقات الخريطة
 const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
 const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' });
 const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '© OpenTopoMap' });
 streetLayer.addTo(map);
 
+// تغيير نوع الخريطة
 const mapSelect = document.getElementById('mapSelect');
 mapSelect.addEventListener('change', () => {
     const type = mapSelect.value;
-    map.eachLayer(layer => map.removeLayer(layer));
+    map.eachLayer(layer => {
+        if (layer instanceof L.TileLayer) {
+            map.removeLayer(layer);
+        }
+    });
+    
     if (userMarker) userMarker.addTo(map);
     if (currentRoute) currentRoute.addTo(map);
-    if (type==='street') streetLayer.addTo(map);
-    else if(type==='satellite') satelliteLayer.addTo(map);
-    else if(type==='terrain') terrainLayer.addTo(map);
+    
+    if (type === 'street') streetLayer.addTo(map);
+    else if (type === 'satellite') satelliteLayer.addTo(map);
+    else if (type === 'terrain') terrainLayer.addTo(map);
 });
 
-const merchantsListDiv = document.getElementById('merchants-list');
+// عناصر DOM
+const merchantDetailsDiv = document.getElementById('merchant-details');
 let currentRoute = null;
 let userMarker = null;
 
+// دالة لعرض بيانات التاجر
+function displayMerchantDetails(merchant) {
+    merchantDetailsDiv.innerHTML = `
+        <div class="merchant-header">
+            <div class="merchant-avatar">
+                <i class="fas fa-store"></i>
+            </div>
+            <div class="merchant-info">
+                <div class="merchant-name">${merchant.name || 'غير محدد'}</div>
+                <div class="merchant-category">${merchant.category || 'لم يتم تحديد فئة'}</div>
+            </div>
+        </div>
+        
+        <div class="details-section">
+            <div class="section-title">
+                <i class="fas fa-info-circle"></i>
+                المعلومات الأساسية
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <i class="fas fa-phone"></i>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-label">رقم الهاتف</div>
+                    <div class="detail-value">${merchant.phone || 'غير متوفر'}</div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-label">رقم الجوال / الواتساب</div>
+                    <div class="detail-value">${merchant.mobile || 'غير متوفر'}</div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-label">الموقع</div>
+                    <div class="detail-value">${merchant.address || 'غير متوفر'}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="details-section">
+            <div class="section-title">
+                <i class="fas fa-link"></i>
+                الروابط والمواقع
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-label">موقع جوجل</div>
+                    <div class="detail-value">
+                        ${merchant.googleSite ? `<a href="${merchant.googleSite}" target="_blank">${merchant.googleSite}</a>` : 'غير متوفر'}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <i class="fab fa-youtube"></i>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-label">موقع يوتيوب</div>
+                    <div class="detail-value">
+                        ${merchant.youtubeSite ? `<a href="${merchant.youtubeSite}" target="_blank">${merchant.youtubeSite}</a>` : 'غير متوفر'}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <i class="fab fa-telegram"></i>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-label">موقع تلجرام</div>
+                    <div class="detail-value">
+                        ${merchant.telegramSite ? `<a href="${merchant.telegramSite}" target="_blank">${merchant.telegramSite}</a>` : 'غير متوفر'}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <i class="fab fa-twitter"></i>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-label">موقع تويتر</div>
+                    <div class="detail-value">
+                        ${merchant.twitterSite ? `<a href="${merchant.twitterSite}" target="_blank">${merchant.twitterSite}</a>` : 'غير متوفر'}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-icon">
+                    <i class="fas fa-hashtag"></i>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-label">وسائل التواصل الاجتماعي</div>
+                    <div class="social-links">
+                        ${merchant.googleSite ? `<a href="${merchant.googleSite}" class="social-link" target="_blank"><i class="fas fa-globe"></i></a>` : ''}
+                        ${merchant.youtubeSite ? `<a href="${merchant.youtubeSite}" class="social-link" target="_blank"><i class="fab fa-youtube"></i></a>` : ''}
+                        ${merchant.telegramSite ? `<a href="${merchant.telegramSite}" class="social-link" target="_blank"><i class="fab fa-telegram"></i></a>` : ''}
+                        ${merchant.twitterSite ? `<a href="${merchant.twitterSite}" class="social-link" target="_blank"><i class="fab fa-twitter"></i></a>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="details-section">
+            <div class="section-title">
+                <i class="fas fa-route"></i>
+                اتجاهات الوصول
+            </div>
+            <div class="route-info" id="routeInfo">
+                انقر على "احسب المسار" لعرض معلومات المسافة والوقت
+            </div>
+            <button class="back-button" onclick="calculateRoute()" style="background: var(--accent-color); width: 100%; justify-content: center; margin-top: 10px;">
+                <i class="fas fa-route"></i> احسب المسار
+            </button>
+        </div>
+    `;
+}
+
+// دالة لحساب المسار
+function calculateRoute() {
+    if (userMarker && currentMerchantCoords) {
+        if (currentRoute) {
+            map.removeControl(currentRoute);
+        }
+        
+        currentRoute = L.Routing.control({
+            waypoints: [
+                userMarker.getLatLng(),
+                L.latLng(currentMerchantCoords[0], currentMerchantCoords[1])
+            ],
+            lineOptions: {
+                styles: [{color: 'blue', weight: 5}]
+            },
+            router: L.Routing.osrmv1({
+                serviceUrl: 'https://router.project-osrm.org/route/v1'
+            }),
+            addWaypoints: false,
+            draggableWaypoints: false,
+            fitSelectedRoutes: true,
+            show: false
+        }).on('routesfound', function(e) {
+            const routes = e.routes;
+            if (routes && routes.length > 0) {
+                const route = routes[0];
+                const distance = (route.summary.totalDistance / 1000).toFixed(2);
+                const duration = Math.ceil(route.summary.totalTime / 60);
+                
+                document.getElementById('routeInfo').innerHTML = `
+                    <strong>المسافة:</strong> ${distance} كم<br>
+                    <strong>الوقت المقدر:</strong> ${duration} دقيقة
+                `;
+            }
+        }).addTo(map);
+    } else {
+        alert('تعذر حساب المسار. يرجى التأكد من تفعيل خدمة الموقع.');
+    }
+}
+
+let currentMerchantCoords = null;
+
+// الحصول على موقع المستخدم وبيانات التجار
 if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition((position) => {
         const userCoords = [position.coords.latitude, position.coords.longitude];
-        userMarker = L.marker(userCoords).addTo(map).bindPopup("موقعك الحالي").openPopup();
+        userMarker = L.marker(userCoords).addTo(map)
+            .bindPopup("موقعك الحالي")
+            .openPopup();
 
+        // جلب بيانات التجار من Firebase
         const merchantsRef = db.ref('merchants');
         merchantsRef.on('value', (snapshot) => {
-            merchantsListDiv.innerHTML = '';
             const merchants = snapshot.val();
-            let matchedMerchantCoords = null;
-            let matchedMerchantKey = null;
+            let merchantFound = false;
 
-            for(let key in merchants){
+            for (let key in merchants) {
                 const merchant = merchants[key];
-                if(!merchant.location) continue;
+                if (!merchant.location) continue;
+                
                 const coords = merchant.location.split(',').map(Number);
-                if(coords.length!==2 || coords.some(isNaN)) continue;
-
-                const itemDiv = document.createElement('div');
-                itemDiv.classList.add('merchant-item');
-                itemDiv.innerHTML = `<div class="merchant-name">${merchant.name || 'غير محدد'}</div>
-                                     <div class="merchant-ip">${merchant.location}</div>
-                                     <div class="merchant-route">جارٍ حساب المسافة...</div>`;
-                merchantsListDiv.appendChild(itemDiv);
-
-                if(merchant.name === globalMerchantName){
-                    matchedMerchantCoords = coords;
-                    matchedMerchantKey = key;
-                    L.marker(coords).addTo(map).bindPopup(merchant.name).openPopup();
+                if (coords.length !== 2 || coords.some(isNaN)) continue;
+                
+                // إذا كان التاجر مطابقًا للاسم المخزن
+                if (merchant.name === selectedMerchantName) {
+                    merchantFound = true;
+                    currentMerchantCoords = coords;
+                    
+                    // عرض بيانات التاجر
+                    displayMerchantDetails(merchant);
+                    
+                    // إضافة علامة التاجر على الخريطة
+                    L.marker(coords)
+                        .addTo(map)
+                        .bindPopup(`
+                            <strong>${merchant.name}</strong><br>
+                            ${merchant.category || ''}
+                        `)
+                        .openPopup();
+                    
+                    // تكبير الخريطة ل显示 موقع التاجر
                     map.setView(coords, 15);
-                }
-
-                itemDiv.onclick = () => {
-                    if(currentRoute) map.removeControl(currentRoute);
-                    currentRoute = L.Routing.control({
-                        waypoints:[userCoords, coords],
-                        lineOptions:{styles:[{color:'red',weight:5}]},
-                        router: L.Routing.osrmv1({ serviceUrl:'https://router.project-osrm.org/route/v1'}),
-                        addWaypoints:false, draggableWaypoints:false, fitSelectedRoutes:true, show:false
-                    }).on('routesfound', e=>{
-                        const route = e.routes[0];
-                        const distance = (route.summary.totalDistance/1000).toFixed(2);
-                        const duration = Math.ceil(route.summary.totalTime/60);
-                        itemDiv.querySelector('.merchant-route').innerHTML = `المسافة: ${distance} كم | الوقت: ${duration} دقيقة`;
-                    }).addTo(map);
+                    
+                    break;
                 }
             }
-
-            // إذا وُجد التاجر المطابق، نرسم Route مباشرة
-            if(matchedMerchantCoords){
-                if(currentRoute) map.removeControl(currentRoute);
-                currentRoute = L.Routing.control({
-                    waypoints:[userCoords, matchedMerchantCoords],
-                    lineOptions:{styles:[{color:'blue',weight:5}]},
-                    router: L.Routing.osrmv1({ serviceUrl:'https://router.project-osrm.org/route/v1'}),
-                    addWaypoints:false, draggableWaypoints:false, fitSelectedRoutes:true, show:false
-                }).on('routesfound', e=>{
-                    const route = e.routes[0];
-                    const distance = (route.summary.totalDistance/1000).toFixed(2);
-                    const duration = Math.ceil(route.summary.totalTime/60);
-                    const matchedDiv = document.querySelectorAll('.merchant-item').find(div => div.querySelector('.merchant-name').textContent===globalMerchantName);
-                    if(matchedDiv) matchedDiv.querySelector('.merchant-route').innerHTML = `المسافة: ${distance} كم | الوقت: ${duration} دقيقة`;
-                }).addTo(map);
+            
+            if (!merchantFound) {
+                merchantDetailsDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--light-text);">
+                        <i class="fas fa-store-slash" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <h3>التاجر غير موجود</h3>
+                        <p>لم يتم العثور على بيانات للتاجر "${selectedMerchantName}"</p>
+                    </div>
+                `;
             }
         });
-    }, ()=>alert('تعذر الحصول على موقعك الحالي'));
+    }, () => {
+        alert('تعذر الحصول على موقعك الحالي. يرجى التأكد من تفعيل خدمة الموقع.');
+        
+        // جلب بيانات التجار حتى بدون موقع المستخدم
+        const merchantsRef = db.ref('merchants');
+        merchantsRef.on('value', (snapshot) => {
+            const merchants = snapshot.val();
+            let merchantFound = false;
+
+            for (let key in merchants) {
+                const merchant = merchants[key];
+                
+                // إذا كان التاجر مطابقًا للاسم المخزن
+                if (merchant.name === selectedMerchantName) {
+                    merchantFound = true;
+                    
+                    // عرض بيانات التاجر
+                    displayMerchantDetails(merchant);
+                    
+                    if (merchant.location) {
+                        const coords = merchant.location.split(',').map(Number);
+                        if (coords.length === 2 && !coords.some(isNaN)) {
+                            currentMerchantCoords = coords;
+                            
+                            // إضافة علامة التاجر على الخريطة
+                            L.marker(coords)
+                                .addTo(map)
+                                .bindPopup(`
+                                    <strong>${merchant.name}</strong><br>
+                                    ${merchant.category || ''}
+                                `)
+                                .openPopup();
+                            
+                            // تكبير الخريطة ل显示 موقع التاجر
+                            map.setView(coords, 15);
+                        }
+                    }
+                    
+                    break;
+                }
+            }
+            
+            if (!merchantFound) {
+                merchantDetailsDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--light-text);">
+                        <i class="fas fa-store-slash" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <h3>التاجر غير موجود</h3>
+                        <p>لم يتم العثور على بيانات للتاجر "${selectedMerchantName}"</p>
+                    </div>
+                `;
+            }
+        });
+    });
 } else {
     alert('متصفحك لا يدعم تحديد الموقع');
+    
+    // جلب بيانات التجار حتى بدون دعم الموقع
+    const merchantsRef = db.ref('merchants');
+    merchantsRef.on('value', (snapshot) => {
+        const merchants = snapshot.val();
+        let merchantFound = false;
+
+        for (let key in merchants) {
+            const merchant = merchants[key];
+            
+            // إذا كان التاجر مطابقًا للاسم المخزن
+            if (merchant.name === selectedMerchantName) {
+                merchantFound = true;
+                
+                // عرض بيانات التاجر
+                displayMerchantDetails(merchant);
+                
+                if (merchant.location) {
+                    const coords = merchant.location.split(',').map(Number);
+                    if (coords.length === 2 && !coords.some(isNaN)) {
+                        currentMerchantCoords = coords;
+                        
+                        // إضافة علامة التاجر على الخريطة
+                        L.marker(coords)
+                            .addTo(map)
+                            .bindPopup(`
+                                <strong>${merchant.name}</strong><br>
+                                ${merchant.category || ''}
+                            `)
+                            .openPopup();
+                        
+                        // تكبير الخريطة ل显示 موقع التاجر
+                        map.setView(coords, 15);
+                    }
+                }
+                
+                break;
+            }
+        }
+        
+        if (!merchantFound) {
+            merchantDetailsDiv.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: var(--light-text);">
+                    <i class="fas fa-store-slash" style="font-size: 48px; margin-bottom: 15px;"></i>
+                    <h3>التاجر غير موجود</h3>
+                    <p>لم يتم العثور على بيانات للتاجر "${selectedMerchantName}"</p>
+                </div>
+            `;
+        }
+    });
 }
 </script>
 </body>
