@@ -234,6 +234,28 @@
             font-family: Tahoma;
         }
         
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 123, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         @media (max-width: 768px) {
             #container {
                 flex-direction: column;
@@ -284,7 +306,10 @@
 
 <div id="container">
     <div id="merchant-details">
-        <!-- سيتم ملء هذه المنطقة ببيانات التاجر -->
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>جاري تحميل بيانات التاجر...</p>
+        </div>
     </div>
     <div id="map"></div>
 </div>
@@ -305,17 +330,31 @@ document.getElementById("globalMerchantName").textContent = selectedMerchantName
 const firebaseConfig = {
     apiKey: "AIzaSyCZPqfq2Q6edvLkMogu1jR6RgLkLf-gQk0",
     authDomain: "chat-fat-free-default-rtdb.firebaseapp.com",
-    databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/",
+    databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com",
     projectId: "chat-fat-free-default-rtdb",
     storageBucket: "chat-fat-free-default-rtdb.appspot.com",
     messagingSenderId: "106886157687",
     appId: "1:106886157687:web:5d6c8e3e5c7d5d7a8d8b9c"
 };
-firebase.initializeApp(firebaseConfig);
+
+// تهيئة التطبيق Firebase
+try {
+    firebase.initializeApp(firebaseConfig);
+} catch (error) {
+    console.error("خطأ في تهيئة Firebase:", error);
+    document.getElementById("merchant-details").innerHTML = `
+        <div style="text-align: center; padding: 40px 20px; color: #dc3545;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px;"></i>
+            <h3>خطأ في الاتصال</h3>
+            <p>تعذر الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى لاحقًا.</p>
+        </div>
+    `;
+}
+
 const db = firebase.database();
 
 // تهيئة الخريطة
-const map = L.map('map').setView([20, 47], 6);
+const map = L.map('map').setView([24.7136, 46.6753], 10); // افتراضيًا، مركز الخريطة على الرياض
 
 // إعداد طبقات الخريطة
 const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
@@ -334,7 +373,7 @@ mapSelect.addEventListener('change', () => {
     });
     
     if (userMarker) userMarker.addTo(map);
-    if (currentRoute) currentRoute.addTo(map);
+    if (currentRoute) map.addControl(currentRoute);
     
     if (type === 'street') streetLayer.addTo(map);
     else if (type === 'satellite') satelliteLayer.addTo(map);
@@ -345,6 +384,7 @@ mapSelect.addEventListener('change', () => {
 const merchantDetailsDiv = document.getElementById('merchant-details');
 let currentRoute = null;
 let userMarker = null;
+let currentMerchantCoords = null;
 
 // دالة لعرض بيانات التاجر
 function displayMerchantDetails(merchant) {
@@ -521,169 +561,106 @@ function calculateRoute() {
     }
 }
 
-let currentMerchantCoords = null;
-
-// الحصول على موقع المستخدم وبيانات التجار
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((position) => {
-        const userCoords = [position.coords.latitude, position.coords.longitude];
-        userMarker = L.marker(userCoords).addTo(map)
-            .bindPopup("موقعك الحالي")
-            .openPopup();
-
-        // جلب بيانات التجار من Firebase
-        const merchantsRef = db.ref('merchants');
-        merchantsRef.on('value', (snapshot) => {
-            const merchants = snapshot.val();
-            let merchantFound = false;
-
-            for (let key in merchants) {
-                const merchant = merchants[key];
-                if (!merchant.location) continue;
-                
-                const coords = merchant.location.split(',').map(Number);
-                if (coords.length !== 2 || coords.some(isNaN)) continue;
-                
-                // إذا كان التاجر مطابقًا للاسم المخزن
-                if (merchant.name === selectedMerchantName) {
-                    merchantFound = true;
-                    currentMerchantCoords = coords;
-                    
-                    // عرض بيانات التاجر
-                    displayMerchantDetails(merchant);
-                    
-                    // إضافة علامة التاجر على الخريطة
-                    L.marker(coords)
-                        .addTo(map)
-                        .bindPopup(`
-                            <strong>${merchant.name}</strong><br>
-                            ${merchant.category || ''}
-                        `)
-                        .openPopup();
-                    
-                    // تكبير الخريطة ل显示 موقع التاجر
-                    map.setView(coords, 15);
-                    
-                    break;
-                }
-            }
-            
-            if (!merchantFound) {
-                merchantDetailsDiv.innerHTML = `
-                    <div style="text-align: center; padding: 40px 20px; color: var(--light-text);">
-                        <i class="fas fa-store-slash" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <h3>التاجر غير موجود</h3>
-                        <p>لم يتم العثور على بيانات للتاجر "${selectedMerchantName}"</p>
-                    </div>
-                `;
-            }
-        });
-    }, () => {
-        alert('تعذر الحصول على موقعك الحالي. يرجى التأكد من تفعيل خدمة الموقع.');
-        
-        // جلب بيانات التجار حتى بدون موقع المستخدم
-        const merchantsRef = db.ref('merchants');
-        merchantsRef.on('value', (snapshot) => {
-            const merchants = snapshot.val();
-            let merchantFound = false;
-
-            for (let key in merchants) {
-                const merchant = merchants[key];
-                
-                // إذا كان التاجر مطابقًا للاسم المخزن
-                if (merchant.name === selectedMerchantName) {
-                    merchantFound = true;
-                    
-                    // عرض بيانات التاجر
-                    displayMerchantDetails(merchant);
-                    
-                    if (merchant.location) {
-                        const coords = merchant.location.split(',').map(Number);
-                        if (coords.length === 2 && !coords.some(isNaN)) {
-                            currentMerchantCoords = coords;
-                            
-                            // إضافة علامة التاجر على الخريطة
-                            L.marker(coords)
-                                .addTo(map)
-                                .bindPopup(`
-                                    <strong>${merchant.name}</strong><br>
-                                    ${merchant.category || ''}
-                                `)
-                                .openPopup();
-                            
-                            // تكبير الخريطة ل显示 موقع التاجر
-                            map.setView(coords, 15);
-                        }
-                    }
-                    
-                    break;
-                }
-            }
-            
-            if (!merchantFound) {
-                merchantDetailsDiv.innerHTML = `
-                    <div style="text-align: center; padding: 40px 20px; color: var(--light-text);">
-                        <i class="fas fa-store-slash" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <h3>التاجر غير موجود</h3>
-                        <p>لم يتم العثور على بيانات للتاجر "${selectedMerchantName}"</p>
-                    </div>
-                `;
-            }
-        });
-    });
-} else {
-    alert('متصفحك لا يدعم تحديد الموقع');
-    
-    // جلب بيانات التجار حتى بدون دعم الموقع
+// جلب بيانات التاجر من Firebase
+function loadMerchantData() {
     const merchantsRef = db.ref('merchants');
-    merchantsRef.on('value', (snapshot) => {
-        const merchants = snapshot.val();
-        let merchantFound = false;
+    merchantsRef.once('value')
+        .then((snapshot) => {
+            const merchants = snapshot.val();
+            let merchantFound = false;
 
-        for (let key in merchants) {
-            const merchant = merchants[key];
-            
-            // إذا كان التاجر مطابقًا للاسم المخزن
-            if (merchant.name === selectedMerchantName) {
-                merchantFound = true;
-                
-                // عرض بيانات التاجر
-                displayMerchantDetails(merchant);
-                
-                if (merchant.location) {
-                    const coords = merchant.location.split(',').map(Number);
-                    if (coords.length === 2 && !coords.some(isNaN)) {
-                        currentMerchantCoords = coords;
+            if (merchants) {
+                for (let key in merchants) {
+                    const merchant = merchants[key];
+                    
+                    // إذا كان التاجر مطابقًا للاسم المخزن
+                    if (merchant.name === selectedMerchantName) {
+                        merchantFound = true;
                         
-                        // إضافة علامة التاجر على الخريطة
-                        L.marker(coords)
-                            .addTo(map)
-                            .bindPopup(`
-                                <strong>${merchant.name}</strong><br>
-                                ${merchant.category || ''}
-                            `)
-                            .openPopup();
+                        // عرض بيانات التاجر
+                        displayMerchantDetails(merchant);
                         
-                        // تكبير الخريطة ل显示 موقع التاجر
-                        map.setView(coords, 15);
+                        if (merchant.location) {
+                            const coords = merchant.location.split(',').map(Number);
+                            if (coords.length === 2 && !coords.some(isNaN)) {
+                                currentMerchantCoords = coords;
+                                
+                                // إضافة علامة التاجر على الخريطة
+                                L.marker(coords)
+                                    .addTo(map)
+                                    .bindPopup(`
+                                        <strong>${merchant.name}</strong><br>
+                                        ${merchant.category || ''}
+                                    `)
+                                    .openPopup();
+                                
+                                // تكبير الخريطة ل显示 موقع التاجر
+                                map.setView(coords, 15);
+                                
+                                // محاولة الحصول على موقع المستخدم
+                                getUserLocation(coords);
+                            } else {
+                                // إذا لم تكن الإحداثيات صحيحة
+                                map.setView([24.7136, 46.6753], 10); // العودة إلى العرض الافتراضي
+                            }
+                        }
+                        
+                        break;
                     }
                 }
-                
-                break;
             }
-        }
-        
-        if (!merchantFound) {
+            
+            if (!merchantFound) {
+                merchantDetailsDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--light-text);">
+                        <i class="fas fa-store-slash" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <h3>التاجر غير موجود</h3>
+                        <p>لم يتم العثور على بيانات للتاجر "${selectedMerchantName}"</p>
+                    </div>
+                `;
+            }
+        })
+        .catch((error) => {
+            console.error("خطأ في جلب البيانات:", error);
             merchantDetailsDiv.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: var(--light-text);">
-                    <i class="fas fa-store-slash" style="font-size: 48px; margin-bottom: 15px;"></i>
-                    <h3>التاجر غير موجود</h3>
-                    <p>لم يتم العثور على بيانات للتاجر "${selectedMerchantName}"</p>
+                <div style="text-align: center; padding: 40px 20px; color: #dc3545;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px;"></i>
+                    <h3>خطأ في تحميل البيانات</h3>
+                    <p>تعذر تحميل بيانات التاجر. يرجى المحاولة مرة أخرى.</p>
                 </div>
             `;
-        }
-    });
+        });
 }
+
+// الحصول على موقع المستخدم
+function getUserLocation(merchantCoords) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userCoords = [position.coords.latitude, position.coords.longitude];
+                userMarker = L.marker(userCoords).addTo(map)
+                    .bindPopup("موقعك الحالي")
+                    .openPopup();
+                
+                // إذا كان هناك موقع للتاجر، ضبط الخريطة ل显示 كلا الموقعين
+                if (merchantCoords) {
+                    const bounds = L.latLngBounds([userCoords, merchantCoords]);
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            },
+            (error) => {
+                console.warn('تعذر الحصول على موقع المستخدم:', error);
+                // الاستمرار حتى لو فشل الحصول على موقع المستخدم
+            },
+            { timeout: 10000 }
+        );
+    }
+}
+
+// بدء تحميل بيانات التاجر عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    loadMerchantData();
+});
 </script>
 </body>
 </html>
