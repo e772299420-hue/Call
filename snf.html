@@ -66,7 +66,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 10px;
         }
 
         .app-logo {
@@ -200,21 +199,6 @@
 
         .btn-secondary:hover {
             background: #2563eb;
-            transform: translateY(-1px);
-        }
-
-        .btn-danger {
-            background: var(--danger-color);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
             transform: translateY(-1px);
         }
 
@@ -837,35 +821,21 @@
         .carousel-indicator.active {
             background: white;
         }
-
-        .delete-confirmation {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+        
+        /* إضافة أنماط لعرض التاريخ */
+        .product-date {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 0.5rem;
             display: flex;
-            justify-content: center;
             align-items: center;
-            z-index: 10000;
-            display: none;
+            gap: 0.3rem;
         }
-
-        .delete-confirmation-content {
-            background: white;
-            padding: 2rem;
-            border-radius: var(--border-radius);
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-        }
-
-        .delete-confirmation-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1.5rem;
+        
+        .form-group.date-field {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #e2e8f0;
         }
     </style>
 </head>
@@ -882,7 +852,7 @@
                 </div>
                 <div class="merchant-section">
                     <div class="management-name">إدارة الأصناف والمنتجات</div>
-                    <div class="merchant-name" id="user-display-name">مرحباً، تاجر</div>
+                    <div class="merchant-name" id="user-display-name">جاري التحميل...</div>
                 </div>
             </div>
         </header>
@@ -936,6 +906,12 @@
                             </select>
                         </div>
 
+                        <!-- حقل التاريخ المضاف -->
+                        <div class="form-group date-field">
+                            <label for="product-date"><i class="fas fa-calendar"></i> تاريخ الإضافة</label>
+                            <input type="date" id="product-date" readonly>
+                        </div>
+
                         <div class="form-group">
                             <label><i class="fas fa-images"></i> صور الصنف</label>
                             <div class="image-upload-section">
@@ -973,6 +949,12 @@
                         <button type="submit" class="btn-primary btn-large">
                             <i class="fas fa-save"></i> حفظ الصنف
                         </button>
+
+                        <div id="error-details" class="error-details">
+                            <h4>تفاصيل الخطأ:</h4>
+                            <pre id="error-message"></pre>
+                            <span class="debug-toggle" onclick="toggleFirebaseDebug()">تفعيل وضع التصحيح</span>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -993,18 +975,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة تأكيد الحذف -->
-    <div class="delete-confirmation" id="delete-confirmation">
-        <div class="delete-confirmation-content">
-            <h3><i class="fas fa-exclamation-triangle"></i> تأكيد الحذف</h3>
-            <p>هل أنت متأكد من أنك تريد حذف هذا الصنف؟ لا يمكن التراجع عن هذه العملية.</p>
-            <div class="delete-confirmation-buttons">
-                <button class="btn-secondary" id="cancel-delete">إلغاء</button>
-                <button class="btn-danger" id="confirm-delete">حذف</button>
             </div>
         </div>
     </div>
@@ -1042,7 +1012,9 @@
         let uploadedImageUrls = [];
         let allProducts = [];
         let allCategories = [];
-        let productToDeleteId = null;
+        let firebaseDebugMode = false;
+        let isEditing = false;
+        let currentEditProductId = null;
 
         // كائن تخزين بيانات المستخدم بشكل عام (جلوبال)
         const globalUser = {
@@ -1159,6 +1131,18 @@
             }, 5000);
         }
 
+        // دالة لتعيين تاريخ اليوم في حقل التاريخ
+        function setCurrentDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayFormatted = `${year}-${month}-${day}`;
+            
+            document.getElementById('product-date').value = todayFormatted;
+            return todayFormatted;
+        }
+
         // تحويل الملف إلى Base64
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
@@ -1214,8 +1198,7 @@
                     const data = await response.json();
                     
                     if (data.success && data.fileId) {
-                        // استخدام الرابط المطلوب بدلاً من الرابط الحالي
-                        const imageUrl = `https://drive.google.com/uc?export=view&id=${data.fileId}`;
+                        const imageUrl = `https://drive.usercontent.google.com/download?id=${data.fileId}&authuser=0`;
                         uploadedImageUrls.push(imageUrl);
                         console.log(`تم رفع الصورة بنجاح: ${file.name} - URL: ${imageUrl}`);
                     } else {
@@ -1324,15 +1307,29 @@
             }
         }
 
+        // التحقق من وجود صنف بنفس الاسم
+        async function checkProductNameExists(productName) {
+            try {
+                const currentUser = globalUser.getUserData();
+                if (!currentUser || !currentUser.id) return false;
+                
+                const productsSnapshot = await database.ref('products').once('value');
+                const products = productsSnapshot.val() || {};
+                
+                // البحث عن منتج بنفس الاسم لنفس المستخدم
+                return Object.values(products).some(product => 
+                    product.userId === currentUser.id && 
+                    product.name.toLowerCase() === productName.toLowerCase()
+                );
+            } catch (error) {
+                console.error('خطأ في التحقق من اسم المنتج:', error);
+                return false;
+            }
+        }
+
         // تحميل الأقسام من قاعدة البيانات
         async function loadCategories() {
             try {
-                showGlobalLoading(true);
-                
-                if (!database) {
-                    throw new Error("قاعدة البيانات غير مهيئة");
-                }
-                
                 const categoriesSnapshot = await database.ref('categories').once('value');
                 const categories = categoriesSnapshot.val() || {};
                 
@@ -1352,12 +1349,9 @@
                     categorySelect.appendChild(option);
                 });
                 
-                showGlobalLoading(false);
-                
             } catch (error) {
                 console.error('خطأ في تحميل الأقسام:', error);
                 showToast('حدث خطأ في تحميل الأقسام', 'error');
-                showGlobalLoading(false);
             }
         }
 
@@ -1393,64 +1387,111 @@
                 
                 displayProducts(allProducts);
                 
-                showGlobalLoading(false);
-                
             } catch (error) {
                 console.error('خطأ في تحميل المنتجات:', error);
                 showToast('حدث خطأ في تحميل المنتجات', 'error');
-                showGlobalLoading(false);
-            }
-        }
-
-        // الحصول على اسم القسم من ID
-        function getCategoryName(categoryId) {
-            if (!categoryId) return '';
-            const category = allCategories.find(cat => cat.id === categoryId);
-            return category ? category.name : '';
-        }
-
-        // تأكيد حذف المنتج
-        function confirmDeleteProduct(productId) {
-            const product = allProducts.find(p => p.id === productId);
-            if (!product) return;
-            
-            productToDeleteId = productId;
-            const confirmationDialog = document.getElementById('delete-confirmation');
-            confirmationDialog.style.display = 'flex';
-            
-            // إضافة مستمعي الأحداث لأزرار التأكيد والإلغاء
-            document.getElementById('cancel-delete').onclick = () => {
-                confirmationDialog.style.display = 'none';
-                productToDeleteId = null;
-            };
-            
-            document.getElementById('confirm-delete').onclick = deleteProduct;
-        }
-
-        // حذف المنتج
-        async function deleteProduct() {
-            if (!productToDeleteId) return;
-            
-            try {
-                showGlobalLoading(true);
-                
-                await database.ref(`products/${productToDeleteId}`).remove();
-                
-                // إغلاق نافذة التأكيد
-                document.getElementById('delete-confirmation').style.display = 'none';
-                
-                showToast('تم حذف المنتج بنجاح', 'success');
-                
-                // إعادة تحميل المنتجات
-                loadProducts();
-                
-            } catch (error) {
-                console.error('خطأ في حذف المنتج:', error);
-                showToast('حدث خطأ أثناء حذف المنتج', 'error');
             } finally {
                 showGlobalLoading(false);
-                productToDeleteId = null;
             }
+        }
+
+        // دالة لإنشاء رابط صورة متوافق مع CORS
+        function getCorsImageUrl(url) {
+            return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        }
+
+        // إنشاء كاروسيل للصور المتعددة
+        function createImageCarousel(images, productName) {
+            const carousel = document.createElement('div');
+            carousel.className = 'carousel';
+            
+            const carouselInner = document.createElement('div');
+            carouselInner.className = 'carousel-inner';
+            
+            images.forEach((imageUrl, index) => {
+                const carouselItem = document.createElement('div');
+                carouselItem.className = 'carousel-item';
+                
+                const img = document.createElement('img');
+                img.src = getCorsImageUrl(imageUrl);
+                img.alt = `${productName} - صورة ${index + 1}`;
+                img.className = 'product-image';
+                img.crossOrigin = 'anonymous';
+                
+                carouselItem.appendChild(img);
+                carouselInner.appendChild(carouselItem);
+            });
+            
+            carousel.appendChild(carouselInner);
+            
+            // إضافة عناصر التحكم إذا كان هناك أكثر من صورة
+            if (images.length > 1) {
+                const prevButton = document.createElement('button');
+                prevButton.className = 'carousel-control prev';
+                prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                
+                const nextButton = document.createElement('button');
+                nextButton.className = 'carousel-control next';
+                nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                
+                const indicators = document.createElement('div');
+                indicators.className = 'carousel-indicators';
+                
+                images.forEach((_, index) => {
+                    const indicator = document.createElement('button');
+                    indicator.className = `carousel-indicator ${index === 0 ? 'active' : ''}`;
+                    indicator.dataset.index = index;
+                    indicators.appendChild(indicator);
+                });
+                
+                carousel.appendChild(prevButton);
+                carousel.appendChild(nextButton);
+                carousel.appendChild(indicators);
+                
+                // إضافة أحداث التحكم
+                let currentIndex = 0;
+                
+                function updateCarousel() {
+                    carouselInner.style.transform = `translateX(-${currentIndex * 100}%)`;
+                    
+                    // تحديث المؤشرات
+                    document.querySelectorAll('.carousel-indicator').forEach((indicator, i) => {
+                        indicator.classList.toggle('active', i === currentIndex);
+                    });
+                }
+                
+                prevButton.addEventListener('click', () => {
+                    currentIndex = (currentIndex - 1 + images.length) % images.length;
+                    updateCarousel();
+                });
+                
+                nextButton.addEventListener('click', () => {
+                    currentIndex = (currentIndex + 1) % images.length;
+                    updateCarousel();
+                });
+                
+                // النقر على المؤشرات
+                document.querySelectorAll('.carousel-indicator').forEach(indicator => {
+                    indicator.addEventListener('click', () => {
+                        currentIndex = parseInt(indicator.dataset.index);
+                        updateCarousel();
+                    });
+                });
+            }
+            
+            return carousel;
+        }
+
+        // دالة لتحويل الطابع الزمني إلى تاريخ مقروء
+        function formatDate(timestamp) {
+            if (!timestamp) return 'غير محدد';
+            
+            const date = new Date(timestamp);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            
+            return `${year}-${month}-${day}`;
         }
 
         // عرض المنتجات
@@ -1483,8 +1524,7 @@
                 
                 card.innerHTML = `
                     <div class="product-image-container">
-                        ${hasImages ? 
-                            `<img src="${product.imageUrls[0]}" class="product-image" alt="${product.name}">` : 
+                        ${hasImages ? '' : 
                             `<div style="height: 100%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b;">
                                 <i class="fas fa-image" style="font-size: 3rem;"></i>
                             </div>`
@@ -1494,6 +1534,10 @@
                         <h3 class="product-name">${product.name}</h3>
                         <p class="product-description">${product.description || 'لا يوجد وصف'}</p>
                         <div class="product-price">${product.price} د.ع</div>
+                        <div class="product-date">
+                            <i class="fas fa-calendar"></i>
+                            تاريخ الإضافة: ${formatDate(product.createdAt)}
+                        </div>
                         <div class="product-tags">
                             <span class="product-category">${getCategoryName(product.category) || 'غير مصنف'}</span>
                             <span class="product-availability ${product.availability}">
@@ -1504,22 +1548,33 @@
                             <button class="btn-secondary edit-btn" data-id="${product.id}">
                                 <i class="fas fa-edit"></i> تعديل
                             </button>
-                            <button class="btn-danger delete-btn" data-id="${product.id}">
-                                <i class="fas fa-trash"></i> حذف
-                            </button>
                         </div>
                     </div>
                 `;
                 
+                // إضافة الكاروسيل إذا كان هناك صور
+                if (hasImages) {
+                    const imageContainer = card.querySelector('.product-image-container');
+                    const carousel = createImageCarousel(product.imageUrls, product.name);
+                    imageContainer.appendChild(carousel);
+                }
+                
                 container.appendChild(card);
                 
-                // إضافة مستمعي الأحداث لأزرار الحذف
-                const deleteBtn = card.querySelector('.delete-btn');
-                deleteBtn.addEventListener('click', function() {
+                // إضافة مستمعي الأحداث لأزرار التعديل
+                const editBtn = card.querySelector('.edit-btn');
+                editBtn.addEventListener('click', function() {
                     const productId = this.dataset.id;
-                    confirmDeleteProduct(productId);
+                    editProduct(productId);
                 });
             });
+        }
+
+        // الحصول على اسم القسم من ID
+        function getCategoryName(categoryId) {
+            if (!categoryId) return '';
+            const category = allCategories.find(cat => cat.id === categoryId);
+            return category ? category.name : '';
         }
 
         // إضافة منتج
@@ -1531,6 +1586,7 @@
             const price = parseFloat(document.getElementById('product-price').value);
             const category = document.getElementById('product-category').value;
             const availability = document.getElementById('product-availability').value;
+            const date = document.getElementById('product-date').value;
             
             if (!name || isNaN(price) || !category) {
                 showToast('يرجى ملء جميع الحقول المطلوبة', 'warning');
@@ -1538,6 +1594,17 @@
             }
             
             try {
+                // التحقق من وجود منتج بنفس الاسم
+                const productExists = await checkProductNameExists(name);
+                
+                if (productExists && !isEditing) {
+                    const shouldContinue = confirm(`يوجد بالفعل صنف بنفس الاسم "${name}". هل ترغب في الاستمرار وإضافة الصنف؟`);
+                    if (!shouldContinue) {
+                        showToast('تم إلغاء إضافة الصنف', 'info');
+                        return;
+                    }
+                }
+                
                 showGlobalLoading(true);
                 
                 if (!database) {
@@ -1551,17 +1618,42 @@
                     return;
                 }
                 
-                const productId = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                const productData = {
-                    name: name,
-                    description: description,
-                    price: price,
-                    category: category,
-                    availability: availability,
-                    imageUrls: uploadedImageUrls,
-                    userId: currentUser.id,
-                    createdAt: Date.now()
-                };
+                let productId;
+                let productData;
+                
+                if (isEditing && currentEditProductId) {
+                    // حالة التعديل
+                    productId = currentEditProductId;
+                    productData = {
+                        name: name,
+                        description: description,
+                        price: price,
+                        category: category,
+                        availability: availability,
+                        imageUrls: uploadedImageUrls,
+                        userId: currentUser.id,
+                        updatedAt: Date.now()
+                    };
+                } else {
+                    // حالة الإضافة
+                    productId = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    productData = {
+                        name: name,
+                        description: description,
+                        price: price,
+                        category: category,
+                        availability: availability,
+                        imageUrls: uploadedImageUrls,
+                        userId: currentUser.id,
+                        createdAt: Date.now(),
+                        date: date // حفظ التاريخ المضاف
+                    };
+                }
+                
+                if (firebaseDebugMode) {
+                    console.log("بيانات المنتج المراد حفظها:", productData);
+                    console.log("المسار في قاعدة البيانات:", `products/${productId}`);
+                }
                 
                 await database.ref(`products/${productId}`).set(productData);
                 
@@ -1572,18 +1664,112 @@
                 document.getElementById('image-urls-container').classList.add('hidden');
                 document.querySelector('.upload-progress').classList.add('hidden');
                 uploadedImageUrls = [];
+                isEditing = false;
+                currentEditProductId = null;
                 
-                showToast('تم إضافة المنتج بنجاح', 'success');
+                // إعادة تعيين تاريخ اليوم
+                setCurrentDate();
+                
+                showToast(isEditing ? 'تم تعديل المنتج بنجاح' : 'تم إضافة المنتج بنجاح', 'success');
                 
                 // تحميل المنتجات مرة أخرى
                 loadProducts();
                 
             } catch (error) {
-                console.error('خطأ في إضافة المنتج:', error);
+                console.error('خطأ في إضافة/تعديل المنتج:', error);
                 showToast('حدث خطأ في عملية الحفظ', 'error');
             } finally {
                 showGlobalLoading(false);
             }
+        }
+
+        // تعديل منتج
+        function editProduct(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            
+            if (!product) {
+                showToast('لم يتم العثور على المنتج', 'error');
+                return;
+            }
+            
+            // ملء النموذج ببيانات المنتج
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-description').value = product.description || '';
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-category').value = product.category;
+            document.getElementById('product-availability').value = product.availability;
+            
+            // تعيين تاريخ المنتج أو التاريخ الحالي إذا لم يكن موجوداً
+            if (product.date) {
+                document.getElementById('product-date').value = product.date;
+            } else {
+                setCurrentDate();
+            }
+            
+            // عرض الصور الحالية
+            const uploadedImagesElement = document.getElementById('uploaded-images');
+            const imageUrlsContainer = document.getElementById('image-urls-container');
+            const imageUrlsList = document.getElementById('image-urls-list');
+            
+            uploadedImagesElement.innerHTML = '';
+            imageUrlsList.innerHTML = '';
+            
+            if (product.imageUrls && product.imageUrls.length > 0) {
+                uploadedImageUrls = product.imageUrls;
+                document.getElementById('image-urls').value = uploadedImageUrls.join('\n');
+                
+                // عرض الصور المصغرة
+                product.imageUrls.forEach((url) => {
+                    const container = document.createElement('div');
+                    container.className = 'uploaded-image-container';
+                    
+                    const img = document.createElement('img');
+                    img.className = 'uploaded-image';
+                    img.src = url;
+                    img.alt = `صورة المنتج`;
+                    
+                    container.appendChild(img);
+                    uploadedImagesElement.appendChild(container);
+                });
+                
+                // عرض روابط الصور
+                product.imageUrls.forEach((url) => {
+                    const urlElement = document.createElement('div');
+                    urlElement.className = 'image-url';
+                    
+                    const urlText = document.createElement('div');
+                    urlText.className = 'image-url-text';
+                    urlText.textContent = url;
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-url-btn';
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> نسخ';
+                    copyBtn.onclick = () => {
+                        navigator.clipboard.writeText(url).then(() => {
+                            showToast('تم نسخ الرابط', 'success');
+                        });
+                    };
+                    
+                    urlElement.appendChild(urlText);
+                    urlElement.appendChild(copyBtn);
+                    imageUrlsList.appendChild(urlElement);
+                });
+                
+                imageUrlsContainer.classList.remove('hidden');
+            } else {
+                uploadedImageUrls = [];
+                document.getElementById('image-urls').value = '';
+                imageUrlsContainer.classList.add('hidden');
+            }
+            
+            // تعيين حالة التعديل
+            isEditing = true;
+            currentEditProductId = productId;
+            
+            // التبديل إلى تبويب الإضافة
+            switchTab('add-product-tab');
+            
+            showToast('يمكنك الآن تعديل بيانات المنتج', 'info');
         }
 
         // التبديل بين التبويبات
@@ -1618,19 +1804,32 @@
             }
         }
 
+        // تبديل وضع التصحيح
+        function toggleFirebaseDebug() {
+            firebaseDebugMode = !firebaseDebugMode;
+            const debugToggle = document.querySelector('.debug-toggle');
+            
+            if (debugToggle) {
+                if (firebaseDebugMode) {
+                    debugToggle.textContent = "تعطيل وضع التصحيح";
+                    debugToggle.style.color = "var(--warning-color)";
+                    console.log("تم تفعيل وضع التصحيح. سيتم عرض تفاصيل العمليات في الكونسول.");
+                    showToast("تم تفعيل وضع التصحيح", "info");
+                } else {
+                    debugToggle.textContent = "تفعيل وضع التصحيح";
+                    debugToggle.style.color = "var(--info-color)";
+                    console.log("تم تعطيل وضع التصحيح.");
+                }
+            }
+        }
+
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', function() {
-            // محاولة تحميل بيانات المستخدم من localStorage
-            const storedUserData = localStorage.getItem('globalUserData');
-            if (storedUserData) {
-                globalUser.setUserData(JSON.parse(storedUserData));
-            } else {
-                // إذا لم تكن هناك بيانات مستخدم، نعرض رسالة
-                showToast('لم يتم العثور على بيانات المستخدم. يرجى تسجيل الدخول أولاً.', 'warning');
-            }
-            
             // تحديث عرض اسم المستخدم
             updateUserDisplay();
+            
+            // تعيين تاريخ اليوم تلقائياً
+            setCurrentDate();
             
             // إعداد مستمعات الأحداث
             document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1650,17 +1849,10 @@
                 addProductForm.addEventListener('submit', addProduct);
             }
             
-            // تحميل الأقسام عند فتح الصفحة
+            // تحميل الأقسام والمنتجات عند فتح الصفحة
             loadCategories();
-            
-            // إخفاء نافذة التأكيد عند النقر خارجها
-            document.getElementById('delete-confirmation').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.style.display = 'none';
-                    productToDeleteId = null;
-                }
-            });
+            loadProducts();
         });
     </script>
 </body>
-</html>
+    </html>
