@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>نظام المشتركين — أضفني / المشتركين</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<style>
+body{font-family:Tahoma, sans-serif; margin:0; background:#f6f8fa}
+.tabs{display:flex; background:#222; color:#fff}
+.tab{flex:1;padding:12px;text-align:center;cursor:pointer}
+.tab.active{background:#007bff}
+.container{padding:16px}
+label{display:block;margin-top:8px}
+input,select,textarea{width:100%;padding:8px;margin-top:4px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box}
+fieldset{margin-top:12px;padding:10px;border:1px solid #ddd}
+table.days{width:100%;border-collapse:collapse}
+table.days td{padding:6px;text-align:center}
+button{background:#007bff;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;margin-top:12px}
+#map{width:100%;height:60vh;border:1px solid #ddd;border-radius:6px}
+.subscriber-card{background:#fff;padding:10px;margin:8px 0;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08);cursor:pointer}
+.small{font-size:13px;color:#555}
+.hidden{display:none}
+.note{color:#c00;margin-top:6px}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" id="tab-add">أضفني كمشترك</div>
+  <div class="tab" id="tab-list">المشتركين</div>
+</div>
+
+<div class="container">
+  <div id="content-add">
+    <h3>أضفني كمشترك</h3>
+    <form id="formAdd">
+      <label>الاسم الرباعي <span class="small">* مطلوب</span></label>
+      <input id="fullname" placeholder="مثال: أحمد محمد علي سالم" required>
+      <div id="fullnameNote" class="note hidden">يجب إدخال الاسم الرباعي (4 كلمات)</div>
+
+      <label>الاسم الوظيفي <span class="small">* مطلوب</span></label>
+      <input id="jobname" placeholder="مثال: مشرف النقل" required>
+
+      <fieldset>
+        <legend>أيام الدوام</legend>
+        <table class="days">
+          <tr>
+            <td><label><input type="checkbox" class="day" value="السبت"> السبت</label></td>
+            <td><label><input type="checkbox" class="day" value="الأحد"> الأحد</label></td>
+            <td><label><input type="checkbox" class="day" value="الاثنين"> الاثنين</label></td>
+            <td><label><input type="checkbox" class="day" value="الثلاثاء"> الثلاثاء</label></td>
+            <td><label><input type="checkbox" class="day" value="الأربعاء"> الأربعاء</label></td>
+            <td><label><input type="checkbox" class="day" value="الخميس"> الخميس</label></td>
+            <td><label><input type="checkbox" class="day" value="الجمعة"> الجمعة</label></td>
+          </tr>
+        </table>
+        <label style="margin-top:8px"><input type="checkbox" id="selectAllDays"> اختيار الكل</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>وقت الدوام</legend>
+        <label>من الساعة</label>
+        <input type="time" id="fromTime">
+        <label>حتى الساعة</label>
+        <input type="time" id="toTime">
+      </fieldset>
+
+      <label>رقم الجوال 1 <span class="small">* مطلوب (9 أرقام)</span></label>
+      <input id="phone1" maxlength="9" placeholder="مثال: 712345678" required>
+      <div id="phone1Note" class="note hidden">رقم الجوال يجب أن يتكون من 9 أرقام</div>
+
+      <label>رقم الجوال 2 (اختياري)</label>
+      <input id="phone2" maxlength="9" placeholder="مثال: 712345678">
+
+      <label>رقم الواتساب (اختياري)</label>
+      <input id="whatsapp" maxlength="9" placeholder="مثال: 712345678">
+
+      <label>ملاحظات (ستظهر للعملاء)</label>
+      <textarea id="notes" rows="3" placeholder="ملاحظات اختيارية"></textarea>
+
+      <label>نوع الوظيفة</label>
+      <input value="سائق باص" disabled>
+
+      <label>IP الهاتف (يُؤخذ تلقائياً)</label>
+      <input id="ipField" disabled>
+
+      <label>GPS الهاتف (يُؤخذ تلقائياً)</label>
+      <input id="gpsField" disabled>
+
+      <button type="submit">حفظ كمشترك</button>
+    </form>
+  </div>
+
+  <div id="content-list" class="hidden">
+    <h3>المشتركين الأقرب</h3>
+    <div id="map">جارٍ تحميل الخريطة...</div>
+    <div id="listContainer"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+/********** إعدادات Firebase **********/
+const FIREBASE_DB_ROOT = 'https://chat-fat-free-default-rtdb.firebaseio.com';
+
+/********** تبويبات **********/
+const tabAdd = document.getElementById('tab-add');
+const tabList = document.getElementById('tab-list');
+const contentAdd = document.getElementById('content-add');
+const contentList = document.getElementById('content-list');
+
+tabAdd.addEventListener('click', ()=>{
+  tabAdd.classList.add('active');
+  tabList.classList.remove('active');
+  contentAdd.classList.remove('hidden');
+  contentList.classList.add('hidden');
+});
+tabList.addEventListener('click', ()=>{
+  tabList.classList.add('active');
+  tabAdd.classList.remove('active');
+  contentList.classList.remove('hidden');
+  contentAdd.classList.add('hidden');
+  initMapAndLoad();
+});
+
+/********** عناصر الفورم **********/
+const formAdd = document.getElementById('formAdd');
+const fullnameEl = document.getElementById('fullname');
+const fullnameNote = document.getElementById('fullnameNote');
+const jobnameEl = document.getElementById('jobname');
+const phone1El = document.getElementById('phone1');
+const phone1Note = document.getElementById('phone1Note');
+const phone2El = document.getElementById('phone2');
+const whatsappEl = document.getElementById('whatsapp');
+const notesEl = document.getElementById('notes');
+const ipField = document.getElementById('ipField');
+const gpsField = document.getElementById('gpsField');
+const selectAllDays = document.getElementById('selectAllDays');
+
+selectAllDays.addEventListener('change', ()=>{
+  document.querySelectorAll('.day').forEach(cb => cb.checked = selectAllDays.checked);
+});
+
+let myIp = null;
+let myGps = null;
+let map, myMarker;
+let subscribersCache = {};
+
+function ipToKey(ip){ return ip ? ip.replace(/\./g,'_') : null; }
+function isFourNames(name){ return name.trim().split(/\s+/).length >= 4; }
+function isNineDigits(s){ return /^\d{9}$/.test(s); }
+
+async function fetchMyIp(){
+  try {
+    const r = await fetch('https://api.ipify.org?format=json');
+    const j = await r.json();
+    myIp = j.ip;
+    ipField.value = myIp;
+    return myIp;
+  } catch(e){ console.error('IP error', e); return null; }
+}
+
+function fetchMyGps(){
+  return new Promise((resolve)=>{
+    if(!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(pos=>{
+      myGps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      gpsField.value = myGps.lat.toFixed(6)+','+myGps.lng.toFixed(6);
+      resolve(myGps);
+    }, ()=>resolve(null), { enableHighAccuracy:true, timeout:15000 });
+  });
+}
+
+async function checkIpRegistered(ip){
+  if(!ip) return false;
+  try {
+    const key = ipToKey(ip);
+    const url = `${FIREBASE_DB_ROOT}/subscribers/${encodeURIComponent(key)}.json`;
+    const r = await fetch(url);
+    const j = await r.json();
+    return j ? true : false;
+  } catch(e){ console.error(e); return false; }
+}
+
+async function saveSubscriberToDB(sub){
+  const key = ipToKey(sub.ip);
+  const url = `${FIREBASE_DB_ROOT}/subscribers/${encodeURIComponent(key)}.json`;
+  const payload = {...sub, createdAt: Date.now()};
+  const r = await fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  if(!r.ok) throw new Error('DB error');
+  return await r.json();
+}
+
+async function fetchAllSubscribers(){
+  const url = `${FIREBASE_DB_ROOT}/subscribers.json`;
+  const r = await fetch(url);
+  const j = await r.json();
+  const arr = [];
+  for(const k in j){ if(!j[k]) continue; arr.push(j[k]); subscribersCache[k]=j[k]; }
+  return arr;
+}
+
+function distanceMeters(lat1, lon1, lat2, lon2){
+  const R = 6371e3;
+  const toRad = v => v*Math.PI/180;
+  const φ1=toRad(lat1), φ2=toRad(lat2);
+  const Δφ=toRad(lat2-lat1), Δλ=toRad(lon2-lon1);
+  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+  const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R*c;
+}
+
+formAdd.addEventListener('submit', async e=>{
+  e.preventDefault();
+  fullnameNote.classList.add('hidden');
+  phone1Note.classList.add('hidden');
+
+  const fullname = fullnameEl.value.trim();
+  if(!isFourNames(fullname)){ fullnameNote.classList.remove('hidden'); return; }
+  const jobname = jobnameEl.value.trim();
+  if(!jobname){ alert('الاسم الوظيفي مطلوب'); return; }
+  const phone1 = phone1El.value.trim();
+  if(!isNineDigits(phone1)){ phone1Note.classList.remove('hidden'); return; }
+  const phone2 = phone2El.value.trim();
+  const whatsapp = whatsappEl.value.trim();
+  const days = [...document.querySelectorAll('.day')].filter(cb=>cb.checked).map(cb=>cb.value);
+
+  if(!myIp) await fetchMyIp();
+  if(!myGps) await fetchMyGps();
+
+  const sub = {
+    fullname, jobname, days,
+  
+    from: document.getElementById('fromTime').value || '',
+    to: document.getElementById('toTime').value || '',
+    phone1, phone2, whatsapp,
+    notes: notesEl.value.trim(),
+    jobtype: 'سائق باص',
+    ip: myIp || 'unknown',
+    gps: myGps || null
+  };
+
+  try {
+    await saveSubscriberToDB(sub);
+    alert('تم حفظ بياناتك كمشترك');
+    // اخفاء تبويب الإضافة وإظهار تبويب المشتركين
+    tabAdd.style.display = 'none';
+    tabList.classList.add('active');
+    tabAdd.classList.remove('active');
+    contentAdd.classList.add('hidden');
+    contentList.classList.remove('hidden');
+    initMapAndLoad();
+  } catch(err){
+    console.error(err);
+    alert('حدث خطأ أثناء الحفظ — تحقق من إعدادات قاعدة البيانات.');
+  }
+});
+
+// تهيئة الخريطة وعرض المشتركين
+async function initMapAndLoad(){
+  if(!myGps){
+    await fetchMyGps();
+    if(!myGps){
+      alert('تعذر الحصول على موقعك (GPS). استخدم مركز افتراضي.');
+      myGps = { lat: 15.3694, lng: 44.1910 }; // اليمن تقريبياً
+    }
+  }
+
+  map = L.map('map').setView([myGps.lat, myGps.lng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  myMarker = L.marker([myGps.lat, myGps.lng]).addTo(map).bindPopup('أنت هنا').openPopup();
+
+  let subs = [];
+  try { subs = await fetchAllSubscribers(); } 
+  catch(err){ console.error(err); alert('تعذر جلب المشتركين.'); return; }
+
+  subs = subs.filter(s => s.gps && s.gps.lat && s.gps.lng);
+  subs = subs.map(s=>{
+    const d = distanceMeters(myGps.lat, myGps.lng, s.gps.lat, s.gps.lng);
+    return {...s, distanceMeters: d};
+  });
+  subs.sort((a,b)=>a.distanceMeters - b.distanceMeters);
+
+  const listContainer = document.getElementById('listContainer');
+  listContainer.innerHTML = '';
+
+  subs.forEach(s=>{
+    const distText = s.distanceMeters < 1000 ? `${Math.round(s.distanceMeters)} متر` : `${(s.distanceMeters/1000).toFixed(2)} كم`;
+    const marker = L.marker([s.gps.lat, s.gps.lng]).addTo(map).bindPopup(
+      `<strong>${s.fullname}</strong><br>المسافة: ${distText}<br>
+       جوال1: ${s.phone1 || '-'}<br>
+       جوال2: ${s.phone2 || '-'}<br>
+       واتساب: ${s.whatsapp || '-'}<br>
+       ملاحظات: ${s.notes || '-'}`
+    );
+
+    const card = document.createElement('div');
+    card.className = 'subscriber-card';
+    card.innerHTML = `<strong>${s.fullname}</strong><div class="small">يبعد عنك: ${distText}</div>`;
+    card.addEventListener('click', ()=>{
+      map.setView([s.gps.lat, s.gps.lng], 15);
+      marker.openPopup();
+    });
+    listContainer.appendChild(card);
+  });
+
+  if(subs.length === 0){
+    listContainer.innerHTML = '<div class="small">لا يوجد مشتركين مع إحداثيات GPS.</div>';
+  }
+}
+
+// عند تحميل الصفحة: جلب IP وGPS وفحص التبويب
+(async function init(){
+  await fetchMyIp();
+  await fetchMyGps();
+  const registered = await checkIpRegistered(myIp);
+  if(registered){
+    tabAdd.style.display = 'none';
+    tabAdd.classList.remove('active');
+    tabList.classList.add('active');
+    contentAdd.classList.add('hidden');
+    contentList.classList.remove('hidden');
+    initMapAndLoad();
+  } else {
+    tabAdd.style.display = 'block';
+    tabAdd.classList.add('active');
+    tabList.classList.remove('active');
+    contentAdd.classList.remove('hidden');
+    contentList.classList.add('hidden');
+  }
+})();
+</script>
+
+</body>
+</html>
