@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>عرض المنتجات</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<style>
+/* تنسيق عام */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root { --primary-color: #007bff; --secondary-color: #0056b3; --danger-color: #dc3545; --success-color: #28a745; --warning-color: #ffc107; --dark-color: #343a40; --light-color: #f8f9fa; --background-color: #ffffff; --text-color: #333; --border-radius: 8px; --box-shadow: 0 2px 10px rgba(0,0,0,0.1); --transition: all 0.3s ease; }
+
+[data-theme="dark"] { --primary-color: #0d6efd; --secondary-color: #0a58ca; --background-color: #121212; --text-color: #e0e0e0; --light-color: #2d2d2d; --box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+body {  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;  background: var(--background-color);  color: var(--text-color); margin: 0;  padding-top: 140px; /* مساحة للهيدر الثابت / padding-bottom: 60px; / مساحة للفوتر الثابت */ transition: var(--transition); }
+
+/* الهيدر الثابت */ .header{ position: fixed; top: 0; left: 0; width: 100%; background: var(--primary-color); color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 1000; box-shadow: var(--box-shadow); }
+
+.header-content { display: flex; align-items: center; gap: 15px; width: 100%; max-width: 1200px; margin: 0 auto; }
+
+.logo { font-size: 24px; font-weight: bold; }
+
+.app-name { flex-grow: 1; text-align: center; font-size: 18px; }
+
+.screen-name { font-size: 16px; opacity: 0.9; }
+
+.theme-toggle { background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 8px 12px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: var(--transition); }
+
+.theme-toggle:hover { background: rgba(255, 255, 255, 0.3); }
+
+/* شريط الفلترة الثابت */ .filter-bar{ position: fixed; top: 70px; left: 0; width: 100%; background: var(--light-color); padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 10px; z-index: 999; box-shadow: 0 2px 5px rgba(0,0,0,0.1); align-items: center; transition: var(--transition); }
+
+.filter-item { display: flex; align-items: center; gap: 5px; }
+
+.filter-item label { font-weight: bold; font-size: 14px; white-space: nowrap; }
+
+.filter-item select, .filter-item input { padding: 6px 10px; border-radius: var(--border-radius); border: 1px solid #ccc; font-size: 14px; background: var(--background-color); color: var(--text-color); transition: var(--transition); }
+
+.filter-item input { width: 200px; }
+
+.price-range { display: flex; align-items: center; gap: 10px; }
+
+.price-range input { width: 80px; }
+
+.reset-btn { padding: 6px 12px; background: var(--danger-color); color: white; border: none; border-radius: var(--border-radius); cursor: pointer; font-size: 14px; transition: var(--transition); }
+
+.reset-btn:hover { background: #c82333; }
+
+/* الفوتر الثابت */ .footer{ position: fixed; bottom: 0; left: 0; width: 100%; background: var(--primary-color); color: white; text-align: center; padding: 15px; z-index: 1000; font-size: 14px; }
+
+/* محتوى الصفحة */ .page-content{ max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+h2 {  text-align:center;  margin:20px 0;  color: var(--text-color); }
+
+.products {  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 20px; justify-content: center; }
+
+.card { background: linear-gradient(145deg, var(--background-color), #f0f0f0); border-radius: 15px;  box-shadow: 0 5px 15px rgba(0,0,0,0.08);  overflow: hidden;  padding: 15px;  transition: var(--transition); position: relative; display: flex; flex-direction: column; align-items: center; } .card:hover{  transform: translateY(-5px);  box-shadow:0 10px 20px rgba(0,0,0,0.15);  }
+
+.card.viewed { border: 2px solid var(--primary-color); background: linear-gradient(145deg, #f0f8ff, #e0f0ff); }
+
+.favorite-btn { position: absolute; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.8); border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; transition: var(--transition); }
+
+.favorite-btn.active { color: #ff4d4d; }
+
+.favorite-btn:hover { background: rgba(255, 255, 255, 1); transform: scale(1.1); }
+
+.images-preview {  display: flex;  gap: 10px;  flex-wrap: wrap;  margin-bottom: 15px;  justify-content: center;  width: 100%; position: relative; }
+
+.images-preview img{ width: 100%; height: 250px; object-fit: cover; border-radius: 10px;  cursor: pointer; transition: var(--transition);  border: 3px solid var(--primary-color); position: relative; }
+
+.images-preview img:hover{ transform: scale(1.05); border-color: var(--secondary-color); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
+
+.icons {  display: flex;  justify-content: space-around;  margin: 15px 0;  width: 100%; } .icon{  cursor: pointer;  font-size: 18px;  display: flex;  align-items: center;  gap: 5px;  color: var(--primary-color);  transition: var(--transition);  } .icon:hover{  color: var(--secondary-color);  }
+
+.info { width: 100%; text-align: center; }
+
+.info h3 {  margin: 5px 0;  font-size: 20px;  color: var(--text-color);  font-weight: bold; }
+
+.product-details-single-line {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  padding-right: 80px;
+}
+
+.view-more-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: var(--background-color);
+  color: #007bff;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.info .label { font-weight: bold; color: var(--primary-color); font-size: 14px; }
+
+.merchant-info {  display: flex;  flex-direction: column; gap: 5px;  margin: 10px 0;  padding: 10px; background-color: var(--light-color); border-radius: 8px; width: 100%; transition: var(--transition); } .merchant-name{  display: flex;  align-items: center;  justify-content: center; gap: 5px;  cursor: pointer;  color: var(--primary-color);  font-weight: bold;  transition: var(--transition);  text-align: center; font-size: 16px; } .merchant-name:hover{  color: var(--secondary-color);  text-decoration: underline; }
+
+.merchant-location { margin-top: 5px; font-size: 14px; color: #666; }
+
+.category-info { margin: 8px 0; padding: 8px; background: var(--light-color); border-radius: 6px; font-size: 14px; color: var(--text-color); }
+
+.category-info .label { font-weight: bold; color: var(--primary-color); margin-left: 5px; }
+
+.notes-container { margin: 10px 0; position: relative; width: 100%; }
+
+.notes-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 5px; background: var(--light-color); border-radius: 5px; border: 1px solid #ddd; font-size: 14px; cursor: pointer; transition: var(--transition); }
+
+.notes-preview.expanded { white-space: normal; overflow: visible; text-overflow: clip; }
+
+.view-notes-btn { background: var(--primary-color); color: white; border: none; border-radius: 4px; padding: 5px 10px; margin-top: 5px; cursor: pointer; display: block; width: 100%; text-align: center; transition: var(--transition); }
+
+.view-notes-btn:hover { background: var(--secondary-color); }
+
+/* Modal للوصف الكامل */ .description-modal{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 2000; justify-content: center; align-items: center; }
+
+.description-modal-content { background: var(--background-color); padding: 20px; border-radius: 10px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; border: 2px solid var(--primary-color); position: relative; }
+
+.description-modal-content h4 { color: var(--primary-color); margin-bottom: 15px; text-align: center; }
+
+.description-full-text { line-height: 1.6; color: var(--text-color); font-size: 14px; white-space: pre-line; }
+
+.close-description { position: absolute; top: 10px; left: 10px; color: #aaa; font-size: 24px; cursor: pointer; }
+
+/* قسم التعليقات تحت الصورة */ .comments-section{ width: 100%; margin-top: 15px; border-top: 2px solid var(--light-color); padding-top: 15px; display: none; position: relative; }
+
+.comments-section.expanded { display: block; animation: slideDown 0.3s ease; }
+
+.comments-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+
+.comments-list { max-height: 200px; overflow-y: auto; margin-bottom: 15px; padding: 10px; background: var(--light-color); border-radius: 8px; }
+
+.comment-item { padding: 12px; margin-bottom: 12px; background: var(--background-color); border-radius: 8px; border-left: 4px solid var(--primary-color); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+.comment-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
+
+.comment-date { color: #666; font-size: 12px; }
+
+.comment-text { margin-bottom: 8px; line-height: 1.5; font-size: 14px; color: var(--text-color); }
+
+.add-comment { margin-top: 15px; }
+
+.comment-form { display: flex; flex-direction: column; gap: 10px; }
+
+.comment-form textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; min-height: 80px; font-family: inherit; font-size: 14px; background: var(--background-color); color: var(--text-color); }
+
+.comment-form button { padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; align-self: flex-end; transition: var(--transition); font-size: 14px; }
+
+.comment-form button:hover { background: var(--secondary-color); }
+
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.loading { text-align: center; padding: 20px; color: var(--primary-color); }
+
+.error { text-align: center; padding: 20px; color: var(--danger-color); background-color: #f8d7da; border-radius: 5px; margin: 20px; }
+
+.sort-options { text-align: center; margin: 15px 0; }
+
+.sort-options select { padding: 8px 15px; border-radius: var(--border-radius); border: 1px solid #ccc; font-size: 14px; background: var(--background-color); color: var(--text-color); }
+
+.no-products { text-align: center; padding: 20px; color: #666; font-size: 16px; grid-column: 1 / -1; }
+
+.no-comments { text-align: center; padding: 20px; color: #666; font-style: italic; }
+
+/* تحسينات للتجاوب */ @media(max-width: 768px) { body { padding-top: 180px; }
+
+.filter-bar { top: 100px; padding: 8px 10px; }
+
+.filter-item { flex: 1 0 100%; }
+
+.filter-item input { width: 100%; }
+
+.price-range { flex-wrap: wrap; }
+
+.products { grid-template-columns: 1fr; }
+
+.images-preview img { height: 200px; }
+
+.comments-list { max-height: 150px; }
+
+.product-details-single-line {
+  padding-right: 70px;
+}
+
+.view-more-btn {
+  font-size: 11px;
+  padding: 2px 6px;
+} }
+
+/* Skeleton Loading */ .skeleton{ background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: var(--border-radius); }
+
+.skeleton-text { height: 12px; margin-bottom: 8px; border-radius: 4px; }
+
+.skeleton-image { height: 200px; margin-bottom: 15px; border-radius: 10px; }
+
+@keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Social Sharing */ .social-sharing{ display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
+
+.share-btn {  padding: 8px; background: var(--light-color); border: 1px solid #ddd; border-radius: var(--border-radius); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition); font-size: 16px; }
+
+.share-btn:hover { background: #e9ecef; }
+
+/* Pagination */ .pagination{ display: flex; justify-content: center; margin: 20px 0; gap: 5px; }
+
+.pagination-btn { padding: 8px 12px; background: var(--light-color); border: 1px solid #ddd; border-radius: var(--border-radius); cursor: pointer; transition: var(--transition); }
+
+.pagination-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+
+.pagination-btn:hover:not(.active) { background: #e9ecef; } </style>
+
+</head>
+<body>
+
+<!-- الهيدر الثابت -->
+
+<header class="header">
+  <div class="header-content">
+    <div class="logo">AZ</div>
+  <div class="app-name">AZ التسويق الشامل</div>
+    <div class="screen-name">عرض المنتجات</div>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+  </div>
+</header>
+
+<!-- شريط الفلترة -->
+
+<div class="filter-bar">
+  <div class="filter-item">
+    <label for="governorate">المحافظة:</label>
+    <select id="governorate">
+      <option value="">جميع المحافظات</option>
+    </select>
+  </div>
+
+  <div class="filter-item">
+    <label for="region">المنطقة:</label>
+    <select id="region">
+      <option value="">جميع المناطق</option>
+    </select>
+  </div>
+
+  <div class="filter-item">
+    <label for="category">الفئة:</label>
+    <select id="category">
+      <option value="">جميع الفئات</option>
+    </select>
+  </div>
+
+  <div class="filter-item">
+    <label for="search">بحث:</label>
+    <input type="text" id="search" placeholder="ابحث عن منتج...">
+  </div>
+
+  <div class="filter-item price-range">
+    <label for="min-price">السعر من:</label>
+    <input type="number" id="min-price" placeholder="أقل سعر" min="0">
+    <label for="max-price">إلى:</label>
+    <input type="number" id="max-price" placeholder="أعلى سعر" min="0">
+  </div>
+
+<button class="reset-btn" id="reset-filters">إعادة تعيين</button>
+
+</div>
+
+<!-- المحتوى الرئيسي -->
+
+<div class="page-content">
+  <h2>قائمة المنتجات المتوفرة</h2>
+
+  <div class="sort-options">
+    <label for="sort-by">ترتيب حسب:</label>
+    <select id="sort-by">
+      <option value="name">الاسم</option>
+      <option value="category">الفئة</option>
+      <option value="date">التاريخ</option>
+      <option value="price">السعر</option>
+      <option value="merchant">التاجر</option>
+    </select>
+  </div>
+
+  <div class="products" id="products">
+    <!-- Skeleton Loading -->
+    <div class="card">
+      <div class="skeleton skeleton-image"></div>
+      <div class="skeleton skeleton-text" style="width: 80%;"></div>
+      <div class="skeleton skeleton-text" style="width: 60%;"></div>
+      <div class="skeleton skeleton-text" style="width: 40%;"></div>
+    </div>
+    <div class="card">
+      <div class="skeleton skeleton-image"></div>
+      <div class="skeleton skeleton-text" style="width: 80%;"></div>
+      <div class="skeleton skeleton-text" style="width: 60%;"></div>
+      <div class="skeleton skeleton-text" style="width: 40%;"></div>
+    </div>
+    <div class="card">
+      <div class="skeleton skeleton-image"></div>
+      <div class="skeleton skeleton-text" style="width: 80%;"></div>
+      <div class="skeleton skeleton-text" style="width: 60%;"></div>
+      <div class="skeleton skeleton-text" style="width: 40%;"></div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- الفوتر الثابت -->
+
+<footer class="footer">
+  جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة
+</footer>
+
+<!-- Modal للوصف الكامل -->
+
+<div class="description-modal" id="descriptionModal">
+  <div class="description-modal-content">
+    <span class="close-description" onclick="closeDescriptionModal()">&times;</span>
+    <h4>بيانات المنتج الكاملة</h4>
+    <div class="description-full-text" id="fullDescription"></div>
+  </div>
+</div>
+
+<!-- Modal للملاحظات -->
+
+<div id="notesModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h3 id="modal-product-name"></h3>
+    <div id="modal-notes-content"></div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = { 
+  databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/" 
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// متغيرات التخزين
+let allProducts = [];
+let allMerchants = [];
+let allGovernorates = [];
+let allRegions = [];
+let allCategories = [];
+let selectedCategoryId = '';
+let currentPage = 1;
+const productsPerPage = 9;
+let favoriteProducts = JSON.parse(localStorage.getItem('favoriteProducts')) || {};
+let currentCommentsProductId = '';
+let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
+
+// عناصر واجهة المستخدم
+const productsContainer = document.getElementById('products');
+const governorateSelect = document.getElementById('governorate');
+const regionSelect = document.getElementById('region');
+const categorySelect = document.getElementById('category');
+const searchInput = document.getElementById('search');
+const minPriceInput = document.getElementById('min-price');
+const maxPriceInput = document.getElementById('max-price');
+const resetButton = document.getElementById('reset-filters');
+const sortSelect = document.getElementById('sort-by');
+const paginationContainer = document.getElementById('pagination');
+const themeToggle = document.getElementById('theme-toggle');
+const descriptionModal = document.getElementById('descriptionModal');
+const fullDescription = document.getElementById('fullDescription');
+
+// تحميل البيانات عند بدء التشغيل
+window.addEventListener('load', () => {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    themeToggle.textContent = '☀️';
+  }
+  
+  loadAllData();
+});
+
+// إعداد مستمعين للأحداث
+searchInput.addEventListener('input', filterProducts);
+governorateSelect.addEventListener('change', handleGovernorateChange);
+regionSelect.addEventListener('change', filterProducts);
+categorySelect.addEventListener('change', handleCategoryChange);
+minPriceInput.addEventListener('input', filterProducts);
+maxPriceInput.addEventListener('input', filterProducts);
+sortSelect.addEventListener('change', filterProducts);
+resetButton.addEventListener('click', resetFilters);
+themeToggle.addEventListener('click', toggleTheme);
+
+// إغلاق Modal عند النقر على X
+document.querySelectorAll(".close").forEach(closeBtn => {
+  closeBtn.addEventListener("click", function() {
+    this.closest('.modal').style.display = "none";
+  });
+});
+
+// إغلاق Modal عند النقر خارج المحتوى
+window.addEventListener("click", function(event) {
+  if (event.target.classList.contains('modal')) {
+    event.target.style.display = "none";
+  }
+  
+  // إغلاق التعليقات عند النقر خارجها
+  if (currentCommentsProductId && !event.target.closest('.comments-section') && 
+      !event.target.closest('.icon.comment')) {
+    const commentsSection = document.getElementById(`comments-${currentCommentsProductId}`);
+    if (commentsSection) {
+      commentsSection.classList.remove('expanded');
+      currentCommentsProductId = '';
+    }
+  }
+  
+  // إغلاق modal الوصف عند النقر خارجها
+  if (event.target === descriptionModal) {
+    closeDescriptionModal();
+  }
+});
+
+// تبديل السمة
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  if (currentTheme === 'dark') {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+    themeToggle.textContent = '🌙';
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+    themeToggle.textContent = '☀️';
+  }
+}
+
+// دالة تحميل جميع البيانات
+async function loadAllData() {
+  try {
+    productsContainer.innerHTML = '<div class="loading">جاري تحميل البيانات...</div>';
+    
+    const [productsSnap, merchantsSnap, governoratesSnap, regionsSnap, categoriesSnap] = await Promise.all([
+      db.ref("products").once("value"),
+      db.ref("merchants").once("value"),
+      db.ref("governorates").once("value"),
+      db.ref("regions").once("value"),
+      db.ref("categories").once("value")
+    ]);
+    
+    // تحويل البيانات إلى مصفوفات
+    allProducts = convertFirebaseData(productsSnap.val());
+    allMerchants = convertFirebaseData(merchantsSnap.val());
+    allGovernorates = convertFirebaseData(governoratesSnap.val());
+    allRegions = convertFirebaseData(regionsSnap.val());
+    allCategories = convertFirebaseData(categoriesSnap.val());
+    
+    // تعبئة خيارات الفلترة
+    populateFilterOptions();
+    
+    // عرض المنتجات
+    displayProducts(allProducts);
+    
+  } catch (error) {
+    console.error("Error loading data:", error);
+    productsContainer.innerHTML = '<div class="error">حدث خطأ في تحميل البيانات. يرجى المحاولة مرة أخرى.</div>';
+  }
+}
+
+// تحويل بيانات Firebase إلى مصفوفة
+function convertFirebaseData(firebaseData) {
+  if (!firebaseData) return [];
+  
+  return Object.entries(firebaseData).map(([id, data]) => {
+    return { id, ...data };
+  });
+}
+
+// تعبئة خيارات الفلترة
+function populateFilterOptions() {
+  // تعبئة المحافظات
+  governorateSelect.innerHTML = '<option value="">جميع المحافظات</option>';
+  allGovernorates.forEach(governorate => {
+    const option = document.createElement('option');
+    option.value = governorate.id;
+    option.textContent = governorate.name || governorate.id;
+    governorateSelect.appendChild(option);
+  });
+  
+  // تعبئة الفئات
+  categorySelect.innerHTML = '<option value="">جميع الفئات</option>';
+  allCategories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category.id;
+    option.textContent = category.name || category.id;
+    categorySelect.appendChild(option);
+  });
+  
+  // تحديث خيارات المناطق
+  updateRegionOptions();
+}
+
+// تحديث خيارات المناطق بناءً على المحافظة المحددة
+function updateRegionOptions() {
+  const selectedGovernorate = governorateSelect.value;
+  regionSelect.innerHTML = '<option value="">جميع المناطق</option>';
+  
+  if (selectedGovernorate) {
+    const governorate = allGovernorates.find(g => g.id === selectedGovernorate);
+    if (governorate && governorate.areas) {
+      Object.entries(governorate.areas).forEach(([areaId, areaName]) => {
+        const option = document.createElement('option');
+        option.value = areaId;
+        option.textContent = areaName;
+        regionSelect.appendChild(option);
+      });
+    }
+  } else {
+    allRegions.forEach(region => {
+      const option = document.createElement('option');
+      option.value = region.id;
+      option.textContent = region.name || region.id;
+      regionSelect.appendChild(option);
+    });
+  }
+}
+
+// معالجة تغيير المحافظة
+function handleGovernorateChange() {
+  updateRegionOptions();
+  filterProducts();
+}
+
+// معالجة تغيير الفئة من القائمة المنسدلة
+function handleCategoryChange() {
+  selectedCategoryId = categorySelect.value;
+  filterProducts();
+}
+
+// دالة عرض المنتجات
+function displayProducts(products) {
+  productsContainer.innerHTML = '';
+  
+  if (!products || products.length === 0) {
+    productsContainer.innerHTML = '<div class="no-products">لا توجد منتجات متاحة حالياً</div>';
+    paginationContainer.innerHTML = '';
+    return;
+  }
+  
+  // ترتيب المنتجات حسب الخيار المحدد
+  const sortBy = sortSelect.value;
+  
+  products.sort((a, b) => {
+    let comparison = 0;
+    
+    switch(sortBy) {
+      case 'name':
+        comparison = (a.name || '').localeCompare(b.name || '');
+        break;
+      case 'category':
+        const categoryA = a.categoryId ? (allCategories.find(c => c.id === a.categoryId)?.name || '') : '';
+        const categoryB = b.categoryId ? (allCategories.find(c => c.id === b.categoryId)?.name || '') : '';
+        comparison = categoryA.localeCompare(categoryB);
+        break;
+      case 'date':
+        comparison = new Date(b.publishDate || 0) - new Date(a.publishDate || 0);
+        break;
+      case 'price':
+        const priceA = parseFloat(a.price) || 0;
+        const priceB = parseFloat(b.price) || 0;
+        comparison = priceA - priceB;
+        break;
+      case 'merchant':
+        const merchantA = a.userId ? (allMerchants.find(m => m.id === a.userId)?.name || '') : '';
+        const merchantB = b.userId ? (allMerchants.find(m => m.id === b.userId)?.name || '') : '';
+        comparison = merchantA.localeCompare(merchantB);
+        break;
+      default:
+        comparison = 0;
+    }
+    
+  });
+  
+  // إضافة التجزئة (Pagination)
+  const totalPages = Math.ceil(products.length / productsPerPage);
+  displayPagination(totalPages);
+  
+  // تحديد المنتجات للصفحة الحالية
+  const startIndex = (currentPage - 1) * productsPerPage;
+  const endIndex = startIndex + productsPerPage;
+  const currentProducts = products.slice(startIndex, endIndex);
+  
+  // عرض المنتجات المرتبة
+  currentProducts.forEach(product => {
+    if (!product || !product.userId) return;
+    
+    const merchant = allMerchants.find(m => m.id === product.userId);
+    if (!merchant || merchant.status !== "active" || product.availability !== "available") return;
+    
+    const merchantName = merchant.name || merchant.username || "تاجر";
+    const categoryName = product.categoryId ? 
+      (allCategories.find(c => c.id === product.categoryId)?.name || '') : '';
+    
+    const card = createProductCard(product, merchant, merchantName, categoryName);
+    productsContainer.appendChild(card);
+  });
+}
+
+// عرض Pagination
+function displayPagination(totalPages) {
+  paginationContainer.innerHTML = '';
+  
+  if (totalPages <= 1) return;
+  
+  // زر الصفحة السابقة
+  if (currentPage > 1) {
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'pagination-btn';
+    prevBtn.innerHTML = '&laquo;';
+    prevBtn.addEventListener('click', () => {
+      currentPage--;
+      filterProducts();
+      window.scrollTo(0, 0);
+    });
+    paginationContainer.appendChild(prevBtn);
+  }
+  
+  // أزرار الصفحات
+  for (let i = 1; i <= totalPages; i++) {
+    const pageBtn = document.createElement('button');
+    pageBtn.className = 'pagination-btn';
+    if (i === currentPage) pageBtn.classList.add('active');
+    pageBtn.textContent = i;
+    pageBtn.addEventListener('click', () => {
+      currentPage = i;
+      filterProducts();
+      window.scrollTo(0, 0);
+    });
+    paginationContainer.appendChild(pageBtn);
+  }
+  
+  // زر الصفحة التالية
+  if (currentPage < totalPages) {
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'pagination-btn';
+    nextBtn.innerHTML = '&raquo;';
+    nextBtn.addEventListener('click', () => {
+      currentPage++;
+      filterProducts();
+      window.scrollTo(0, 0);
+    });
+    paginationContainer.appendChild(nextBtn);
+  }
+}
+
+// دالة إنشاء بطاقة المنتج
+function createProductCard(product, merchant, merchantName, categoryName) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.id = "card-" + product.id;
+  
+  // زر المفضلة
+  const favoriteBtn = document.createElement("button");
+  favoriteBtn.className = "favorite-btn";
+  if (favoriteProducts[product.id]) {
+    favoriteBtn.classList.add("active");
+  }
+  favoriteBtn.innerHTML = "❤️";
+  favoriteBtn.title = "إضافة إلى المفضلة";
+  favoriteBtn.onclick = (e) => {
+    e.stopPropagation();
+    toggleFavorite(product.id, favoriteBtn);
+  };
+  card.appendChild(favoriteBtn);
+  
+  // معالجة الصور
+  const displayDiv = document.createElement("div");
+  displayDiv.className = "images-preview";
+  
+  let urlsArray = [];
+  if (Array.isArray(product.imageUrls)) {
+    urlsArray = product.imageUrls;
+  } else if (typeof product.imageUrls === "string") {
+    urlsArray = product.imageUrls.split(",");
+  }
+  
+  if (urlsArray.length > 0 && urlsArray[0]) {
+    const imgContainer = document.createElement("div");
+    imgContainer.style.position = "relative";
+    
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.src = formatDriveUrl(urlsArray[0], true); // استخدام الصورة المصغرة للعرض
+    img.alt = product.name || "صورة المنتج";
+    img.onclick = () => window.open(formatDriveUrl(urlsArray[0], false), '_blank'); // فتح الصورة الأصلية في نافذة جديدة
+    
+    imgContainer.appendChild(img);
+    displayDiv.appendChild(imgContainer);
+  }
+  
+  card.appendChild(displayDiv);
+  
+  // معلومات المنتج
+  const infoDiv = document.createElement("div");
+  infoDiv.className = "info";
+  
+  // الحصول على اسم المحافظة والمنطقة
+  const governorate = allGovernorates.find(g => g.id === merchant.governorate);
+  const governorateName = governorate?.name || merchant.governorate;
+  const areaName = governorate?.areas?.[merchant.area] || merchant.area;
+  
+  infoDiv.innerHTML = `
+    <h3>${product.name || "منتج بدون اسم"}</h3>
+  `;
+  
+  // إضافة بيانات المنتج في سطر واحد مع زر المزيد
+  const detailsContainer = document.createElement("div");
+  detailsContainer.className = "product-details-single-line";
+  
+  const productDetails = [
+    product.price ? `السعر: ${product.price} ريال` : '',
+    categoryName ? `الفئة: ${categoryName}` : '',
+    governorateName ? `المحافظة: ${governorateName}` : '',
+    areaName ? `المنطقة: ${areaName}` : ''
+  ].filter(Boolean).join(' | ');
+  
+  detailsContainer.textContent = productDetails;
+  
+  // زر المزيد
+  const viewMoreBtn = document.createElement("button");
+  viewMoreBtn.className = "view-more-btn";
+  viewMoreBtn.textContent = "المزيد";
+  viewMoreBtn.onclick = (e) => {
+    e.stopPropagation();
+    showFullProductDetails(product, merchantName, categoryName, governorateName, areaName);
+  };
+  detailsContainer.appendChild(viewMoreBtn);
+  
+  infoDiv.appendChild(detailsContainer);
+  
+  infoDiv.innerHTML += `
+    <div class="merchant-info">
+      <div class="merchant-name" onclick="openMerchantPage('${merchantName}')">
+        ${merchantName} 👈
+      </div>
+      ${governorateName || areaName ? `
+        <div class="merchant-location">
+          ${governorateName ? `${governorateName}` : ''}
+          ${governorateName && areaName ? ' - ' : ''}
+          ${areaName ? `${areaName}` : ''}
+        </div>
+      ` : ''}
+    </div>
+  `;
+  
+  card.appendChild(infoDiv);
+  
+  // إضافة أيقونات التفاعل
+  const iconsDiv = document.createElement("div");
+  iconsDiv.className = "icons";
+  iconsDiv.innerHTML = `
+    <div class="icon like" onclick="handleLike('${product.id}')">👍 <span class="like-count">0</span></div>
+    <div class="icon views">👁️ <span class="view-count">0</span></div>
+    <div class="icon comment" onclick="toggleComments('${product.id}')">💬 <span class="comment-count">0</span></div>
+    <div class="icon share-btn" onclick="shareProduct('${product.name}', '${formatDriveUrl(urlsArray[0], false)}')">📤</div>
+  `;
+  
+  card.appendChild(iconsDiv);
+  
+  // إضافة قسم التعليقات
+  const commentsSection = document.createElement("div");
+  commentsSection.className = "comments-section";
+  commentsSection.id = `comments-${product.id}`;
+  commentsSection.innerHTML = `
+    <div class="comments-header">
+      <h4>تعليقات المنتج</h4>
+      <span class="comments-count">0 تعليق</span>
+    </div>
+    <div class="comments-list"></div>
+    <div class="add-comment">
+      <div class="comment-form">
+        <textarea placeholder="اكتب تعليقك هنا..."></textarea>
+        <button onclick="addComment('${product.id}', this)">نشر التعليق</button>
+      </div>
+    </div>
+  `;
+  
+  card.appendChild(commentsSection);
+  
+  // تحميل الإحصائيات
+  loadProductStats(product.id, card);
+  
+  return card;
+}
+
+// دالة مساعدة لتحويل رابط Google Drive
+function formatDriveUrl(url, isThumbnail = true) {
+  if (!url) return '';
+  
+  let id = "";
+  if (url.includes("/d/")) id = url.split("/d/")[1].split("/")[0];
+  else if (url.includes("id=")) id = new URLSearchParams(url.split("?")[1]).get("id");
+  else if (url.includes("drive.usercontent.google.com")) id = new URLSearchParams(url.split("?")[1]).get("id");
+  
+  if (!id) return url;
+  
+  if (isThumbnail) {
+    // رابط الصورة المصغرة للعرض في القائمة
+    return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+  } else {
+    // رابط الصورة الأصلية عالية الجودة للفتح في نافذة جديدة
+    return `https://drive.google.com/uc?export=view&id=${id}`;
+  }
+}
+
+// عرض بيانات المنتج الكاملة
+function showFullProductDetails(product, merchantName, categoryName, governorateName, areaName) {
+  let fullDetails = '';
+  
+  if (product.name) fullDetails += `الاسم: ${product.name}\n\n`;
+  if (product.description) fullDetails += `الوصف: ${product.description}\n\n`;
+  if (product.price) fullDetails += `السعر: ${product.price} ريال\n\n`;
+  if (categoryName) fullDetails += `الفئة: ${categoryName}\n\n`;
+  if (merchantName) fullDetails += `التاجر: ${merchantName}\n\n`;
+  if (governorateName) fullDetails += `المحافظة: ${governorateName}\n\n`;
+  if (areaName) fullDetails += `المنطقة: ${areaName}\n\n`;
+  if (product.notes) fullDetails += `ملاحظات: ${product.notes}\n\n`;
+  
+  fullDescription.textContent = fullDetails || 'لا توجد بيانات كافية لهذا المنتج';
+  descriptionModal.style.display = 'flex';
+}
+
+// إغلاق modal الوصف
+function closeDescriptionModal() {
+  descriptionModal.style.display = 'none';
+}
+
+// معالجة الإعجاب
+async function handleLike(productId) {
+  try {
+    const userId = getUserId();
+    const likesRef = db.ref(`products_stats/${productId}/likes`);
+    
+    // الحصول على البيانات الحالية
+    const likesSnap = await likesRef.once("value");
+    let likesData = likesSnap.val() || [];
+    
+    if (!Array.isArray(likesData)) {
+      likesData = [];
+    }
+    
+    // التحقق إذا كان المستخدم قد أعجب بالفعل
+    const userIndex = likesData.indexOf(userId);
+    
+    if (userIndex === -1) {
+      // إضافة الإعجاب
+      likesData.push(userId);
+    } else {
+      // إزالة الإعجاب
+      likesData.splice(userIndex, 1);
+    }
+    
+    // حفظ البيانات
+    await likesRef.set(likesData);
+    
+    // تحديث العداد
+    const likeCountEl = document.querySelector(`#card-${productId} .like-count`);
+    if (likeCountEl) {
+      likeCountEl.textContent = likesData.length;
+    }
+    
+    // تحديث حالة الزر
+    updateLikeButtonState(productId, likesData.includes(userId));
+    
+  } catch (error) {
+    console.error("Error handling like:", error);
+  }
+}
+
+// الحصول على معرف فريد للمستخدم
+function getUserId() {
+  let userId = localStorage.getItem('userId');
+  if (!userId) {
+    userId = 'user_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('userId', userId);
+  }
+  return userId;
+}
+
+// تحديث حالة زر الإعجاب
+function updateLikeButtonState(productId, isLiked) {
+  const likeBtn = document.querySelector(`#card-${productId} .like`);
+  if (likeBtn) {
+    if (isLiked) {
+      likeBtn.style.color = '#ff4d4d';
+    } else {
+      likeBtn.style.color = 'var(--primary-color)';
+    }
+  }
+}
+
+// تبديل عرض/إخفاء التعليقات
+function toggleComments(productId) {
+  const commentsSection = document.getElementById(`comments-${productId}`);
+  const isExpanded = commentsSection.classList.contains('expanded');
+  
+  // إغلاق جميع التعليقات الأخرى
+  document.querySelectorAll('.comments-section.expanded').forEach(section => {
+    if (section.id !== `comments-${productId}`) {
+      section.classList.remove('expanded');
+    }
+  });
+  
+  if (isExpanded) {
+    commentsSection.classList.remove('expanded');
+    currentCommentsProductId = '';
+  } else {
+    commentsSection.classList.add('expanded');
+    currentCommentsProductId = productId;
+    loadComments(productId);
+  }
+}
+
+// تحميل التعليقات
+async function loadComments(productId) {
+  try {
+    const commentsSection = document.getElementById(`comments-${productId}`);
+    const commentsList = commentsSection.querySelector('.comments-list');
+    const commentsCount = commentsSection.querySelector('.comments-count');
+    
+    commentsList.innerHTML = '<div class="loading">جاري تحميل التعليقات...</div>';
+    
+    const commentsSnap = await db.ref(`comments/${productId}`).once("value");
+    const comments = convertFirebaseData(commentsSnap.val());
+    
+    displayComments(comments, commentsList, commentsCount, productId);
+  } catch (error) {
+    console.error("Error loading comments:", error);
+    const commentsList = document.querySelector(`#comments-${productId} .comments-list`);
+    commentsList.innerHTML = '<div class="error">حدث خطأ في تحميل التعليقات</div>';
+  }
+}
+
+// عرض التعليقات
+function displayComments(comments, commentsList, commentsCount, productId) {
+  commentsList.innerHTML = '';
+  
+  if (!comments || comments.length === 0) {
+    commentsList.innerHTML = '<div class="no-comments">لا توجد تعليقات بعد</div>';
+    commentsCount.textContent = '0 تعليق';
+    
+    // تحديث عداد التعليقات في الأيقونة
+    const commentCountEl = document.querySelector(`#card-${productId} .comment-count`);
+    if (commentCountEl) {
+      commentCountEl.textContent = '0';
+    }
+    return;
+  }
+  
+  // ترتيب التعليقات حسب التاريخ
+  comments.sort((a, b) => {
+    return new Date(b.date || 0) - new Date(a.date || 0);
+  });
+  
+  // عرض عدد التعليقات
+  const commentsLength = comments.length;
+  commentsCount.textContent = `${commentsLength} تعليق`;
+  
+    // تحديث عداد التعليقات في الأيقونة
+  const commentCountEl = document.querySelector(`#card-${productId} .comment-count`);
+  if (commentCountEl) {
+    commentCountEl.textContent = commentsLength;
+  }
+  
+  // عرض التعليقات
+  comments.forEach(comment => {
+    const commentItem = document.createElement("div");
+    commentItem.className = "comment-item";
+    
+    commentItem.innerHTML = `
+      <div class="comment-header">
+        <span class="comment-author">${comment.author || "مستخدم"}</span>
+        <span class="comment-date">${formatDate(comment.date)}</span>
+      </div>
+      <div class="comment-text">${comment.text}</div>
+    `;
+    
+    commentsList.appendChild(commentItem);
+  });
+}
+
+// إضافة تعليق جديد
+async function addComment(productId, button) {
+  const commentForm = button.parentElement;
+  const textarea = commentForm.querySelector('textarea');
+  const commentTextValue = textarea.value.trim();
+  
+  if (!commentTextValue) {
+    alert("يرجى كتابة تعليق قبل النشر");
+    return;
+  }
+  
+  try {
+    const commentId = Date.now().toString();
+    
+    const comment = {
+      text: commentTextValue,
+      author: "مستخدم",
+      date: new Date().toISOString()
+    };
+  
+    await db.ref(`comments/${productId}/${commentId}`).set(comment);
+    
+    // إعادة تحميل التعليقات
+    loadComments(productId);
+    
+    // مسح حقل النص
+    textarea.value = "";
+    
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    alert("حدث خطأ أثناء إضافة التعليق");
+  }
+}
+
+// مشاركة المنتج
+function shareProduct(productName, imageUrl) {
+  const shareText = `متجر AZ التسويق الشامل لتلبية احتياجك بالكامل يرحب بك\n\nتفضل بتصفح ${productName}\n\nعبر الرابط التالي\n\n${window.location.href}`;
+  
+  if (navigator.share) {
+    navigator.share({
+      title: productName,
+      text: shareText,
+      url: window.location.href
+    })
+    .then(() => console.log('تم المشاركة بنجاح'))
+    .catch((error) => console.log('Error sharing:', error));
+  } else {
+    navigator.clipboard.writeText(shareText)
+      .then(() => alert('تم نسخ رابط المنتج إلى الحافظة: \n' + shareText))
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+        prompt('يرجى نسخ النص التالي:', shareText);
+      });
+  }
+}
+
+// إضافة/إزالة من المفضلة
+function toggleFavorite(pid, button) {
+  if (favoriteProducts[pid]) {
+    delete favoriteProducts[pid];
+    button.classList.remove("active");
+  } else {
+    favoriteProducts[pid] = true;
+    button.classList.add("active");
+  }
+  
+  localStorage.setItem('favoriteProducts', JSON.stringify(favoriteProducts));
+}
+
+// دالة فتح صفحة التاجر
+function openMerchantPage(merchantName) {
+  localStorage.setItem('selectedMerchant', merchantName);
+  window.open("ard_tagr.html", "_blank");
+}
+
+// دالة عرض الملاحظات في Modal
+function showNotesModal(productName, notes) {
+  const modal = document.getElementById('notesModal');
+  const productNameElement = document.getElementById('modal-product-name');
+  const notesContentElement = document.getElementById('modal-notes-content');
+  
+  productNameElement.textContent = productName || "منتج بدون اسم";
+  notesContentElement.textContent = notes;
+  
+  modal.style.display = "block";
+}
+
+// دالة تحميل إحصائيات المنتج
+async function loadProductStats(pid, card) {
+  try {
+    const statsSnap = await db.ref(`products_stats/${pid}`).once("value");
+    const stats = statsSnap.val() || {};
+    
+    const viewCountEl = card.querySelector(".view-count");
+    viewCountEl.textContent = stats.views || 0;
+    
+    // تحميل عدد الإعجابات الحقيقي
+    const likesRef = db.ref(`products_stats/${pid}/likes`);
+    const likesSnap = await likesRef.once("value");
+    const likesData = likesSnap.val() || [];
+    const likeCount = Array.isArray(likesData) ? likesData.length : 0;
+    
+    const likeCountEl = card.querySelector(".like-count");
+    likeCountEl.textContent = likeCount;
+    
+    // تحديث حالة زر الإعجاب بناءً على حالة المستخدم
+    const userId = getUserId();
+    const isLiked = Array.isArray(likesData) && likesData.includes(userId);
+    updateLikeButtonState(pid, isLiked);
+    
+    // تحميل عدد التعليقات الحقيقي من قاعدة البيانات
+    const commentsSnap = await db.ref(`comments/${pid}`).once("value");
+    const comments = commentsSnap.val() || {};
+    const commentCount = Object.keys(comments).length;
+    
+    const commentCountEl = card.querySelector(".comment-count");
+    commentCountEl.textContent = commentCount;
+    
+  } catch (error) {
+    console.error("Error loading product stats:", error);
+  }
+}
+
+// دالة تصفية المنتجات
+function filterProducts() {
+  const governorateValue = governorateSelect.value;
+  const regionValue = regionSelect.value;
+  const searchValue = searchInput.value.toLowerCase();
+  const minPrice = parseFloat(minPriceInput.value) || 0;
+  const maxPrice = parseFloat(maxPriceInput.value) || Infinity;
+  
+  let filteredProducts = [...allProducts];
+  
+  // التصفية حسب البحث
+  if (searchValue) {
+    filteredProducts = filteredProducts.filter(product => {
+      const productName = product.name || '';
+      const productDescription = product.description || '';
+      
+      return productName.toLowerCase().includes(searchValue) || 
+             productDescription.toLowerCase().includes(searchValue);
+    });
+  }
+  
+  // التصفية حسب الفئة
+  if (selectedCategoryId) {
+    filteredProducts = filteredProducts.filter(product => 
+      product.categoryId === selectedCategoryId
+    );
+  }
+  
+  // التصفية حسب السعر
+  filteredProducts = filteredProducts.filter(product => {
+    const productPrice = parseFloat(product.price) || 0;
+    return productPrice >= minPrice && productPrice <= maxPrice;
+  });
+  
+  // التصفية حسب المحافظة والمنطقة
+  if (governorateValue || regionValue) {
+    filteredProducts = filteredProducts.filter(product => {
+      const merchant = allMerchants.find(m => m.id === product.userId);
+      if (!merchant) return false;
+      
+      if (governorateValue && merchant.governorate !== governorateValue) return false;
+      if (regionValue && merchant.area !== regionValue) return false;
+      
+      return true;
+    });
+  }
+  
+  // عرض المنتجات المصفاة
+  displayProducts(filteredProducts);
+}
+
+// دالة إعادة تعيين الفلاتر
+function resetFilters() {
+  governorateSelect.value = "";
+  regionSelect.value = "";
+  categorySelect.value = "";
+  searchInput.value = "";
+  minPriceInput.value = "";
+  maxPriceInput.value = "";
+  sortSelect.value = "name";
+  selectedCategoryId = '';
+  currentPage = 1;
+  
+  updateRegionOptions();
+  displayProducts(allProducts);
+}
+
+// دالة مساعدة لتحويل تاريخ Firebase إلى تنسيق مقروء
+function formatDate(dateString) {
+  if (!dateString) return "غير محدد";
+  
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ar-EG');
+  } catch (e) {
+    return dateString;
+  }
+}
+</script>
+
+</body>
+</html>
