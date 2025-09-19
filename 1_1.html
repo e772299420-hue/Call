@@ -52,6 +52,14 @@ body {  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;  backgroun
 
 .reset-btn:hover { background: #c82333; }
 
+.hide-btn { padding: 6px 12px; background: var(--warning-color); color: #000; border: none; border-radius: var(--border-radius); cursor: pointer; font-size: 14px; transition: var(--transition); }
+
+.hide-btn:hover { background: #e0a800; }
+
+.show-btn { background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 8px 12px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: var(--transition); margin-left: 10px; }
+
+.show-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
 /* الفوتر الثابت */ .footer{ position: fixed; bottom: 0; left: 0; width: 100%; background: var(--primary-color); color: white; text-align: center; padding: 15px; z-index: 1000; font-size: 14px; }
 
 /* محتوى الصفحة */ .page-content{ max-width: 1200px; margin: 0 auto; padding: 20px; }
@@ -236,12 +244,13 @@ h2 {  text-align:center;  margin:20px 0;  color: var(--text-color); }
   <div class="app-name">AZ التسويق الشامل</div>
     <div class="screen-name">عرض المنتجات</div>
     <button class="theme-toggle" id="theme-toggle">🌙</button>
+    <button class="show-btn" id="show-btn" style="display: none;">عرض الشريط</button>
   </div>
 </header>
 
 <!-- شريط الفلترة -->
 
-<div class="filter-bar">
+<div class="filter-bar" id="filter-bar">
   <div class="filter-item">
     <label for="governorate">المحافظة:</label>
     <select id="governorate">
@@ -276,6 +285,7 @@ h2 {  text-align:center;  margin:20px 0;  color: var(--text-color); }
   </div>
 
 <button class="reset-btn" id="reset-filters">إعادة تعيين</button>
+<button class="hide-btn" id="hide-btn">إخفاء الشريط</button>
 
 </div>
 
@@ -328,7 +338,7 @@ h2 {  text-align:center;  margin:20px 0;  color: var(--text-color); }
   جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة
 </footer>
 
-<!-- Modal للوصف الكامل -->
+<!-- Modal للوصف الكاملة -->
 
 <div class="description-modal" id="descriptionModal">
   <div class="description-modal-content">
@@ -382,6 +392,9 @@ const paginationContainer = document.getElementById('pagination');
 const themeToggle = document.getElementById('theme-toggle');
 const descriptionModal = document.getElementById('descriptionModal');
 const fullDescription = document.getElementById('fullDescription');
+const filterBar = document.getElementById('filter-bar');
+const hideBtn = document.getElementById('hide-btn');
+const showBtn = document.getElementById('show-btn');
 
 // تحميل البيانات عند بدء التشغيل
 window.addEventListener('load', () => {
@@ -389,6 +402,12 @@ window.addEventListener('load', () => {
   if (savedTheme === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
     themeToggle.textContent = '☀️';
+  }
+  
+  // التحقق من حالة الشريط المحفوظة
+  const isFilterBarHidden = localStorage.getItem('filterBarHidden');
+  if (isFilterBarHidden === 'true') {
+    hideFilterBar();
   }
   
   loadAllData();
@@ -404,6 +423,8 @@ maxPriceInput.addEventListener('input', filterProducts);
 sortSelect.addEventListener('change', filterProducts);
 resetButton.addEventListener('click', resetFilters);
 themeToggle.addEventListener('click', toggleTheme);
+hideBtn.addEventListener('click', hideFilterBar);
+showBtn.addEventListener('click', showFilterBar);
 
 // إغلاق Modal عند النقر على X
 document.querySelectorAll(".close").forEach(closeBtn => {
@@ -446,6 +467,22 @@ function toggleTheme() {
     localStorage.setItem('theme', 'dark');
     themeToggle.textContent = '☀️';
   }
+}
+
+// إخفاء شريط الفلترة
+function hideFilterBar() {
+  filterBar.style.display = 'none';
+  showBtn.style.display = 'flex';
+  document.body.style.paddingTop = '70px';
+  localStorage.setItem('filterBarHidden', 'true');
+}
+
+// إظهار شريط الفلترة
+function showFilterBar() {
+  filterBar.style.display = 'flex';
+  showBtn.style.display = 'none';
+  document.body.style.paddingTop = '140px';
+  localStorage.setItem('filterBarHidden', 'false');
 }
 
 // دالة تحميل جميع البيانات
@@ -1106,19 +1143,6 @@ async function loadProductStats(pid, card) {
     
     const likeCountEl = card.querySelector(".like-count");
     likeCountEl.textContent = likeCount;
-    
-    // تحديث حالة زر الإعجاب بناءً على حالة المستخدم
-    const userId = getUserId();
-    const isLiked = Array.isArray(likesData) && likesData.includes(userId);
-    updateLikeButtonState(pid, isLiked);
-    
-    // تحميل عدد التعليقات الحقيقي من قاعدة البيانات
-    const commentsSnap = await db.ref(`comments/${pid}`).once("value");
-    const comments = commentsSnap.val() || {};
-    const commentCount = Object.keys(comments).length;
-    
-    const commentCountEl = card.querySelector(".comment-count");
-    commentCountEl.textContent = commentCount;
     
   } catch (error) {
     console.error("Error loading product stats:", error);
