@@ -187,12 +187,36 @@
             left: 10px;
             z-index: 1000;
             background: white;
-            padding: 10px;
+            padding: 8px;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
+        }
+        
+        .map-control-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .map-control-btn:hover {
+            background: #2980b9;
+            transform: scale(1.1);
+        }
+        
+        .map-control-btn i {
+            font-size: 16px;
         }
         
         .gps-status {
@@ -360,6 +384,58 @@
             font-size: 12px;
         }
         
+        .retry-button {
+            background: var(--warning);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .retry-button:hover {
+            background: #e67e22;
+        }
+        
+        .distance-badge {
+            background-color: var(--primary);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 8px;
+        }
+        
+        .filter-container {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-group label {
+            margin: 0;
+            font-weight: bold;
+            color: var(--dark);
+        }
+        
+        .filter-group select {
+            width: auto;
+            margin: 0;
+        }
+        
         @media (max-width: 768px) {
             .tabs {
                 flex-direction: column;
@@ -380,7 +456,40 @@
             .map-controls {
                 left: 5px;
                 top: 5px;
-                padding: 8px;
+                padding: 6px;
+            }
+            
+            .map-control-btn {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .map-control-btn i {
+                font-size: 14px;
+            }
+            
+            .gps-status {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .retry-button {
+                margin-top: 8px;
+                margin-right: 0;
+                width: 100%;
+            }
+            
+            .filter-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .filter-group {
+                width: 100%;
+            }
+            
+            .filter-group select {
+                width: 100%;
             }
         }
         
@@ -404,18 +513,27 @@
             border-radius: 4px;
             font-size: 12px;
         }
+        
+        .jobtype-badge {
+            background-color: var(--success);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>نظام المشتركين</h1>
-    <p>أضف بياناتك أو استعرض المشتركين الآخرين</p>
+    <h1>نظام المشتركين - سائقي الباصات</h1>
+    <p>أضف بياناتك أو استعرض سائقي الباصات الآخرين</p>
 </div>
 
 <div class="tabs">
     <div class="tab active" id="tab-add">أضفني كمشترك</div>
-    <div class="tab" id="tab-list">المشتركين</div>
+    <div class="tab" id="tab-list">سائقي الباصات</div>
 </div>
 
 <div class="container">
@@ -430,7 +548,7 @@
                 <div id="fullnameNote" class="note hidden">يجب إدخال الاسم الرباعي (4 كلمات)</div>
 
                 <label>الاسم الوظيفي <span class="small">* مطلوب</span></label>
-                <input id="jobname" placeholder="مثال: مشرف النقل" required>
+                <input id="jobname" placeholder="مثال: سائق باص" required>
 
                 <fieldset>
                     <legend>أيام الدوام</legend>
@@ -472,7 +590,13 @@
                 <textarea id="notes" rows="3" placeholder="ملاحظات اختيارية"></textarea>
 
                 <label>نوع الوظيفة</label>
-                <input value="سائق باص" disabled>
+                <select id="jobtype" required>
+                    <option value="سائق باص" selected>سائق باص</option>
+                    <option value="مشرف نقل">مشرف نقل</option>
+                    <option value="موظف استقبال">موظف استقبال</option>
+                    <option value="إداري">إداري</option>
+                    <option value="آخر">آخر</option>
+                </select>
 
                 <label>IP الهاتف (يُؤخذ تلقائياً)</label>
                 <input id="ipField" disabled>
@@ -481,6 +605,9 @@
                 <div class="gps-status" id="gpsStatus">
                     <i class="fas fa-satellite"></i>
                     <span>جاري محاولة الحصول على الموقع...</span>
+                    <button class="retry-button" onclick="retryLocation()">
+                        <i class="fas fa-redo"></i> إعادة المحاولة
+                    </button>
                 </div>
                 <input id="gpsField" disabled>
                 
@@ -496,19 +623,40 @@
 
     <div id="content-list" class="hidden">
         <div class="card">
-            <h3><i class="fas fa-users"></i> المشتركين الأقرب</h3>
+            <h3><i class="fas fa-bus"></i> سائقي الباصات الأقرب</h3>
+            
+            <div class="filter-container">
+                <div class="filter-group">
+                    <label>عرض السائقين ضمن مسافة:</label>
+                    <select id="distanceFilter">
+                        <option value="5000">5 كم</option>
+                        <option value="10000">10 كم</option>
+                        <option value="20000">20 كم</option>
+                        <option value="50000">50 كم</option>
+                        <option value="0" selected>جميع المسافات</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>فرز حسب:</label>
+                    <select id="sortBy">
+                        <option value="distance" selected>الأقرب مسافة</option>
+                        <option value="name">الاسم</option>
+                    </select>
+                </div>
+            </div>
             
             <div id="map-container">
                 <div id="map">جارٍ تحميل الخريطة...</div>
                 <div class="map-controls">
-                    <button onclick="reloadLocation()" class="btn-secondary">
-                        <i class="fas fa-sync-alt"></i> تحديث الموقع
+                    <button class="map-control-btn" onclick="reloadLocation()" title="تحديث الموقع">
+                        <i class="fas fa-sync-alt"></i>
                     </button>
-                    <button onclick="toggleRouteDisplay()" class="btn-secondary">
-                        <i class="fas fa-route"></i> إظهار/إخفاء المسارات
+                    <button class="map-control-btn" onclick="toggleRouteDisplay()" title="إظهار/إخفاء المسارات">
+                        <i class="fas fa-route"></i>
                     </button>
-                    <button onclick="downloadMapForOffline()" class="btn-secondary">
-                        <i class="fas fa-download"></i> حفظ الخريطة
+                    <button class="map-control-btn" onclick="downloadMapForOffline()" title="حفظ الخريطة">
+                        <i class="fas fa-download"></i>
                     </button>
                 </div>
                 <div id="offlineNotice" class="offline-notice hidden">
@@ -538,12 +686,15 @@ const contentList = document.getElementById('content-list');
 const statusMessage = document.getElementById('statusMessage');
 const gpsStatus = document.getElementById('gpsStatus');
 const offlineNotice = document.getElementById('offlineNotice');
+const distanceFilter = document.getElementById('distanceFilter');
+const sortBy = document.getElementById('sortBy');
 
 // متغيرات لتخزين حالة الخريطة والمسارات
 let map, myMarker, routeDisplayEnabled = true;
 let subscribersCache = {};
 let routingLines = [];
 let watchId = null;
+let allSubscribers = [];
 
 // التحقق من حالة الاتصال بالإنترنت
 function updateOnlineStatus() {
@@ -572,8 +723,27 @@ function showStatusMessage(message, type = 'info') {
 
 // تحديث حالة GPS
 function updateGpsStatus(message, status) {
-    gpsStatus.innerHTML = `<i class="fas fa-${status === 'success' ? 'check-circle' : status === 'warning' ? 'exclamation-triangle' : 'exclamation-circle'}"></i><span>${message}</span>`;
+    const icon = status === 'success' ? 'check-circle' : 
+                status === 'warning' ? 'exclamation-triangle' : 'exclamation-circle';
+    
+    gpsStatus.innerHTML = `
+        <i class="fas fa-${icon}"></i>
+        <span>${message}</span>
+        <button class="retry-button" onclick="retryLocation()">
+            <i class="fas fa-redo"></i> إعادة المحاولة
+        </button>
+    `;
     gpsStatus.className = `gps-status gps-${status}`;
+}
+
+// إعادة محاولة الحصول على الموقع
+function retryLocation() {
+    if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+    updateGpsStatus('جاري إعادة المحاولة...', 'warning');
+    fetchMyGps();
 }
 
 tabAdd.addEventListener('click', ()=>{
@@ -609,6 +779,7 @@ const phone2Note = document.getElementById('phone2Note');
 const whatsappEl = document.getElementById('whatsapp');
 const whatsappNote = document.getElementById('whatsappNote');
 const notesEl = document.getElementById('notes');
+const jobtypeEl = document.getElementById('jobtype');
 const ipField = document.getElementById('ipField');
 const gpsField = document.getElementById('gpsField');
 const selectAllDays = document.getElementById('selectAllDays');
@@ -645,7 +816,7 @@ async function fetchMyIp(){
 
 // أيقونة الباص المخصصة
 const busIcon = L.icon({
-    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSIjZmZmIj48cGF0aCBkPSJNMTIwIDI1Nmg0MHY0MEgxMjBWMjU2ek0zNTIgMjk2SDQwMFYyNTZIMzUyVjI5NnpNNDQ4IDMySDY0QzI4LjcgMzIgMCA2MC43IDAgODh2MzE2YzAgMjcuMyAyOC43IDU2IDY0IDU2aDExMmMtOC44LTE2LTQwLTMyLTQwLTMyczMxLjIgMTYgNDAgMzJoMTkyYzguOCAwIDQwLTE2IDQwLTMyczMxLjIgMTYgNDAgMzJoMTEyYzM1LjMgMCA2NC0yOC43IDY0LTU2Vjg4QzUxMiA2MC43IDQ4My4zIDMyIDQ0OCAzMnptMCAzNjRINjRjLTguOCAwLTE2LTcuMi0xNi0xNlY4OGMwLTguOCA3LjItMTYgMTYtMTZoMzg0YzguOCAwIDE2IDcuMiAxNiAxNnYyOTJjMCA4LjgtNy4yIDE2LTE2IDE2ek0zOTIgMTI4YzE3LjcgMCAzMiAxNC4zIDMyIDMycy0xNC4zIDMyLTMyIDMyLTMyLTE0LjMtMzItMzIgMTQuMy0zMiAzMi0zMnptLTI3MiAwYzE3LjcgMCAzMiAxNC4zIDMyIDMycy0xNC4zIDMyLTMyIDMyLTMyLTE0LjMtMzItMzIgMTQuMy0zMiAzMi0zMnoiLz48L3N2Zz4=',
+    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSIjZmZmIj48cGF0aCBkPSJNMTIwIDI1Nmg0MHY0MEgxMjBWMjU2ek0zNTIgMjk2SDQwMFYyNTZIMzUyVjI5NjpNNDQ4IDMySDY0QzI4LjcgMzIgMCA2MC43IDAgODh2MzE2YzAgMjcuMyAyOC43IDU2IDY0IDU2aDExMmMtOC44LTE2LTQwLTMyLTQwLTMyczMxLjIgMTYgNDAgMzJoMTkyYzguOCAwIDQwLTE2IDQwLTMyczMxLjIgMTYgNDAgMzJoMTEyYzM1LjMgMCA2NC0yOC43IDY0LTU2Vjg4QzUxMiA2MC43IDQ4My4zIDMyIDQ0OCAzMnptMCAzNjRINjRjLTguOCAwLTE2LTcuMi0xNi0xNlY4OGMwLTguOCA3LjItMTYgMTYtMTZoMzg0YzguOCAwIDE2IDcuMiAxNiAxNnYzMTJjMCA4LjgtNy4yIDE2LTE2IDE2ek0zOTIgMTI4YzE3LjcgMCAzMiAxNC4zIDMyIDMycy0xNC4zIDMyLTMyIDMyLTMyLTE0LjMtMzItMzIgMTQuMy0zMiAzMi0zMnptLTI3MiAwYzE3LjcgMCAzMiAxNC4zIDMyIDMycy0xNC4zIDMyLTMyIDMyLTMyLTE4LjMtMzItMzIgMTQuMy0zMiAzMi0zMnoiLz48L3N2Zz4=',
     iconSize: [25, 25],
     iconAnchor: [12, 12],
     popupAnchor: [0, -12]
@@ -653,7 +824,7 @@ const busIcon = L.icon({
 
 // أيقونة المستخدم الحالي
 const userIcon = L.icon({
-    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NDggNTEyIiBmaWxsPSIjMDBlYzAwIj48cGF0aCBkPSJNMjI0IDI1Nmg3MGM0MS4xIDAgNzQuOS0zMy44IDc0OS03NHMtMzMuOC03NC05LTc0aC03MGMtNDEuMSAwLTc0LjkgMzMuOC03NSA3NHMzMy44IDc0IDc1IDc0em0wLTE5MmM3MC43IDAgMTI4IDU3LjMgMTI4IDEyOHMtNTcuMyAxMjgtMTI4IDEyOC0xMjgtNTcuMy0xMjgtMTI4IDU3LjMtMTI4IDEyOC0xMjh6bTE5OC40IDI2OC4yQzM4Ni4xIDM0My4zIDMyOS44IDMyMCAyNjQgMzIwcy0xMjIuMSAyMy4zLTE1OC40IDEyLjJDMzkuNSAzNDEuNSAwIDM4MC40IDAgNDI4LjJWNDQ4YzAgMTcuNyAxNC4zIDMyIDMyIDMyaDM4NGMxNy43IDAgMzItMTQuMyAzMi0zMnYtMTkuOGMwLTQ3LjgtMzkuNS04Ni43LTg1LjYtOTEuOHoiLz48L3N2Zz4=',
+    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NDggNTEyIiBmaWxsPSIjMDBlYzAwIj48cGF0aCBkPSJNMjI0IDI1Nmg3MGM0MS4xIDAgNzQuOS0zMy44IDc0OS03NHMtMzMuOC03NC05LTc0aC03MGMtNDEuMSAwLTc0LjkgMzMuOC03NSA3NHMzMy44IDc0IDc1IDc0em0wLTE5MmM3MC43IDAgMTI4IDU3LjMgMTI4IDEyOHMtNTcuMyAxMjgtMTI4IDEyOC0xMjgtNTcuMy0xMjgtMTI4IDU3LjMtMTI4IDEyOC0xMjh6bTE5OC40IDI2OC4yQzM4Ni4xIDM0My4zIDMyOS44IDMyMCAyNjQgMzIwcy0xMjIuMSAyMy4yLTE1OC40IDEyLjJDMzkuNSAzNDEuNSAwIDM4MC40IDAgNDI4LjJWNDQ4YzAgMTcuNyAxNC4zIDMyIDMyIDMyaDM4NGMxNy43IDAgMzItMTQuMyAzMi0zMnYtMTkuOGMwLTQ3LjgtMzkuNS04Ni43LTg1LjYtOTEuOHoiLz48L3N2Zz4=',
     iconSize: [25, 25],
     iconAnchor: [12, 25],
     popupAnchor: [0, -25]
@@ -668,9 +839,26 @@ function fetchMyGps(){
             return;
         }
         
+        // التحقق من إذن الموقع أولاً
+        if (navigator.permissions) {
+            navigator.permissions.query({name:'geolocation'}).then(function(result) {
+                if (result.state === 'denied') {
+                    updateGpsStatus('تم رفض الإذن. يرجى السماح بالوصول إلى الموقع في إعدادات المتصفح', 'error');
+                    resolve({ lat: 15.3694, lng: 44.1910 });
+                    return;
+                }
+            });
+        }
+        
         updateGpsStatus('جاري الحصول على الموقع...', 'warning');
         
-        // استخدام watchPosition بدلاً من getCurrentPosition للحصول على تحديثات مستمرة
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 30000,  // زيادة الوقت إلى 30 ثانية
+            maximumAge: 60000  // السماح باستخدام المواقع المخزنة خلال الدقيقة الماضية
+        };
+        
+        // إعادة تعيين watchId إذا كان موجوداً
         if (watchId) {
             navigator.geolocation.clearWatch(watchId);
         }
@@ -703,7 +891,7 @@ function fetchMyGps(){
                         errorMsg += 'معلومات الموقع غير متاحة.';
                         break;
                     case err.TIMEOUT:
-                        errorMsg += 'انتهت مهلة طلب الموقع.';
+                        errorMsg += 'انتهت مهلة طلب الموقع. جاري استخدام موقع افتراضي.';
                         break;
                     default:
                         errorMsg += 'حدث خطأ غير معروف.';
@@ -715,11 +903,7 @@ function fetchMyGps(){
                 gpsField.value = myGps.lat.toFixed(6)+','+myGps.lng.toFixed(6);
                 resolve(myGps);
             }, 
-            { 
-                enableHighAccuracy: true, 
-                timeout: 10000, 
-                maximumAge: 0  // عدم استخدام المواقع المخزنة مؤقتاً
-            }
+            options
         );
     });
 }
@@ -771,6 +955,12 @@ function downloadMapForOffline() {
     
     localStorage.setItem('offlineMapData', JSON.stringify(mapData));
     showStatusMessage('تم حفظ الخريطة للعمل بدون اتصال', 'success');
+}
+
+// استخراج الاسم الأول فقط من الاسم الرباعي
+function getFirstName(fullName) {
+    const names = fullName.trim().split(/\s+/);
+    return names.length > 0 ? names[0] : fullName;
 }
 
 async function saveSubscriberToDB(sub){
@@ -887,17 +1077,17 @@ formAdd.addEventListener('submit', async e=>{
     }
     
     const days = [...document.querySelectorAll('.day')].filter(cb=>cb.checked).map(cb=>cb.value);
+    const jobtype = jobtypeEl.value;
 
     if(!myIp) await fetchMyIp();
     if(!myGps) await fetchMyGps();
 
     const sub = {
-        fullname, jobname, days,
+        fullname, jobname, days, jobtype,
         from: document.getElementById('fromTime').value || '',
         to: document.getElementById('toTime').value || '',
         phone1, phone2, whatsapp,
         notes: notesEl.value.trim(),
-        jobtype: 'سائق باص',
         ip: myIp || 'unknown',
         gps: myGps || null
     };
@@ -930,6 +1120,36 @@ formAdd.addEventListener('submit', async e=>{
         tabList.click();
     }
 });
+
+// تصفية المشتركين حسب المسافة
+function filterSubscribersByDistance(subscribers, maxDistance) {
+    if (!maxDistance || maxDistance === 0) return subscribers;
+    
+    return subscribers.filter(s => {
+        if (!s.gps || !s.gps.lat || !s.gps.lng) return false;
+        const distance = distanceMeters(myGps.lat, myGps.lng, s.gps.lat, s.gps.lng);
+        return distance <= maxDistance;
+    });
+}
+
+// تصفية المشتركين حسب نوع الوظيفة (سائق باص فقط)
+function filterSubscribersByJobType(subscribers) {
+    return subscribers.filter(s => s.jobtype === 'سائق باص');
+}
+
+// فرز المشتركين حسب المسافة أو الاسم
+function sortSubscribers(subscribers, sortBy) {
+    if (sortBy === 'name') {
+        return subscribers.sort((a, b) => {
+            const nameA = getFirstName(a.fullname).toLowerCase();
+            const nameB = getFirstName(b.fullname).toLowerCase();
+            return nameA.localeCompare(nameB, 'ar');
+        });
+    } else {
+        // الفرز حسب المسافة (الإفتراضي)
+        return subscribers.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    }
+}
 
 // تهيئة الخريطة وعرض المشتركين
 async function initMapAndLoad(){
@@ -988,6 +1208,7 @@ async function initMapAndLoad(){
         listContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> جاري تحميل بيانات المشتركين...</div>';
         
         subs = await fetchAllSubscribers(); 
+        allSubscribers = [...subs]; // حفظ جميع المشتركين
         
         // تخزين البيانات محلياً لاستخدامها لاحقاً
         localStorage.setItem('subscribersData', JSON.stringify(subs));
@@ -998,6 +1219,7 @@ async function initMapAndLoad(){
         const storedData = localStorage.getItem('subscribersData');
         if (storedData) {
             subs = JSON.parse(storedData);
+            allSubscribers = [...subs];
             showStatusMessage('جاري استخدام البيانات المخزنة محلياً', 'info');
         } else {
             showStatusMessage('تعذر جلب المشتركين.', 'error'); 
@@ -1005,12 +1227,22 @@ async function initMapAndLoad(){
         }
     }
 
+    // تصفية المشتركين لعرض سائقي الباصات فقط
+    subs = filterSubscribersByJobType(subs);
+    
+    // تطبيق تصفية المسافة
+    const maxDistance = parseInt(distanceFilter.value);
+    subs = filterSubscribersByDistance(subs, maxDistance);
+    
     subs = subs.filter(s => s.gps && s.gps.lat && s.gps.lng);
     subs = subs.map(s=>{
         const d = distanceMeters(myGps.lat, myGps.lng, s.gps.lat, s.gps.lng);
         return {...s, distanceMeters: d};
     });
-    subs.sort((a,b)=>a.distanceMeters - b.distanceMeters);
+    
+    // تطبيق الفرز
+    const sortValue = sortBy.value;
+    subs = sortSubscribers(subs, sortValue);
 
     const listContainer = document.getElementById('listContainer');
     listContainer.innerHTML = '';
@@ -1021,7 +1253,8 @@ async function initMapAndLoad(){
         // إضافة علامة للمشترك مع أيقونة الباص
         const marker = L.marker([s.gps.lat, s.gps.lng], {icon: busIcon}).addTo(map).bindPopup(
             `<div style="text-align: center;">
-                <strong><span class="bus-icon"><i class="fas fa-bus"></i></span> ${s.fullname}</strong><br>
+                <strong><span class="bus-icon"><i class="fas fa-bus"></i></span> ${getFirstName(s.fullname)}</strong><br>
+                <span class="jobtype-badge">${s.jobtype}</span><br>
                 المسافة: ${distText}<br>
                 جوال1: ${s.phone1 || '-'}<br>
                 جوال2: ${s.phone2 || '-'}<br>
@@ -1044,8 +1277,11 @@ async function initMapAndLoad(){
         const card = document.createElement('div');
         card.className = 'subscriber-card';
         card.innerHTML = `
-            <strong><span class="bus-icon"><i class="fas fa-bus"></i></span> ${s.fullname}</strong> - ${s.jobname}
-            <div class="small">يبعد عنك: ${distText}</div>
+            <div>
+                <span class="distance-badge">${distText}</span>
+                <span class="jobtype-badge">${s.jobtype}</span>
+                <strong><span class="bus-icon"><i class="fas fa-bus"></i></span> ${getFirstName(s.fullname)}</strong> - ${s.jobname}
+            </div>
             <div class="subscriber-details hidden">
                 ${s.phone1 ? `<a href="tel:967${s.phone1}" class="phone-link"><i class="fas fa-phone"></i> اتصال بالجوال 1</a>` : ''}
                 ${s.phone2 ? `<a href="tel:967${s.phone2}" class="phone-link"><i class="fas fa-phone"></i> اتصال بالجوال 2</a>` : ''}
@@ -1071,7 +1307,7 @@ async function initMapAndLoad(){
     });
 
     if(subs.length === 0){
-        listContainer.innerHTML = '<div class="small">لا يوجد مشتركين مسجلين بعد.</div>';
+        listContainer.innerHTML = '<div class="small">لا يوجد سائقو باصات ضمن المسافة المحددة.</div>';
     }
 }
 
@@ -1089,6 +1325,19 @@ async function initMapAndLoad(){
     // إخفاء رسالة التحميل
     statusMessage.classList.add('hidden');
     
+    // إضافة مستمعين للتصفية والفرز
+    distanceFilter.addEventListener('change', () => {
+        if (map) {
+            initMapAndLoad();
+        }
+    });
+    
+    sortBy.addEventListener('change', () => {
+        if (map) {
+            initMapAndLoad();
+        }
+    });
+    
     // السماح دائمًا بإضافة مشتركين جدد
     tabAdd.style.display = 'block';
     tabAdd.classList.add('active');
@@ -1099,4 +1348,4 @@ async function initMapAndLoad(){
 </script>
 
 </body>
-  </html>
+</html>
