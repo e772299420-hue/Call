@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الطلبات والمتاجرة</title>
+    <!-- ربط Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* الشريط العلوي */
+        header {
+            background: linear-gradient(135deg, #2c3e50, #4a6580);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            background-color: #fff;
+            border-radius: 50%;
+            margin-left: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .site-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        /* شاشة تسجيل الدخول */
+        #login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .login-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .login-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .login-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .login-tab.active {
+            border-bottom: 3px solid #2c3e50;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .login-form {
+            display: none;
+        }
+        
+        .login-form.active {
+            display: block;
+        }
+        
+        /* التبويبات */
+        .tabs {
+            display: flex;
+            margin: 20px 0;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-left: 5px;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background-color: #fff;
+            border-bottom: 2px solid #fff;
+            margin-bottom: -2px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .tab-content {
+            display: none;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* عناوين الصفحة */
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        /* نماذج الإدخال */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #4a6580;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(74, 101, 128, 0.2);
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #4a6580;
+        }
+        
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .btn-delete {
+            background-color: #e74c3c;
+        }
+        
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-edit {
+            background-color: #f39c12;
+        }
+        
+        .btn-edit:hover {
+            background-color: #d35400;
+        }
+        
+        .btn-logout {
+            background-color: #7f8c8d;
+        }
+        
+        .btn-logout:hover {
+            background-color: #636e72;
+        }
+        
+        /* جدول المنتجات */
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .products-table th, .products-table td {
+            padding: 12px 15px;
+            text-align: right;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .products-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .products-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* حالة التحميل والرسائل */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .user-info {
+            background-color: #e8f4fd;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .user-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* التكيف مع الشاشات الصغيرة */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .logo-container {
+                margin-bottom: 10px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                margin: 5px 0;
+                border-radius: 5px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen">
+        <div class="login-container">
+            <div class="login-tabs">
+                <div class="login-tab active" id="login-tab-btn">تسجيل الدخول</div>
+                <div class="login-tab" id="register-tab-btn">إنشاء حساب</div>
+            </div>
+            
+            <form id="login-form" class="login-form active">
+                <div class="form-group">
+                    <label for="login-email" class="required">البريد الإلكتروني</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password" class="required">كلمة المرور</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                
+                <button type="submit" class="btn">تسجيل الدخول</button>
+                <div id="login-message" class="message" style="display: none;"></div>
+            </form>
+            
+            <form id="register-form" class="login-form">
+                <div class="form-group">
+                    <label for="register-name" class="required">الاسم الكامل</label>
+                    <input type="text" id="register-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-phone" class="required">رقم الجوال (9 أرقام)</label>
+                    <input type="tel" id="register-phone" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-email" class="required">البريد الإلكتروني</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-password" class="required">كلمة المرور</label>
+                    <input type="password" id="register-password" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-confirm-password" class="required">تأكيد كلمة المرور</label>
+                    <input type="password" id="register-confirm-password" required minlength="6">
+                </div>
+                
+                <button type="submit" class="btn">إنشاء حساب</button>
+                <div id="register-message" class="message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- الشريط العلوي -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <div class="logo">ش</div>
+                <h1 class="site-name">موقع المتاجرة</h1>
+            </div>
+            <nav>
+                <button id="logout-btn" class="btn btn-logout" style="display: none;">تسجيل الخروج</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container" id="main-content" style="display: none;">
+        <h2>الطلبات والمتاجرة الجديدة والمستعملة</h2>
+        
+        <!-- معلومات المستخدم -->
+        <div class="user-info" id="user-info">
+            جاري تحميل معلومات المستخدم...
+        </div>
+        
+        <!-- رسالة حالة المستخدم -->
+        <div id="user-status-message" class="message warning" style="display: none;">
+            لقد تم توقيف المستخدم الحالي بسبب ما، يرجى التواصل مع إدارة المميز سوفت لتزويدكم بالمعلومات
+        </div>
+        
+        <!-- التبويبات -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('add')">إضافة منتج</div>
+            <div class="tab" onclick="switchTab('view')">عرض المنتجات</div>
+        </div>
+        
+        <!-- تبويب الإضافة -->
+        <div id="add-tab" class="tab-content active">
+            <form id="product-form">
+                <div class="form-group">
+                    <label for="governorate" class="required">المحافظة</label>
+                    <select id="governorate" required onchange="loadRegions(this.value)">
+                        <option value="">اختر المحافظة</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="region" class="required">المنطقة</label>
+                    <select id="region" required disabled>
+                        <option value="">اختر المنطقة</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category" class="required">الفئة</label>
+                    <select id="category" required>
+                        <option value="">اختر الفئة</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="requestType" class="required">نوع الطلب</label>
+                    <select id="requestType" required>
+                        <option value="بيع">بيع</option>
+                        <option value="شراء">شراء</option>
+                        <option value="ايجار">إيجار</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="condition" class="required">بيان الحالة</label>
+                    <select id="condition" required>
+                        <option value="جديد">جديد</option>
+                        <option value="مستخدم">مستخدم</option>
+                        <option value="تالف">تالف</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="productName" class="required">اسم المنتج</label>
+                    <input type="text" id="productName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="specifications">مواصفات المنتج (اختياري)</label>
+                    <textarea id="specifications"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address">عنوان المنتج (اختياري)</label>
+                    <input type="text" id="address">
+                </div>
+                
+                <div class="form-group">
+                    <label for="price" class="required">السعر</label>
+                    <input type="number" id="price" required min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="status" class="required">حالة المنتج</label>
+                    <select id="status" required>
+                        <option value="نشط">نشط</option>
+                        <option value="موقف">موقف</option>
+                    </select>
+                </div>
+                
+                <input type="hidden" id="productId">
+                <input type="hidden" id="orderDate">
+                <input type="hidden" id="userId">
+                
+                <button type="submit" class="btn" id="save-product-btn">حفظ المنتج</button>
+                <button type="button" class="btn" onclick="resetForm()" style="background-color: #95a5a6;">إلغاء</button>
+            </form>
+        </div>
+        
+        <!-- تبويب العرض -->
+        <div id="view-tab" class="tab-content">
+            <div id="loading" class="loading">جاري تحميل البيانات...</div>
+            <div id="no-products" class="message" style="display: none;">لا توجد منتجات لعرضها</div>
+            <table class="products-table" id="products-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>اسم المنتج</th>
+                        <th>السعر</th>
+                        <th>الحالة</th>
+                        <th>نوع الطلب</th>
+                        <th>تاريخ الطلب</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="products-list">
+                    <!-- سيتم ملء هذا القسم بالبيانات من قاعدة البيانات -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAub8yG87hhzVoZxflqpB_smvTFNpRY-Xw",
+            authDomain: "chat-fat-free.firebaseapp.com",
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/",
+            projectId: "chat-fat-free",
+            storageBucket: "chat-fat-free.appspot.com",
+            messagingSenderId: "888827487238",
+            appId: "1:888827238:web:6660cd0e8b7831dff40f87"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+        
+        // عناصر DOM
+        let currentUser = null;
+        let currentEditingProduct = null;
+        let governoratesData = {}; // لتخزين بيانات المحافظات والمناطق
+        let userStatus = "نشط"; // حالة المستخدم الافتراضية
+        
+        // عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // إعداد مستمعين لأزرار التبويب في تسجيل الدخول
+            document.getElementById('login-tab-btn').addEventListener('click', function() {
+                switchLoginTab('login');
+            });
+            
+            document.getElementById('register-tab-btn').addEventListener('click', function() {
+                switchLoginTab('register');
+            });
+            
+            // إعداد مستمعي النماذج
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('product-form').addEventListener('submit', handleFormSubmit);
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            
+            // تحميل المنتجات عند فتح تبويب العرض
+            document.querySelector('.tab[onclick="switchTab(\'view\')"]').addEventListener('click', function() {
+                loadUserProducts();
+            });
+            
+            // التحقق من حالة المصادقة
+            auth.onAuthStateChanged(function(user) {
+                if (user) {
+                    // المستخدم مسجل الدخول
+                    currentUser = user;
+                    checkUserStatus(user.uid);
+                } else {
+                    // لا يوجد مستخدم مسجل الدخول
+                    hideMainContent();
+                }
+            });
+        });
+        
+        // التحقق من حالة المستخدم
+        function checkUserStatus(userId) {
+            const userRef = database.ref('snf_tgara/' + userId);
+            
+            userRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        userStatus = userData.status || "نشط";
+                        
+                        if (userStatus === "نشط") {
+                            showMainContent();
+                        } else {
+                            showUserSuspendedMessage();
+                        }
+                    } else {
+                        // إذا لم يكن هناك سجل للمستخدم، ننشئه بحالة "نشط"
+                        userStatus = "نشط";
+                        database.ref('snf_tgara/' + userId).update({
+                            status: "نشط"
+                        });
+                        showMainContent();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking user status:', error);
+                    // في حالة الخطأ، نعرض المحتوى الرئيسي مع افتراض أن المستخدم نشط
+                    userStatus = "نشط";
+                    showMainContent();
+                });
+        }
+        
+        // التبديل بين تبويبات تسجيل الدخول والتسجيل
+        function switchLoginTab(tabName) {
+            // إلغاء تنشيط جميع التبويبات
+            document.querySelectorAll('.login-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // إخفاء جميع النماذج
+            document.querySelectorAll('.login-form').forEach(form => {
+                form.classList.remove('active');
+            });
+            
+            // تفعيل التبويب المحدد
+            document.getElementById(tabName + '-tab-btn').classList.add('active');
+            document.getElementById(tabName + '-form').classList.add('active');
+        }
+        
+        // معالجة تسجيل الدخول
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const messageElement = document.getElementById('login-message');
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // تم تسجيل الدخول بنجاح
+                    messageElement.style.display = 'none';
+                    currentUser = userCredential.user;
+                    checkUserStatus(currentUser.uid);
+                })
+                .catch((error) => {
+                    // حدث خطأ في تسجيل الدخول
+                    messageElement.textContent = getAuthErrorMessage(error.code);
+                    messageElement.className = 'message error';
+                    messageElement.style.display = 'block';
+                });
+        }
+        
+        // معالجة التسجيل
+        function handleRegister(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('register-name').value;
+            const phone = document.getElementById('register-phone').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            const messageElement = document.getElementById('register-message');
+            
+            // التحقق من تطابق كلمتي المرور
+            if (password !== confirmPassword) {
+                messageElement.textContent = 'كلمتا المرور غير متطابقتين';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            // التحقق من صحة رقم الهاتف (يجب أن يكون 9 أرقام)
+            const phoneRegex = /^[0-9]{9}$/;
+            if (!phoneRegex.test(phone)) {
+                messageElement.textContent = 'رقم الجوال يجب أن يتكون من 9 أرقام فقط';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // تم إنشاء الحساب بنجاح
+                    const user = userCredential.user;
+                    
+                    // تحديث ملف تعريف المستخدم
+                    return user.updateProfile({
+                        displayName: name
+                    }).then(() => {
+                        // حفظ بيانات المستخدم الإضافية في جدول snf_tgara بدلاً من users
+                        return database.ref('snf_tgara/' + user.uid).set({
+                            name: name,
+                            phone: phone,
+                            email: email,
+                            status: "نشط", // حالة المستخدم الافتراضية
+                            createdAt: new Date().toISOString()
+                        });
+                    });
+                })
+                .then(() => {
+                    messageElement.style.display = 'none';
+                    currentUser = auth.currentUser;
+                    userStatus = "نشط";
+                    showMainContent();
+                })
+                .catch((error) => {
+                    // حدث خطأ في التسجيل
+                    messageElement.textContent = getAuthErrorMessage(error.code);
+                    messageElement.className = 'message error';
+                    messageElement.style.display = 'block';
+                });
+        }
+        
+        // تحميل رقم هاتف المستخدم من جدول snf_tgara
+        function loadUserPhone() {
+            if (!currentUser) return;
+            
+            const userRef = database.ref('snf_tgara/' + currentUser.uid);
+            
+            userRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        // تحديث معلومات المستخدم لتعرض رقم الهاتف
+                        const statusClass = userData.status === "نشط" ? "status-active" : "status-inactive";
+                        document.getElementById('user-info').innerHTML = 
+                            `مرحباً ${currentUser.displayName || currentUser.email} - رقم الجوال: ${userData.phone} 
+                            <span class="user-status ${statusClass}">الحالة: ${userData.status}</span>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading user phone:', error);
+                });
+        }
+        
+        // معالجة تسجيل الخروج
+        function handleLogout() {
+            auth.signOut().then(() => {
+                currentUser = null;
+                hideMainContent();
+                resetForm();
+            }).catch((error) => {
+                console.error('Error signing out:', error);
+            });
+        }
+        
+        // تحويل أكواد أخطاء المصادقة إلى رسائل مفهومة
+        function getAuthErrorMessage(errorCode) {
+            const errorMessages = {
+                'auth/invalid-email': 'البريد الإلكتروني غير صحيح',
+                'auth/user-disabled': 'هذا الحساب معطل',
+                'auth/user-not-found': 'لا يوجد حساب مرتبط بهذا البريد الإلكتروني',
+                'auth/wrong-password': 'كلمة المرور غير صحيحة',
+                'auth/email-already-in-use': 'هذا البريد الإلكتروني مستخدم بالفعل',
+                'auth/weak-password': 'كلمة المرور ضعيفة، يجب أن تكون至少 6 أحرف'
+            };
+            
+            return errorMessages[errorCode] || 'حدث خطأ غير متوقع';
+        }
+        
+        // إظهار المحتوى الرئيسي
+        function showMainContent() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('logout-btn').style.display = 'block';
+            document.getElementById('user-status-message').style.display = 'none';
+            
+            // تحديث معلومات المستخدم
+            document.getElementById('user-info').textContent = 
+                `مرحباً ${currentUser.displayName || currentUser.email}`;
+            document.getElementById('userId').value = currentUser.uid;
+            document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+            
+            // تحديث واجهة المستخدم بناءً على حالته
+            updateUIBasedOnUserStatus();
+            
+            // تحميل رقم الهاتف إذا كان متوفراً
+            loadUserPhone();
+            
+            // تحميل البيانات الأخرى
+            loadGovernorates();
+            loadCategories();
+        }
+        
+        // إظهار رسالة تعليق المستخدم
+        function showUserSuspendedMessage() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('logout-btn').style.display = 'block';
+            document.getElementById('user-status-message').style.display = 'block';
+            
+            // تعطيل جميع أزرار الإضافة والتعديل
+            document.getElementById('save-product-btn').disabled = true;
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.disabled = true;
+            });
+            
+            // إخفاء أقسام المحتوى التي لا يمكن للمستخدم الوصول إليها
+            document.querySelector('.tabs').style.display = 'none';
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // عرض رسالة للمستخدم
+            document.getElementById('user-info').innerHTML = 
+                `مرحباً ${currentUser.displayName || currentUser.email} 
+                <span class="user-status status-inactive">الحالة: غير نشط</span>`;
+        }
+        
+        // تحديث واجهة المستخدم بناءً على حالته
+        function updateUIBasedOnUserStatus() {
+            if (userStatus !== "نشط") {
+                document.getElementById('save-product-btn').disabled = true;
+                document.getElementById('user-status-message').style.display = 'block';
+            } else {
+                document.getElementById('save-product-btn').disabled = false;
+                document.getElementById('user-status-message').style.display = 'none';
+            }
+        }
+        
+        // إخفاء المحتوى الرئيسي
+        function hideMainContent() {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'none';
+            
+            // إعادة تعيين نماذج تسجيل الدخول
+            document.getElementById('login-form').reset();
+            document.getElementById('register-form').reset();
+            document.getElementById('login-message').style.display = 'none';
+            document.getElementById('register-message').style.display = 'none';
+            
+            // التأكد من أن تبويب تسجيل الدخول هو النشط
+            switchLoginTab('login');
+        }
+        
+        // تحميل المحافظات
+        function loadGovernorates() {
+            const governoratesRef = database.ref('governorates');
+            
+            governoratesRef.once('value')
+                .then(snapshot => {
+                    const governoratesSelect = document.getElementById('governorate');
+                    governoratesSelect.innerHTML = '<option value="">اختر المحافظة</option>';
+                    
+                    if (snapshot.exists()) {
+                        // تخزين بيانات المحافظات للاستخدام لاحقاً
+                        governoratesData = snapshot.val();
+                        
+                        // ملء قائمة المحافظات
+                        Object.keys(governoratesData).forEach(key => {
+                            const governorate = governoratesData[key];
+                            const option = document.createElement('option');
+                            option.value = key;
+                            option.textContent = governorate.name || 'غير معروف';
+                            governoratesSelect.appendChild(option);
+                        });
+                    } else {
+                        console.error('لا توجد محافظات في قاعدة البيانات');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading governorates:', error);
+                    alert('حدث خطأ في تحميل قائمة المحافظات');
+                });
+        }
+        
+        // تحميل المناطق بناءً على المحافظة المحددة
+        function loadRegions(governorateId) {
+            const regionsSelect = document.getElementById('region');
+            
+            regionsSelect.innerHTML = '<option value="">اختر المنطقة</option>';
+            
+            if (!governorateId) {
+                regionsSelect.disabled = true;
+                return;
+            }
+            
+            // التحقق من وجود بيانات المحافظة
+            if (governoratesData[governorateId] && governoratesData[governorateId].regions) {
+                const regions = governoratesData[governorateId].regions;
+                
+                regionsSelect.disabled = false;
+                
+                // ملء قائمة المناطق
+                Object.keys(regions).forEach(key => {
+                    const region = regions[key];
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = region.name || 'غير معروف';
+                    regionsSelect.appendChild(option);
+                });
+            } else {
+                console.error('لا توجد مناطق لهذه المحافظة');
+                regionsSelect.innerHTML = '<option value="">لا توجد مناطق متاحة</option>';
+                regionsSelect.disabled = false;
+            }
+        }
+        
+        // تحميل الفئات
+        function loadCategories() {
+            const categoriesRef = database.ref('categories');
+            
+            categoriesRef.once('value')
+                .then(snapshot => {
+                    const categoriesSelect = document.getElementById('category');
+                    categoriesSelect.innerHTML = '<option value="">اختر الفئة</option>';
+                    
+                    if (snapshot.exists()) {
+                        snapshot.forEach(childSnapshot => {
+                            const category = childSnapshot.val();
+                            const option = document.createElement('option');
+                            option.value = childSnapshot.key; // استخدام المفتاح كقيمة
+                            option.textContent = category.name || 'غير معروف';
+                            categoriesSelect.appendChild(option);
+                        });
+                    } else {
+                        console.error('لا توجد فئات في قاعدة البيانات');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading categories:', error);
+                    alert('حدث خطأ في تحميل قائمة الفئات');
+                });
+        }
+        
+        // التبديل بين التبويبات
+        function switchTab(tabName) {
+            // إخفاء جميع محتويات التبويبات
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // إلغاء تنشيط جميع التبويبات
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // تفعيل التبويب المحدد
+            document.getElementById(tabName + '-tab').classList.add('active');
+            document.querySelector('.tab[onclick="switchTab(\'' + tabName + '\')"]').classList.add('active');
+            
+            // إذا كان التبويب هو عرض المنتجات، نقوم بتحميلها
+            if (tabName === 'view') {
+                loadUserProducts();
+            }
+        }
+        
+        // توليد UUID
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        
+        // معالجة إرسال النموذج
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            // التحقق من حالة المستخدم قبل الإضافة أو التعديل
+            if (userStatus !== "نشط") {
+                alert("لا يمكنك إضافة أو تعديل المنتجات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
+                return;
+            }
+            
+            const productId = document.getElementById('productId').value || generateUUID();
+            const productData = {
+                id: productId,
+                governorate: document.getElementById('governorate').value,
+                region: document.getElementById('region').value,
+                category: document.getElementById('category').value,
+                requestType: document.getElementById('requestType').value,
+                condition: document.getElementById('condition').value,
+                productName: document.getElementById('productName').value,
+                specifications: document.getElementById('specifications').value,
+                address: document.getElementById('address').value,
+                price: document.getElementById('price').value,
+                status: document.getElementById('status').value,
+                orderDate: document.getElementById('orderDate').value,
+                userId: document.getElementById('userId').value
+            };
+            
+            // حفظ المنتج في مسار asnaf بدلاً من products
+            const productRef = database.ref('asnaf/' + productId);
+            productRef.set(productData)
+                .then(() => {
+                    alert('تم حفظ المنتج بنجاح!');
+                    resetForm();
+                    
+                    // إذا كنا في وضع التعديل، نعود إلى تبويب العرض
+                    if (currentEditingProduct) {
+                        switchTab('view');
+                        loadUserProducts();
+                        currentEditingProduct = null;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving product:', error);
+                    alert('حدث خطأ أثناء حفظ المنتج');
+                });
+        }
+        
+        // إعادة تعيين النموذج
+        function resetForm() {
+            document.getElementById('product-form').reset();
+            document.getElementById('productId').value = '';
+            document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('region').disabled = true;
+            document.getElementById('region').innerHTML = '<option value="">اختر المنطقة</option>';
+            currentEditingProduct = null;
+        }
+        
+        // تحميل منتجات المستخدم من مسار asnaf
+        function loadUserProducts() {
+            const productsRef = database.ref('asnaf');
+            const userId = document.getElementById('userId').value;
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('no-products').style.display = 'none';
+            document.getElementById('products-table').style.display = 'none';
+            
+            productsRef.orderByChild('userId').equalTo(userId).once('value')
+                .then(snapshot => {
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    const productsList = document.getElementById('products-list');
+                    productsList.innerHTML = '';
+                    
+                    if (snapshot.exists()) {
+                        document.getElementById('products-table').style.display = 'table';
+                        
+                        snapshot.forEach(childSnapshot => {
+                            const product = childSnapshot.val();
+                            const row = document.createElement('tr');
+                            
+                            // تعطيل أزرار التعديل إذا كان المستخدم غير نشط
+                            const editDisabled = userStatus !== "نشط" ? "disabled" : "";
+                            
+                            row.innerHTML = `
+                                <td>${product.productName}</td>
+                                <td>${product.price}</td>
+                                <td>${product.status}</td>
+                                <td>${product.requestType}</td>
+                                <td>${product.orderDate}</td>
+                                <td class="action-buttons">
+                                    <button class="btn btn-edit" onclick="editProduct('${product.id}')" ${editDisabled}>تعديل</button>
+                                    <button class="btn btn-delete" onclick="deleteProduct('${product.id}')" ${editDisabled}>حذف</button>
+                                </td>
+                            `;
+                            
+                            productsList.appendChild(row);
+                        });
+                    } else {
+                        document.getElementById('no-products').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    console.error('Error loading products:', error);
+                });
+        }
+        
+        // تعديل المنتج من مسار asnaf
+        function editProduct(productId) {
+            // التحقق من حالة المستخدم قبل التعديل
+            if (userStatus !== "نشط") {
+                alert("لا يمكنك تعديل المنتجات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
+                return;
+            }
+            
+            const productRef = database.ref('asnaf/' + productId);
+            
+            productRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const product = snapshot.val();
+                        currentEditingProduct = productId;
+                        
+                        // تعبئة النموذج ببيانات المنتج
+                        document.getElementById('productId').value = product.id;
+                        document.getElementById('governorate').value = product.governorate || '';
+                        
+                        // تحميل المناطق للمحافظة المحددة
+                        if (product.governorate) {
+                            loadRegions(product.governorate);
+                            
+                            // استخدام setTimeout لضمان تحميل المناطق أولاً
+                            setTimeout(() => {
+                                document.getElementById('region').value = product.region || '';
+                            }, 300);
+                        }
+                        
+                        document.getElementById('category').value = product.category || '';
+                        document.getElementById('requestType').value = product.requestType || '';
+                        document.getElementById('condition').value = product.condition || '';
+                        document.getElementById('productName').value = product.productName || '';
+                        document.getElementById('specifications').value = product.specifications || '';
+                        document.getElementById('address').value = product.address || '';
+                        document.getElementById('price').value = product.price || '';
+                        document.getElementById('status').value = product.status || '';
+                        
+                        // الانتقال إلى تبويب الإضافة
+                        switchTab('add');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading product for edit:', error);
+                });
+        }
+        
+        // حذف المنتج من مسار asnaf
+        function deleteProduct(productId) {
+            // التحقق من حالة المستخدم قبل الحذف
+            if (userStatus !== "نشط") {
+                alert("لا يمكنك حذف المنتجات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
+                return;
+            }
+            
+            if (confirm('هل أنت متأكد من رغبتك في حذف هذا المنتج؟')) {
+                const productRef = database.ref('asnaf/' + productId);
+                
+                productRef.remove()
+                    .then(() => {
+                        alert('تم حذف المنتج بنجاح');
+                        loadUserProducts();
+                    })
+                    .catch(error => {
+                        console.error('Error deleting product:', error);
+                        alert('حدث خطأ أثناء حذف المنتج');
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
