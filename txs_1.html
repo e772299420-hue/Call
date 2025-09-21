@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>نظام المشتركين — أضفني / المشتركين</title>
+    <title>ارقام ومواقع — بيانات المشتركين</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
@@ -371,19 +371,6 @@
             font-size: 20px;
         }
         
-        .bus-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 5px;
-            color: #fff;
-            background-color: #e74c3c;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            font-size: 12px;
-        }
-        
         .retry-button {
             background: var(--warning);
             color: white;
@@ -417,6 +404,7 @@
             background-color: #f8f9fa;
             border-radius: 8px;
             flex-wrap: wrap;
+            transition: all 0.3s ease;
         }
         
         .filter-group {
@@ -434,6 +422,15 @@
         .filter-group select {
             width: auto;
             margin: 0;
+        }
+        
+        .jobtype-badge {
+            background-color: var(--success);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 8px;
         }
         
         @media (max-width: 768px) {
@@ -513,33 +510,24 @@
             border-radius: 4px;
             font-size: 12px;
         }
-        
-        .jobtype-badge {
-            background-color: var(--success);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin-right: 8px;
-        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>نظام المشتركين - سائقي الباصات</h1>
-    <p>أضف بياناتك أو استعرض سائقي الباصات الآخرين</p>
+    <h1>ارقام ومواقع</h1>
+    <p>قاعدة بيانات المشتركين والمواقع</p>
 </div>
 
 <div class="tabs">
-    <div class="tab active" id="tab-add">أضفني كمشترك</div>
-    <div class="tab" id="tab-list">سائقي الباصات</div>
+    <div class="tab" id="tab-add">أضفني كمشترك</div>
+    <div class="tab active" id="tab-list">بيانات المشتركين</div>
 </div>
 
 <div class="container">
     <div id="statusMessage" class="status-message hidden"></div>
     
-    <div id="content-add">
+    <div id="content-add" class="hidden">
         <div class="card">
             <h3><i class="fas fa-user-plus"></i> أضفني كمشترك</h3>
             <form id="formAdd">
@@ -548,7 +536,7 @@
                 <div id="fullnameNote" class="note hidden">يجب إدخال الاسم الرباعي (4 كلمات)</div>
 
                 <label>الاسم الوظيفي <span class="small">* مطلوب</span></label>
-                <input id="jobname" placeholder="مثال: سائق باص" required>
+                <input id="jobname" placeholder="مثال: فني شبكات" required>
 
                 <fieldset>
                     <legend>أيام الدوام</legend>
@@ -589,13 +577,10 @@
                 <label>ملاحظات (ستظهر للعملاء)</label>
                 <textarea id="notes" rows="3" placeholder="ملاحظات اختيارية"></textarea>
 
-                <label>نوع الوظيفة</label>
-                <select id="jobtype" required>
-                    <option value="سائق باص" selected>سائق باص</option>
-                    <option value="مشرف نقل">مشرف نقل</option>
-                    <option value="موظف استقبال">موظف استقبال</option>
-                    <option value="إداري">إداري</option>
-                    <option value="آخر">آخر</option>
+                <label>نوع المهنة <span class="small">* مطلوب</span></label>
+                <select id="jobtypeSelect" required>
+                    <option value="">-- اختر نوع المهنة --</option>
+                    <!-- سيتم ملء الخيارات تلقائياً -->
                 </select>
 
                 <label>IP الهاتف (يُؤخذ تلقائياً)</label>
@@ -621,28 +606,38 @@
         </div>
     </div>
 
-    <div id="content-list" class="hidden">
+    <div id="content-list">
         <div class="card">
-            <h3><i class="fas fa-bus"></i> سائقي الباصات الأقرب</h3>
+            <h3><i class="fas fa-users"></i> بيانات المشتركين</h3>
             
-            <div class="filter-container">
+            <div id="topFiltersBar">
                 <div class="filter-group">
-                    <label>عرض السائقين ضمن مسافة:</label>
-                    <select id="distanceFilter">
-                        <option value="5000">5 كم</option>
-                        <option value="10000">10 كم</option>
-                        <option value="20000">20 كم</option>
-                        <option value="50000">50 كم</option>
-                        <option value="0" selected>جميع المسافات</option>
+                    <label>نوع المهنة:</label>
+                    <select id="filterProfessionSelect">
+                        <option value="">جميع المهن</option>
+                        <!-- سيتم ملء الخيارات تلقائياً -->
                     </select>
                 </div>
                 
-                <div class="filter-group">
-                    <label>فرز حسب:</label>
-                    <select id="sortBy">
-                        <option value="distance" selected>الأقرب مسافة</option>
-                        <option value="name">الاسم</option>
-                    </select>
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <label>المسافة:</label>
+                        <select id="distanceFilter">
+                            <option value="5000">5 كم</option>
+                            <option value="10000">10 كم</option>
+                            <option value="20000">20 كم</option>
+                            <option value="50000">50 كم</option>
+                            <option value="0" selected>جميع المسافات</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>فرز حسب:</label>
+                        <select id="sortBy">
+                            <option value="distance" selected>الأقرب مسافة</option>
+                            <option value="name">الاسم</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             
@@ -655,8 +650,11 @@
                     <button class="map-control-btn" onclick="toggleRouteDisplay()" title="إظهار/إخفاء المسارات">
                         <i class="fas fa-route"></i>
                     </button>
-                    <button class="map-control-btn" onclick="downloadMapForOffline()" title="حفظ الخريطة">
+                    <button class="map-control-btn" onclick="downloadMapForOffline()" title="تحميل بيانات الخريطة">
                         <i class="fas fa-download"></i>
+                    </button>
+                    <button class="map-control-btn" id="toggleFiltersBtn" onclick="toggleTopFilters()" title="إخفاء الشريط العلوي">
+                        <i class="fas fa-eye-slash"></i>
                     </button>
                 </div>
                 <div id="offlineNotice" class="offline-notice hidden">
@@ -678,7 +676,7 @@
 /********** إعدادات Firebase **********/
 const FIREBASE_DB_ROOT = 'https://chat-fat-free-default-rtdb.firebaseio.com';
 
-/********** تبويبات **********/
+/********** متغيرات عامة **********/
 const tabAdd = document.getElementById('tab-add');
 const tabList = document.getElementById('tab-list');
 const contentAdd = document.getElementById('content-add');
@@ -688,13 +686,21 @@ const gpsStatus = document.getElementById('gpsStatus');
 const offlineNotice = document.getElementById('offlineNotice');
 const distanceFilter = document.getElementById('distanceFilter');
 const sortBy = document.getElementById('sortBy');
+const topFiltersBar = document.getElementById('topFiltersBar');
+const toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
 
-// متغيرات لتخزين حالة الخريطة والمسارات
+// عناصر القوائم المنسدلة للمهن
+const jobtypeSelect = document.getElementById('jobtypeSelect');
+const filterProfessionSelect = document.getElementById('filterProfessionSelect');
+
+// متغيرات حالة التطبيق
 let map, myMarker, routeDisplayEnabled = true;
 let subscribersCache = {};
 let routingLines = [];
 let watchId = null;
 let allSubscribers = [];
+let allProfessions = [];
+let filtersVisible = true;
 
 // التحقق من حالة الاتصال بالإنترنت
 function updateOnlineStatus() {
@@ -705,27 +711,21 @@ function updateOnlineStatus() {
     }
 }
 
-// إضافة مستمعين لتغيير حالة الاتصال
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
-// دالة لعرض الرسائل
+// دالة عرض الرسائل
 function showStatusMessage(message, type = 'info') {
     statusMessage.textContent = message;
     statusMessage.className = `status-message status-${type}`;
     statusMessage.classList.remove('hidden');
-    
-    // إخفاء الرسالة بعد 5 ثوانٍ
-    setTimeout(() => {
-        statusMessage.classList.add('hidden');
-    }, 5000);
+    setTimeout(() => { statusMessage.classList.add('hidden'); }, 5000);
 }
 
 // تحديث حالة GPS
 function updateGpsStatus(message, status) {
     const icon = status === 'success' ? 'check-circle' : 
                 status === 'warning' ? 'exclamation-triangle' : 'exclamation-circle';
-    
     gpsStatus.innerHTML = `
         <i class="fas fa-${icon}"></i>
         <span>${message}</span>
@@ -746,16 +746,29 @@ function retryLocation() {
     fetchMyGps();
 }
 
+// تبديل إظهار/إخفاء الشريط العلوي
+function toggleTopFilters() {
+    filtersVisible = !filtersVisible;
+    topFiltersBar.classList.toggle('hidden', !filtersVisible);
+    
+    const icon = filtersVisible ? 'fas fa-eye-slash' : 'fas fa-eye';
+    const title = filtersVisible ? 'إخفاء الشريط العلوي' : 'إظهار الشريط العلوي';
+    
+    toggleFiltersBtn.innerHTML = `<i class="${icon}"></i>`;
+    toggleFiltersBtn.title = title;
+    
+    showStatusMessage(filtersVisible ? 'تم إظهار الشريط العلوي' : 'تم إخفاء الشريط العلوي', 'info');
+}
+
+// أحداث التبويبات
 tabAdd.addEventListener('click', ()=>{
     tabAdd.classList.add('active');
     tabList.classList.remove('active');
     contentAdd.classList.remove('hidden');
     contentList.classList.add('hidden');
-    
-    // إيقاف مراقبة الموقع عند الخروج من الخريطة لتوفير البطارية
-    if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
+    if (watchId) { 
+        navigator.geolocation.clearWatch(watchId); 
+        watchId = null; 
     }
 });
 
@@ -767,7 +780,7 @@ tabList.addEventListener('click', ()=>{
     initMapAndLoad();
 });
 
-/********** عناصر الفورم **********/
+/********** عناصر النموذج **********/
 const formAdd = document.getElementById('formAdd');
 const fullnameEl = document.getElementById('fullname');
 const fullnameNote = document.getElementById('fullnameNote');
@@ -779,7 +792,6 @@ const phone2Note = document.getElementById('phone2Note');
 const whatsappEl = document.getElementById('whatsapp');
 const whatsappNote = document.getElementById('whatsappNote');
 const notesEl = document.getElementById('notes');
-const jobtypeEl = document.getElementById('jobtype');
 const ipField = document.getElementById('ipField');
 const gpsField = document.getElementById('gpsField');
 const selectAllDays = document.getElementById('selectAllDays');
@@ -791,14 +803,20 @@ selectAllDays.addEventListener('change', ()=>{
 let myIp = null;
 let myGps = null;
 
-// إنشاء معرف فريد للمشترك
+// دوال مساعدة
 function generateUniqueId() {
     return 'subscriber_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-function isFourNames(name){ return name.trim().split(/\s+/).length >= 4; }
-function isNineDigits(s){ return /^\d{9}$/.test(s); }
+function isFourNames(name){ 
+    return name.trim().split(/\s+/).length >= 4; 
+}
 
+function isNineDigits(s){ 
+    return /^\d{9}$/.test(s); 
+}
+
+// جلب IP
 async function fetchMyIp(){
     try {
         const r = await fetch('https://api.ipify.org?format=json');
@@ -814,538 +832,624 @@ async function fetchMyIp(){
     }
 }
 
-// أيقونة الباص المخصصة
-const busIcon = L.icon({
-    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSIjZmZmIj48cGF0aCBkPSJNMTIwIDI1Nmg0MHY0MEgxMjBWMjU2ek0zNTIgMjk2SDQwMFYyNTZIMzUyVjI5NjpNNDQ4IDMySDY0QzI4LjcgMzIgMCA2MC43IDAgODh2MzE2YzAgMjcuMyAyOC43IDU2IDY0IDU2aDExMmMtOC44LTE2LTQwLTMyLTQwLTMyczMxLjIgMTYgNDAgMzJoMTkyYzguOCAwIDQwLTE2IDQwLTMyczMxLjIgMTYgNDAgMzJoMTEyYzM1LjMgMCA2NC0yOC43IDY0LTU2Vjg4QzUxMiA2MC43IDQ4My4zIDMyIDQ0OCAzMnptMCAzNjRINjRjLTguOCAwLTE2LTcuMi0xNi0xNlY4OGMwLTguOCA3LjItMTYgMTYtMTZoMzg0YzguOCAwIDE2IDcuMiAxNiAxNnYzMTJjMCA4LjgtNy4yIDE2LTE2IDE2ek0zOTIgMTI4YzE3LjcgMCAzMiAxNC4zIDMyIDMycy0xNC4zIDMyLTMyIDMyLTMyLTE0LjMtMzItMzIgMTQuMy0zMiAzMi0zMnptLTI3MiAwYzE3LjcgMCAzMiAxNC4zIDMyIDMycy0xNC4zIDMyLTMyIDMyLTMyLTE4LjMtMzItMzIgMTQuMy0zMiAzMi0zMnoiLz48L3N2Zz4=',
-    iconSize: [25, 25],
-    iconAnchor: [12, 12],
-    popupAnchor: [0, -12]
-});
+// جلب المهن من جدول mhna
+async function fetchProfessions(){
+    const url = `${FIREBASE_DB_ROOT}/mhna.json`;
+    try {
+        const r = await fetch(url);
+        const data = await r.json();
+        const professions = [];
+        
+        console.log("بيانات المهن المسترجعة:", data);
+        
+        if (data) {
+            for(const key in data) {
+                const item = data[key];
+                // التحقق من وجود jobName في العنصر
+                if(item && item.jobName) {
+                    professions.push(item.jobName);
+                }
+                // إذا كانت البيانات مخزنة مباشرة كقيم وليس ككائنات
+                else if (typeof item === 'string') {
+                    professions.push(item);
+                }
+            }
+        }
+        
+        allProfessions = [...new Set(professions)].sort((a, b) => a.localeCompare(b, 'ar'));
+        
+        // ملء القوائم المنسدلة فقط إذا كانت هناك مهن
+        if (allProfessions.length > 0) {
+            populateProfessionDropdowns(allProfessions);
+        } else {
+            console.warn('لم يتم العثور على أي مهن في قاعدة البيانات');
+            showStatusMessage('لم يتم العثور على أي مهن في قاعدة البيانات', 'warning');
+        }
+        
+        return allProfessions;
+    } catch (error) {
+        console.error('Error fetching professions:', error);
+        showStatusMessage('تعذر تحميل قائمة المهن من الخادم', 'error');
+        return [];
+    }
+}
 
-// أيقونة المستخدم الحالي
+// ملء القوائم المنسدلة للمهن
+function populateProfessionDropdowns(professions) {
+    // إفراغ القوائم الحالية
+    jobtypeSelect.innerHTML = '<option value="">-- اختر نوع المهنة --</option>';
+    filterProfessionSelect.innerHTML = '<option value="">جميع المهن</option>';
+    
+    // إضافة المهن إلى القوائم
+    professions.forEach(prof => {
+        // تنظيف النص من الأرقام إذا كانت موجودة
+        const displayText = prof.replace(/\d+/g, '').trim() || prof;
+        
+        // إضافة إلى قائمة الإضافة
+        const option1 = document.createElement('option');
+        option1.value = prof;
+        option1.textContent = displayText;
+        jobtypeSelect.appendChild(option1);
+        
+        // إضافة إلى قائمة التصفية
+        const option2 = document.createElement('option');
+        option2.value = prof;
+        option2.textContent = displayText;
+        filterProfessionSelect.appendChild(option2);
+    });
+    
+    console.log('تم تحميل', professions.length, 'مهنة');
+}
+
+// أيقونات الخريطة
 const userIcon = L.icon({
     iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NDggNTEyIiBmaWxsPSIjMDBlYzAwIj48cGF0aCBkPSJNMjI0IDI1Nmg3MGM0MS4xIDAgNzQuOS0zMy44IDc0OS03NHMtMzMuOC03NC05LTc0aC03MGMtNDEuMSAwLTc0LjkgMzMuOC03NSA3NHMzMy44IDc0IDc1IDc0em0wLTE5MmM3MC43IDAgMTI4IDU3LjMgMTI4IDEyOHMtNTcuMyAxMjgtMTI4IDEyOC0xMjgtNTcuMy0xMjgtMTI4IDU3LjMtMTI4IDEyOC0xMjh6bTE5OC40IDI2OC4yQzM4Ni4xIDM0My4zIDMyOS44IDMyMCAyNjQgMzIwcy0xMjIuMSAyMy4yLTE1OC40IDEyLjJDMzkuNSAzNDEuNSAwIDM4MC40IDAgNDI4LjJWNDQ4YzAgMTcuNyAxNC4zIDMyIDMyIDMyaDM4NGMxNy43IDAgMzItMTQuMyAzMi0zMnYtMTkuOGMwLTQ3LjgtMzkuNS04Ni43LTg1LjYtOTEuOHoiLz48L3N2Zz4=',
     iconSize: [25, 25],
     iconAnchor: [12, 25],
     popupAnchor: [0, -25]
 });
+const subscriberIcon = L.icon({
+    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSIjMzQ5OGRiIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHBhdGggZD0iTTI1NiAwQzExNC42IDAgMCAxMTQuNiAwIDI1NnMxMTQuNiAyNTYgMjU2IDI1NiAyNTYtMTE0LjYgMjU2LTI1NlMzOTcuNCAwIDI1NiAwem0wIDM4NWMtNzEuOCAwLTEyOS0yNy4zLTEyOS02MS41UzE4NC4yIDI2MiAyNTYgMjYyczEyOSAyNy4zIDEyOSA2MS41UzMyNy44IDM4NSAyNTYgMzg1em0wLTE3MGMtMzMuNiAwLTYxLjUgLTI3LjktNjEuNS02MS41UzIyMi40IDE5MiAyNTYgMTkyYzMzLjYgMCA2MS41IDI3LjkgNjEuNSA2MS41UzI4OS42IDIxNSA4MjU2IDIxNXoiLz48L3N2Zz4=',
 
-function fetchMyGps(){
-    return new Promise((resolve)=>{
-        if(!navigator.geolocation) {
-            updateGpsStatus('المتصفح لا يدعم خدمة الموقع', 'error');
-            // استخدام موقع صنعاء كافتراضي
-            resolve({ lat: 15.3694, lng: 44.1910 });
-            return;
-        }
-        
-        // التحقق من إذن الموقع أولاً
-        if (navigator.permissions) {
-            navigator.permissions.query({name:'geolocation'}).then(function(result) {
-                if (result.state === 'denied') {
-                    updateGpsStatus('تم رفض الإذن. يرجى السماح بالوصول إلى الموقع في إعدادات المتصفح', 'error');
-                    resolve({ lat: 15.3694, lng: 44.1910 });
-                    return;
-                }
-            });
-        }
-        
-        updateGpsStatus('جاري الحصول على الموقع...', 'warning');
-        
-        const options = {
-            enableHighAccuracy: true,
-            timeout: 30000,  // زيادة الوقت إلى 30 ثانية
-            maximumAge: 60000  // السماح باستخدام المواقع المخزنة خلال الدقيقة الماضية
-        };
-        
-        // إعادة تعيين watchId إذا كان موجوداً
-        if (watchId) {
-            navigator.geolocation.clearWatch(watchId);
-        }
-        
-        watchId = navigator.geolocation.watchPosition(
-            pos => {
-                myGps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                gpsField.value = myGps.lat.toFixed(6)+','+myGps.lng.toFixed(6);
-                updateGpsStatus('تم الحصول على الموقع بنجاح', 'success');
-                
-                // تحديث موقع العلامة على الخريطة إذا كانت موجودة
-                if (myMarker) {
-                    myMarker.setLatLng([myGps.lat, myGps.lng]);
-                    if (map) {
-                        map.panTo([myGps.lat, myGps.lng]);
-                    }
-                }
-                
-                resolve(myGps);
-            }, 
-            err => {
-                console.error('GPS error:', err);
-                let errorMsg = 'تعذر الحصول على موقعك. ';
-                
-                switch(err.code) {
-                    case err.PERMISSION_DENIED:
-                        errorMsg += 'تم رفض الإذن بالوصول إلى الموقع.';
-                        break;
-                    case err.POSITION_UNAVAILABLE:
-                        errorMsg += 'معلومات الموقع غير متاحة.';
-                        break;
-                    case err.TIMEOUT:
-                        errorMsg += 'انتهت مهلة طلب الموقع. جاري استخدام موقع افتراضي.';
-                        break;
-                    default:
-                        errorMsg += 'حدث خطأ غير معروف.';
-                }
-                
-                updateGpsStatus(errorMsg, 'error');
-                // استخدام موقع صنعاء كافتراضي
-                myGps = { lat: 15.3694, lng: 44.1910 };
-                gpsField.value = myGps.lat.toFixed(6)+','+myGps.lng.toFixed(6);
-                resolve(myGps);
-            }, 
-            options
-        );
-    });
-}
 
-// إعادة تحميل الموقع
-function reloadLocation() {
-    showStatusMessage('جاري تحديث الموقع...', 'info');
-    fetchMyGps().then(() => {
-        if (map) {
-            initMapAndLoad();
-        }
-    });
-}
+                                iconSize: [25, 25],
+                            iconAnchor: [12, 12],
+                            popupAnchor: [0, -12]
+                        });
 
-// تبديل إظهار/إخفاء المسارات
-function toggleRouteDisplay() {
-    routeDisplayEnabled = !routeDisplayEnabled;
-    
-    // إخفاء أو إظهار جميع خطوط المسارات
-    routingLines.forEach(line => {
-        if (routeDisplayEnabled) {
-            map.addLayer(line);
-        } else {
-            map.removeLayer(line);
-        }
-    });
-    
-    showStatusMessage(routeDisplayEnabled ? 'تم إظهار المسارات' : 'تم إخفاء المسارات', 'info');
-}
+                        // جلب الموقع
+                        function fetchMyGps(){
+                            return new Promise((resolve)=>{
+                                if(!navigator.geolocation) {
+                                    updateGpsStatus('المتصفح لا يدعم خدمة الموقع', 'error');
+                                    resolve({ lat: 15.3694, lng: 44.1910 });
+                                    return;
+                                }
+                                
+                                if (navigator.permissions) {
+                                    navigator.permissions.query({name:'geolocation'}).then(function(result) {
+                                        if (result.state === 'denied') {
+                                            updateGpsStatus('تم رفض الإذن. يرجى السماح بالوصول إلى الموقع في إعدادات المتصفح', 'error');
+                                            resolve({ lat: 15.3694, lng: 44.1910 });
+                                            return;
+                                        }
+                                    });
+                                }
+                                
+                                updateGpsStatus('جاري الحصول على الموقع...', 'warning');
+                                
+                                const options = {
+                                    enableHighAccuracy: true,
+                                    timeout: 30000,
+                                    maximumAge: 60000
+                                };
+                                
+                                if (watchId) {
+                                    navigator.geolocation.clearWatch(watchId);
+                                }
+                                
+                                watchId = navigator.geolocation.watchPosition(
+                                    pos => {
+                                        myGps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                                        gpsField.value = myGps.lat.toFixed(6)+','+myGps.lng.toFixed(6);
+                                        updateGpsStatus('تم الحصول على الموقع بنجاح', 'success');
+                                        
+                                        if (myMarker) {
+                                            myMarker.setLatLng([myGps.lat, myGps.lng]);
+                                            if (map) {
+                                                map.panTo([myGps.lat, myGps.lng]);
+                                            }
+                                        }
+                                        resolve(myGps);
+                                    }, 
+                                    err => {
+                                        console.error('GPS error:', err);
+                                        let errorMsg = 'تعذر الحصول على موقعك. ';
+                                        
+                                        switch(err.code) {
+                                            case err.PERMISSION_DENIED:
+                                                errorMsg += 'تم رفض الإذن بالوصول إلى الموقع.';
+                                                break;
+                                            case err.POSITION_UNAVAILABLE:
+                                                errorMsg += 'معلومات الموقع غير متاحة.';
+                                                break;
+                                            case err.TIMEOUT:
+                                                errorMsg += 'انتهت مهلة طلب الموقع. جاري استخدام موقع افتراضي.';
+                                                break;
+                                            default:
+                                                errorMsg += 'حدث خطأ غير معروف.';
+                                        }
+                                        
+                                        updateGpsStatus(errorMsg, 'error');
+                                        myGps = { lat: 15.3694, lng: 44.1910 };
+                                        gpsField.value = myGps.lat.toFixed(6)+','+myGps.lng.toFixed(6);
+                                        resolve(myGps);
+                                    }, 
+                                    options
+                                );
+                            });
+                        }
 
-// حفظ الخريطة للعمل بدون إنترنت
-function downloadMapForOffline() {
-    showStatusMessage('جاري تحضير الخريطة للعمل بدون اتصال...', 'info');
-    
-    // تحديد نطاق الخريطة الحالي
-    const bounds = map.getBounds();
-    const zoom = map.getZoom();
-    
-    // تخزين بيانات الخريطة في localStorage
-    const mapData = {
-        center: map.getCenter(),
-        zoom: zoom,
-        bounds: {
-            _southWest: bounds.getSouthWest(),
-            _northEast: bounds.getNorthEast()
-        },
-        timestamp: Date.now()
-    };
-    
-    localStorage.setItem('offlineMapData', JSON.stringify(mapData));
-    showStatusMessage('تم حفظ الخريطة للعمل بدون اتصال', 'success');
-}
+                        // إعادة تحميل الموقع
+                        function reloadLocation() {
+                            showStatusMessage('جاري تحديث الموقع...', 'info');
+                            fetchMyGps().then(() => {
+                                if (map) {
+                                    initMapAndLoad();
+                                }
+                            });
+                        }
 
-// استخراج الاسم الأول فقط من الاسم الرباعي
-function getFirstName(fullName) {
-    const names = fullName.trim().split(/\s+/);
-    return names.length > 0 ? names[0] : fullName;
-}
+                        // تبديل إظهار/إخفاء المسارات
+                        function toggleRouteDisplay() {
+                            routeDisplayEnabled = !routeDisplayEnabled;
+                            
+                            routingLines.forEach(line => {
+                                if (routeDisplayEnabled) {
+                                    map.addLayer(line);
+                                } else {
+                                    map.removeLayer(line);
+                                }
+                            });
+                            
+                            showStatusMessage(routeDisplayEnabled ? 'تم إظهار المسارات' : 'تم إخفاء المسارات', 'info');
+                        }
 
-async function saveSubscriberToDB(sub){
-    const uniqueId = generateUniqueId();
-    const url = `${FIREBASE_DB_ROOT}/subscribers/${encodeURIComponent(uniqueId)}.json`;
-    const payload = {...sub, id: uniqueId, createdAt: Date.now()};
-    const r = await fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    if(!r.ok) throw new Error('DB error');
-    return await r.json();
-}
+                        // حفظ الخريطة للعمل بدون إنترنت
+                        function downloadMapForOffline() {
+                            showStatusMessage('جاري تحضير الخريطة للعمل بدون اتصال...', 'info');
+                            
+                            const bounds = map.getBounds();
+                            const zoom = map.getZoom();
+                            
+                            const mapData = {
+                                center: map.getCenter(),
+                                zoom: zoom,
+                                bounds: {
+                                    _southWest: bounds.getSouthWest(),
+                                    _northEast: bounds.getNorthEast()
+                                },
+                                timestamp: Date.now()
+                            };
+                            
+                            localStorage.setItem('offlineMapData', JSON.stringify(mapData));
+                            showStatusMessage('تم حفظ الخريطة للعمل بدون اتصال', 'success');
+                        }
 
-async function fetchAllSubscribers(){
-    const url = `${FIREBASE_DB_ROOT}/subscribers.json`;
-    try {
-        const r = await fetch(url);
-        const j = await r.json();
-        const arr = [];
-        for(const k in j){ 
-            if(!j[k]) continue; 
-            arr.push(j[k]); 
-            subscribersCache[k]=j[k]; 
-        }
-        return arr;
-    } catch (error) {
-        console.error('Error fetching subscribers:', error);
-        showStatusMessage('تعذر الاتصال بالخادم. جاري استخدام البيانات المخزنة محلياً', 'warning');
-        
-        // محاولة استخدام البيانات المخزنة محلياً
-        const storedData = localStorage.getItem('subscribersData');
-        if (storedData) {
-            return JSON.parse(storedData);
-        }
-        return [];
-    }
-}
+                        // استخراج الاسم الأول
+                        function getFirstName(fullName) {
+                            const names = fullName.trim().split(/\s+/);
+                            return names.length > 0 ? names[0] : fullName;
+                        }
 
-function distanceMeters(lat1, lon1, lat2, lon2){
-    const R = 6371e3;
-    const toRad = v => v*Math.PI/180;
-    const φ1=toRad(lat1), φ2=toRad(lat2);
-    const Δφ=toRad(lat2-lat1), Δλ=toRad(lon2-lon1);
-    const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
-    const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R*c;
-}
+                        // حفظ مشترك في قاعدة البيانات
+                        async function saveSubscriberToDB(sub){
+                            const uniqueId = generateUniqueId();
+                            const url = `${FIREBASE_DB_ROOT}/subscribers/${encodeURIComponent(uniqueId)}.json`;
+                            const payload = {...sub, id: uniqueId, createdAt: Date.now()};
+                            const r = await fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                            if(!r.ok) throw new Error('DB error');
+                            return await r.json();
+                        }
 
-function formatDistance(meters) {
-    if (meters < 1000) {
-        return Math.round(meters) + " متر";
-    } else {
-        return (meters / 1000).toFixed(2) + " كم";
-    }
-}
+                        // جلب جميع المشتركين
+                        async function fetchAllSubscribers(){
+                            const url = `${FIREBASE_DB_ROOT}/subscribers.json`;
+                            try {
+                                const r = await fetch(url);
+                                const j = await r.json();
+                                const arr = [];
+                                for(const k in j){ 
+                                    if(!j[k]) continue; 
+                                    arr.push(j[k]); 
+                                    subscribersCache[k]=j[k]; 
+                                }
+                                return arr;
+                            } catch (error) {
+                                console.error('Error fetching subscribers:', error);
+                                showStatusMessage('تعذر الاتصال بالخادم. جاري استخدام البيانات المخزنة محلياً', 'warning');
+                                
+                                const storedData = localStorage.getItem('subscribersData');
+                                if (storedData) {
+                                    return JSON.parse(storedData);
+                                }
+                                return [];
+                            }
+                        }
 
-function callNumber(phone) {
-    window.location.href = "tel:967" + phone;
-}
+                        // حساب المسافة بالمتر
+                        function distanceMeters(lat1, lon1, lat2, lon2){
+                            const R = 6371e3;
+                            const toRad = v => v*Math.PI/180;
+                            const φ1=toRad(lat1), φ2=toRad(lat2);
+                            const Δφ=toRad(lat2-lat1), Δλ=toRad(lon2-lon1);
+                            const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+                            const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                            return R*c;
+                        }
 
-function sendWhatsApp(phone) {
-    const message = `السلام عليكم ورحمة الله وبركاتة
-الموضوع طلب نقل/ توصيل
-ارغب الانتقال الى /
+                        // تنسيق المسافة
+                        function formatDistance(meters) {
+                            if (meters < 1000) {
+                                return Math.round(meters) + " متر";
+                            } else {
+                                return (meters / 1000).toFixed(2) + " كم";
+                            }
+                        }
+
+                        // الاتصال برقم
+                        function callNumber(phone) {
+                            window.location.href = "tel:967" + phone;
+                        }
+
+                        // إرسال واتساب
+                        function sendWhatsApp(phone) {
+                            const message = `السلام عليكم ورحمة الله وبركاته
+الموضوع طلب خدمة
+ارغب التواصل بخصوص /
 يوم /
-الساعه /
+الساعة /
 موقع اللقاء /
-هل انت متفرغ نعم/لا
+هل أنت متفرغ نيم/لا
 
-لقد اكتشفت رقمك من متجر 
-AZ التسويق الشامل لتلبية احتياجك`;
-    
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/967${phone}?text=${encodedMessage}`, '_blank');
-}
+تم الوصول إلى رقمك عبر
+AZ التسويق الشامل`;
+                            
+                            const encodedMessage = encodeURIComponent(message);
+                            window.open(`https://wa.me/967${phone}?text=${encodedMessage}`, '_blank');
+                        }
 
-formAdd.addEventListener('submit', async e=>{
-    e.preventDefault();
-    fullnameNote.classList.add('hidden');
-    phone1Note.classList.add('hidden');
-    phone2Note.classList.add('hidden');
-    whatsappNote.classList.add('hidden');
+                        // حدث إرسال النموذج
+                        formAdd.addEventListener('submit', async e=>{
+                            e.preventDefault();
+                            
+                            // إخفاء جميع رسائل الخطأ
+                            fullnameNote.classList.add('hidden');
+                            phone1Note.classList.add('hidden');
+                            phone2Note.classList.add('hidden');
+                            whatsappNote.classList.add('hidden');
 
-    const fullname = fullnameEl.value.trim();
-    if(!isFourNames(fullname)){ 
-        fullnameNote.classList.remove('hidden'); 
-        showStatusMessage('يجب إدخال الاسم الرباعي (4 كلمات على الأقل)', 'error');
-        return; 
-    }
-    
-    const jobname = jobnameEl.value.trim();
-    if(!jobname){ 
-        showStatusMessage('الاسم الوظيفي مطلوب', 'error');
-        return; 
-    }
-    
-    const phone1 = phone1El.value.trim();
-    if(!isNineDigits(phone1)){ 
-        phone1Note.classList.remove('hidden'); 
-        showStatusMessage('رقم الجوال 1 يجب أن يتكون من 9 أرقام', 'error');
-        return; 
-    }
-    
-    const phone2 = phone2El.value.trim();
-    if(phone2 && !isNineDigits(phone2)){ 
-        phone2Note.classList.remove('hidden'); 
-        showStatusMessage('رقم الجوال 2 يجب أن يتكون من 9 أرقام', 'error');
-        return; 
-    }
-    
-    const whatsapp = whatsappEl.value.trim();
-    if(whatsapp && !isNineDigits(whatsapp)){ 
-        whatsappNote.classList.remove('hidden'); 
-        showStatusMessage('رقم الواتساب يجب أن يتكون من 9 أرقام', 'error');
-        return; 
-    }
-    
-    const days = [...document.querySelectorAll('.day')].filter(cb=>cb.checked).map(cb=>cb.value);
-    const jobtype = jobtypeEl.value;
+                            const fullname = fullnameEl.value.trim();
+                            if(!isFourNames(fullname)){ 
+                                fullnameNote.classList.remove('hidden'); 
+                                showStatusMessage('يجب إدخال الاسم الرباعي (4 كلمات على الأقل)', 'error');
+                                return; 
+                            }
+                            
+                            const jobname = jobnameEl.value.trim();
+                            if(!jobname){ 
+                                showStatusMessage('الاسم الوظيفي مطلوب', 'error');
+                                return; 
+                            }
+                            
+                            const phone1 = phone1El.value.trim();
+                            if(!isNineDigits(phone1)){ 
+                                phone1Note.classList.remove('hidden'); 
+                                showStatusMessage('رقم الجوال 1 يجب أن يتكون من 9 أرقام', 'error');
+                                return; 
+                            }
+                            
+                            const phone2 = phone2El.value.trim();
+                            if(phone2 && !isNineDigits(phone2)){ 
+                                phone2Note.classList.remove('hidden'); 
+                                showStatusMessage('رقم الجوال 2 يجب أن يتكون من 9 أرقام', 'error');
+                                return; 
+                            }
+                            
+                            const whatsapp = whatsappEl.value.trim();
+                            if(whatsapp && !isNineDigits(whatsapp)){ 
+                                whatsappNote.classList.remove('hidden'); 
+                                showStatusMessage('رقم الواتساب يجب أن يتكون من 9 أرقام', 'error');
+                                return; 
+                            }
+                            
+                            const selectedProfession = jobtypeSelect.value;
+                            if(!selectedProfession) {
+                                showStatusMessage('يرجى اختيار نوع المهنة', 'error');
+                                return;
+                            }
+                            
+                            const days = [...document.querySelectorAll('.day')].filter(cb=>cb.checked).map(cb=>cb.value);
 
-    if(!myIp) await fetchMyIp();
-    if(!myGps) await fetchMyGps();
+                            if(!myIp) await fetchMyIp();
+                            if(!myGps) await fetchMyGps();
 
-    const sub = {
-        fullname, jobname, days, jobtype,
-        from: document.getElementById('fromTime').value || '',
-        to: document.getElementById('toTime').value || '',
-        phone1, phone2, whatsapp,
-        notes: notesEl.value.trim(),
-        ip: myIp || 'unknown',
-        gps: myGps || null
-    };
+                            const sub = {
+                                fullname, 
+                                jobname, 
+                                days, 
+                                jobtype: selectedProfession,
+                                from: document.getElementById('fromTime').value || '',
+                                to: document.getElementById('toTime').value || '',
+                                phone1, 
+                                phone2, 
+                                whatsapp,
+                                notes: notesEl.value.trim(),
+                                ip: myIp || 'unknown',
+                                gps: myGps || null
+                            };
 
-    try {
-        showStatusMessage('جاري حفظ بياناتك...', 'info');
-        await saveSubscriberToDB(sub);
-        showStatusMessage('تم حفظ بياناتك كمشترك بنجاح', 'success');
-        
-        // تخزين البيانات محلياً أيضاً
-        const existingData = JSON.parse(localStorage.getItem('subscribersData') || '[]');
-        existingData.push({...sub, id: generateUniqueId(), createdAt: Date.now()});
-        localStorage.setItem('subscribersData', JSON.stringify(existingData));
-        
-        // إعادة تعيين النموذج
-        formAdd.reset();
-        
-        // الانتقال إلى قائمة المشتركين
-        tabList.click();
-    } catch(err){
-        console.error(err);
-        showStatusMessage('حدث خطأ أثناء الحفظ. جاري حفظ البيانات محلياً', 'warning');
-        
-        // حفظ البيانات محلياً في حالة فشل الاتصال
-        const existingData = JSON.parse(localStorage.getItem('subscribersData') || '[]');
-        existingData.push({...sub, id: generateUniqueId(), createdAt: Date.now()});
-        localStorage.setItem('subscribersData', JSON.stringify(existingData));
-        
-        // الانتقال إلى قائمة المشتركين
-        tabList.click();
-    }
-});
+                            try {
+                                showStatusMessage('جاري حفظ بياناتك...', 'info');
+                                await saveSubscriberToDB(sub);
+                                showStatusMessage('تم حفظ بياناتك كمشترك بنجاح', 'success');
+                                
+                                // تخزين البيانات محلياً أيضاً
+                                const existingData = JSON.parse(localStorage.getItem('subscribersData') || '[]');
+                                existingData.push({...sub, id: generateUniqueId(), createdAt: Date.now()});
+                                localStorage.setItem('subscribersData', JSON.stringify(existingData));
+                                
+                                // إعادة تعيين النموذج
+                                formAdd.reset();
+                                jobtypeSelect.value = '';
+                                
+                                // الانتقال إلى قائمة المشتركين
+                                tabList.click();
+                            } catch(err){
+                                console.error(err);
+                                showStatusMessage('حدث خطأ أثناء الحفظ. جاري حفظ البيانات محلياً', 'warning');
+                                
+                                // حفظ البيانات محلياً في حالة فشل الاتصال
+                                const existingData = JSON.parse(localStorage.getItem('subscribersData') || '[]');
+                                existingData.push({...sub, id: generateUniqueId(), createdAt: Date.now()});
+                                localStorage.setItem('subscribersData', JSON.stringify(existingData));
+                                
+                                // الانتقال إلى قائمة المشتركين
+                                tabList.click();
+                            }
+                        });
 
-// تصفية المشتركين حسب المسافة
-function filterSubscribersByDistance(subscribers, maxDistance) {
-    if (!maxDistance || maxDistance === 0) return subscribers;
-    
-    return subscribers.filter(s => {
-        if (!s.gps || !s.gps.lat || !s.gps.lng) return false;
-        const distance = distanceMeters(myGps.lat, myGps.lng, s.gps.lat, s.gps.lng);
-        return distance <= maxDistance;
-    });
-}
+                        // تصفية المشتركين حسب المسافة
+                        function filterSubscribersByDistance(subscribers, maxDistance) {
+                            if (!maxDistance || maxDistance === 0) return subscribers;
+                            
+                            return subscribers.filter(s => {
+                                if (!s.gps || !s.gps.lat || !s.gps.lng) return false;
+                                const distance = distanceMeters(myGps.lat, myGps.lng, s.gps.lat, s.gps.lng);
+                                return distance <= maxDistance;
+                            });
+                        }
 
-// تصفية المشتركين حسب نوع الوظيفة (سائق باص فقط)
-function filterSubscribersByJobType(subscribers) {
-    return subscribers.filter(s => s.jobtype === 'سائق باص');
-}
+                        // تصفية المشتركين حسب نوع المهنة
+                        function filterSubscribersByProfession(subscribers) {
+                            const selectedProfession = filterProfessionSelect.value;
+                            if (!selectedProfession) return subscribers;
+                            
+                            return subscribers.filter(s => {
+                                const jobtype = s.jobtype || '';
+                                return jobtype === selectedProfession;
+                            });
+                        }
 
-// فرز المشتركين حسب المسافة أو الاسم
-function sortSubscribers(subscribers, sortBy) {
-    if (sortBy === 'name') {
-        return subscribers.sort((a, b) => {
-            const nameA = getFirstName(a.fullname).toLowerCase();
-            const nameB = getFirstName(b.fullname).toLowerCase();
-            return nameA.localeCompare(nameB, 'ar');
-        });
-    } else {
-        // الفرز حسب المسافة (الإفتراضي)
-        return subscribers.sort((a, b) => a.distanceMeters - b.distanceMeters);
-    }
-}
+                        // فرز المشتركين
+                        function sortSubscribers(subscribers, sortBy) {
+                            if (sortBy === 'name') {
+                                return subscribers.sort((a, b) => {
+                                    const nameA = getFirstName(a.fullname).toLowerCase();
+                                    const nameB = getFirstName(b.fullname).toLowerCase();
+                                    return nameA.localeCompare(nameB, 'ar');
+                                });
+                            } else {
+                                return subscribers.sort((a, b) => a.distanceMeters - b.distanceMeters);
+                            }
+                        }
 
-// تهيئة الخريطة وعرض المشتركين
-async function initMapAndLoad(){
-    if(!myGps){
-        await fetchMyGps();
-    }
+                        // تهيئة الخريطة وعرض المشتركين
+                        async function initMapAndLoad(){
+                            if(!myGps){
+                                await fetchMyGps();
+                            }
 
-    // إعادة تهيئة الخريطة إذا كانت موجودة مسبقاً
-    if (map) {
-        map.remove();
-        routingLines = [];
-    }
-    
-    const mapElement = document.getElementById('map');
-    mapElement.innerHTML = ''; // تنظيف محتوى الخريطة
-    
-    // محاولة تحميل بيانات الخريطة المخزنة محلياً
-    let mapCenter = [myGps.lat, myGps.lng];
-    let mapZoom = 13;
-    
-    const offlineMapData = localStorage.getItem('offlineMapData');
-    if (offlineMapData) {
-        const parsedData = JSON.parse(offlineMapData);
-        mapCenter = [parsedData.center.lat, parsedData.center.lng];
-        mapZoom = parsedData.zoom;
-    }
-    
-    map = L.map(mapElement).setView(mapCenter, mapZoom);
-    
-    // إضافة طبقة الخريطة مع التحقق من الاتصال
-    if (navigator.onLine) {
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-    } else {
-        // استخدام خلفية بديلة في حالة عدم الاتصال
-        L.tileLayer('', {
-            attribution: 'الخريطة في وضع عدم الاتصال'
-        }).addTo(map);
-        
-        // إضافة رسالة أن الخريطة في وضع عدم الاتصال
-        L.rectangle(map.getBounds(), {
-            color: "#ff7800",
-            weight: 1,
-            fillOpacity: 0.1
-        }).addTo(map).bindPopup('الخريطة في وضع عدم الاتصال. بعض الميزات قد لا تعمل بشكل صحيح.').openPopup();
-    }
+                            // إعادة تهيئة الخريطة
+                            if (map) {
+                                map.remove();
+                                routingLines = [];
+                            }
+                            
+                            const mapElement = document.getElementById('map');
+                            mapElement.innerHTML = '';
+                            
+                            // تحميل إعدادات الخريطة المخزنة
+                            let mapCenter = [myGps.lat, myGps.lng];
+                            let mapZoom = 13;
+                            
+                            const offlineMapData = localStorage.getItem('offlineMapData');
+                            if (offlineMapData) {
+                                const parsedData = JSON.parse(offlineMapData);
+                                mapCenter = [parsedData.center.lat, parsedData.center.lng];
+                                mapZoom = parsedData.zoom;
+                            }
+                            
+                            map = L.map(mapElement).setView(mapCenter, mapZoom);
+                            
+                            // إضافة طبقة الخريطة
+                            if (navigator.onLine) {
+                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                    attribution: '© OpenStreetMap contributors'
+                                }).addTo(map);
+                            } else {
+                                L.tileLayer('', {
+                                    attribution: 'الخريطة في وضع عدم الاتصال'
+                                }).addTo(map);
+                                
+                                L.rectangle(map.getBounds(), {
+                                    color: "#ff7800",
+                                    weight: 1,
+                                    fillOpacity: 0.1
+                                }).addTo(map).bindPopup('الخريطة في وضع عدم الاتصال. بعض الميزات قد لا تعمل بشكل صحيح.');
+                            }
 
-    // إضافة علامة للمستخدم الحالي
-    myMarker = L.marker([myGps.lat, myGps.lng], {icon: userIcon}).addTo(map)
-        .bindPopup('<b>أنت هنا</b>').openPopup();
+                            // إضافة علامة المستخدم الحالي
+                            myMarker = L.marker([myGps.lat, myGps.lng], {icon: userIcon}).addTo(map)
+                                .bindPopup('<b>أنت هنا</b>').openPopup();
 
-    let subs = [];
-    try { 
-        const listContainer = document.getElementById('listContainer');
-        listContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> جاري تحميل بيانات المشتركين...</div>';
-        
-        subs = await fetchAllSubscribers(); 
-        allSubscribers = [...subs]; // حفظ جميع المشتركين
-        
-        // تخزين البيانات محلياً لاستخدامها لاحقاً
-        localStorage.setItem('subscribersData', JSON.stringify(subs));
-    } 
-    catch(err){ 
-        console.error(err); 
-        // محاولة استخدام البيانات المخزنة محلياً
-        const storedData = localStorage.getItem('subscribersData');
-        if (storedData) {
-            subs = JSON.parse(storedData);
-            allSubscribers = [...subs];
-            showStatusMessage('جاري استخدام البيانات المخزنة محلياً', 'info');
-        } else {
-            showStatusMessage('تعذر جلب المشتركين.', 'error'); 
-            return; 
-        }
-    }
+                            let subs = [];
+                            try { 
+                                const listContainer = document.getElementById('listContainer');
+                                listContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> جاري تحميل بيانات المشتركين...</div>';
+                                
+                                subs = await fetchAllSubscribers(); 
+                                allSubscribers = [...subs];
+                                
+                                localStorage.setItem('subscribersData', JSON.stringify(subs));
+                            } 
+                            catch(err){ 
+                                console.error(err); 
+                                const storedData = localStorage.getItem('subscribersData');
+                                if (storedData) {
+                                    subs = JSON.parse(storedData);
+                                    allSubscribers = [...subs];
+                                    showStatusMessage('جاري استخدام البيانات المخزنة محلياً', 'info');
+                                } else {
+                                    showStatusMessage('تعذر جلب المشتركين.', 'error'); 
+                                    return; 
+                                }
+                            }
 
-    // تصفية المشتركين لعرض سائقي الباصات فقط
-    subs = filterSubscribersByJobType(subs);
-    
-    // تطبيق تصفية المسافة
-    const maxDistance = parseInt(distanceFilter.value);
-    subs = filterSubscribersByDistance(subs, maxDistance);
-    
-    subs = subs.filter(s => s.gps && s.gps.lat && s.gps.lng);
-    subs = subs.map(s=>{
-        const d = distanceMeters(myGps.lat, myGps.lng, s.gps.lat, s.gps.lng);
-        return {...s, distanceMeters: d};
-    });
-    
-    // تطبيق الفرز
-    const sortValue = sortBy.value;
-    subs = sortSubscribers(subs, sortValue);
+                            // تطبيق التصفية
+                            subs = filterSubscribersByProfession(subs);
+                            
+                            const maxDistance = parseInt(distanceFilter.value);
+                            subs = filterSubscribersByDistance(subs, maxDistance);
+                            
+                            subs = subs.filter(s => s.gps && s.gps.lat && s.gps.lng);
+                            subs = subs.map(s=>{
+                                const d = distanceMeters(myGps.lat, myGps.lng, s.gps.lat, s.gps.lng);
+                                return {...s, distanceMeters: d};
+                            });
+                            
+                            // تطبيق الفرز
+                            const sortValue = sortBy.value;
+                            subs = sortSubscribers(subs, sortValue);
 
-    const listContainer = document.getElementById('listContainer');
-    listContainer.innerHTML = '';
+                            const listContainer = document.getElementById('listContainer');
+                            listContainer.innerHTML = '';
 
-    subs.forEach(s=>{
-        const distText = formatDistance(s.distanceMeters);
-        
-        // إضافة علامة للمشترك مع أيقونة الباص
-        const marker = L.marker([s.gps.lat, s.gps.lng], {icon: busIcon}).addTo(map).bindPopup(
-            `<div style="text-align: center;">
-                <strong><span class="bus-icon"><i class="fas fa-bus"></i></span> ${getFirstName(s.fullname)}</strong><br>
-                <span class="jobtype-badge">${s.jobtype}</span><br>
-                المسافة: ${distText}<br>
-                جوال1: ${s.phone1 || '-'}<br>
-                جوال2: ${s.phone2 || '-'}<br>
-                واتساب: ${s.whatsapp || '-'}<br>
-                ملاحظات: ${s.notes || '-'}
-            </div>`
-        );
+                            subs.forEach(s=>{
+                                const distText = formatDistance(s.distanceMeters);
+                                
+                                // إضافة علامة للمشترك
+                                const marker = L.marker([s.gps.lat, s.gps.lng], {icon: subscriberIcon}).addTo(map).bindPopup(
+                                    `<div style="text-align: center;">
+                                        <strong>${getFirstName(s.fullname)}</strong><br>
+                                        <span class="jobtype-badge">${s.jobtype || 'غير محدد'}</span><br>
+                                        المسافة: ${distText}<br>
+                                        جوال1: ${s.phone1 || '-'}<br>
+                                        جوال2: ${s.phone2 || '-'}<br>
+                                        واتساب: ${s.whatsapp || '-'}<br>
+                                        ملاحظات: ${s.notes || '-'}
+                                    </div>`
+                                );
 
-        // إضافة خط المسار بين المستخدم الحالي والمشترك
-        const routeLine = L.polyline(
-            [[myGps.lat, myGps.lng], [s.gps.lat, s.gps.lng]],
-            {color: 'red', weight: 3, dashArray: '5, 10'}
-        );
-        
-        if (routeDisplayEnabled) {
-            routeLine.addTo(map);
-        }
-        routingLines.push(routeLine);
+                                // إضافة خط المسار
+                                const routeLine = L.polyline(
+                                    [[myGps.lat, myGps.lng], [s.gps.lat, s.gps.lng]],
+                                    {color: 'red', weight: 3, dashArray: '5, 10'}
+                                );
+                                
+                                if (routeDisplayEnabled) {
+                                    routeLine.addTo(map);
+                                }
+                                routingLines.push(routeLine);
 
-        const card = document.createElement('div');
-        card.className = 'subscriber-card';
-        card.innerHTML = `
-            <div>
-                <span class="distance-badge">${distText}</span>
-                <span class="jobtype-badge">${s.jobtype}</span>
-                <strong><span class="bus-icon"><i class="fas fa-bus"></i></span> ${getFirstName(s.fullname)}</strong> - ${s.jobname}
-            </div>
-            <div class="subscriber-details hidden">
-                ${s.phone1 ? `<a href="tel:967${s.phone1}" class="phone-link"><i class="fas fa-phone"></i> اتصال بالجوال 1</a>` : ''}
-                ${s.phone2 ? `<a href="tel:967${s.phone2}" class="phone-link"><i class="fas fa-phone"></i> اتصال بالجوال 2</a>` : ''}
-                ${s.whatsapp ? `<a href="javascript:void(0)" onclick="sendWhatsApp('${s.whatsapp}')" class="phone-link"><i class="fab fa-whatsapp"></i> واتساب</a>` : ''}
-                ${s.notes ? `<div class="small">ملاحظات: ${s.notes}</div>` : ''}
-                ${s.days && s.days.length > 0 ? `<div class="small">أيام الدوام: ${s.days.join('، ')}</div>` : ''}
-                ${s.from && s.to ? `<div class="small">وقت الدوام: من ${s.from} إلى ${s.to}</div>` : ''}
-            </div>
-        `;
-        
-        card.addEventListener('click', (e)=>{
-            // منع تنفيذ الحدث عند النقر على رابط
-            if (e.target.tagName === 'A') return;
-            
-            const details = card.querySelector('.subscriber-details');
-            details.classList.toggle('hidden');
-            
-            map.setView([s.gps.lat, s.gps.lng], 15);
-            marker.openPopup();
-        });
-        
-        listContainer.appendChild(card);
-    });
+                                // إنشاء بطاقة المشترك
+                                const card = document.createElement('div');
+                                card.className = 'subscriber-card';
+                                card.innerHTML = `
+                                    <div>
+                                        <span class="distance-badge">${distText}</span>
+                                        <span class="jobtype-badge">${s.jobtype || 'غير محدد'}</span>
+                                        <strong><i class="fas fa-user"></i> ${getFirstName(s.fullname)}</strong> - ${s.jobname || ''}
+                                    </div>
+                                    <div class="subscriber-details hidden">
+                                        ${s.phone1 ? `<a href="tel:967${s.phone1}" class="phone-link"><i class="fas fa-phone"></i> اتصال بالجوال 1</a>` : ''}
+                                        ${s.phone2 ? `<a href="tel:967${s.phone2}" class="phone-link"><i class="fas fa-phone"></i> اتصال بالجوال 2</a>` : ''}
+                                        ${s.whatsapp ? `<a href="javascript:void(0)" onclick="sendWhatsApp('${s.whatsapp}')" class="phone-link"><i class="fab fa-whatsapp"></i> واتساب</a>` : ''}
+                                        ${s.notes ? `<div class="small">ملاحظات: ${s.notes}</div>` : ''}
+                                        ${s.days && s.days.length > 0 ? `<div class="small">أيام الدوام: ${s.days.join('، ')}</div>` : ''}
+                                        ${s.from && s.to ? `<div class="small">وقت الدوام: من ${s.from} إلى ${s.to}</div>` : ''}
+                                    </div>
+                                `;
+                                
+                                card.addEventListener('click', (e)=>{
+                                    if (e.target.tagName === 'A') return;
+                                    
+                                    const details = card.querySelector('.subscriber-details');
+                                    details.classList.toggle('hidden');
+                                    
+                                    map.setView([s.gps.lat, s.gps.lng], 15);
+                                    marker.openPopup();
+                                });
+                                
+                                listContainer.appendChild(card);
+                            });
 
-    if(subs.length === 0){
-        listContainer.innerHTML = '<div class="small">لا يوجد سائقو باصات ضمن المسافة المحددة.</div>';
-    }
-}
+                            if(subs.length === 0){
+                                listContainer.innerHTML = '<div class="small">لا يوجد مشتركون ضمن المعايير المحددة.</div>';
+                            }
+                        }
 
-// عند تحميل الصفحة: جلب IP وGPS
-(async function init(){
-    // التحقق من حالة الاتصال أولاً
-    updateOnlineStatus();
-    
-    // إظهار رسالة تحميل
-    showStatusMessage('جاري تحميل البيانات...', 'info');
-    
-    await fetchMyIp();
-    await fetchMyGps();
-    
-    // إخفاء رسالة التحميل
-    statusMessage.classList.add('hidden');
-    
-    // إضافة مستمعين للتصفية والفرز
-    distanceFilter.addEventListener('change', () => {
-        if (map) {
-            initMapAndLoad();
-        }
-    });
-    
-    sortBy.addEventListener('change', () => {
-        if (map) {
-            initMapAndLoad();
-        }
-    });
-    
-    // السماح دائمًا بإضافة مشتركين جدد
-    tabAdd.style.display = 'block';
-    tabAdd.classList.add('active');
-    tabList.classList.remove('active');
-    contentAdd.classList.remove('hidden');
-    contentList.classList.add('hidden');
-})();
-</script>
+                        // مستمعي الأحداث للتصفية والفرز
+                        distanceFilter.addEventListener('change', () => {
+                            if (map) {
+                                initMapAndLoad();
+                            }
+                        });
 
-</body>
-</html>
+                        sortBy.addEventListener('change', () => {
+                            if (map) {
+                                initMapAndLoad();
+                            }
+                        });
+
+                        filterProfessionSelect.addEventListener('change', () => {
+                            if (map) {
+                                initMapAndLoad();
+                            }
+                        });
+
+                        // تهيئة التطبيق عند تحميل الصفحة
+                        (async function init(){
+                            updateOnlineStatus();
+                            showStatusMessage('جاري تحميل البيانات...', 'info');
+                            
+                            // جلب المهن وإعداد القوائم المنسدلة
+                            await fetchProfessions();
+                            
+                            await fetchMyIp();
+                            await fetchMyGps();
+                            
+                            statusMessage.classList.add('hidden');
+                            
+                            // جعل تبويب "بيانات المشتركين" افتراضي
+                            tabList.classList.add('active');
+                            tabAdd.classList.remove('active');
+                            contentList.classList.remove('hidden');
+                            contentAdd.classList.add('hidden');
+                            
+                            await initMapAndLoad();
+                        })();
+                    </script>
+
+                    </body>
+                    </html>
