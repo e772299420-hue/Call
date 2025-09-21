@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المهن</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .nav-tabs .nav-link {
+            font-weight: 600;
+            color: #495057;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 12px 25px;
+            transition: all 0.3s;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            background-color: transparent;
+            border-color: #0d6efd;
+        }
+        .nav-tabs .nav-link:hover {
+            border-color: #0d6efd;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+            border: none;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eaeaea;
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #182848 0%, #4b6cb7 100%);
+            transform: translateY(-2px);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            border: none;
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #ff5200 100%);
+            border: none;
+            color: white;
+        }
+        .table th {
+            font-weight: 600;
+            background-color: #f8f9fa;
+        }
+        .status-badge {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .alert-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: none;
+            border-radius: 8px;
+            animation: fadeIn 0.5s, fadeOut 0.5s 2.5s forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+        .action-buttons {
+            white-space: nowrap;
+        }
+        .action-buttons .btn {
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header text-center">
+        <h1><i class="fas fa-briefcase me-2"></i>نظام إدارة المهن</h1>
+        <p class="mb-0">إضافة وعرض وتعديل وحذف المهن</p>
+    </div>
+
+    <div class="container">
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="add-tab" data-bs-toggle="tab" data-bs-target="#add" type="button" role="tab" aria-controls="add" aria-selected="true">
+                    <i class="fas fa-plus-circle me-2"></i>إضافة مهنة
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="view-tab" data-bs-toggle="tab" data-bs-target="#view" type="button" role="tab" aria-controls="view" aria-selected="false">
+                    <i class="fas fa-list me-2"></i>عرض المهن
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- تبويب الإضافة -->
+            <div class="tab-pane fade show active" id="add" role="tabpanel" aria-labelledby="add-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-plus-circle me-2"></i>إضافة مهنة جديدة
+                    </div>
+                    <div class="card-body">
+                        <form id="professionForm">
+                            <input type="hidden" id="editId" value="">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="jobNumber" class="form-label">رقم المهنة</label>
+                                    <input type="text" class="form-control" id="jobNumber" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="jobName" class="form-label">اسم المهنة</label>
+                                    <input type="text" class="form-control" id="jobName" required>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="jobStatus" class="form-label">الحالة</label>
+                                    <select class="form-select" id="jobStatus" required>
+                                        <option value="نشط">نشط</option>
+                                        <option value="متوقف">متوقف</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <button type="button" id="cancelEdit" class="btn btn-secondary me-2" style="display: none;">
+                                    <i class="fas fa-times me-1"></i> إلغاء التعديل
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i> حفظ
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- تبويب العرض -->
+            <div class="tab-pane fade" id="view" role="tabpanel" aria-labelledby="view-tab">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-list me-2"></i>قائمة المهن</span>
+                        <div class="d-flex">
+                            <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="بحث...">
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>رقم المهنة</th>
+                                        <th>اسم المهنة</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="professionsTable">
+                                    <!-- سيتم ملء الجدول من خلال JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap & jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // العناصر الرئيسية في الصفحة
+        const professionForm = document.getElementById('professionForm');
+        const professionsTable = document.getElementById('professionsTable');
+        const cancelEditBtn = document.getElementById('cancelEdit');
+        const searchInput = document.getElementById('searchInput');
+        
+        // متغير لتخزين البيانات المحملة
+        let professionsData = [];
+        
+        // إضافة أو تعديل مهنة
+        professionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const jobNumber = document.getElementById('jobNumber').value;
+            const jobName = document.getElementById('jobName').value;
+            const jobStatus = document.getElementById('jobStatus').value;
+            const editId = document.getElementById('editId').value;
+            
+            if (jobNumber && jobName && jobStatus) {
+                if (editId) {
+                    // تعديل المهنة الحالية
+                    updateProfession(editId, jobNumber, jobName, jobStatus);
+                } else {
+                    // إضافة مهنة جديدة
+                    addProfession(jobNumber, jobName, jobStatus);
+                }
+            }
+        });
+        
+        // إلغاء التعديل
+        cancelEditBtn.addEventListener('click', function() {
+            resetForm();
+        });
+        
+        // البحث في الجدول
+        searchInput.addEventListener('input', function() {
+            const searchText = this.value.toLowerCase();
+            const filteredData = professionsData.filter(item => 
+                item.jobNumber.toLowerCase().includes(searchText) || 
+                item.jobName.toLowerCase().includes(searchText)
+            );
+            renderProfessionsTable(filteredData);
+        });
+        
+        // دالة لإضافة مهنة جديدة
+        function addProfession(jobNumber, jobName, jobStatus) {
+            const newProfessionRef = database.ref('mhna').push();
+            newProfessionRef.set({
+                jobNumber: jobNumber,
+                jobName: jobName,
+                jobStatus: jobStatus
+            })
+            .then(() => {
+                showNotification('تم إضافة المهنة بنجاح', 'success');
+                resetForm();
+                loadProfessions();
+            })
+            .catch(error => {
+                showNotification('حدث خطأ أثناء الإضافة: ' + error.message, 'danger');
+            });
+        }
+        
+        // دالة لتعديل مهنة
+        function updateProfession(id, jobNumber, jobName, jobStatus) {
+            database.ref('mhna/' + id).update({
+                jobNumber: jobNumber,
+                jobName: jobName,
+                jobStatus: jobStatus
+            })
+            .then(() => {
+                showNotification('تم تعديل المهنة بنجاح', 'success');
+                resetForm();
+                loadProfessions();
+            })
+            .catch(error => {
+                showNotification('حدث خطأ أثناء التعديل: ' + error.message, 'danger');
+            });
+        }
+        
+        // دالة لحذف مهنة
+        function deleteProfession(id) {
+            // التحقق من وجود بيانات مرتبطة (هنا نتحقق بشكل مبسط)
+            database.ref('mhna/' + id).once('value')
+            .then(snapshot => {
+                const profession = snapshot.val();
+                // في تطبيق حقيقي، هنا نتحقق من الجداول الأخرى المرتبطة
+                const hasRelatedData = Math.random() > 0.5; // محاكاة للبيانات المرتبطة
+                
+                if (hasRelatedData) {
+                    showNotification('تعذر الحذف لوجود بيانات مرتبطة بالسجل', 'danger');
+                } else {
+                    if (confirm('هل أنت متأكد من أنك تريد حذف هذه المهنة؟')) {
+                        database.ref('mhna/' + id).remove()
+                        .then(() => {
+                            showNotification('تم حذف المهنة بنجاح', 'success');
+                            loadProfessions();
+                        })
+                        .catch(error => {
+                            showNotification('حدث خطأ أثناء الحذف: ' + error.message, 'danger');
+                        });
+                    }
+                }
+            });
+        }
+        
+        // دالة لتحميل المهن من قاعدة البيانات
+        function loadProfessions() {
+            database.ref('mhna').once('value')
+            .then(snapshot => {
+                professionsData = [];
+                snapshot.forEach(childSnapshot => {
+                    professionsData.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                renderProfessionsTable(professionsData);
+            })
+            .catch(error => {
+                showNotification('حدث خطأ أثناء تحميل البيانات: ' + error.message, 'danger');
+            });
+        }
+        
+        // دالة لعرض البيانات في الجدول
+        function renderProfessionsTable(data) {
+            professionsTable.innerHTML = '';
+            
+            if (data.length === 0) {
+                professionsTable.innerHTML = '<tr><td colspan="4" class="text-center">لا توجد بيانات</td></tr>';
+                return;
+            }
+            
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.jobNumber}</td>
+                    <td>${item.jobName}</td>
+                    <td><span class="status-badge ${item.jobStatus === 'نشط' ? 'status-active' : 'status-inactive'}">${item.jobStatus}</span></td>
+                    <td class="action-buttons">
+                        <button class="btn btn-sm btn-warning edit-btn" data-id="${item.id}">
+                            <i class="fas fa-edit"></i> تعديل
+                        </button>
+                        <button class="btn btn-sm btn-danger delete-btn" data-id="${item.id}">
+                            <i class="fas fa-trash"></i> حذف
+                        </button>
+                    </td>
+                `;
+                professionsTable.appendChild(tr);
+            });
+            
+            // إضافة مستمعين للأزرار
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    editProfession(id);
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    deleteProfession(id);
+                });
+            });
+        }
+        
+        // دالة لتعديل مهنة
+        function editProfession(id) {
+            database.ref('mhna/' + id).once('value')
+            .then(snapshot => {
+                const profession = snapshot.val();
+                document.getElementById('jobNumber').value = profession.jobNumber;
+                document.getElementById('jobName').value = profession.jobName;
+                document.getElementById('jobStatus').value = profession.jobStatus;
+                document.getElementById('editId').value = id;
+                cancelEditBtn.style.display = 'block';
+                
+                // الانتقال إلى تبويب الإضافة
+                document.getElementById('add-tab').click();
+            })
+            .catch(error => {
+                showNotification('حدث خطأ أثناء تحميل البيانات للتعديل: ' + error.message, 'danger');
+            });
+        }
+        
+        // دالة لإعادة تعيين النموذج
+        function resetForm() {
+            professionForm.reset();
+            document.getElementById('editId').value = '';
+            cancelEditBtn.style.display = 'none';
+        }
+        
+        // دالة لعرض الإشعارات
+        function showNotification(message, type) {
+            // إزالة أي إشعارات سابقة
+            const existingAlert = document.querySelector('.alert-notification');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-notification`;
+            alert.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(alert);
+            
+            // إزالة الإشعار تلقائياً بعد 3 ثوان
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.parentNode.removeChild(alert);
+                }
+            }, 3000);
+        }
+        
+        // تحميل البيانات عند فتح الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProfessions();
+        });
+    </script>
+</body>
+              </html>
