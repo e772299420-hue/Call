@@ -116,6 +116,19 @@
         .action-buttons .btn {
             margin-left: 5px;
         }
+        .auto-number-badge {
+            background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .form-control:read-only {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -148,10 +161,14 @@
                     <div class="card-body">
                         <form id="professionForm">
                             <input type="hidden" id="editId" value="">
+                            <div class="auto-number-badge">
+                                <i class="fas fa-info-circle me-1"></i> سيتم توليد رقم المهنة تلقائيًا
+                            </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="jobNumber" class="form-label">رقم المهنة</label>
-                                    <input type="text" class="form-control" id="jobNumber" required>
+                                    <input type="text" class="form-control" id="jobNumber" readonly>
+                                    <div class="form-text">رقم المهنة يتم إنشاؤه تلقائيًا ولا يمكن تعديله</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="jobName" class="form-label">اسم المهنة</label>
@@ -202,6 +219,9 @@
                                 </thead>
                                 <tbody id="professionsTable">
                                     <!-- سيتم ملء الجدول من خلال JavaScript -->
+                                    <tr>
+                                        <td colspan="4" class="text-center">جاري تحميل البيانات...</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -230,9 +250,11 @@
         const professionsTable = document.getElementById('professionsTable');
         const cancelEditBtn = document.getElementById('cancelEdit');
         const searchInput = document.getElementById('searchInput');
+        const jobNumberInput = document.getElementById('jobNumber');
         
         // متغير لتخزين البيانات المحملة
         let professionsData = [];
+        let nextJobNumber = 1;
         
         // إضافة أو تعديل مهنة
         professionForm.addEventListener('submit', function(e) {
@@ -268,6 +290,26 @@
             );
             renderProfessionsTable(filteredData);
         });
+        
+        // دالة لتوليد رقم المهنة التالي
+        function generateNextJobNumber() {
+            database.ref('mhna').orderByChild('jobNumber').limitToLast(1).once('value')
+            .then(snapshot => {
+                if (snapshot.exists()) {
+                    snapshot.forEach(childSnapshot => {
+                        const lastJobNumber = parseInt(childSnapshot.val().jobNumber);
+                        nextJobNumber = lastJobNumber + 1;
+                    });
+                } else {
+                    nextJobNumber = 1;
+                }
+                jobNumberInput.value = nextJobNumber.toString().padStart(4, '0');
+            })
+            .catch(error => {
+                console.error('Error getting last job number:', error);
+                jobNumberInput.value = nextJobNumber.toString().padStart(4, '0');
+            });
+        }
         
         // دالة لإضافة مهنة جديدة
         function addProfession(jobNumber, jobName, jobStatus) {
@@ -342,6 +384,9 @@
                     });
                 });
                 renderProfessionsTable(professionsData);
+                
+                // بعد تحميل البيانات، نولد الرقم التالي
+                generateNextJobNumber();
             })
             .catch(error => {
                 showNotification('حدث خطأ أثناء تحميل البيانات: ' + error.message, 'danger');
@@ -402,6 +447,10 @@
                 document.getElementById('editId').value = id;
                 cancelEditBtn.style.display = 'block';
                 
+                // جعل حقل رقم المهنة قابل للتعديل في وضع التعديل
+                jobNumberInput.readOnly = false;
+                jobNumberInput.classList.remove('form-control:read-only');
+                
                 // الانتقال إلى تبويب الإضافة
                 document.getElementById('add-tab').click();
             })
@@ -415,6 +464,13 @@
             professionForm.reset();
             document.getElementById('editId').value = '';
             cancelEditBtn.style.display = 'none';
+            
+            // إعادة جعل حقل رقم المهنة غير قابل للتعديل
+            jobNumberInput.readOnly = true;
+            jobNumberInput.classList.add('form-control:read-only');
+            
+            // توليد رقم مهنة جديد
+            generateNextJobNumber();
         }
         
         // دالة لعرض الإشعارات
@@ -450,4 +506,4 @@
         });
     </script>
 </body>
-              </html>
+</html>
