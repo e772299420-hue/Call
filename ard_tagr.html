@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>خريطة التجار - تفاصيل التاجر</title>
+    <!-- Leaflet & Routing CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <!-- Bootstrap (للـ modals و الأزرار) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+
     <style>
         :root {
             --primary-color: #007bff;
@@ -20,804 +21,596 @@
             --light-text: #6c757d;
             --border-color: #dee2e6;
         }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
-        html, body {
-            height: 100%;
-            margin: 0;
-            font-family: 'Tahoma', 'Arial', sans-serif;
-            background-color: #f5f5f5;
-            color: var(--text-color);
-        }
-        
-        body {
-            display: flex;
-            flex-direction: column;
-        }
-        
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; margin: 0; font-family: 'Tahoma', 'Arial', sans-serif; background: #f5f5f5; color: var(--text-color); }
+        body { display: flex; flex-direction: column; }
+
         header {
             background: var(--primary-color);
             color: #fff;
-            padding: 15px 20px;
-            position: sticky;
-            top: 0;
-            font-size: 18px;
-            font-weight: bold;
-            z-index: 1001;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 12px 18px;
+            position: sticky; top: 0;
+            z-index: 1100;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
         }
-        
-        .header-content {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .back-button {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-family: Tahoma;
-        }
-        
-        .back-button:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        #container {
-            display: flex;
-            flex: 1;
-            height: calc(100vh - 120px);
-        }
-        
-        #merchant-details {
-            width: 400px;
-            overflow-y: auto;
+
+        .header-content{ display:flex; align-items:center; gap:10px }
+        .back-button{ background: rgba(255,255,255,0.15); border:none; color:#fff; padding:8px 12px; border-radius:6px; cursor:pointer }
+        .back-button i{ transform: rotate(180deg); }
+        #globalMerchantName{ font-weight:700 }
+
+        #mapType{ position:absolute; top:72px; left:12px; z-index:1000; background:#fff; padding:8px; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,0.12); }
+
+        #container{ display:flex; flex:1; height: calc(100vh - 120px); gap:12px; padding:12px; }
+
+        #merchant-details{ width:400px; max-width:40%; background:#fff; padding:16px; border-radius:10px; overflow:auto; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+
+        #map{ flex:1; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+
+        .merchant-header{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+        .merchant-avatar{ width:76px; height:76px; border-radius:50%; background:var(--primary-color); display:flex; align-items:center; justify-content:center; color:#fff; font-size:34px }
+        .merchant-name{ font-size:20px; font-weight:700; color:var(--primary-color) }
+        .merchant-category{ color:var(--light-text); font-size:13px }
+
+        .section-title{ font-weight:700; color:var(--primary-color); margin-bottom:8px; display:flex; align-items:center; gap:8px }
+        .detail-item{ display:flex; gap:10px; margin-bottom:12px; align-items:flex-start }
+        .detail-icon{ width:36px; height:36px; border-radius:8px; background:#f1f3f5; display:flex; align-items:center; justify-content:center; color:var(--primary-color) }
+        .detail-content{ flex:1 }
+        .detail-label{ font-size:12px; color:var(--light-text); margin-bottom:4px }
+        .detail-value{ font-size:15px; word-break:break-word }
+
+        .action-buttons{ display:flex; gap:8px; margin-top:8px }
+        .action-btn{ padding:8px 10px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; gap:8px; align-items:center }
+        .call-btn{ background:var(--accent-color); color:#fff }
+        .whatsapp-btn{ background:#25D366; color:#fff }
+        .share-btn{ background:var(--primary-color); color:#fff }
+        .secondary-btn{ background:#f8f9fa; color:var(--text-color); border:1px solid var(--border-color) }
+
+        .route-info{ background:#fff; padding:10px; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,0.06); margin-top:10px }
+
+        .loading{ display:flex; justify-content:center; align-items:center; height:150px; flex-direction:column; gap:12px }
+        .spinner{ width:40px; height:40px; border:4px solid rgba(0,123,255,0.18); border-top-color:var(--primary-color); border-radius:50%; animation:spin 1s linear infinite }
+        @keyframes spin{ to{ transform:rotate(360deg) } }
+
+        footer{ text-align:center; padding:12px; background:var(--secondary-color); font-size:13px; color:var(--light-text); margin-top:auto }
+
+        /* إشعار فتح الصفحة */
+        #pageAlert {
+            position: fixed;
+            top: 70px;
+            right: 12px;
+            z-index: 1200;
+            display: none;
+            min-width: 260px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            border-radius: 8px;
             background: #fff;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            z-index: 1000;
+            padding: 10px 12px;
+            font-weight: 600;
+            transition: opacity 0.5s;
         }
-        
-        #map {
-            flex: 1;
+
+        /* إشعار المنتج والتاجر */
+        #productMerchantAlert {
+            position: fixed;
+            top: 70px;
+            left: 12px;
+            z-index: 1200;
+            background: #fff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            border-right: 4px solid var(--accent-color);
+            max-width: 300px;
+            animation: slideInLeft 0.5s ease-out;
         }
-        
-        .merchant-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .merchant-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background-color: var(--primary-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 32px;
-            margin-left: 15px;
-        }
-        
-        .merchant-info {
-            flex: 1;
-        }
-        
-        .merchant-name {
-            font-size: 22px;
-            font-weight: bold;
+
+        #productMerchantAlert .alert-title {
+            font-weight: 700;
             color: var(--primary-color);
-            margin-bottom: 5px;
-        }
-        
-        .merchant-category {
-            color: var(--light-text);
-            font-size: 14px;
-        }
-        
-        .details-section {
-            margin-bottom: 25px;
-        }
-        
-        .section-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: var(--primary-color);
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
-        .detail-item {
-            display: flex;
-            margin-bottom: 12px;
-            align-items: flex-start;
-        }
-        
-        .detail-icon {
-            width: 24px;
-            height: 24px;
-            margin-left: 10px;
-            color: var(--primary-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .detail-content {
-            flex: 1;
-        }
-        
-        .detail-label {
-            font-size: 12px;
-            color: var(--light-text);
-            margin-bottom: 3px;
-        }
-        
-        .detail-value {
-            font-size: 16px;
-            word-break: break-word;
-        }
-        
-        .social-links {
-            display: flex;
-            gap: 10px;
-            margin-top: 5px;
-        }
-        
-        .social-link {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--secondary-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary-color);
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-        
-        .social-link:hover {
-            background: var(--primary-color);
-            color: white;
-            transform: translateY(-2px);
-        }
-        
-        #mapType {
-            position: absolute;
-            top: 70px;
-            left: 10px;
-            z-index: 1000;
-            background: #fff;
-            padding: 8px;
-            border-radius: 5px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
-            font-family: Tahoma;
-        }
-        
-        footer {
-            text-align: center;
-            padding: 15px;
-            background: var(--secondary-color);
+
+        #productMerchantAlert .alert-content {
             font-size: 14px;
-            color: var(--light-text);
-            margin-top: auto;
+            color: var(--text-color);
+            line-height: 1.4;
         }
-        
-        .route-info {
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
-            margin-top: 10px;
-            font-family: Tahoma;
-        }
-        
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 200px;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(0, 123, 255, 0.2);
-            border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 1s linear infinite;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
-        }
-        
-        .action-btn {
-            padding: 6px 10px;
+
+        #productMerchantAlert .alert-close {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: none;
             border: none;
-            border-radius: 4px;
+            color: var(--light-text);
             cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: all 0.3s;
+            font-size: 14px;
         }
-        
-        .call-btn {
-            background: var(--accent-color);
-            color: white;
+
+        @keyframes slideInLeft {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
-        
-        .whatsapp-btn {
-            background: #25D366;
-            color: white;
-        }
-        
-        .action-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        @media (max-width: 768px) {
-            #container {
-                flex-direction: column;
-            }
-            
-            #merchant-details {
-                width: 100%;
-                height: 40%;
-            }
-            
-            #map {
-                width: 100%;
-                height: 60%;
-            }
-            
-            .merchant-header {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .merchant-avatar {
-                margin-left: 0;
-                margin-bottom: 10px;
+
+        /* Responsive */
+        @media(max-width:900px){ 
+            #container{ flex-direction:column } 
+            #merchant-details{ width:100%; max-width:100%; height:40vh } 
+            #map{ height:56vh } 
+            #mapType{ top:58px } 
+            #productMerchantAlert {
+                max-width: 90%;
+                left: 5%;
+                right: 5%;
             }
         }
     </style>
 </head>
 <body>
+    <header>
+        <div class="header-content">
+            <button class="back-button" onclick="goBack()"><i class="fas fa-arrow-right"></i> رجوع</button>
+            <div>تفاصيل التاجر</div>
+        </div>
+        <div id="globalMerchantName">...</div>
+    </header>
 
-<header>
-    <div class="header-content">
-        <button class="back-button" onclick="goBack()">
-            <i class="fas fa-arrow-right"></i> رجوع
-        </button>
-        <span>تفاصيل التاجر</span>
+    <!-- إشعار يظهر عند الفتح -->
+    <div id="pageAlert">
+        <i class="fas fa-bell"></i>&nbsp; تم فتح صفحة التاجر
+        <div style="font-weight:400;font-size:13px;color:#666;margin-top:6px" id="alertSub">...</div>
     </div>
-    <span id="globalMerchantName"></span>
-</header>
 
-<div id="mapType">
-    نوع الخريطة: 
-    <select id="mapSelect">
-        <option value="street">Street</option>
-        <option value="satellite">Satellite</option>
-        <option value="terrain">Terrain</option>
-    </select>
-</div>
-
-<div id="container">
-    <div id="merchant-details">
-        <div class="loading">
-            <div class="spinner"></div>
-            <p>جاري تحميل بيانات التاجر...</p>
+    <!-- إشعار المنتج والتاجر -->
+    <div id="productMerchantAlert" style="display: none;">
+        <button class="alert-close" onclick="closeProductAlert()"><i class="fas fa-times"></i></button>
+        <div class="alert-title">
+            <i class="fas fa-info-circle"></i> معلومات التاجر والمنتج
+        </div>
+        <div class="alert-content">
+            <div><strong>التاجر:</strong> <span id="alertMerchantName">...</span></div>
+            <div><strong>المنتج:</strong> <span id="alertProductName">...</span></div>
         </div>
     </div>
-    <div id="map"></div>
-</div>
 
-<footer>جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة</footer>
+    <div id="mapType">نوع الخريطة:
+        <select id="mapSelect" style="border:none;background:transparent;font-weight:600">
+            <option value="street">Street</option>
+            <option value="satellite">Satellite</option>
+            <option value="terrain">Terrain</option>
+        </select>
+    </div>
 
-<script>
-// دالة للعودة إلى الصفحة السابقة
-function goBack() {
-    window.history.back();
-}
-
-// الحصول على اسم التاجر من localStorage
-const selectedMerchantName = localStorage.getItem("selectedMerchant") || "التاجر";
-document.getElementById("globalMerchantName").textContent = selectedMerchantName;
-
-// الحصول على اسم المنتج من localStorage
-const globalProductName = localStorage.getItem("globalProductName") || "المنتج";
-
-// تهيئة Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyCZPqfq2Q6edvLkMogu1jR6RgLkLf-gQk0",
-    authDomain: "chat-fat-free-default-rtdb.firebaseapp.com",
-    databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com",
-    projectId: "chat-fat-free-default-rtdb",
-    storageBucket: "chat-fat-free-default-rtdb.appspot.com",
-    messagingSenderId: "106886157687",
-    appId: "1:106886157687:web:5d6c8e3e5c7d5d7a8d8b9c"
-};
-
-// تهيئة التطبيق Firebase
-try {
-    firebase.initializeApp(firebaseConfig);
-} catch (error) {
-    console.error("خطأ في تهيئة Firebase:", error);
-    document.getElementById("merchant-details").innerHTML = `
-        <div style="text-align: center; padding: 40px 20px; color: #dc3545;">
-            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px;"></i>
-            <h3>خطأ في الاتصال</h3>
-            <p>تعذر الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى لاحقًا.</p>
+    <div id="container">
+        <div id="merchant-details">
+            <div class="loading" id="loadingBox">
+                <div class="spinner"></div>
+                <div>جاري تحميل بيانات التاجر...</div>
+            </div>
+            <!-- المحتوى سيملؤه JavaScript -->
         </div>
-    `;
-}
 
-const db = firebase.database();
+        <div id="map"></div>
+    </div>
 
-// تهيئة الخريطة
-const map = L.map('map').setView([24.7136, 46.6753], 10); // افتراضيًا، مركز الخريطة على الرياض
+    <footer>جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة</footer>
 
-// إعداد طبقات الخريطة
-const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
-const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' });
-const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '© OpenTopoMap' });
-streetLayer.addTo(map);
+    <!-- Modals (Bootstrap) -->
+    <!-- تعديل رسالة واتساب -->
+    <div class="modal fade" id="whatsappMsgModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">تعديل رسالة واتساب</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea id="whatsappMsgInput" class="form-control" rows="5"></textarea>
+                    <div class="form-text mt-2">استخدم ${'{'}globalProductName{'}'} لإظهار اسم المنتج داخل الرسالة.</div>
+                </div>
+                <div class="modal-footer">
+                    <button id="saveMsgBtn" class="btn btn-primary">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-// تغيير نوع الخريطة
-const mapSelect = document.getElementById('mapSelect');
-mapSelect.addEventListener('change', () => {
-    const type = mapSelect.value;
-    map.eachLayer(layer => {
-        if (layer instanceof L.TileLayer) {
-            map.removeLayer(layer);
+    <!-- قائمة المنتجات -->
+    <div class="modal fade" id="productsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">قائمة منتجات التاجر</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="productsList">جارٍ التحميل...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <script>
+        // ====== إعداد المتغيرات الأساسية ======
+        function goBack(){ window.history.back(); }
+        
+        const selectedMerchantName = localStorage.getItem("selectedMerchant") || "التاجر";
+        document.getElementById('globalMerchantName').textContent = selectedMerchantName;
+        
+        const globalProductName = localStorage.getItem("globalProductName") || "المنتج";
+        let defaultWhatsAppMsg = localStorage.getItem('whatsappMsg') || `مرحباً، أنا مهتم بـ ${globalProductName} من تطبيق AZ.`;
+
+        // ====== تهيئة Firebase (خذ الإعدادات من الكود الأصلي) ======
+        const firebaseConfig = {
+            apiKey: "AIzaSyCZPqfq2Q6edvLkMogu1jR6RgLkLf-gQk0",
+            authDomain: "chat-fat-free-default-rtdb.firebaseapp.com",
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com",
+            projectId: "chat-fat-free-default-rtdb",
+            storageBucket: "chat-fat-free-default-rtdb.appspot.com",
+            messagingSenderId: "106886157687",
+            appId: "1:106886157687:web:5d6c8e3e5c7d5d7a8d8b9c"
+        };
+        try{ firebase.initializeApp(firebaseConfig); } catch(e){ console.warn('firebase init:', e); }
+        const db = firebase.database();
+
+        // ====== تهيئة الخريطة والطبقات ======
+        const map = L.map('map').setView([24.7136,46.6753],10);
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution: '© OpenStreetMap' });
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{ attribution: '© Esri' });
+        const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{ attribution: '© OpenTopoMap' });
+        streetLayer.addTo(map);
+
+        // تغيير نوع الخريطة
+        const mapSelect = document.getElementById('mapSelect');
+        mapSelect.addEventListener('change', ()=>{
+            const type = mapSelect.value;
+            map.eachLayer(layer=>{ if(layer instanceof L.TileLayer) map.removeLayer(layer); });
+            if(userMarker) userMarker.addTo(map);
+            if(currentRoute && typeof currentRoute.addTo === 'function') currentRoute.addTo(map);
+            if(type==='street') streetLayer.addTo(map);
+            else if(type==='satellite') satelliteLayer.addTo(map);
+            else if(type==='terrain') terrainLayer.addTo(map);
+        });
+
+        // ====== عناصر و متغيرات عامة ======
+        const merchantDetailsDiv = document.getElementById('merchant-details');
+        let currentRoute = null; let userMarker = null; let currentMerchantCoords = null; let userCoords = null; let currentMerchantData = null;
+
+        // ====== دوال مساعدة ======
+        function hasValidPhoneNumber(merchant){
+            const phone = merchant.phone?merchant.phone.replace(/\D/g,'') : '';
+            const mobile = merchant.mobile?merchant.mobile.replace(/\D/g,'') : '';
+            return phone.length>=6 || mobile.length>=6;
         }
-    });
-    
-    if (userMarker) userMarker.addTo(map);
-    if (currentRoute) map.addControl(currentRoute);
-    
-    if (type === 'street') streetLayer.addTo(map);
-    else if (type === 'satellite') satelliteLayer.addTo(map);
-    else if (type === 'terrain') terrainLayer.addTo(map);
-});
 
-// عناصر DOM
-const merchantDetailsDiv = document.getElementById('merchant-details');
-let currentRoute = null;
-let userMarker = null;
-let currentMerchantCoords = null;
-let userCoords = null;
-
-// دالة لعرض بيانات التاجر
-function displayMerchantDetails(merchant) {
-    // إعداد محتوى الهاتف
-    let phoneContent = 'غير متوفر';
-    if (merchant.phone) {
-        phoneContent = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>${merchant.phone}</span>
-                <button class="action-btn call-btn" onclick="callNumber('${merchant.phone}')">
-                    <i class="fas fa-phone"></i> اتصال
-                </button>
-            </div>
-        `;
-    }
-
-    // إعداد محتوى الجوال
-    let mobileContent = 'غير متوفر';
-    if (merchant.mobile) {
-        mobileContent = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>${merchant.mobile}</span>
-                <div class="action-buttons">
-                    <button class="action-btn call-btn" onclick="callNumber('${merchant.mobile}')">
-                        <i class="fas fa-phone"></i>
-                    </button>
-                    <button class="action-btn whatsapp-btn" onclick="openWhatsApp('${merchant.mobile}')">
-                        <i class="fab fa-whatsapp"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    merchantDetailsDiv.innerHTML = `
-        <div class="merchant-header">
-            <div class="merchant-avatar">
-                <i class="fas fa-store"></i>
-            </div>
-            <div class="merchant-info">
-                <div class="merchant-name">${merchant.name || 'غير محدد'}</div>
-                <div class="merchant-category">${merchant.category || 'لم يتم تحديد فئة'}</div>
-            </div>
-        </div>
-        
-        <div class="details-section">
-            <div class="section-title">
-                <i class="fas fa-info-circle"></i>
-                المعلومات الأساسية
-            </div>
-            
-            ${merchant.phone ? `
-            <div class="detail-item">
-                <div class="detail-icon">
-                    <i class="fas fa-phone"></i>
-                </div>
-                <div class="detail-content">
-                    <div class="detail-label">رقم الهاتف</div>
-                    <div class="detail-value">${phoneContent}</div>
-                </div>
-            </div>
-            ` : ''}
-            
-            <div class="detail-item">
-                <div class="detail-icon">
-                    <i class="fas fa-mobile-alt"></i>
-                </div>
-                <div class="detail-content">
-                    <div class="detail-label">رقم الجوال / الواتساب</div>
-                    <div class="detail-value">${mobileContent}</div>
-                </div>
-            </div>
-            
-            <div class="detail-item">
-                <div class="detail-icon">
-                    <i class="fas fa-map-marker-alt"></i>
-                </div>
-                <div class="detail-content">
-                    <div class="detail-label">الموقع</div>
-                    <div class="detail-value">${merchant.address || 'غير متوفر'}</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="details-section">
-            <div class="section-title">
-                <i class="fas fa-link"></i>
-                الروابط والمواقع
-            </div>
-            
-            ${merchant.googleSite ? `
-            <div class="detail-item">
-                <div class="detail-icon">
-                    <i class="fas fa-globe"></i>
-                </div>
-                <div class="detail-content">
-                    <div class="detail-label">موقع جوجل</div>
-                    <div class="detail-value">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>${merchant.googleSite}</span>
-                            <button class="action-btn call-btn" onclick="openLink('${merchant.googleSite}')">
-                                <i class="fas fa-external-link-alt"></i> فتح
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            ` : ''}
-            
-            ${merchant.youtubeSite ? `
-            <div class="detail-item">
-                <div class="detail-icon">
-                    <i class="fab fa-youtube"></i>
-                </div>
-                <div class="detail-content">
-                    <div class="detail-label">موقع يوتيوب</div>
-                    <div class="detail-value">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>${merchant.youtubeSite}</span>
-                            <button class="action-btn call-btn" onclick="openLink('${merchant.youtubeSite}')">
-                                <i class="fas fa-external-link-alt"></i> فتح
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            ` : ''}
-            
-            ${merchant.telegramSite ? `
-            <div class="detail-item">
-                <div class="detail-icon">
-                    <i class="fab fa-telegram"></i>
-                </div>
-                <div class="detail-content">
-                    <div class="detail-label">موقع تلجرام</div>
-                    <div class="detail-value">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>${merchant.telegramSite}</span>
-                            <button class="action-btn call-btn" onclick="openLink('${merchant.telegramSite}')">
-                                <i class="fas fa-external-link-alt"></i> فتح
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            ` : ''}
-            
-            ${merchant.twitterSite ? `
-            <div class="detail-item">
-                <div class="detail-icon">
-                    <i class="fab fa-twitter"></i>
-                </div>
-                <div class="detail-content">
-                    <div class="detail-label">موقع تويتر</div>
-                    <div class="detail-value">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>${merchant.twitterSite}</span>
-                            <button class="action-btn call-btn" onclick="openLink('${merchant.twitterSite}')">
-                                <i class="fas fa-external-link-alt"></i> فتح
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            ` : ''}
-            
-            <div class="detail-item">
-                <div class="detail-icon">
-                    <i class="fas fa-hashtag"></i>
-                </div>
-                <div class="detail-content">
-                    <div class="detail-label">وسائل التواصل الاجتماعي</div>
-                    <div class="social-links">
-                        ${merchant.googleSite ? `<a href="${merchant.googleSite}" class="social-link" target="_blank"><i class="fas fa-globe"></i></a>` : ''}
-                        ${merchant.youtubeSite ? `<a href="${merchant.youtubeSite}" class="social-link" target="_blank"><i class="fab fa-youtube"></i></a>` : ''}
-                        ${merchant.telegramSite ? `<a href="${merchant.telegramSite}" class="social-link" target="_blank"><i class="fab fa-telegram"></i></a>` : ''}
-                        ${merchant.twitterSite ? `<a href="${merchant.twitterSite}" class="social-link" target="_blank"><i class="fab fa-twitter"></i></a>` : ''}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="details-section">
-            <div class="section-title">
-                <i class="fas fa-route"></i>
-                اتجاهات الوصول
-            </div>
-            <div class="route-info" id="routeInfo">
-                انقر على "احسب المسار" لعرض معلومات المسافة والوقت
-            </div>
-            <button class="back-button" onclick="calculateRoute()" style="background: var(--accent-color); width: 100%; justify-content: center; margin-top: 10px;">
-                <i class="fas fa-route"></i> احسب المسار
-            </button>
-        </div>
-    `;
-}
-
-// دالة للاتصال برقم
-function callNumber(phoneNumber) {
-    window.open(`tel:${phoneNumber}`, '_self');
-}
-
-// دالة لفتح الرابط في متصفح جديد
-function openLink(url) {
-    window.open(url, '_blank');
-}
-
-// دالة لفتح واتساب
-function openWhatsApp(phoneNumber) {
-    // تنظيف الرقم من أي أحرف غير رقمية
-    const cleanNumber = phoneNumber.replace(/\D/g, '');
-    
-    // إضافة مفتاح الدولة السعودي إذا لم يكن موجوداً (افتراضي)
-    let whatsappNumber = cleanNumber;
-    if (!whatsappNumber.startsWith('967') && whatsappNumber.length === 9) {
-        whatsappNumber = '967' + whatsappNumber;
-    } else if (whatsappNumber.startsWith('0') && whatsappNumber.length === 10) {
-        whatsappNumber = '966' + whatsappNumber.substring(1);
-    }
-    
-    // نص الرسالة
-    const message = `متجر AZ السوق الشامل لتلبية احتياجك بالكامل انزل سطر 
-https://e772299420-hue.github.io/Call/index.html
-
-انا مهتم لاجل هذا المنتج / ${globalProductName}
-من فضلك ارسلي تفاصيل المنتج`;
-    
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-    
-    window.open(whatsappUrl, '_blank');
-}
-
-// دالة لحساب المسار
-function calculateRoute() {
-    if (userMarker && currentMerchantCoords) {
-        if (currentRoute) {
-            map.removeControl(currentRoute);
+        function updateDistanceField(distance){
+            const distanceField = document.getElementById('distanceField');
+            const distanceValue = document.getElementById('distanceValue');
+            if(distanceField && distanceValue){ distanceValue.textContent = `${distance} كم`; }
         }
-        
-        currentRoute = L.Routing.control({
-            waypoints: [
-                userMarker.getLatLng(),
-                L.latLng(currentMerchantCoords[0], currentMerchantCoords[1])
-            ],
-            lineOptions: {
-                styles: [{color: 'blue', weight: 5}]
-            },
-            router: L.Routing.osrmv1({
-                serviceUrl: 'https://router.project-osrm.org/route/v1'
-            }),
-            addWaypoints: false,
-            draggableWaypoints: false,
-            fitSelectedRoutes: true,
-            show: false
-        }).on('routesfound', function(e) {
-            const routes = e.routes;
-            if (routes && routes.length > 0) {
-                const route = routes[0];
-                const distance = (route.summary.totalDistance / 1000).toFixed(2);
-                const duration = Math.ceil(route.summary.totalTime / 60);
-                
-                document.getElementById('routeInfo').innerHTML = `
-                    <strong>المسافة:</strong> ${distance} كم<br>
-                    <strong>الوقت المقدر:</strong> ${duration} دقيقة
-                `;
-            }
-        }).addTo(map);
-    } else {
-        alert('تعذر حساب المسار. يرجى التأكد من تفعيل خدمة الموقع.');
-    }
-}
 
-// دالة لحساب المسافة بين موقعين
-function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // نصف قطر الأرض بالكيلومتر
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c;
-    return distance.toFixed(2);
-}
+        // إشعار عرض عند فتح الصفحة
+        function showPageAlert(sub){
+            const a = document.getElementById('pageAlert');
+            document.getElementById('alertSub').textContent = sub || '';
+            a.style.display = 'block';
+            setTimeout(()=>{ a.style.opacity = '1'; },50);
+            setTimeout(()=>{ 
+                a.style.transition='opacity 0.5s'; 
+                a.style.opacity='0'; 
+                setTimeout(()=>a.style.display='none',500); 
+            },5000);
+        }
 
-// جلب بيانات التاجر من Firebase
-function loadMerchantData() {
-    const merchantsRef = db.ref('merchants');
-    merchantsRef.once('value')
-        .then((snapshot) => {
-            const merchants = snapshot.val();
-            let merchantFound = false;
-
-            if (merchants) {
-                for (let key in merchants) {
-                    const merchant = merchants[key];
-                    
-                    // إذا كان التاجر مطابقًا للاسم المخزن
-                    if (merchant.name === selectedMerchantName) {
-                        merchantFound = true;
-                        
-                        // عرض بيانات التاجر
-                        displayMerchantDetails(merchant);
-                        
-                        if (merchant.location) {
-                            const coords = merchant.location.split(',').map(Number);
-                            if (coords.length === 2 && !coords.some(isNaN)) {
-                                currentMerchantCoords = coords;
-                                
-                                // إضافة علامة التاجر على الخريطة
-                                L.marker(coords)
-                                    .addTo(map)
-                                    .bindPopup(`
-                                        <strong>${merchant.name}</strong><br>
-                                        ${merchant.category || ''}
-                                    `)
-                                    .openPopup();
-                                
-                                // تكبير الخريطة ل显示 موقع التاجر
-                                map.setView(coords, 15);
-                                
-                                // محاولة الحصول على موقع المستخدم
-                                getUserLocation(coords);
-                            } else {
-                                // إذا لم تكن الإحداثيات صحيحة
-                                map.setView([24.7136, 46.6753], 10); // العودة إلى العرض الافتراضي
-                            }
-                        }
-                        
-                        break;
-                    }
-                }
-            }
+        // إشعار المنتج والتاجر
+        function showProductMerchantAlert(){
+            const alert = document.getElementById('productMerchantAlert');
+            document.getElementById('alertMerchantName').textContent = selectedMerchantName;
+            document.getElementById('alertProductName').textContent = globalProductName;
             
-            if (!merchantFound) {
-                merchantDetailsDiv.innerHTML = `
-                    <div style="text-align: center; padding: 40px 20px; color: var(--light-text);">
-                        <i class="fas fa-store-slash" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <h3>التاجر غير موجود</h3>
-                        <p>لم يتم العثور على بيانات للتاجر "${selectedMerchantName}"</p>
-                    </div>
-                `;
+            alert.style.display = 'block';
+            
+            // إخفاء الإشعار تلقائياً بعد 5 ثوانٍ
+            setTimeout(() => {
+                closeProductAlert();
+            }, 5000);
+        }
+
+        function closeProductAlert(){
+            const alert = document.getElementById('productMerchantAlert');
+            alert.style.animation = 'slideInLeft 0.5s ease-out reverse';
+            setTimeout(() => {
+                alert.style.display = 'none';
+                alert.style.animation = 'slideInLeft 0.5s ease-out';
+            }, 500);
+        }
+
+        // ====== دالة عرض تفاصيل التاجر (محسنة) ======
+        function displayMerchantDetails(merchant){
+            currentMerchantData = merchant;
+            const showDistanceField = hasValidPhoneNumber(merchant);
+
+            // محتوى الهاتف
+            let phoneContent = 'غير متوفر';
+            if(merchant.phone){
+                phoneContent = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>${merchant.phone}</span>
+                        <button class="action-btn call-btn" onclick="callNumber('${merchant.phone.replace(/'/g,'\'')}')">
+                            <i class="fas fa-phone"></i> اتصال
+                        </button>
+                    </div>`;
             }
-        })
-        .catch((error) => {
-            console.error("خطأ في جلب البيانات:", error);
+
+            // محتوى الجوال
+            let mobileContent = 'غير متوفر';
+            if(merchant.mobile){
+                mobileContent = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>${merchant.mobile}</span>
+                        <div class="action-buttons">
+                            <button class="action-btn call-btn" onclick="callNumber('${merchant.mobile.replace(/'/g,'\'')}')"><i class="fas fa-phone"></i></button>
+                            <button class="action-btn whatsapp-btn" id="openWhatsAppBtn"><i class="fab fa-whatsapp"></i></button>
+                            <button class="action-btn share-btn" id="shareLocationBtn"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </div>`;
+            } else {
+                // زر مشاركة الموقع حتى لو لم يكن هناك جوال (يرسل بدون رقم إذا لزم)
+                mobileContent = `<div style="display:flex;justify-content:space-between;align-items:center;"><span>غير متوفر</span>
+                    <div class="action-buttons">
+                        <button class="action-btn share-btn" id="shareLocationBtnSmall"><i class="fas fa-share-alt"></i> مشاركة</button>
+                    </div>
+                </div>`;
+            }
+
+            // توليد HTML
             merchantDetailsDiv.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: #dc3545;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px;"></i>
-                    <h3>خطأ في تحميل البيانات</h3>
-                    <p>تعذر تحميل بيانات التاجر. يرجى المحاولة مرة أخرى.</p>
+                <div class="merchant-header">
+                    <div class="merchant-avatar"><i class="fas fa-store"></i></div>
+                    <div class="merchant-info">
+                        <div class="merchant-name">${merchant.name || 'غير محدد'}</div>
+                        <div class="merchant-category">${merchant.category || 'لم يتم تحديد فئة'}</div>
+                        ${showDistanceField?`<div class="merchant-distance" id="distanceField"><i class="fas fa-road"></i> <span id="distanceValue">جاري حساب المسافة...</span></div>`:''}
+                    </div>
+                </div>
+
+                <div class="details-section">
+                    <div class="section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
+
+                    ${merchant.phone?`<div class="detail-item"><div class="detail-icon"><i class="fas fa-phone"></i></div><div class="detail-content"><div class="detail-label">رقم الهاتف</div><div class="detail-value">${phoneContent}</div></div></div>`:''}
+
+                    <div class="detail-item"><div class="detail-icon"><i class="fas fa-mobile-alt"></i></div><div class="detail-content"><div class="detail-label">رقم الجوال / واتساب</div><div class="detail-value">${mobileContent}</div></div></div>
+
+                    <div class="detail-item"><div class="detail-icon"><i class="fas fa-map-marker-alt"></i></div><div class="detail-content"><div class="detail-label">الموقع</div><div class="detail-value">${merchant.address || 'غير متوفر'}</div></div></div>
+
+                    <div class="action-buttons" style="margin-top:8px">
+                        <button class="action-btn secondary-btn" id="showProductsBtn"><i class="fas fa-box-open"></i> عرض منتجات التاجر</button>
+                        <button class="action-btn secondary-btn" id="editWhatsAppMsgBtn"><i class="fas fa-edit"></i> تعديل رسالة واتساب</button>
+                    </div>
+                </div>
+
+                <div class="details-section">
+                    <div class="section-title"><i class="fas fa-link"></i> الروابط والمواقع</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+                        ${merchant.googleSite?`<a class="social-link" href="${merchant.googleSite}" target="_blank" title="موقع جوجل"><i class="fas fa-globe"></i></a>`:''}
+                        ${merchant.youtubeSite?`<a class="social-link" href="${merchant.youtubeSite}" target="_blank" title="YouTube"><i class="fab fa-youtube"></i></a>`:''}
+                        ${merchant.telegramSite?`<a class="social-link" href="${merchant.telegramSite}" target="_blank" title="Telegram"><i class="fab fa-telegram"></i></a>`:''}
+                        ${merchant.twitterSite?`<a class="social-link" href="${merchant.twitterSite}" target="_blank" title="Twitter"><i class="fab fa-twitter"></i></a>`:''}
+                    </div>
+                </div>
+
+                <div class="details-section">
+                    <div class="section-title"><i class="fas fa-route"></i> اتجاهات الوصول</div>
+                    <div class="route-info" id="routeInfo">انقر على "احسب المسار" لعرض معلومات المسافة والوقت</div>
+                    <button class="back-button" id="calcRouteBtn" style="background:var(--accent-color); width:100%; justify-content:center; margin-top:10px;"><i class="fas fa-route"></i> احسب المسار</button>
                 </div>
             `;
+
+            // بعد إدراج HTML، أضف مستمعات للأزرار الديناميكية
+            const openWhatsBtn = document.getElementById('openWhatsAppBtn');
+            if(openWhatsBtn){ openWhatsBtn.addEventListener('click', ()=>{ openWhatsApp(merchant.mobile||merchant.phone); }); }
+
+            const shareBtn = document.getElementById('shareLocationBtn');
+            const shareBtnSmall = document.getElementById('shareLocationBtnSmall');
+            const finalShareBtn = shareBtn || shareBtnSmall;
+            if(finalShareBtn){ finalShareBtn.addEventListener('click', ()=>{ shareMerchantDetailsViaWhatsApp(merchant); }); }
+
+            document.getElementById('showProductsBtn').addEventListener('click', ()=>{ showProductsModal(merchant); });
+            document.getElementById('editWhatsAppMsgBtn').addEventListener('click', ()=>{ openEditWhatsAppModal(); });
+            document.getElementById('calcRouteBtn').addEventListener('click', ()=>{ calculateRoute(); });
+
+            // اختفاء لودر
+            const loader = document.getElementById('loadingBox'); if(loader) loader.style.display = 'none';
+
+            // إظهار إشعار صغير
+            showPageAlert(`التاجر: ${merchant.name || 'غير معروف'}`);
+            
+            // إظهار إشعار المنتج والتاجر
+            showProductMerchantAlert();
+        }
+
+        // ====== دوال الاتصال و واتساب ======
+        function callNumber(phoneNumber){ window.open(`tel:${phoneNumber}`,'_self'); }
+
+        function openWhatsApp(phoneNumber){
+            if(!phoneNumber){ alert('لا يوجد رقم للتواصل.'); return; }
+            let clean = phoneNumber.replace(/\D/g,'');
+            if(clean.startsWith('0') && clean.length===10) clean = '967' + clean.substring(1);
+            if(!clean.startsWith('967') && clean.length===9) clean = '967' + clean;
+            const msg = defaultWhatsAppMsg.replace('${globalProductName}', globalProductName);
+            const url = `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
+            window.open(url,'_blank');
+        }
+
+        // دالة مشاركة الموقع + تفاصيل + منتجات عبر واتساب
+        function shareMerchantDetailsViaWhatsApp(merchant){
+            // رابط الموقع
+            const mapLink = merchant.location? `https://www.google.com/maps?q=${merchant.location}` : 'الموقع غير متوفر';
+
+            // رقم
+            let phone = (merchant.mobile || merchant.phone || '').replace(/\D/g,'');
+            if(phone.startsWith('0') && phone.length===10) phone = '967' + phone.substring(1);
+            if(phone && !phone.startsWith('967') && phone.length===9) phone = '967' + phone;
+
+            // قائمة المنتجات
+            let productsText = '';
+            if(merchant.products){
+                productsText = '\n\n🛒 المنتجات:\n';
+                Object.values(merchant.products).forEach(p=>{ productsText += `- ${p.name || p.title || ''} ${p.price?(' - '+p.price):''}\n`; });
+            }
+
+            const msg = `📍 تفاصيل التاجر:\n👤 الاسم: ${merchant.name || 'غير متوفر'}\n📞 الهاتف: ${merchant.phone || 'غير متوفر'}\n📱 الجوال: ${merchant.mobile || 'غير متوفر'}\n🌍 الموقع: ${mapLink}${productsText}\n🔗 عبر تطبيق AZ`;
+
+            const encoded = encodeURIComponent(msg);
+
+            if(phone){
+                window.open(`https://wa.me/${phone}?text=${encoded}`,'_blank');
+            } else {
+                // افتح واجهة مشاركة واتساب بدون رقم
+                window.open(`https://wa.me/?text=${encoded}`,'_blank');
+            }
+        }
+
+        // نسخة احتياطية: نسخ الرسالة للحافظة
+        async function copyMerchantMessageToClipboard(merchant){
+            const mapLink = merchant.location? `https://www.google.com/maps?q=${merchant.location}` : 'الموقع غير متوفر';
+            let productsText = '';
+            if(merchant.products){ productsText = '\n\nالمنتجات:\n'; Object.values(merchant.products).forEach(p=>{ productsText += `- ${p.name || ''} ${p.price?(' - '+p.price):''}\n`; }); }
+            const msg = `التاجر: ${merchant.name || ''}\nالهاتف: ${merchant.phone || ''}\nالجوال: ${merchant.mobile || ''}\nالموقع: ${mapLink}${productsText}`;
+            try{ await navigator.clipboard.writeText(msg); alert('تم نسخ رسالة التاجر للحافظة'); }
+            catch(e){ alert('نسخ غير ممكن'); }
+        }
+
+        // ====== حساب المسار باستخدام Leaflet Routing أو تعويض بخط بسيط ======
+        function calculateRoute(){
+            if(userMarker && currentMerchantCoords){
+                if(currentRoute){ try{ map.removeControl(currentRoute); }catch(e){} }
+                currentRoute = L.Routing.control({
+                    waypoints: [ userMarker.getLatLng(), L.latLng(currentMerchantCoords[0], currentMerchantCoords[1]) ],
+                    lineOptions: { styles: [{ color: 'blue', weight: 5 }] },
+                    router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+                    addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: true, show: false
+                }).on('routesfound', function(e){
+                    const route = e.routes && e.routes[0];
+                    if(route){
+                        const distance = (route.summary.totalDistance/1000).toFixed(2);
+                        const duration = Math.ceil(route.summary.totalTime/60);
+                        document.getElementById('routeInfo').innerHTML = `<strong>المسافة:</strong> ${distance} كم<br><strong>الوقت:</strong> ${duration} دقيقة`;
+                    }
+                }).addTo(map);
+            } else {
+                alert('تعذر حساب المسار. تأكد من تفعيل موقعك أو وجود موقع التاجر.');
+            }
+        }
+
+        // ====== إظهار قائمة المنتجات (Modal) ======
+        function showProductsModal(merchant){
+            const box = document.getElementById('productsList'); box.innerHTML = '';
+            if(merchant.products){
+                Object.values(merchant.products).forEach(p=>{
+                    const el = document.createElement('div'); el.className='p-2 mb-2 border rounded';
+                    el.innerHTML = `<strong>${p.name||p.title||'بدون اسم'}</strong> ${p.price?('<span style="float:left">'+p.price+'</span>'):''}<div style=\"clear:both\"></div>`;
+                    box.appendChild(el);
+                });
+            } else { box.innerHTML = '<div class="text-muted">لا توجد منتجات</div>'; }
+            new bootstrap.Modal(document.getElementById('productsModal')).show();
+        }
+
+        // ====== تعديل رسالة واتساب وحفظها ======
+        function openEditWhatsAppModal(){
+            document.getElementById('whatsappMsgInput').value = localStorage.getItem('whatsappMsg') || defaultWhatsAppMsg;
+            new bootstrap.Modal(document.getElementById('whatsappMsgModal')).show();
+        }
+
+        document.getElementById('saveMsgBtn').addEventListener('click', ()=>{
+            const v = document.getElementById('whatsappMsgInput').value;
+            localStorage.setItem('whatsappMsg', v);
+            defaultWhatsAppMsg = v;
+            bootstrap.Modal.getInstance(document.getElementById('whatsappMsgModal')).hide();
+            alert('تم حفظ رسالة واتساب الجديدة');
         });
-}
 
-// الحصول على موقع المستخدم
-function getUserLocation(merchantCoords) {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                userCoords = [position.coords.latitude, position.coords.longitude];
-                userMarker = L.marker(userCoords).addTo(map)
-                    .bindPopup("موقعك الحالي")
-                    .openPopup();
-                
-                // إذا كان هناك موقع للتاجر، ضبط الخريطة ل显示 كلا الموقعين
-                if (merchantCoords) {
-                    const bounds = L.latLngBounds([userCoords, merchantCoords]);
-                    map.fitBounds(bounds, { padding: [50, 50] });
-                    
-                    // حساب المسافة بين الموقعين
-                    const distance = calculateDistance(
-                        userCoords[0], userCoords[1],
-                        merchantCoords[0], merchantCoords[1]
-                    );
-                    
-                    // عرض المسافة في قسم المسار
-                    document.getElementById('routeInfo').innerHTML += `<br><strong>المسافة المباشرة:</strong> ${distance} كم`;
+        // ====== الحصول على موقع المستخدم ======
+        function getUserLocationAndPlaceMarker(merchant){
+            if(navigator.geolocation){
+                navigator.geolocation.getCurrentPosition(pos=>{
+                    userCoords = [pos.coords.latitude, pos.coords.longitude];
+                    userMarker = L.marker(userCoords,{title:'موقعك'}).addTo(map).bindPopup('موقعك الحالي').openPopup();
+
+                    if(merchant && merchant.location){
+                        const dist = calculateDistance(userCoords[0],userCoords[1], currentMerchantCoords[0], currentMerchantCoords[1]);
+                        const routeInfo = document.getElementById('routeInfo');
+                        if(routeInfo) routeInfo.innerHTML += `<br><strong>المسافة المباشرة:</strong> ${dist} كم`;
+                        if(hasValidPhoneNumber(merchant)) updateDistanceField(dist);
+
+                        // ضبط الإطار لعرض كلا النقطتين
+                        try{ const bounds = L.latLngBounds([userCoords, currentMerchantCoords]); map.fitBounds(bounds, { padding:[50,50] }); }catch(e){}
+                    }
+                }, err=>{
+                    console.warn('gps err', err);
+                    if(hasValidPhoneNumber(merchant)) updateDistanceField('غير متوفر');
+                }, { timeout:10000 });
+            } else {
+                if(hasValidPhoneNumber(merchant)) updateDistanceField('غير متوفر');
+            }
+        }
+
+        // ====== دالة حساب المسافة (Haversine) ======
+        function calculateDistance(lat1, lon1, lat2, lon2){
+            const R = 6371; const dLat = (lat2-lat1)*Math.PI/180; const dLon = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return (R * c).toFixed(2);
+        }
+
+        // ====== تحميل بيانات التاجر من Firebase ======
+        function loadMerchantData(){
+            const merchantsRef = db.ref('merchants');
+            merchantsRef.once('value').then(snapshot=>{
+                const merchants = snapshot.val(); let merchantFound=false;
+                if(merchants){
+                    for(let key in merchants){
+                        const merchant = merchants[key];
+                        if(merchant.name === selectedMerchantName){
+                            merchantFound=true; displayMerchantDetails(merchant);
+
+                            if(merchant.location){
+                                const coords = merchant.location.split(',').map(Number);
+                                if(coords.length===2 && !coords.some(isNaN)){
+                                    currentMerchantCoords = coords;
+                                    L.marker(coords).addTo(map).bindPopup(`<strong>${merchant.name}</strong><br>${merchant.category||''}`).openPopup();
+                                    map.setView(coords, 15);
+
+                                    // ضع محاولة الحصول على موقع المستخدم
+                                    getUserLocationAndPlaceMarker(merchant);
+                                }
+                            }
+                            break;
+                        }
+                    }
                 }
-            },
-            (error) => {
-                console.warn('تعذر الحصول على موقع المستخدم:', error);
-                // الاستمرار حتى لو فشل الحصول على موقع المستخدم
-            },
-            { timeout: 10000 }
-        );
-    }
-}
+                if(!merchantFound){
+                    merchantDetailsDiv.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--light-text)"><i class="fas fa-store-slash fa-2x"></i><h3>التاجر غير موجود</h3><p>لم يتم العثور على بيانات للتاجر "${selectedMerchantName}"</p></div>`;
+                    const loader = document.getElementById('loadingBox'); if(loader) loader.style.display = 'none';
+                }
+            }).catch(err=>{
+                console.error('خطأ في جلب البيانات:', err);
+                merchantDetailsDiv.innerHTML = `<div style="text-align:center;padding:40px 20px;color:#dc3545"><i class="fas fa-exclamation-triangle fa-2x"></i><h3>خطأ في تحميل البيانات</h3><p>تعذر تحميل بيانات التاجر. يرجى المحاولة مرة أخرى.</p></div>`;
+            });
+        }
 
-// بدء تحميل بيانات التاجر عند تحميل الصفحة
-document.addEventListener('DOMContentLoaded', function() {
-    loadMerchantData();
-});
-</script>
+        // بدء
+        window.addEventListener('DOMContentLoaded', ()=>{ loadMerchantData(); });
+    </script>
 </body>
-</html>
+    </html>
