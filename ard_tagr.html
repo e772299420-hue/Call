@@ -137,13 +137,66 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
+        /* إشعار جديد - يظهر عند فتح الصفحة */
+        #welcomeAlert {
+            position: fixed;
+            top: 70px;
+            right: 12px;
+            z-index: 1200;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            max-width: 350px;
+            animation: slideInRight 0.5s ease-out;
+            border-right: 4px solid #ffd700;
+        }
+
+        #welcomeAlert .welcome-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+        }
+
+        #welcomeAlert .welcome-content {
+            font-size: 14px;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        #welcomeAlert .welcome-close {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
         /* Responsive */
         @media(max-width:900px){ 
             #container{ flex-direction:column } 
             #merchant-details{ width:100%; max-width:100%; height:40vh } 
             #map{ height:56vh } 
             #mapType{ top:58px } 
-            #productMerchantAlert {
+            #productMerchantAlert, #welcomeAlert {
                 max-width: 90%;
                 left: 5%;
                 right: 5%;
@@ -175,6 +228,21 @@
         <div class="alert-content">
             <div><strong>التاجر:</strong> <span id="alertMerchantName">...</span></div>
             <div><strong>المنتج:</strong> <span id="alertProductName">...</span></div>
+        </div>
+    </div>
+
+    <!-- إشعار ترحيبي جديد يظهر عند فتح الصفحة -->
+    <div id="welcomeAlert" style="display: none;">
+        <button class="welcome-close" onclick="closeWelcomeAlert()"><i class="fas fa-times"></i></button>
+        <div class="welcome-title">
+            <i class="fas fa-store"></i> مرحباً بك في صفحة التاجر
+        </div>
+        <div class="welcome-content">
+            <div>✅ <strong>التاجر:</strong> <span id="welcomeMerchantName">...</span></div>
+            <div>🛒 <strong>المنتج المحدد:</strong> <span id="welcomeProductName">...</span></div>
+            <div style="margin-top: 8px; font-size: 12px; opacity: 0.8;">
+                <i class="fas fa-info-circle"></i> يمكنك التواصل مع التاجر مباشرة من هنا
+            </div>
         </div>
     </div>
 
@@ -244,13 +312,15 @@
         // ====== إعداد المتغيرات الأساسية ======
         function goBack(){ window.history.back(); }
         
+        // الحصول على البيانات من localStorage أو استخدام القيم الافتراضية
         const selectedMerchantName = localStorage.getItem("selectedMerchant") || "التاجر";
+        const globalProductName = localStorage.getItem("selectedProductName") || "المنتج";
+        
         document.getElementById('globalMerchantName').textContent = selectedMerchantName;
         
-        const globalProductName = localStorage.getItem("globalProductName") || "المنتج";
         let defaultWhatsAppMsg = localStorage.getItem('whatsappMsg') || `مرحباً، أنا مهتم بـ ${globalProductName} من تطبيق AZ.`;
 
-        // ====== تهيئة Firebase (خذ الإعدادات من الكود الأصلي) ======
+        // ====== تهيئة Firebase ======
         const firebaseConfig = {
             apiKey: "AIzaSyCZPqfq2Q6edvLkMogu1jR6RgLkLf-gQk0",
             authDomain: "chat-fat-free-default-rtdb.firebaseapp.com",
@@ -332,6 +402,29 @@
             setTimeout(() => {
                 alert.style.display = 'none';
                 alert.style.animation = 'slideInLeft 0.5s ease-out';
+            }, 500);
+        }
+
+        // ====== إشعار ترحيبي جديد يظهر عند فتح الصفحة ======
+        function showWelcomeAlert() {
+            const welcomeAlert = document.getElementById('welcomeAlert');
+            document.getElementById('welcomeMerchantName').textContent = selectedMerchantName;
+            document.getElementById('welcomeProductName').textContent = globalProductName;
+            
+            welcomeAlert.style.display = 'block';
+            
+            // إخفاء تلقائي بعد 7 ثوانٍ
+            setTimeout(() => {
+                closeWelcomeAlert();
+            }, 7000);
+        }
+
+        function closeWelcomeAlert() {
+            const welcomeAlert = document.getElementById('welcomeAlert');
+            welcomeAlert.style.animation = 'slideInRight 0.5s ease-out reverse';
+            setTimeout(() => {
+                welcomeAlert.style.display = 'none';
+                welcomeAlert.style.animation = 'slideInRight 0.5s ease-out';
             }, 500);
         }
 
@@ -437,6 +530,9 @@
             
             // إظهار إشعار المنتج والتاجر
             showProductMerchantAlert();
+            
+            // إظهار الإشعار الترحيبي الجديد
+            showWelcomeAlert();
         }
 
         // ====== دوال الاتصال و واتساب ======
@@ -479,16 +575,6 @@
                 // افتح واجهة مشاركة واتساب بدون رقم
                 window.open(`https://wa.me/?text=${encoded}`,'_blank');
             }
-        }
-
-        // نسخة احتياطية: نسخ الرسالة للحافظة
-        async function copyMerchantMessageToClipboard(merchant){
-            const mapLink = merchant.location? `https://www.google.com/maps?q=${merchant.location}` : 'الموقع غير متوفر';
-            let productsText = '';
-            if(merchant.products){ productsText = '\n\nالمنتجات:\n'; Object.values(merchant.products).forEach(p=>{ productsText += `- ${p.name || ''} ${p.price?(' - '+p.price):''}\n`; }); }
-            const msg = `التاجر: ${merchant.name || ''}\nالهاتف: ${merchant.phone || ''}\nالجوال: ${merchant.mobile || ''}\nالموقع: ${mapLink}${productsText}`;
-            try{ await navigator.clipboard.writeText(msg); alert('تم نسخ رسالة التاجر للحافظة'); }
-            catch(e){ alert('نسخ غير ممكن'); }
         }
 
         // ====== حساب المسار باستخدام Leaflet Routing أو تعويض بخط بسيط ======
@@ -609,8 +695,10 @@
             });
         }
 
-        // بدء
-        window.addEventListener('DOMContentLoaded', ()=>{ loadMerchantData(); });
+        // بدء التطبيق عند تحميل الصفحة
+        window.addEventListener('DOMContentLoaded', ()=>{ 
+            loadMerchantData(); 
+        });
     </script>
 </body>
-    </html>
+</html>
