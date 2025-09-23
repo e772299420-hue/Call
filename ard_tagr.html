@@ -228,7 +228,6 @@
         <div class="alert-content">
             <div><strong>التاجر:</strong> <span id="alertMerchantName">...</span></div>
             <div><strong>المنتج:</strong> <span id="alertProductName">...</span></div>
-            <div><strong>معرف المنتج:</strong> <span id="alertProductId">...</span></div>
         </div>
     </div>
 
@@ -241,7 +240,6 @@
         <div class="welcome-content">
             <div>✅ <strong>التاجر:</strong> <span id="welcomeMerchantName">...</span></div>
             <div>🛒 <strong>المنتج المحدد:</strong> <span id="welcomeProductName">...</span></div>
-            <div>🔢 <strong>معرف المنتج:</strong> <span id="welcomeProductId">...</span></div>
             <div style="margin-top: 8px; font-size: 12px; opacity: 0.8;">
                 <i class="fas fa-info-circle"></i> يمكنك التواصل مع التاجر مباشرة من هنا
             </div>
@@ -317,7 +315,6 @@
         // الحصول على البيانات من localStorage أو استخدام القيم الافتراضية
         const selectedMerchantName = localStorage.getItem("selectedMerchant") || "التاجر";
         const globalProductName = localStorage.getItem("selectedProductName") || "المنتج";
-        const productId = localStorage.getItem("selectedProductId") || "غير محدد";
         
         document.getElementById('globalMerchantName').textContent = selectedMerchantName;
         
@@ -390,7 +387,6 @@
             const alert = document.getElementById('productMerchantAlert');
             document.getElementById('alertMerchantName').textContent = selectedMerchantName;
             document.getElementById('alertProductName').textContent = globalProductName;
-            document.getElementById('alertProductId').textContent = productId;
             
             alert.style.display = 'block';
             
@@ -414,7 +410,6 @@
             const welcomeAlert = document.getElementById('welcomeAlert');
             document.getElementById('welcomeMerchantName').textContent = selectedMerchantName;
             document.getElementById('welcomeProductName').textContent = globalProductName;
-            document.getElementById('welcomeProductId').textContent = productId;
             
             welcomeAlert.style.display = 'block';
             
@@ -582,16 +577,6 @@
             }
         }
 
-        // نسخة احتياطية: نسخ الرسالة للحافظة
-        async function copyMerchantMessageToClipboard(merchant){
-            const mapLink = merchant.location? `https://www.google.com/maps?q=${merchant.location}` : 'الموقع غير متوفر';
-            let productsText = '';
-            if(merchant.products){ productsText = '\n\nالمنتجات:\n'; Object.values(merchant.products).forEach(p=>{ productsText += `- ${p.name || ''} ${p.price?(' - '+p.price):''}\n`; }); }
-            const msg = `التاجر: ${merchant.name || ''}\nالهاتف: ${merchant.phone || ''}\nالجوال: ${merchant.mobile || ''}\nالموقع: ${mapLink}${productsText}`;
-            try{ await navigator.clipboard.writeText(msg); alert('تم نسخ رسالة التاجر للحافظة'); }
-            catch(e){ alert('نسخ غير ممكن'); }
-        }
-
         // ====== حساب المسار باستخدام Leaflet Routing أو تعويض بخط بسيط ======
         function calculateRoute(){
             if(userMarker && currentMerchantCoords){
@@ -710,8 +695,10 @@
             });
         }
 
-        // بدء
-        window.addEventListener('DOMContentLoaded', ()=>{ loadMerchantData(); });
+        // بدء التطبيق عند تحميل الصفحة
+        window.addEventListener('DOMContentLoaded', ()=>{ 
+            loadMerchantData(); 
+        });
     </script>
 </body>
 </html>
