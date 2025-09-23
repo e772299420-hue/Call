@@ -202,6 +202,15 @@
                 right: 5%;
             }
         }
+
+        .product-info-badge {
+            background: var(--accent-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
@@ -228,6 +237,7 @@
         <div class="alert-content">
             <div><strong>التاجر:</strong> <span id="alertMerchantName">...</span></div>
             <div><strong>المنتج:</strong> <span id="alertProductName">...</span></div>
+            <div><strong>معرف المنتج:</strong> <span id="alertProductId" class="product-info-badge">...</span></div>
         </div>
     </div>
 
@@ -240,6 +250,7 @@
         <div class="welcome-content">
             <div>✅ <strong>التاجر:</strong> <span id="welcomeMerchantName">...</span></div>
             <div>🛒 <strong>المنتج المحدد:</strong> <span id="welcomeProductName">...</span></div>
+            <div>🔢 <strong>معرف المنتج:</strong> <span id="welcomeProductId" class="product-info-badge">...</span></div>
             <div style="margin-top: 8px; font-size: 12px; opacity: 0.8;">
                 <i class="fas fa-info-circle"></i> يمكنك التواصل مع التاجر مباشرة من هنا
             </div>
@@ -279,7 +290,12 @@
                 </div>
                 <div class="modal-body">
                     <textarea id="whatsappMsgInput" class="form-control" rows="5"></textarea>
-                    <div class="form-text mt-2">استخدم ${'{'}globalProductName{'}'} لإظهار اسم المنتج داخل الرسالة.</div>
+                    <div class="form-text mt-2">
+                        المتغيرات المتاحة:<br>
+                        <code>${'{'}productId{'}'}</code> - معرف المنتج<br>
+                        <code>${'{'}productName{'}'}</code> - اسم المنتج<br>
+                        <code>${'{'}merchantName{'}'}</code> - اسم التاجر
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button id="saveMsgBtn" class="btn btn-primary">حفظ</button>
@@ -312,13 +328,19 @@
         // ====== إعداد المتغيرات الأساسية ======
         function goBack(){ window.history.back(); }
         
-        // الحصول على البيانات من localStorage أو استخدام القيم الافتراضية
+        // الحصول على البيانات من URL parameters و localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('productId') || localStorage.getItem("selectedProductId") || "غير محدد";
         const selectedMerchantName = localStorage.getItem("selectedMerchant") || "التاجر";
-        const globalProductName = localStorage.getItem("selectedProductName") || "المنتج";
         
+        // الحصول على تفاصيل المنتج من Firebase باستخدام productId
+        let globalProductName = "جاري تحميل اسم المنتج...";
+        let globalProductDetails = null;
+
         document.getElementById('globalMerchantName').textContent = selectedMerchantName;
         
-        let defaultWhatsAppMsg = localStorage.getItem('whatsappMsg') || `مرحباً، أنا مهتم بـ ${globalProductName} من تطبيق AZ.`;
+        let defaultWhatsAppMsg = localStorage.getItem('whatsappMsg') || 
+            `مرحباً، أنا مهتم بالمنتج ${'{'}productId{'}'} - ${'{'}productName{'}'} من التاجر ${'{'}merchantName{'}'} من تطبيق AZ.`;
 
         // ====== تهيئة Firebase ======
         const firebaseConfig = {
@@ -387,6 +409,7 @@
             const alert = document.getElementById('productMerchantAlert');
             document.getElementById('alertMerchantName').textContent = selectedMerchantName;
             document.getElementById('alertProductName').textContent = globalProductName;
+            document.getElementById('alertProductId').textContent = productId;
             
             alert.style.display = 'block';
             
@@ -410,6 +433,7 @@
             const welcomeAlert = document.getElementById('welcomeAlert');
             document.getElementById('welcomeMerchantName').textContent = selectedMerchantName;
             document.getElementById('welcomeProductName').textContent = globalProductName;
+            document.getElementById('welcomeProductId').textContent = productId;
             
             welcomeAlert.style.display = 'block';
             
@@ -426,6 +450,34 @@
                 welcomeAlert.style.display = 'none';
                 welcomeAlert.style.animation = 'slideInRight 0.5s ease-out';
             }, 500);
+        }
+
+        // ====== دالة تحميل بيانات المنتج باستخدام productId ======
+        function loadProductDetails() {
+            if (productId && productId !== "غير محدد") {
+                db.ref('products/' + productId).once('value').then(snapshot => {
+                    const productData = snapshot.val();
+                    if (productData) {
+                        globalProductDetails = productData;
+                        globalProductName = productData.name || "منتج بدون اسم";
+                        
+                        // تحديث الإشعارات بعد تحميل اسم المنتج
+                        updateAlertsWithProductInfo();
+                    }
+                }).catch(error => {
+                    console.error('خطأ في تحميل بيانات المنتج:', error);
+                });
+            }
+        }
+
+        function updateAlertsWithProductInfo() {
+            // تحديث الإشعارات إذا كانت معروضة
+            if (document.getElementById('alertProductName').textContent === "جاري تحميل اسم المنتج...") {
+                document.getElementById('alertProductName').textContent = globalProductName;
+            }
+            if (document.getElementById('welcomeProductName').textContent === "جاري تحميل اسم المنتج...") {
+                document.getElementById('welcomeProductName').textContent = globalProductName;
+            }
         }
 
         // ====== دالة عرض تفاصيل التاجر (محسنة) ======
@@ -453,17 +505,38 @@
                         <span>${merchant.mobile}</span>
                         <div class="action-buttons">
                             <button class="action-btn call-btn" onclick="callNumber('${merchant.mobile.replace(/'/g,'\'')}')"><i class="fas fa-phone"></i></button>
-                            <button class="action-btn whatsapp-btn" id="openWhatsAppBtn"><i class="fab fa-whatsapp"></i></button>
-                            <button class="action-btn share-btn" id="shareLocationBtn"><i class="fas fa-share-alt"></i></button>
+                            <button class="action-btn whatsapp-btn" onclick="openWhatsApp('${merchant.mobile.replace(/'/g,'\'')}')"><i class="fab fa-whatsapp"></i></button>
+                            <button class="action-btn share-btn" onclick="shareMerchantDetailsViaWhatsApp('${merchant.id || merchant.name}')"><i class="fas fa-share-alt"></i></button>
                         </div>
                     </div>`;
             } else {
-                // زر مشاركة الموقع حتى لو لم يكن هناك جوال (يرسل بدون رقم إذا لزم)
                 mobileContent = `<div style="display:flex;justify-content:space-between;align-items:center;"><span>غير متوفر</span>
                     <div class="action-buttons">
-                        <button class="action-btn share-btn" id="shareLocationBtnSmall"><i class="fas fa-share-alt"></i> مشاركة</button>
+                        <button class="action-btn share-btn" onclick="shareMerchantDetailsViaWhatsApp('${merchant.id || merchant.name}')"><i class="fas fa-share-alt"></i> مشاركة</button>
                     </div>
                 </div>`;
+            }
+
+            // معلومات المنتج إذا كان متوفراً
+            let productInfo = '';
+            if (productId && productId !== "غير محدد") {
+                productInfo = `
+                    <div class="detail-item">
+                        <div class="detail-icon"><i class="fas fa-cube"></i></div>
+                        <div class="detail-content">
+                            <div class="detail-label">المنتج المحدد</div>
+                            <div class="detail-value">
+                                <strong>${globalProductName}</strong>
+                                <span class="product-info-badge">ID: ${productId}</span>
+                                <div class="action-buttons" style="margin-top:8px">
+                                    <button class="action-btn secondary-btn" onclick="shareProductLink()">
+                                        <i class="fas fa-link"></i> مشاركة رابط المنتج
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
 
             // توليد HTML
@@ -480,6 +553,8 @@
                 <div class="details-section">
                     <div class="section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
 
+                    ${productInfo}
+
                     ${merchant.phone?`<div class="detail-item"><div class="detail-icon"><i class="fas fa-phone"></i></div><div class="detail-content"><div class="detail-label">رقم الهاتف</div><div class="detail-value">${phoneContent}</div></div></div>`:''}
 
                     <div class="detail-item"><div class="detail-icon"><i class="fas fa-mobile-alt"></i></div><div class="detail-content"><div class="detail-label">رقم الجوال / واتساب</div><div class="detail-value">${mobileContent}</div></div></div>
@@ -487,8 +562,8 @@
                     <div class="detail-item"><div class="detail-icon"><i class="fas fa-map-marker-alt"></i></div><div class="detail-content"><div class="detail-label">الموقع</div><div class="detail-value">${merchant.address || 'غير متوفر'}</div></div></div>
 
                     <div class="action-buttons" style="margin-top:8px">
-                        <button class="action-btn secondary-btn" id="showProductsBtn"><i class="fas fa-box-open"></i> عرض منتجات التاجر</button>
-                        <button class="action-btn secondary-btn" id="editWhatsAppMsgBtn"><i class="fas fa-edit"></i> تعديل رسالة واتساب</button>
+                        <button class="action-btn secondary-btn" onclick="showProductsModal(currentMerchantData)"><i class="fas fa-box-open"></i> عرض منتجات التاجر</button>
+                        <button class="action-btn secondary-btn" onclick="openEditWhatsAppModal()"><i class="fas fa-edit"></i> تعديل رسالة واتساب</button>
                     </div>
                 </div>
 
@@ -505,22 +580,9 @@
                 <div class="details-section">
                     <div class="section-title"><i class="fas fa-route"></i> اتجاهات الوصول</div>
                     <div class="route-info" id="routeInfo">انقر على "احسب المسار" لعرض معلومات المسافة والوقت</div>
-                    <button class="back-button" id="calcRouteBtn" style="background:var(--accent-color); width:100%; justify-content:center; margin-top:10px;"><i class="fas fa-route"></i> احسب المسار</button>
+                    <button class="back-button" onclick="calculateRoute()" style="background:var(--accent-color); width:100%; justify-content:center; margin-top:10px;"><i class="fas fa-route"></i> احسب المسار</button>
                 </div>
             `;
-
-            // بعد إدراج HTML، أضف مستمعات للأزرار الديناميكية
-            const openWhatsBtn = document.getElementById('openWhatsAppBtn');
-            if(openWhatsBtn){ openWhatsBtn.addEventListener('click', ()=>{ openWhatsApp(merchant.mobile||merchant.phone); }); }
-
-            const shareBtn = document.getElementById('shareLocationBtn');
-            const shareBtnSmall = document.getElementById('shareLocationBtnSmall');
-            const finalShareBtn = shareBtn || shareBtnSmall;
-            if(finalShareBtn){ finalShareBtn.addEventListener('click', ()=>{ shareMerchantDetailsViaWhatsApp(merchant); }); }
-
-            document.getElementById('showProductsBtn').addEventListener('click', ()=>{ showProductsModal(merchant); });
-            document.getElementById('editWhatsAppMsgBtn').addEventListener('click', ()=>{ openEditWhatsAppModal(); });
-            document.getElementById('calcRouteBtn').addEventListener('click', ()=>{ calculateRoute(); });
 
             // اختفاء لودر
             const loader = document.getElementById('loadingBox'); if(loader) loader.style.display = 'none';
@@ -543,41 +605,63 @@
             let clean = phoneNumber.replace(/\D/g,'');
             if(clean.startsWith('0') && clean.length===10) clean = '967' + clean.substring(1);
             if(!clean.startsWith('967') && clean.length===9) clean = '967' + clean;
-            const msg = defaultWhatsAppMsg.replace('${globalProductName}', globalProductName);
+            
+            // استخدام القالب مع المتغيرات
+            const msg = defaultWhatsAppMsg
+                .replace(/\{productId\}/g, productId)
+                .replace(/\{productName\}/g, globalProductName)
+                .replace(/\{merchantName\}/g, selectedMerchantName);
+                
             const url = `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
             window.open(url,'_blank');
         }
 
         // دالة مشاركة الموقع + تفاصيل + منتجات عبر واتساب
-        function shareMerchantDetailsViaWhatsApp(merchant){
-            // رابط الموقع
-            const mapLink = merchant.location? `https://www.google.com/maps?q=${merchant.location}` : 'الموقع غير متوفر';
+        function shareMerchantDetailsViaWhatsApp(merchantId){
+            const merchant = currentMerchantData;
+            if (!merchant) return;
 
-            // رقم
+            const mapLink = merchant.location? `https://www.google.com/maps?q=${merchant.location}` : 'الموقع غير متوفر';
             let phone = (merchant.mobile || merchant.phone || '').replace(/\D/g,'');
             if(phone.startsWith('0') && phone.length===10) phone = '967' + phone.substring(1);
             if(phone && !phone.startsWith('967') && phone.length===9) phone = '967' + phone;
 
-            // قائمة المنتجات
-            let productsText = '';
-            if(merchant.products){
-                productsText = '\n\n🛒 المنتجات:\n';
-                Object.values(merchant.products).forEach(p=>{ productsText += `- ${p.name || p.title || ''} ${p.price?(' - '+p.price):''}\n`; });
-            }
+            // رابط المنتج المحدد
+            const productLink = productId && productId !== "غير محدد" ? 
+                `${window.location.origin}${window.location.pathname}?productId=${productId}` : '';
 
-            const msg = `📍 تفاصيل التاجر:\n👤 الاسم: ${merchant.name || 'غير متوفر'}\n📞 الهاتف: ${merchant.phone || 'غير متوفر'}\n📱 الجوال: ${merchant.mobile || 'غير متوفر'}\n🌍 الموقع: ${mapLink}${productsText}\n🔗 عبر تطبيق AZ`;
+            const msg = `📍 تفاصيل التاجر:\n👤 الاسم: ${merchant.name || 'غير متوفر'}\n📞 الهاتف: ${merchant.phone || 'غير متوفر'}\n📱 الجوال: ${merchant.mobile || 'غير متوفر'}\n🌍 الموقع: ${mapLink}\n🛒 المنتج: ${globalProductName}\n🔗 رابط المنتج: ${productLink}\n\n🔗 عبر تطبيق AZ`;
 
             const encoded = encodeURIComponent(msg);
 
             if(phone){
                 window.open(`https://wa.me/${phone}?text=${encoded}`,'_blank');
             } else {
-                // افتح واجهة مشاركة واتساب بدون رقم
                 window.open(`https://wa.me/?text=${encoded}`,'_blank');
             }
         }
 
-        // ====== حساب المسار باستخدام Leaflet Routing أو تعويض بخط بسيط ======
+        // مشاركة رابط المنتج مباشرة
+        function shareProductLink() {
+            if (productId && productId !== "غير محدد") {
+                const productLink = `${window.location.origin}${window.location.pathname}?productId=${productId}`;
+                const shareText = `🛒 ${globalProductName}\n👤 ${selectedMerchantName}\n🔗 ${productLink}\n\nمتجر AZ السوق الشامل`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: `AZ - ${globalProductName}`,
+                        text: shareText,
+                        url: productLink
+                    });
+                } else {
+                    navigator.clipboard.writeText(shareText)
+                        .then(() => alert('تم نسخ رابط المنتج إلى الحافظة'))
+                        .catch(() => prompt('يرجى نسخ النص التالي:', shareText));
+                }
+            }
+        }
+
+        // ====== حساب المسار ======
         function calculateRoute(){
             if(userMarker && currentMerchantCoords){
                 if(currentRoute){ try{ map.removeControl(currentRoute); }catch(e){} }
@@ -639,7 +723,6 @@
                         if(routeInfo) routeInfo.innerHTML += `<br><strong>المسافة المباشرة:</strong> ${dist} كم`;
                         if(hasValidPhoneNumber(merchant)) updateDistanceField(dist);
 
-                        // ضبط الإطار لعرض كلا النقطتين
                         try{ const bounds = L.latLngBounds([userCoords, currentMerchantCoords]); map.fitBounds(bounds, { padding:[50,50] }); }catch(e){}
                     }
                 }, err=>{
@@ -668,7 +751,12 @@
                     for(let key in merchants){
                         const merchant = merchants[key];
                         if(merchant.name === selectedMerchantName){
-                            merchantFound=true; displayMerchantDetails(merchant);
+                            merchantFound=true; 
+                            
+                            // تحميل بيانات المنتج أولاً
+                            loadProductDetails().then(() => {
+                                displayMerchantDetails(merchant);
+                            });
 
                             if(merchant.location){
                                 const coords = merchant.location.split(',').map(Number);
@@ -676,8 +764,6 @@
                                     currentMerchantCoords = coords;
                                     L.marker(coords).addTo(map).bindPopup(`<strong>${merchant.name}</strong><br>${merchant.category||''}`).openPopup();
                                     map.setView(coords, 15);
-
-                                    // ضع محاولة الحصول على موقع المستخدم
                                     getUserLocationAndPlaceMarker(merchant);
                                 }
                             }
