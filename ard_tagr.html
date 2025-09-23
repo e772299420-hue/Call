@@ -252,6 +252,39 @@
             animation: spin 1s linear infinite;
         }
         
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .action-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+        
+        .call-btn {
+            background: var(--accent-color);
+            color: white;
+        }
+        
+        .whatsapp-btn {
+            background: #25D366;
+            color: white;
+        }
+        
+        .action-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
@@ -326,6 +359,9 @@ function goBack() {
 const selectedMerchantName = localStorage.getItem("selectedMerchant") || "التاجر";
 document.getElementById("globalMerchantName").textContent = selectedMerchantName;
 
+// الحصول على اسم المنتج من localStorage
+const globalProductName = localStorage.getItem("globalProductName") || "المنتج";
+
 // تهيئة Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyCZPqfq2Q6edvLkMogu1jR6RgLkLf-gQk0",
@@ -385,9 +421,41 @@ const merchantDetailsDiv = document.getElementById('merchant-details');
 let currentRoute = null;
 let userMarker = null;
 let currentMerchantCoords = null;
+let userCoords = null;
 
 // دالة لعرض بيانات التاجر
 function displayMerchantDetails(merchant) {
+    // إعداد محتوى الهاتف
+    let phoneContent = 'غير متوفر';
+    if (merchant.phone) {
+        phoneContent = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>${merchant.phone}</span>
+                <button class="action-btn call-btn" onclick="callNumber('${merchant.phone}')">
+                    <i class="fas fa-phone"></i> اتصال
+                </button>
+            </div>
+        `;
+    }
+
+    // إعداد محتوى الجوال
+    let mobileContent = 'غير متوفر';
+    if (merchant.mobile) {
+        mobileContent = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>${merchant.mobile}</span>
+                <div class="action-buttons">
+                    <button class="action-btn call-btn" onclick="callNumber('${merchant.mobile}')">
+                        <i class="fas fa-phone"></i>
+                    </button>
+                    <button class="action-btn whatsapp-btn" onclick="openWhatsApp('${merchant.mobile}')">
+                        <i class="fab fa-whatsapp"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
     merchantDetailsDiv.innerHTML = `
         <div class="merchant-header">
             <div class="merchant-avatar">
@@ -405,15 +473,17 @@ function displayMerchantDetails(merchant) {
                 المعلومات الأساسية
             </div>
             
+            ${merchant.phone ? `
             <div class="detail-item">
                 <div class="detail-icon">
                     <i class="fas fa-phone"></i>
                 </div>
                 <div class="detail-content">
                     <div class="detail-label">رقم الهاتف</div>
-                    <div class="detail-value">${merchant.phone || 'غير متوفر'}</div>
+                    <div class="detail-value">${phoneContent}</div>
                 </div>
             </div>
+            ` : ''}
             
             <div class="detail-item">
                 <div class="detail-icon">
@@ -421,7 +491,7 @@ function displayMerchantDetails(merchant) {
                 </div>
                 <div class="detail-content">
                     <div class="detail-label">رقم الجوال / الواتساب</div>
-                    <div class="detail-value">${merchant.mobile || 'غير متوفر'}</div>
+                    <div class="detail-value">${mobileContent}</div>
                 </div>
             </div>
             
@@ -442,6 +512,7 @@ function displayMerchantDetails(merchant) {
                 الروابط والمواقع
             </div>
             
+            ${merchant.googleSite ? `
             <div class="detail-item">
                 <div class="detail-icon">
                     <i class="fas fa-globe"></i>
@@ -449,11 +520,18 @@ function displayMerchantDetails(merchant) {
                 <div class="detail-content">
                     <div class="detail-label">موقع جوجل</div>
                     <div class="detail-value">
-                        ${merchant.googleSite ? `<a href="${merchant.googleSite}" target="_blank">${merchant.googleSite}</a>` : 'غير متوفر'}
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>${merchant.googleSite}</span>
+                            <button class="action-btn call-btn" onclick="openLink('${merchant.googleSite}')">
+                                <i class="fas fa-external-link-alt"></i> فتح
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+            ` : ''}
             
+            ${merchant.youtubeSite ? `
             <div class="detail-item">
                 <div class="detail-icon">
                     <i class="fab fa-youtube"></i>
@@ -461,11 +539,18 @@ function displayMerchantDetails(merchant) {
                 <div class="detail-content">
                     <div class="detail-label">موقع يوتيوب</div>
                     <div class="detail-value">
-                        ${merchant.youtubeSite ? `<a href="${merchant.youtubeSite}" target="_blank">${merchant.youtubeSite}</a>` : 'غير متوفر'}
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>${merchant.youtubeSite}</span>
+                            <button class="action-btn call-btn" onclick="openLink('${merchant.youtubeSite}')">
+                                <i class="fas fa-external-link-alt"></i> فتح
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+            ` : ''}
             
+            ${merchant.telegramSite ? `
             <div class="detail-item">
                 <div class="detail-icon">
                     <i class="fab fa-telegram"></i>
@@ -473,11 +558,18 @@ function displayMerchantDetails(merchant) {
                 <div class="detail-content">
                     <div class="detail-label">موقع تلجرام</div>
                     <div class="detail-value">
-                        ${merchant.telegramSite ? `<a href="${merchant.telegramSite}" target="_blank">${merchant.telegramSite}</a>` : 'غير متوفر'}
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>${merchant.telegramSite}</span>
+                            <button class="action-btn call-btn" onclick="openLink('${merchant.telegramSite}')">
+                                <i class="fas fa-external-link-alt"></i> فتح
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+            ` : ''}
             
+            ${merchant.twitterSite ? `
             <div class="detail-item">
                 <div class="detail-icon">
                     <i class="fab fa-twitter"></i>
@@ -485,10 +577,16 @@ function displayMerchantDetails(merchant) {
                 <div class="detail-content">
                     <div class="detail-label">موقع تويتر</div>
                     <div class="detail-value">
-                        ${merchant.twitterSite ? `<a href="${merchant.twitterSite}" target="_blank">${merchant.twitterSite}</a>` : 'غير متوفر'}
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>${merchant.twitterSite}</span>
+                            <button class="action-btn call-btn" onclick="openLink('${merchant.twitterSite}')">
+                                <i class="fas fa-external-link-alt"></i> فتح
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+            ` : ''}
             
             <div class="detail-item">
                 <div class="detail-icon">
@@ -519,6 +617,42 @@ function displayMerchantDetails(merchant) {
             </button>
         </div>
     `;
+}
+
+// دالة للاتصال برقم
+function callNumber(phoneNumber) {
+    window.open(`tel:${phoneNumber}`, '_self');
+}
+
+// دالة لفتح الرابط في متصفح جديد
+function openLink(url) {
+    window.open(url, '_blank');
+}
+
+// دالة لفتح واتساب
+function openWhatsApp(phoneNumber) {
+    // تنظيف الرقم من أي أحرف غير رقمية
+    const cleanNumber = phoneNumber.replace(/\D/g, '');
+    
+    // إضافة مفتاح الدولة السعودي إذا لم يكن موجوداً (افتراضي)
+    let whatsappNumber = cleanNumber;
+    if (!whatsappNumber.startsWith('966') && whatsappNumber.length === 9) {
+        whatsappNumber = '966' + whatsappNumber;
+    } else if (whatsappNumber.startsWith('0') && whatsappNumber.length === 10) {
+        whatsappNumber = '966' + whatsappNumber.substring(1);
+    }
+    
+    // نص الرسالة
+    const message = `متجر AZ السوق الشامل لتلبية احتياجك بالكامل انزل سطر 
+https://e772299420-hue.github.io/Call/index.html
+
+انا مهتم لاجل هذا المنتج / ${globalProductName}
+من فضلك ارسلي تفاصيل المنتج`;
+    
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
 }
 
 // دالة لحساب المسار
@@ -559,6 +693,20 @@ function calculateRoute() {
     } else {
         alert('تعذر حساب المسار. يرجى التأكد من تفعيل خدمة الموقع.');
     }
+}
+
+// دالة لحساب المسافة بين موقعين
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // نصف قطر الأرض بالكيلومتر
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return distance.toFixed(2);
 }
 
 // جلب بيانات التاجر من Firebase
@@ -637,7 +785,7 @@ function getUserLocation(merchantCoords) {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const userCoords = [position.coords.latitude, position.coords.longitude];
+                userCoords = [position.coords.latitude, position.coords.longitude];
                 userMarker = L.marker(userCoords).addTo(map)
                     .bindPopup("موقعك الحالي")
                     .openPopup();
@@ -646,6 +794,15 @@ function getUserLocation(merchantCoords) {
                 if (merchantCoords) {
                     const bounds = L.latLngBounds([userCoords, merchantCoords]);
                     map.fitBounds(bounds, { padding: [50, 50] });
+                    
+                    // حساب المسافة بين الموقعين
+                    const distance = calculateDistance(
+                        userCoords[0], userCoords[1],
+                        merchantCoords[0], merchantCoords[1]
+                    );
+                    
+                    // عرض المسافة في قسم المسار
+                    document.getElementById('routeInfo').innerHTML += `<br><strong>المسافة المباشرة:</strong> ${distance} كم`;
                 }
             },
             (error) => {
@@ -663,4 +820,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 </body>
-</html>
+    </html>
