@@ -101,7 +101,7 @@
             margin-right: auto;
         }
 
-        .theme-toggle, .show-btn {
+        .theme-toggle, .show-btn, .reset-btn-header {
             background: rgba(255, 255, 255, 0.2);
             border: none;
             color: white;
@@ -117,7 +117,7 @@
             transition: var(--transition);
         }
 
-        .theme-toggle:hover, .show-btn:hover {
+        .theme-toggle:hover, .show-btn:hover, .reset-btn-header:hover {
             background: rgba(255, 255, 255, 0.3);
         }
 
@@ -276,7 +276,11 @@
             cursor: pointer;
             z-index: 10;
             transition: var(--transition);
-            color: #ccc;
+            color: #e74c3c; /* اللون الافتراضي أحمر */
+        }
+
+        .favorite-btn.viewed {
+            color: #3498db; /* أزرق باهت للمنتجات المفتوحة */
         }
 
         .favorite-btn.active {
@@ -302,11 +306,13 @@
         .images-preview img {
             width: 100%;
             height: 250px;
-            object-fit: cover;
+            object-fit: contain; /* تغيير من cover إلى contain لعرض الصورة كاملة */
             border-radius: 10px;
             cursor: pointer;
             transition: var(--transition);
             border: 3px solid var(--primary-color);
+            background-color: #f5f5f5; /* إضافة خلفية للصور */
+            padding: 5px; /* إضافة حشوة داخلية */
             position: relative;
         }
 
@@ -335,10 +341,12 @@
         .slider-image {
             min-width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain; /* تغيير من cover إلى contain لعرض الصورة كاملة */
             cursor: pointer;
             border: 3px solid var(--primary-color);
             border-radius: 10px;
+            background-color: #f5f5f5; /* إضافة خلفية للصور */
+            padding: 5px; /* إضافة حشوة داخلية */
         }
 
         .slider-nav {
@@ -692,12 +700,19 @@
         }
 
         .category-value-display {
-            background: #e9ecef;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-left: 10px;
-            font-weight: normal;
+            display: none; /* إخفاء حقل ID الخاص بالفئة */
+        }
+
+        /* طبقة التعتيم لإغلاق التعليقات */
+        .comments-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 998;
+            display: none;
         }
 
         @media(max-width: 768px) {
@@ -729,8 +744,11 @@
             </div>
             <div class="header-controls">
                 <button class="theme-toggle" id="theme-toggle" title="تبديل الوضع">🌙</button>
-                <button class="show-btn" id="show-btn" title="عرض الشريط" style="display: none;">
-                    <i class="fas fa-eye"></i>
+                <button class="reset-btn-header" id="reset-btn-header" title="إعادة تعيين الفلاتر">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button class="show-btn" id="show-btn" title="إظهار/إخفاء شريط الأدوات">
+                    <i class="fas fa-eye-slash"></i>
                 </button>
             </div>
         </div>
@@ -776,8 +794,10 @@
             </select>
         </div>
         <button class="reset-btn" id="reset-filters">إعادة تعيين</button>
-        <button class="hide-btn" id="hide-btn">إخفاء الشريط</button>
     </div>
+
+    <!-- طبقة التعتيم لإغلاق التعليقات -->
+    <div class="comments-overlay" id="comments-overlay"></div>
 
     <!-- المحتوى -->
     <div class="page-content">
@@ -809,6 +829,7 @@
         let allCategories = [];
         let favoriteProducts = JSON.parse(localStorage.getItem('favoriteProducts')) || {};
         let viewedProducts = JSON.parse(sessionStorage.getItem('viewedProducts')) || {};
+        let currentCommentsProductId = null;
 
         // عناصر الواجهة
         const productsContainer = document.getElementById('products-container');
@@ -820,12 +841,13 @@
         const minPriceInput = document.getElementById('min-price');
         const maxPriceInput = document.getElementById('max-price');
         const resetButton = document.getElementById('reset-filters');
+        const resetButtonHeader = document.getElementById('reset-btn-header');
         const sortSelect = document.getElementById('sort-by');
         const themeToggle = document.getElementById('theme-toggle');
         const filterBar = document.getElementById('filter-bar');
-        const hideBtn = document.getElementById('hide-btn');
         const showBtn = document.getElementById('show-btn');
         const categoryValueDisplay = document.getElementById('category-value-display');
+        const commentsOverlay = document.getElementById('comments-overlay');
 
         // بدء التطبيق
         document.addEventListener('DOMContentLoaded', () => {
@@ -848,6 +870,8 @@
             const isFilterBarHidden = localStorage.getItem('filterBarHidden');
             if (isFilterBarHidden === 'true') {
                 hideFilterBar();
+            } else {
+                showFilterBar();
             }
         }
 
@@ -862,9 +886,12 @@
             maxPriceInput.addEventListener('input', filterProducts);
             sortSelect.addEventListener('change', filterProducts);
             resetButton.addEventListener('click', resetFilters);
+            resetButtonHeader.addEventListener('click', resetFilters);
             themeToggle.addEventListener('click', toggleTheme);
-            hideBtn.addEventListener('click', hideFilterBar);
-            showBtn.addEventListener('click', showFilterBar);
+            showBtn.addEventListener('click', toggleFilterBar);
+            
+            // إغلاق التعليقات عند النقر خارجها
+            commentsOverlay.addEventListener('click', closeAllComments);
         }
 
         // فحص الرابط للمنتج المحدد
@@ -1128,9 +1155,12 @@
             card.className = 'card';
             card.id = `product-${product.id}`;
 
-            // زر المفضلة
+            // زر المفضلة مع تحديد اللون بناءً على حالة المشاهدة
             const favoriteBtn = document.createElement('button');
             favoriteBtn.className = 'favorite-btn';
+            if (viewedProducts[product.id]) {
+                favoriteBtn.classList.add('viewed');
+            }
             if (favoriteProducts[product.id]) {
                 favoriteBtn.classList.add('active');
             }
@@ -1222,7 +1252,8 @@
                         window.open(formatDriveUrl(imageUrl, false), '_blank');
                     });
                 } else {
-                    img.src = 'https://via.placeholder.com/300x200?text=لا+توجد+صورة';
+                    // استخدام صورة افتراضية بناءً على اسم المنتج ومواصفاته
+                    img.src = generateDefaultImage(productName, product.description || '');
                     img.alt = 'صورة افتراضية';
                     img.style.border = '1px dashed #ccc';
                 }
@@ -1405,6 +1436,13 @@
                 `https://drive.google.com/uc?export=view&id=${id}`;
         }
 
+        // توليد صورة افتراضية بناءً على اسم المنتج ومواصفاته
+        function generateDefaultImage(productName, description) {
+            // استخدام خدمة placeholder.com مع نص عربي
+            const searchTerms = encodeURIComponent(productName + ' ' + description.substring(0, 20));
+            return `https://via.placeholder.com/400x300/3498db/ffffff?text=${searchTerms}`;
+        }
+
         function filterProducts() {
             const filters = {
                 governorate: governorateSelect.value,
@@ -1489,16 +1527,25 @@
             }
         }
 
+        function toggleFilterBar() {
+            const isHidden = filterBar.style.display === 'none';
+            if (isHidden) {
+                showFilterBar();
+            } else {
+                hideFilterBar();
+            }
+        }
+
         function hideFilterBar() {
             filterBar.style.display = 'none';
-            showBtn.style.display = 'flex';
+            showBtn.innerHTML = '<i class="fas fa-eye"></i>';
             document.body.style.paddingTop = '70px';
             localStorage.setItem('filterBarHidden', 'true');
         }
 
         function showFilterBar() {
             filterBar.style.display = 'flex';
-            showBtn.style.display = 'none';
+            showBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
             document.body.style.paddingTop = '140px';
             localStorage.setItem('filterBarHidden', 'false');
         }
@@ -1551,6 +1598,14 @@
             
             if (!sessionStorage.getItem(viewKey)) {
                 sessionStorage.setItem(viewKey, 'true');
+                viewedProducts[productId] = true;
+                sessionStorage.setItem('viewedProducts', JSON.stringify(viewedProducts));
+                
+                // تحديث لون القلب للمنتجات المفتوحة
+                const favoriteBtn = document.querySelector(`#product-${productId} .favorite-btn`);
+                if (favoriteBtn) {
+                    favoriteBtn.classList.add('viewed');
+                }
                 
                 db.ref(`products_stats/${productId}/views`).transaction(current => (current || 0) + 1);
                 
@@ -1598,8 +1653,16 @@
         }
 
         function openComments(productId) {
+            // إغلاق أي قسم تعليقات مفتوح حالياً
+            closeAllComments();
+            
             const commentsSection = document.getElementById(`comments-${productId}`);
             commentsSection.classList.add('active');
+            currentCommentsProductId = productId;
+            
+            // إظهار طبقة التعتيم
+            commentsOverlay.style.display = 'block';
+            
             loadComments(productId);
         }
 
@@ -1608,6 +1671,16 @@
             commentsSection.classList.remove('active');
             const commentText = document.getElementById(`comment-text-${productId}`);
             if (commentText) commentText.value = '';
+            
+            // إخفاء طبقة التعتيم
+            commentsOverlay.style.display = 'none';
+            currentCommentsProductId = null;
+        }
+
+        function closeAllComments() {
+            if (currentCommentsProductId) {
+                closeComments(currentCommentsProductId);
+            }
         }
 
         async function loadComments(productId) {
