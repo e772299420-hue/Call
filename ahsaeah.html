@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>لوحة تحكم الزوار المتقدمة</title>
+<style>
+  body { font-family: Arial; direction: rtl; padding: 20px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background: #f0f0f0; }
+  button { padding: 4px 8px; cursor: pointer; }
+  input { padding: 5px; margin-right: 10px; }
+</style>
+</head>
+<body>
+
+<h1>لوحة تحكم الزوار المتقدمة</h1>
+
+<div>
+  <label>بحث حسب IP: <input type="text" id="searchIP" placeholder="ادخل IP"></label>
+  <label>فلترة حسب الصفحة: <input type="text" id="filterPage" placeholder="اسم الصفحة"></label>
+  <button onclick="updateVisitorsTable()">تطبيق</button>
+  <button onclick="exportCSV()">تصدير CSV</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>الزائر</th>
+      <th>IP</th>
+      <th>الصفحة</th>
+      <th>وقت الدخول</th>
+      <th>وقت الخروج</th>
+      <th>متواجد حاليًا</th>
+      <th>حظر</th>
+      <th>وقت الجلوس (ثواني)</th>
+    </tr>
+  </thead>
+  <tbody id="visitorsTable"></tbody>
+</table>
+
+<canvas id="chart" width="800" height="300"></canvas>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// 🔹 إعداد Firebase
+const firebaseConfig = {
+  databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const usersRef = db.ref("products/product_1758397756559_s62y27a1t/userId");
+
+// 🔹 تحديث وعرض البيانات
+function updateVisitorsTable(){
+  const searchIP = document.getElementById("searchIP").value.trim();
+  const filterPage = document.getElementById("filterPage").value.trim().toLowerCase();
+
+  usersRef.once("value").then(snapshot => {
+    const visitors = snapshot.val();
+    const tbody = document.getElementById("visitorsTable");
+    tbody.innerHTML = "";
+    if(!visitors) return;
+
+    const chartData = {};
+    Object.keys(visitors).forEach(id => {
+      const v = visitors[id];
+      const enterTime = v.enterTime ? new Date(v.enterTime) : null;
+      const exitTime = v.exitTime ? new Date(v.exitTime) : null;
+      const online = v.online ? "نعم" : "لا";
+      let duration = "";
+      if(enterTime){
+        const end = exitTime || new Date();
+        duration = Math.floor((end - enterTime)/1000); // بالثواني
+      }
+
+      // فلترة IP والصفحة
+      if(searchIP && (!v.ip || !v.ip.includes(searchIP))) return;
+      if(filterPage && (!v.page || !v.page.toLowerCase().includes(filterPage))) return;
+
+      // تحضير بيانات الرسم البياني
+      if(!chartData[v.page]) chartData[v.page] = {online:0, offline:0};
+      v.online ? chartData[v.page].online++ : chartData[v.page].offline++;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${v.visitorId || id}</td>
+        <td>${v.ip || "-"}</td>
+        <td>${v.page || "-"}</td>
+        <td>${enterTime ? enterTime.toLocaleString() : "-"}</td>
+        <td>${exitTime ? exitTime.toLocaleString() : "-"}</td>
+        <td>${online}</td>
+        <td><button onclick="banVisitor('${id}')">حظر</button></td>
+        <td>${duration}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    updateChart(chartData);
+  });
+}
+
+// 🔹 حظر الزائر
+function banVisitor(visitorId){
+  usersRef.child(visitorId).update({ banned: true }).then(() => {
+    alert("تم حظر الزائر!");
+    updateVisitorsTable();
+  });
+}
+
+// 🔹 تصدير CSV
+function exportCSV(){
+  const rows = [["visitorId","IP","الصفحة","وقت الدخول","وقت الخروج","متواجد","مدة الجلوس"]];
+  const table = document.getElementById("visitorsTable");
+  for(let tr of table.rows){
+    const row = [];
+    for(let td of tr.cells){
+      row.push(td.innerText);
+    }
+    rows.push(row);
+  }
+  const csvContent = "data:text/csv;charset=utf-8," + rows.map(e=>e.join(",")).join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "visitors.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// 🔹 رسم بياني باستخدام Chart.js
+let chart;
+function updateChart(chartData){
+  const ctx = document.getElementById("chart").getContext("2d");
+  const labels = Object.keys(chartData);
+  const onlineData = labels.map(l=>chartData[l].online);
+  const offlineData = labels.map(l=>chartData[l].offline);
+
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'متواجد', data: onlineData, backgroundColor: 'green' },
+        { label: 'مغادر', data: offlineData, backgroundColor: 'red' }
+      ]
+    },
+    options: { responsive:true, plugins:{legend:{position:'top'}} }
+  });
+}
+
+// 🔹 تحديث تلقائي كل 5 ثواني
+updateVisitorsTable();
+setInterval(updateVisitorsTable,5000);
+</script>
+</body>
+  </html>
