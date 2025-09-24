@@ -318,6 +318,10 @@ body::before {
 
 .toast.success { background: #4caf50; }
 .toast.error { background: #f44336; }
+.toast.welcome { 
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    min-width: 400px;
+}
 
 .toast-content {
     display: flex;
@@ -642,12 +646,14 @@ function generateId(text) {
 }
 
 // دالة عرض الإشعارات المتقدمة
-function showToast(message, type) {
+function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
-    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+    const icon = type === 'success' ? 'fa-check-circle' : 
+                type === 'error' ? 'fa-exclamation-circle' : 
+                type === 'welcome' ? 'fa-hand-peace' : 'fa-info-circle';
     
     toast.innerHTML = `
         <div class="toast-content">
@@ -950,6 +956,11 @@ document.addEventListener('DOMContentLoaded', function() {
         currentTextIndex = (currentTextIndex + 1) % texts.length;
         footerScrollingText.textContent = texts[currentTextIndex];
     }, 8000);
+    
+    // 🔥 الإضافة المهمة: تفعيل تتبع الزوار عند تحميل الصفحة
+    setTimeout(() => {
+        initVisitorTracking();
+    }, 1000);
 });
 
 // دالة تحديث حالة الاتصال (بدون إشعار استعادة الاتصال)
@@ -1027,19 +1038,27 @@ function registerVisitor(ip = "unknown") {
         visitorRef.set(visitorData)
             .then(() => {
                 console.log('✅ تم حفظ بيانات الزائر في Firebase بنجاح');
+                
+                // 🔥 الإشعار الجديد المطلوب
+                showToast('مرحبا بك أيها الزائر الكريم! لا تنسى ذكر الله والصلاة على النبي ﷺ', 'welcome');
+                
                 console.log('🔍 يمكنك التحقق من البيانات في: https://console.firebase.google.com/project/chat-fat-free/database/chat-fat-free-default-rtdb/data/~2Fvisitors');
             })
             .catch((error) => {
                 console.error('❌ فشل في حفظ بيانات الزائر في Firebase:', error);
                 console.log('💾 سيتم حفظ البيانات محلياً فقط');
+                showToast('⚠️ تم حفظ البيانات محلياً فقط', 'error');
             });
     } else {
         console.log('📴 لا يوجد اتصال، سيتم حفظ البيانات محلياً فقط');
+        showToast('📴 تم حفظ البيانات محلياً (لا يوجد اتصال)', 'warning');
     }
 }
 
 // 🔹 جلب IP وتسجيل الزائر
 function initVisitorTracking() {
+    console.log('🚀 بدء تتبع الزائر...');
+    
     if (navigator.onLine) {
         console.log('🌐 جاري جلب عنوان IP...');
         fetch("https://api.ipify.org?format=json")
@@ -1059,6 +1078,11 @@ function initVisitorTracking() {
         console.log('📴 لا يوجد اتصال، تسجيل الزائر بدون IP');
         registerVisitor("offline");
     }
+    
+    // إعداد تحديث النشاط الدوري
+    setupActivityUpdates();
+    // إعداد معالج المغادرة
+    setupUnloadHandler();
 }
 
 // 🔹 التحقق من الحظر
@@ -1132,10 +1156,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // تأخير بسيط لضمان تحميل الصفحة بالكامل
     setTimeout(() => {
-        initVisitorTracking();
-        setupUnloadHandler();
-        setupActivityUpdates();
-        
         // التحقق من الحظر بعد 3 ثواني
         setTimeout(checkBanStatus, 3000);
     }, 1000);
