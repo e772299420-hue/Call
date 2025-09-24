@@ -570,12 +570,13 @@ body::before {
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-// تهيئة Firebase
+// تهيئة Firebase للتطبيق الرئيسي
 const firebaseConfig = {
     databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
 };
 
-firebase.initializeApp(firebaseConfig);
+// تهيئة Firebase للتطبيق الرئيسي
+const mainApp = firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // تخزين البيانات محلياً للعمل بدون اتصال
@@ -584,7 +585,7 @@ function saveDataToLocalStorage(key, data) {
     localStorage.setItem(key + '_timestamp', Date.now());
 }
 
-function getDataFromLocalStorage(key, maxAge = 24 * 60 * 60 * 1000) { // 24 hours default
+function getDataFromLocalStorage(key, maxAge = 24 * 60 * 60 * 1000) {
     const data = localStorage.getItem(key);
     const timestamp = localStorage.getItem(key + '_timestamp');
     
@@ -621,27 +622,6 @@ const globalUser = {
         }
         
         return null;
-    },
-    
-    getUsername: function() {
-        const userData = this.getUserData();
-        return userData ? userData.username : 'زائر';
-    },
-    
-    getUserId: function() {
-        const userData = this.getUserData();
-        return userData ? userData.id : null;
-    },
-    
-    isLoggedIn: function() {
-        return this.getUserData() !== null;
-    },
-    
-    logout: function() {
-        this.data = null;
-        localStorage.removeItem('globalUserData');
-        localStorage.removeItem('globalUserData_timestamp');
-        console.log('تم تسجيل الخروج');
     }
 };
 
@@ -731,13 +711,9 @@ function installApp() {
     showToast('جاري تحضير تطبيق المتجر...', 'success');
     
     try {
-        // رابط التطبيق
         const appUrl = 'https://drive.google.com/file/d/1tbpZe4plqF5-fNG7e6aUvwimkPkzB9mh/view?usp=drivesdk';
-        
-        // فتح الرابط في نافذة جديدة
         window.open(appUrl, '_blank');
         
-        // إشعار إضافي
         setTimeout(() => {
             showToast('تم فتح رابط التطبيق، يرجى متابعة التثبيت', 'success');
         }, 1000);
@@ -751,7 +727,6 @@ function installApp() {
 // دالة فتح النافذة المنبثقة
 function openModal(pageUrl) {
     if (pageUrl === 'mr.html') {
-        // محاولة تحميل المحتوى من mr.html
         fetch(pageUrl)
             .then(response => response.text())
             .then(html => {
@@ -985,23 +960,34 @@ function updateOnlineStatus() {
         showToast('أنت غير متصل بالإنترنت', 'error');
     } else {
         offlineMessage.style.display = 'none';
-        // تم إزالة إشعار استعادة الاتصال هنا
+        // تم إزالة إشعار استعادة الاتصال
     }
 }
 </script>
 
-<!-- كود تتبع الزوار المعدل والمصحح -->
+<!-- كود تتبع الزوار المصحح -->
 <script>
-// 🔹 إعداد Firebase
+// 🔹 إعداد Firebase (نفس التطبيق الرئيسي)
 const firebaseConfig = {
   databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
 };
 
-// استخدام التطبيق الرئيسي (تم تهيئته مسبقاً)
-const db = firebase.database();
+// استخدام تطبيق Firebase المنفصل لتتبع الزوار لتجنب التعارض
+let visitorApp;
+let visitorDb;
 
-// 🔹 الصفحة الحالية (الصفحة الرئيسية)
-const currentPage = "home";
+try {
+    // محاولة استخدام التطبيق الرئيسي أولاً
+    visitorDb = firebase.database();
+    console.log('✅ استخدام تطبيق Firebase الرئيسي لتتبع الزوار');
+} catch (error) {
+    console.log('⚠️ إنشاء تطبيق Firebase منفصل لتتبع الزوار');
+    visitorApp = firebase.initializeApp(firebaseConfig, "VisitorTracking");
+    visitorDb = firebase.database(visitorApp);
+}
+
+// 🔹 الصفحة الحالية
+const currentPage = window.location.pathname.split("/").pop() || "index.html";
 
 // 🔹 إنشاء معرف ثابت للزائر
 let visitorId = localStorage.getItem("visitorId");
@@ -1011,7 +997,7 @@ if(!visitorId){
 }
 
 // 🔹 الإشارة إلى جدول visitors مباشرة
-const visitorsRef = db.ref("visitors");
+const visitorsRef = visitorDb.ref("visitors");
 const visitorRef = visitorsRef.child(visitorId);
 
 // 🔹 دالة تسجيل الزائر المحسنة
@@ -1026,10 +1012,12 @@ function registerVisitor(ip = "unknown") {
         userAgent: navigator.userAgent,
         screenResolution: `${screen.width}x${screen.height}`,
         language: navigator.language,
-        lastActivity: new Date().toISOString()
+        lastActivity: new Date().toISOString(),
+        timestamp: Date.now()
     };
     
-    console.log('بيانات الزائر المراد حفظها:', visitorData);
+    console.log('📊 بيانات الزائر المراد حفظها:', visitorData);
+    console.log('🗂️ المسار في Firebase:', `visitors/${visitorId}`);
     
     // تخزين محلي أولاً
     saveDataToLocalStorage('visitorData', visitorData);
@@ -1039,36 +1027,41 @@ function registerVisitor(ip = "unknown") {
         visitorRef.set(visitorData)
             .then(() => {
                 console.log('✅ تم حفظ بيانات الزائر في Firebase بنجاح');
-                console.log('المسار:', `visitors/${visitorId}`);
+                console.log('🔍 يمكنك التحقق من البيانات في: https://console.firebase.google.com/project/chat-fat-free/database/chat-fat-free-default-rtdb/data/~2Fvisitors');
             })
             .catch((error) => {
                 console.error('❌ فشل في حفظ بيانات الزائر في Firebase:', error);
+                console.log('💾 سيتم حفظ البيانات محلياً فقط');
             });
     } else {
-        console.log('⚠️ لا يوجد اتصال، سيتم حفظ البيانات محلياً فقط');
+        console.log('📴 لا يوجد اتصال، سيتم حفظ البيانات محلياً فقط');
     }
 }
 
 // 🔹 جلب IP وتسجيل الزائر
 function initVisitorTracking() {
     if (navigator.onLine) {
+        console.log('🌐 جاري جلب عنوان IP...');
         fetch("https://api.ipify.org?format=json")
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error('فشل في جلب IP');
+                return response.json();
+            })
             .then(data => {
-                console.log('🌐 تم جلب IP الزائر:', data.ip);
+                console.log('✅ تم جلب IP الزائر:', data.ip);
                 registerVisitor(data.ip);
             })
             .catch(err => {
-                console.error("❌ فشل جلب IP:", err);
-                registerVisitor();
+                console.warn("⚠️ فشل جلب IP، استخدام القيمة الافتراضية:", err);
+                registerVisitor("unknown");
             });
     } else {
         console.log('📴 لا يوجد اتصال، تسجيل الزائر بدون IP');
-        registerVisitor();
+        registerVisitor("offline");
     }
 }
 
-// 🔹 التحقق من الحظر مركزيًا
+// 🔹 التحقق من الحظر
 function checkBanStatus() {
     if (!navigator.onLine) {
         console.log('📴 لا يوجد اتصال، تخطي التحقق من الحظر');
@@ -1090,7 +1083,7 @@ function checkBanStatus() {
     });
 }
 
-// 🔹 تحديث حالة المغادرة عند إغلاق الصفحة
+// 🔹 تحديث حالة المغادرة
 function setupUnloadHandler() {
     window.addEventListener('beforeunload', () => {
         const exitData = {
@@ -1098,6 +1091,8 @@ function setupUnloadHandler() {
             online: false,
             lastActivity: new Date().toISOString()
         };
+        
+        console.log('👋 تحديث حالة مغادرة الزائر');
         
         // تخزين محلي
         const currentData = getDataFromLocalStorage('visitorData') || {};
@@ -1113,7 +1108,7 @@ function setupUnloadHandler() {
     });
 }
 
-// 🔹 تحديث النشاط كل 30 ثانية
+// 🔹 تحديث النشاط الدوري
 function setupActivityUpdates() {
     setInterval(() => {
         const activityData = {
@@ -1123,19 +1118,19 @@ function setupActivityUpdates() {
         
         if (navigator.onLine) {
             visitorRef.update(activityData)
-                .then(() => console.log('🔄 تم تحديث النشاط'))
+                .then(() => console.log('🔄 تم تحديث نشاط الزائر'))
                 .catch(error => console.error('❌ فشل في تحديث النشاط:', error));
-            
-            checkBanStatus();
         }
-    }, 30000); // كل 30 ثانية بدلاً من 10
+    }, 30000);
 }
 
 // 🔹 بدء تتبع الزوار
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 بدء تتبع الزوار...');
+    console.log('🚀 بدء نظام تتبع الزوار...');
     console.log('🆔 معرف الزائر:', visitorId);
+    console.log('📄 الصفحة الحالية:', currentPage);
     
+    // تأخير بسيط لضمان تحميل الصفحة بالكامل
     setTimeout(() => {
         initVisitorTracking();
         setupUnloadHandler();
