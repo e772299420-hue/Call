@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الفئات</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .tabs {
+            display: flex;
+            background-color: #f0f0f0;
+        }
+        
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+        
+        .tab.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .categories-list {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        
+        .category-item {
+            padding: 10px;
+            border: 1px solid #eee;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .category-info {
+            flex-grow: 1;
+        }
+        
+        .category-actions button {
+            margin-left: 5px;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .delete-btn {
+            background-color: #f44336;
+        }
+        
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        .status-active {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .status-inactive {
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        /* جدول عرض الفئات */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: right;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .edit-btn {
+            background-color: #2196F3;
+        }
+        
+        .edit-btn:hover {
+            background-color: #0b7dda;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .merchant-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border-right: 3px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="merchant-info">
+            <h3>معلومات التاجر</h3>
+            <p id="merchant-details">جارٍ تحميل معلومات التاجر...</p>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="categories">إدارة الفئات</div>
+            <div class="tab" data-tab="view">عرض الفئات</div>
+        </div>
+        
+        <div class="tab-content active" id="categories-tab">
+            <h2>إدارة الفئات</h2>
+            
+            <form id="category-form">
+                <div class="form-group">
+                    <label for="merchant-id">معرف التاجر</label>
+                    <input type="text" id="merchant-id" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category-id">رقم الفئة</label>
+                    <input type="number" id="category-id" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category-name">اسم الفئة</label>
+                    <input type="text" id="category-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category-status">الحالة</label>
+                    <select id="category-status">
+                        <option value="نشط">نشط</option>
+                        <option value="موقف">موقف</option>
+                    </select>
+                </div>
+                
+                <button type="submit" id="save-btn">حفظ الفئة</button>
+                <button type="button" id="cancel-btn" class="hidden">إلغاء</button>
+            </form>
+            
+            <div class="categories-list" id="categories-list">
+                <!-- سيتم عرض الفئات هنا -->
+            </div>
+        </div>
+        
+        <div class="tab-content" id="view-tab">
+            <h2>عرض الفئات</h2>
+            <p>هنا يمكنك عرض جميع الفئات الموجودة في النظام.</p>
+            
+            <table id="categories-table">
+                <thead>
+                    <tr>
+                        <th>رقم الفئة</th>
+                        <th>اسم الفئة</th>
+                        <th>الحالة</th>
+                        <th>معرف التاجر</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- سيتم ملء الجدول بالبيانات -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+        };
+        
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // عناصر DOM
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const categoryForm = document.getElementById('category-form');
+        const merchantIdInput = document.getElementById('merchant-id');
+        const categoryIdInput = document.getElementById('category-id');
+        const categoryNameInput = document.getElementById('category-name');
+        const categoryStatusSelect = document.getElementById('category-status');
+        const categoriesList = document.getElementById('categories-list');
+        const categoriesTable = document.getElementById('categories-table').getElementsByTagName('tbody')[0];
+        const saveBtn = document.getElementById('save-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const merchantDetails = document.getElementById('merchant-details');
+        
+        // متغيرات التطبيق
+        let nextCategoryId = 1;
+        let isEditing = false;
+        let currentEditId = null;
+        let currentMerchant = null;
+        
+        // بيانات الجلوبل (افتراضية - يمكن استبدالها بالبيانات الفعلية)
+        const globalData = {
+            merchantId: "m12345",
+            username: "تاجر_مثال",
+            // يمكن إضافة المزيد من البيانات حسب الحاجة
+        };
+        
+        // تحميل بيانات التاجر
+        function loadMerchantData() {
+            // استخدام بيانات الجلوبل من الشاشة السابقة
+            currentMerchant = globalData;
+            
+            // عرض معلومات التاجر
+            merchantDetails.innerHTML = `
+                <strong>اسم المستخدم:</strong> ${currentMerchant.username} | 
+                <strong>معرف التاجر:</strong> ${currentMerchant.merchantId}
+            `;
+            
+            // تعبئة حقل معرف التاجر في النموذج
+            merchantIdInput.value = currentMerchant.merchantId;
+            
+            // يمكنك أيضًا جلب بيانات إضافية من Firebase إذا لزم الأمر
+            /*
+            database.ref('merchants').orderByChild('username').equalTo(currentMerchant.username).once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const merchantData = snapshot.val();
+                        const merchantKey = Object.keys(merchantData)[0];
+                        currentMerchant = { ...merchantData[merchantKey], id: merchantKey };
+                        
+                        // عرض معلومات التاجر
+                        merchantDetails.innerHTML = `
+                            <strong>اسم المستخدم:</strong> ${currentMerchant.username} | 
+                            <strong>معرف التاجر:</strong> ${currentMerchant.id}
+                        `;
+                        
+                        // تعبئة حقل معرف التاجر في النموذج
+                        merchantIdInput.value = currentMerchant.id;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading merchant data:', error);
+                });
+            */
+        }
+        
+        // إدارة التبويبات
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.getAttribute('data-tab');
+                
+                // إزالة النشاط من جميع التبويبات والمحتويات
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(tc => tc.classList.remove('active'));
+                
+                // إضافة النشاط للتبويب والمحتوى المحدد
+                tab.classList.add('active');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+                
+                // إذا كان التبويب النشط هو "عرض الفئات"، قم بتحديث الجدول
+                if (tabId === 'view') {
+                    loadCategoriesTable();
+                }
+            });
+        });
+        
+        // توليد رقم فئة تلقائي يبدأ من 1
+        function generateNextCategoryId() {
+            return nextCategoryId;
+        }
+        
+        // تحديث رقم الفئة التلقائي
+        function updateCategoryId() {
+            if (!isEditing) {
+                categoryIdInput.value = generateNextCategoryId();
+            }
+        }
+        
+        // تحميل الفئات من Firebase للتبويب الأول
+        function loadCategories() {
+            // جلب الفئات الخاصة بالتاجر الحالي فقط
+            database.ref('fah/categories').orderByChild('merchantId').equalTo(currentMerchant.merchantId).on('value', (snapshot) => {
+                const categories = snapshot.val();
+                categoriesList.innerHTML = '';
+                
+                if (categories) {
+                    // تحديث nextCategoryId ليكون أكبر من أعلى ID موجود
+                    const ids = Object.keys(categories).map(id => parseInt(id));
+                    nextCategoryId = Math.max(...ids) + 1;
+                    
+                    Object.keys(categories).forEach(key => {
+                        const category = categories[key];
+                        const categoryElement = document.createElement('div');
+                        categoryElement.className = 'category-item';
+                        categoryElement.innerHTML = `
+                            <div class="category-info">
+                                <strong>${category.name}</strong> 
+                                - الرقم: ${key}
+                                - الحالة: <span class="status-${category.status === 'نشط' ? 'active' : 'inactive'}">${category.status}</span>
+                                - معرف التاجر: ${category.merchantId}
+                            </div>
+                            <div class="category-actions">
+                                <button class="edit-btn" data-id="${key}">تعديل</button>
+                                <button class="delete-btn" data-id="${key}">حذف</button>
+                            </div>
+                        `;
+                        categoriesList.appendChild(categoryElement);
+                    });
+                    
+                    // إضافة أحداث للحذف والتعديل
+                    document.querySelectorAll('.delete-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const categoryId = e.target.getAttribute('data-id');
+                            deleteCategory(categoryId);
+                        });
+                    });
+                    
+                    document.querySelectorAll('.edit-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const categoryId = e.target.getAttribute('data-id');
+                            editCategory(categoryId);
+                        });
+                    });
+                } else {
+                    categoriesList.innerHTML = '<p>لا توجد فئات مضافة بعد.</p>';
+                    nextCategoryId = 1;
+                }
+                
+                // تحديث ID التالي في النموذج
+                updateCategoryId();
+            });
+        }
+        
+        // تحميل الفئات في الجدول (للتبويب الثاني)
+        function loadCategoriesTable() {
+            // جلب الفئات الخاصة بالتاجر الحالي فقط
+            database.ref('fah/categories').orderByChild('merchantId').equalTo(currentMerchant.merchantId).once('value').then((snapshot) => {
+                const categories = snapshot.val();
+                categoriesTable.innerHTML = '';
+                
+                if (categories) {
+                    Object.keys(categories).forEach(key => {
+                        const category = categories[key];
+                        const row = categoriesTable.insertRow();
+                        
+                        const cellId = row.insertCell(0);
+                        const cellName = row.insertCell(1);
+                        const cellStatus = row.insertCell(2);
+                        const cellMerchant = row.insertCell(3);
+                        const cellActions = row.insertCell(4);
+                        
+                        cellId.textContent = key;
+                        cellName.textContent = category.name;
+                        cellStatus.innerHTML = `<span class="status-${category.status === 'نشط' ? 'active' : 'inactive'}">${category.status}</span>`;
+                        cellMerchant.textContent = category.merchantId;
+                        
+                        const editButton = document.createElement('button');
+                        editButton.textContent = 'تعديل';
+                        editButton.className = 'edit-btn';
+                        editButton.setAttribute('data-id', key);
+                        
+                        editButton.addEventListener('click', () => {
+                            editCategoryFromTable(key);
+                        });
+                        
+                        cellActions.appendChild(editButton);
+                    });
+                } else {
+                    const row = categoriesTable.insertRow();
+                    const cell = row.insertCell(0);
+                    cell.colSpan = 5;
+                    cell.textContent = 'لا توجد فئات مضافة بعد.';
+                    cell.style.textAlign = 'center';
+                }
+            });
+        }
+        
+        // إضافة أو تعديل فئة
+        categoryForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const merchantId = merchantIdInput.value;
+            const categoryId = categoryIdInput.value;
+            const categoryName = categoryNameInput.value;
+            const categoryStatus = categoryStatusSelect.value;
+            
+            if (!categoryName) {
+                alert('يرجى إدخال اسم الفئة');
+                return;
+            }
+            
+            if (!categoryId) {
+                alert('رقم الفئة غير صالح');
+                return;
+            }
+            
+            if (!merchantId) {
+                alert('معرف التاجر غير موجود');
+                return;
+            }
+            
+            // حفظ في Firebase
+            database.ref(`fah/categories/${categoryId}`).set({
+                name: categoryName,
+                status: categoryStatus,
+                merchantId: merchantId
+            }).then(() => {
+                if (isEditing) {
+                    alert('تم تعديل الفئة بنجاح');
+                    resetForm();
+                } else {
+                    alert('تم إضافة الفئة بنجاح');
+                    categoryForm.reset();
+                    merchantIdInput.value = currentMerchant.merchantId; // إعادة تعبئة معرف التاجر
+                    updateCategoryId();
+                }
+            }).catch(error => {
+                alert('حدث خطأ أثناء حفظ الفئة: ' + error.message);
+            });
+        });
+        
+        // حذف فئة
+        function deleteCategory(categoryId) {
+            if (confirm('هل أنت متأكد من حذف هذه الفئة؟')) {
+                database.ref(`fah/categories/${categoryId}`).remove()
+                    .then(() => {
+                        alert('تم حذف الفئة بنجاح');
+                    })
+                    .catch(error => {
+                        alert('حدث خطأ أثناء حذف الفئة: ' + error.message);
+                    });
+            }
+        }
+        
+        // تعديل فئة من التبويب الأول
+        function editCategory(categoryId) {
+            database.ref(`fah/categories/${categoryId}`).once('value')
+                .then(snapshot => {
+                    const category = snapshot.val();
+                    merchantIdInput.value = category.merchantId;
+                    categoryIdInput.value = categoryId;
+                    categoryNameInput.value = category.name;
+                    categoryStatusSelect.value = category.status;
+                    
+                    // تغيير وضع النموذج إلى التعديل
+                    isEditing = true;
+                    currentEditId = categoryId;
+                    saveBtn.textContent = 'تحديث الفئة';
+                    cancelBtn.classList.remove('hidden');
+                })
+                .catch(error => {
+                    alert('حدث خطأ أثناء تحميل بيانات الفئة: ' + error.message);
+                });
+        }
+        
+        // تعديل فئة من التبويب الثاني (الجدول)
+        function editCategoryFromTable(categoryId) {
+            // التبديل إلى تبويب إدارة الفئات
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(tc => tc.classList.remove('active'));
+            
+            document.querySelector('.tab[data-tab="categories"]').classList.add('active');
+            document.getElementById('categories-tab').classList.add('active');
+            
+            // تحميل بيانات الفئة في النموذج
+            editCategory(categoryId);
+        }
+        
+        // إعادة تعيين النموذج
+        function resetForm() {
+            categoryForm.reset();
+            isEditing = false;
+            currentEditId = null;
+            saveBtn.textContent = 'حفظ الفئة';
+            cancelBtn.classList.add('hidden');
+            merchantIdInput.value = currentMerchant.merchantId; // إعادة تعبئة معرف التاجر
+            updateCategoryId();
+        }
+        
+        // حدث زر الإلغاء
+        cancelBtn.addEventListener('click', resetForm);
+        
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMerchantData();
+            updateCategoryId();
+            loadCategories();
+            loadCategoriesTable();
+        });
+    </script>
+</body>
+</html>
