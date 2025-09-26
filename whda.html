@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الوحدات</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #eaeaea;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-success {
+            background-color: #198754;
+            border-color: #198754;
+        }
+        .table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+        }
+        .status-active {
+            color: #198754;
+            font-weight: 600;
+        }
+        .status-inactive {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        .hidden {
+            display: none;
+        }
+        .export-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0d6efd;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">نظام إدارة الوحدات</h1>
+        
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="add-tab" data-bs-toggle="tab" data-bs-target="#add" type="button" role="tab" aria-controls="add" aria-selected="true">إضافة وحدة</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="units-tab" data-bs-toggle="tab" data-bs-target="#units" type="button" role="tab" aria-controls="units" aria-selected="false">الوحدات</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- تبويب إضافة وحدة -->
+            <div class="tab-pane fade show active" id="add" role="tabpanel" aria-labelledby="add-tab">
+                <div class="card mt-4">
+                    <div class="card-header">
+                        إضافة وحدة جديدة
+                    </div>
+                    <div class="card-body">
+                        <form id="unitForm">
+                            <div class="mb-3">
+                                <label for="unitId" class="form-label">رقم الوحدة</label>
+                                <input type="text" class="form-control" id="unitId" readonly>
+                                <div class="form-text">سيتم تعبئة هذا الحقل تلقائياً</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="unitName" class="form-label">اسم الوحدة</label>
+                                <input type="text" class="form-control" id="unitName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">الحالة</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="status" id="active" value="active" checked>
+                                        <label class="form-check-label" for="active">نشط</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="status" id="inactive" value="inactive">
+                                        <label class="form-check-label" for="inactive">موقف</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="saveBtn">
+                                <span id="saveText">حفظ الوحدة</span>
+                                <div class="loading hidden" id="saveLoading"></div>
+                            </button>
+                            <button type="button" class="btn btn-secondary hidden" id="cancelEdit">إلغاء التعديل</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- تبويب الوحدات -->
+            <div class="tab-pane fade" id="units" role="tabpanel" aria-labelledby="units-tab">
+                <div class="card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>قائمة الوحدات</span>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="searchInput" placeholder="ابحث عن وحدة...">
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>رقم الوحدة</th>
+                                        <th>اسم الوحدة</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="unitsTable">
+                                    <tr>
+                                        <td colspan="4" class="text-center" id="loadingMessage">
+                                            <div class="loading"></div> جاري تحميل البيانات...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- قسم استيراد وتصدير البيانات -->
+                <div class="export-section">
+                    <h5>استيراد وتصدير البيانات</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-success" id="exportData">تصدير البيانات إلى ملف</button>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="importFile" accept=".json">
+                                <button class="btn btn-info" id="importData">استيراد البيانات</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com"
+        };
+        
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // عناصر DOM
+        const unitForm = document.getElementById('unitForm');
+        const unitIdInput = document.getElementById('unitId');
+        const unitNameInput = document.getElementById('unitName');
+        const saveBtn = document.getElementById('saveBtn');
+        const saveText = document.getElementById('saveText');
+        const saveLoading = document.getElementById('saveLoading');
+        const cancelEditBtn = document.getElementById('cancelEdit');
+        const unitsTable = document.getElementById('unitsTable');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const searchInput = document.getElementById('searchInput');
+        const exportBtn = document.getElementById('exportData');
+        const importBtn = document.getElementById('importData');
+        const importFile = document.getElementById('importFile');
+        
+        // متغيرات التطبيق
+        let units = [];
+        let editingUnitId = null;
+        let nextUnitId = 1;
+        
+        // مسار قاعدة البيانات
+        const DB_PATH = 'whda/units';
+        
+        // دالة لتحميل الوحدات من Firebase
+        function loadUnits() {
+            showLoading(true);
+            
+            database.ref(DB_PATH).once('value').then((snapshot) => {
+                units = [];
+                const data = snapshot.val();
+                
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        units.push({
+                            id: key,
+                            ...data[key]
+                        });
+                    });
+                    
+                    // حساب أعلى رقم وحدة لتحديد الرقم التالي
+                    const maxId = Math.max(...units.map(unit => parseInt(unit.unitId) || 0));
+                    nextUnitId = maxId + 1;
+                } else {
+                    nextUnitId = 1;
+                }
+                
+                renderUnits();
+                showLoading(false);
+            }).catch((error) => {
+                alert('حدث خطأ أثناء تحميل البيانات: ' + error.message);
+                showLoading(false);
+            });
+        }
+        
+        // دالة لعرض/إخفاء مؤشر التحميل
+        function showLoading(show) {
+            if (show) {
+                loadingMessage.classList.remove('hidden');
+            } else {
+                loadingMessage.classList.add('hidden');
+            }
+        }
+        
+        // دالة لعرض مؤشر التحميل في زر الحفظ
+        function showSaveLoading(show) {
+            if (show) {
+                saveText.classList.add('hidden');
+                saveLoading.classList.remove('hidden');
+                saveBtn.disabled = true;
+            } else {
+                saveText.classList.remove('hidden');
+                saveLoading.classList.add('hidden');
+                saveBtn.disabled = false;
+            }
+        }
+        
+        // دالة لعرض الوحدات في الجدول
+        function renderUnits(filteredUnits = null) {
+            const unitsToRender = filteredUnits || units;
+            unitsTable.innerHTML = '';
+            
+            if (unitsToRender.length === 0) {
+                unitsTable.innerHTML = '<tr><td colspan="4" class="text-center">لا توجد وحدات</td></tr>';
+                return;
+            }
+            
+            unitsToRender.forEach(unit => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${unit.unitId}</td>
+                    <td>${unit.name}</td>
+                    <td><span class="${unit.status === 'active' ? 'status-active' : 'status-inactive'}">${unit.status === 'active' ? 'نشط' : 'موقف'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-btn" data-id="${unit.id}">تعديل</button>
+                        <button class="btn btn-sm btn-danger delete-btn" data-id="${unit.id}">حذف</button>
+                    </td>
+                `;
+                unitsTable.appendChild(row);
+            });
+            
+            // إضافة مستمعي الأحداث لأزرار التعديل والحذف
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const unitId = e.target.getAttribute('data-id');
+                    editUnit(unitId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const unitId = e.target.getAttribute('data-id');
+                    deleteUnit(unitId);
+                });
+            });
+        }
+        
+        // دالة لإضافة أو تعديل وحدة
+        unitForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const unitName = unitNameInput.value.trim();
+            const status = document.querySelector('input[name="status"]:checked').value;
+            
+            if (!unitName) {
+                alert('يرجى إدخال اسم الوحدة');
+                return;
+            }
+            
+            showSaveLoading(true);
+            
+            if (editingUnitId) {
+                // تعديل وحدة موجودة
+                database.ref(`${DB_PATH}/${editingUnitId}`).update({
+                    name: unitName,
+                    status: status
+                }).then(() => {
+                    alert('تم تعديل الوحدة بنجاح');
+                    resetForm();
+                    loadUnits();
+                }).catch((error) => {
+                    alert('حدث خطأ أثناء تعديل الوحدة: ' + error.message);
+                }).finally(() => {
+                    showSaveLoading(false);
+                });
+            } else {
+                // إضافة وحدة جديدة
+                const newUnit = {
+                    unitId: nextUnitId,
+                    name: unitName,
+                    status: status
+                };
+                
+                database.ref(DB_PATH).push(newUnit).then(() => {
+                    alert('تم إضافة الوحدة بنجاح');
+                    resetForm();
+                    loadUnits();
+                }).catch((error) => {
+                    alert('حدث خطأ أثناء إضافة الوحدة: ' + error.message);
+                }).finally(() => {
+                    showSaveLoading(false);
+                });
+            }
+        });
+        
+        // دالة لتعديل وحدة
+        function editUnit(unitId) {
+            const unit = units.find(u => u.id === unitId);
+            if (unit) {
+                unitIdInput.value = unit.unitId;
+                unitNameInput.value = unit.name;
+                
+                if (unit.status === 'active') {
+                    document.getElementById('active').checked = true;
+                } else {
+                    document.getElementById('inactive').checked = true;
+                }
+                
+                editingUnitId = unitId;
+                saveBtn.textContent = 'تحديث الوحدة';
+                cancelEditBtn.classList.remove('hidden');
+                
+                // التبديل إلى تبويب الإضافة
+                document.getElementById('add-tab').click();
+            }
+        }
+        
+        // دالة لحذف وحدة
+        function deleteUnit(unitId) {
+            if (confirm('هل أنت متأكد من رغبتك في حذف هذه الوحدة؟')) {
+                database.ref(`${DB_PATH}/${unitId}`).remove().then(() => {
+                    alert('تم حذف الوحدة بنجاح');
+                    loadUnits();
+                }).catch((error) => {
+                    alert('حدث خطأ أثناء حذف الوحدة: ' + error.message);
+                });
+            }
+        }
+        
+        // دالة لإلغاء التعديل
+        cancelEditBtn.addEventListener('click', resetForm);
+        
+        // دالة لإعادة تعيين النموذج
+        function resetForm() {
+            unitForm.reset();
+            unitIdInput.value = nextUnitId;
+            editingUnitId = null;
+            saveBtn.textContent = 'حفظ الوحدة';
+            cancelEditBtn.classList.add('hidden');
+            document.getElementById('active').checked = true;
+            showSaveLoading(false);
+        }
+        
+        // دالة للبحث في الوحدات
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredUnits = units.filter(unit => 
+                unit.name.toLowerCase().includes(searchTerm) || 
+                unit.unitId.toString().includes(searchTerm)
+            );
+            renderUnits(filteredUnits);
+        });
+        
+        // دالة لتصدير البيانات إلى ملف JSON
+        exportBtn.addEventListener('click', () => {
+            if (units.length === 0) {
+                alert('لا توجد بيانات للتصدير');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(units, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const url = URL.createObjectURL(dataBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'whda_units_data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('تم تصدير البيانات بنجاح');
+        });
+        
+        // دالة لاستيراد البيانات من ملف JSON إلى Firebase
+        importBtn.addEventListener('click', () => {
+            if (!importFile.files.length) {
+                alert('يرجى اختيار ملف للاستيراد');
+                return;
+            }
+            
+            const file = importFile.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(importedData)) {
+                        throw new Error('تنسيق الملف غير صحيح');
+                    }
+                    
+                    // التحقق من أن البيانات تحتوي على الحقول المطلوبة
+                    const isValidData = importedData.every(item => 
+                        item.unitId && item.name && item.status
+                    );
+                    
+                    if (!isValidData) {
+                        throw new Error('هيكل البيانات في الملف غير صحيح');
+                    }
+                    
+                    if (confirm('هل تريد استيراد البيانات إلى قاعدة البيانات؟ سيتم إضافة البيانات الجديدة إلى البيانات الحالية.')) {
+                        showSaveLoading(true);
+                        
+                        // استيراد كل وحدة إلى Firebase
+                        const importPromises = importedData.map(unit => {
+                            // إزالة المعرف القديم إذا كان موجوداً
+                            const { id, ...unitData } = unit;
+                            return database.ref(DB_PATH).push(unitData);
+                        });
+                        
+                        Promise.all(importPromises).then(() => {
+                            alert('تم استيراد البيانات بنجاح');
+                            loadUnits();
+                            importFile.value = ''; // مسح حقل الملف
+                        }).catch((error) => {
+                            alert('حدث خطأ أثناء استيراد البيانات: ' + error.message);
+                        }).finally(() => {
+                            showSaveLoading(false);
+                        });
+                    }
+                } catch (error) {
+                    alert('خطأ في استيراد البيانات: ' + error.message);
+                }
+            };
+            
+            reader.readAsText(file);
+        });
+        
+        // تهيئة التطبيق عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUnits();
+            unitIdInput.value = nextUnitId;
+        });
+    </script>
+</body>
+</html>
