@@ -741,7 +741,7 @@ body::before {
         <h2 class="box-title"><i class="fas fa-cog"></i> التهيئة والإعدادات</h2>
         <div class="buttons-grid">
             <button class="btn" onclick="openPage('as.html')"><i class="fas fa-user-plus"></i><span class="btn-text">طلب الانضمام</span></button>
-            <button class="btn" onclick="openAdminLogin()"><i class="fas fa-user-cog"></i><span class="btn-text">الإعدادات الإدارية</span></button>
+            <button class="btn" id="adminSettingsBtn"><i class="fas fa-user-cog"></i><span class="btn-text">الإعدادات الإدارية</span></button>
             <button class="btn" onclick="openPage('mr.html')"><i class="fas fa-info-circle"></i><span class="btn-text">عنا</span></button>
         </div>
     </div>
@@ -973,133 +973,6 @@ function generateId(text) {
         .replace(/[^\w]/g, '');
 }
 
-// 🔹 إنشاء معرف ثابت للزائر
-let visitorId = localStorage.getItem("visitorId");
-if(!visitorId){
-  visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random()*1000);
-  localStorage.setItem("visitorId", visitorId);
-}
-
-// 🔹 الإشارة إلى جدول visitors
-const visitorsRef = database.ref("visitors");
-const visitorRef = visitorsRef.child(visitorId);
-
-// 🔹 دالة تسجيل الزائر المحسنة
-function registerVisitor(ip = "unknown") {
-    const visitorData = {
-        enterTime: new Date().toISOString(),
-        exitTime: null,
-        online: true,
-        page: window.location.pathname.split("/").pop() || "index.html",
-        visitorId: visitorId,
-        ip: ip,
-        userAgent: navigator.userAgent,
-        screenResolution: `${screen.width}x${screen.height}`,
-        language: navigator.language,
-        lastActivity: new Date().toISOString(),
-        timestamp: Date.now()
-    };
-    
-    console.log('📊 بيانات الزائر المراد حفظها:', visitorData);
-    console.log('🗂️ المسار في Firebase:', `visitors/${visitorId}`);
-    
-    // تخزين محلي أولاً
-    saveDataToLocalStorage('visitorData', visitorData);
-    
-    // محاولة الإرسال إلى Firebase
-    if (navigator.onLine) {
-        visitorRef.set(visitorData)
-            .then(() => {
-                console.log('✅ تم حفظ بيانات الزائر في Firebase بنجاح');
-                   })
-            .catch((error) => {
-                console.error('❌ فشل في حفظ بيانات الزائر في Firebase:', error);
-                      });
-    } else {
-        console.log('📴 لا يوجد اتصال، سيتم حفظ البيانات محلياً فقط');
-        showToast('مرحبا بك أيها الزائر الكريم! لا تنسى ذكر الله والصلاة على النبي ﷺ', 'welcome');
-    }
-}
-
-// 🔹 تحديث حالة المغادرة (محسّن)
-function setupUnloadHandler() {
-    const handleUnload = () => {
-        const exitData = {
-            exitTime: new Date().toISOString(),
-            online: false,
-            lastActivity: new Date().toISOString(),
-            sessionEnd: new Date().toISOString(),
-            sessionDuration: Date.now() - parseInt(localStorage.getItem('sessionStart') || Date.now())
-        };
-        
-        console.log('👋 تحديث حالة مغادرة الزائر:', exitData);
-        
-        // تخزين محلي أولاً (لضمان الحفظ)
-        const currentData = getDataFromLocalStorage('visitorData') || {};
-        const updatedData = {...currentData, ...exitData};
-        saveDataToLocalStorage('visitorData', updatedData);
-        
-        // محاولة إرسال إلى Firebase (باستخدام sendBeacon إذا كان متاحاً)
-        if (navigator.onLine) {
-            // استخدام sendBeacon للمغادرة لأنه أكثر موثوقية
-            const dataBlob = new Blob([JSON.stringify(exitData)], {type: 'application/json'});
-            
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon(`${firebaseConfig.databaseURL}/visitors/${visitorId}.json`, dataBlob);
-                console.log('✅ تم إرسال حالة المغادرة باستخدام sendBeacon');
-            } else {
-                // Fallback إلى update العادي
-                visitorRef.update(exitData)
-                    .then(() => console.log('✅ تم تحديث حالة المغادرة'))
-                    .catch(error => console.error('❌ فشل في تحديث حالة المغادرة:', error));
-            }
-        }
-    };
-    
-    // حفظ وقت بدء الجلسة
-    if (!localStorage.getItem('sessionStart')) {
-        localStorage.setItem('sessionStart', Date.now().toString());
-    }
-    
-    window.addEventListener('beforeunload', handleUnload);
-    window.addEventListener('unload', handleUnload);
-    
-    // أيضًا التعامل مع إغلاق التبويب/التصفح على الجوال
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            handleUnload();
-        }
-    });
-}
-
-// 🔹 جلب IP وتسجيل الزائر
-function initVisitorTracking() {
-    console.log('🚀 بدء تتبع الزائر...');
-    
-    if (navigator.onLine) {
-        console.log('🌐 جاري جلب عنوان IP...');
-        fetch("https://api.ipify.org?format=json")
-            .then(response => {
-                if (!response.ok) throw new Error('فشل في جلب IP');
-                return response.json();
-            })
-            .then(data => {
-                console.log('✅ تم جلب IP الزائر:', data.ip);
-                registerVisitor(data.ip);
-            })
-            .catch(err => {
-                console.warn("⚠️ فشل جلب IP، استخدام القيمة الافتراضية:", err);
-                registerVisitor("unknown");
-            });
-    } else {
-        console.log('📴 لا يوجد اتصال، تسجيل الزائر بدون IP');
-        registerVisitor("offline");
-    }
-    
-    // إعداد معالج المغادرة
-    setupUnloadHandler();
-}
-
 // دالة تثبيت التطبيق
 function installApp() {
     showToast('جاري تحضير تطبيق المتجر...', 'success');
@@ -1136,16 +1009,26 @@ function openCommercialSettings() {
     } else {
         // إذا لم يكن مسجلاً، عرض شاشة تسجيل الدخول
         const merchantLoginModal = document.getElementById('merchantLoginModal');
-        merchantLoginModal.classList.add('show');
+        if (merchantLoginModal) {
+            merchantLoginModal.classList.add('show');
+        } else {
+            console.error('❌ لم يتم العثور على شاشة تسجيل الدخول للتاجر');
+            showToast('حدث خطأ في تحميل شاشة الدخول', 'error');
+        }
     }
 }
 
 // فتح شاشة تسجيل الدخول للإدارة
 function openAdminLogin() {
+    console.log('🟡 تم استدعاء openAdminLogin');
+    
     // التحقق من وجود مستخدم مسجل مسبقاً
     const userData = globalUser.getUserData();
+    console.log('📊 بيانات المستخدم:', userData);
+    
     if (userData && userData.type === 'admin') {
         // إذا كان مسجلاً بالفعل، انتقل مباشرة إلى لوحة الإدارة
+        console.log('✅ مستخدم مسجل مسبقاً، التوجيه إلى لوحة الإدارة');
         showToast(`مرحباً بعودتك ${userData.username}`, 'success');
         setTimeout(() => {
             window.location.href = 'mnjr_admin.html';
@@ -1153,12 +1036,22 @@ function openAdminLogin() {
     } else {
         // إذا لم يكن مسجلاً، عرض شاشة تسجيل الدخول للإدارة
         const adminLoginModal = document.getElementById('adminLoginModal');
-        adminLoginModal.classList.add('show');
+        console.log('🔍 العنصر adminLoginModal:', adminLoginModal);
+        
+        if (adminLoginModal) {
+            adminLoginModal.classList.add('show');
+            console.log('✅ تم إظهار شاشة تسجيل الدخول للإدارة');
+        } else {
+            console.error('❌ لم يتم العثور على شاشة تسجيل الدخول للإدارة');
+            showToast('حدث خطأ في تحميل شاشة الدخول', 'error');
+        }
     }
 }
 
 // تأثيرات تحميل الصفحة
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ تم تحميل DOM بالكامل');
+    
     const boxes = document.querySelectorAll('.box');
     const totalBoxes = boxes.length;
 
@@ -1191,14 +1084,24 @@ document.addEventListener('DOMContentLoaded', function() {
         footerScrollingText.textContent = texts[currentTextIndex];
     }, 8000);
     
-    // بدء تتبع الزوار بعد تحميل الصفحة
-    setTimeout(() => {
-        initVisitorTracking();
-    }, 1000);
+    // تهيئة أحداث شاشة تسجيل الدخول للتاجر
+    initMerchantLoginEvents();
+    
+    // تهيئة أحداث شاشة تسجيل الدخول للإدارة
+    initAdminLoginEvents();
+    
+    // إضافة event listener للزر الإداري
+    const adminSettingsBtn = document.getElementById('adminSettingsBtn');
+    if (adminSettingsBtn) {
+        adminSettingsBtn.addEventListener('click', openAdminLogin);
+        console.log('✅ تم إضافة event listener لزر الإعدادات الإدارية');
+    } else {
+        console.error('❌ لم يتم العثور على زر الإعدادات الإدارية');
+    }
 });
 
-// أحداث شاشة تسجيل الدخول للتاجر
-document.addEventListener('DOMContentLoaded', function() {
+// تهيئة أحداث شاشة تسجيل الدخول للتاجر
+function initMerchantLoginEvents() {
     const merchantLoginModal = document.getElementById('merchantLoginModal');
     const closeMerchantLogin = document.getElementById('closeMerchantLogin');
     const merchantLoginForm = document.getElementById('merchantLoginForm');
@@ -1208,6 +1111,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const merchantLoginMessage = document.getElementById('merchantLoginMessage');
     const merchantLoginBtn = document.getElementById('merchantLoginBtn');
     const merchantLoadingSpinner = document.getElementById('merchantLoadingSpinner');
+    
+    if (!merchantLoginModal || !closeMerchantLogin || !merchantLoginForm) {
+        console.error('❌ عناصر شاشة تسجيل الدخول للتاجر غير موجودة');
+        return;
+    }
     
     // إغلاق شاشة تسجيل الدخول للتاجر
     closeMerchantLogin.addEventListener('click', function() {
@@ -1226,12 +1134,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // إظهار/إخفاء كلمة المرور للتاجر
-    toggleMerchantPassword.addEventListener('click', function() {
-        const type = merchantPassword.getAttribute('type') === 'password' ? 'text' : 'password';
-        merchantPassword.setAttribute('type', type);
-        toggleMerchantPassword.classList.toggle('fa-eye');
-        toggleMerchantPassword.classList.toggle('fa-eye-slash');
-    });
+    if (toggleMerchantPassword) {
+        toggleMerchantPassword.addEventListener('click', function() {
+            const type = merchantPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            merchantPassword.setAttribute('type', type);
+            toggleMerchantPassword.classList.toggle('fa-eye');
+            toggleMerchantPassword.classList.toggle('fa-eye-slash');
+        });
+    }
     
     // معالجة تسجيل الدخول للتاجر
     merchantLoginForm.addEventListener('submit', async function(e) {
@@ -1242,7 +1152,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // إظهار حالة التحميل
         merchantLoginBtn.disabled = true;
-        merchantLoadingSpinner.style.display = 'inline-block';
+        if (merchantLoadingSpinner) merchantLoadingSpinner.style.display = 'inline-block';
         merchantLoginMessage.style.display = 'none';
         
         try {
@@ -1284,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // إعادة تمكين الزر وإخفاء مؤشر التحميل
             merchantLoginBtn.disabled = false;
-            merchantLoadingSpinner.style.display = 'none';
+            if (merchantLoadingSpinner) merchantLoadingSpinner.style.display = 'none';
             
             // إغلاق النافذة وإعادة التوجيه إلى لوحة التحكم
             setTimeout(() => {
@@ -1295,7 +1205,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             // إعادة تمكين الزر وإخفاء مؤشر التحميل
             merchantLoginBtn.disabled = false;
-            merchantLoadingSpinner.style.display = 'none';
+            if (merchantLoadingSpinner) merchantLoadingSpinner.style.display = 'none';
             
             // عرض رسالة الخطأ
             merchantLoginMessage.textContent = error.message;
@@ -1306,10 +1216,10 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast(error.message, 'error');
         }
     });
-});
+}
 
-// أحداث شاشة تسجيل الدخول للإدارة
-document.addEventListener('DOMContentLoaded', function() {
+// تهيئة أحداث شاشة تسجيل الدخول للإدارة
+function initAdminLoginEvents() {
     const adminLoginModal = document.getElementById('adminLoginModal');
     const closeAdminLogin = document.getElementById('closeAdminLogin');
     const adminLoginForm = document.getElementById('adminLoginForm');
@@ -1319,6 +1229,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const adminLoginMessage = document.getElementById('adminLoginMessage');
     const adminLoginBtn = document.getElementById('adminLoginBtn');
     const adminLoadingSpinner = document.getElementById('adminLoadingSpinner');
+    
+    if (!adminLoginModal || !closeAdminLogin || !adminLoginForm) {
+        console.error('❌ عناصر شاشة تسجيل الدخول للإدارة غير موجودة');
+        return;
+    }
+    
+    console.log('✅ تهيئة أحداث شاشة تسجيل الدخول للإدارة');
     
     // إغلاق شاشة تسجيل الدخول للإدارة
     closeAdminLogin.addEventListener('click', function() {
@@ -1337,12 +1254,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // إظهار/إخفاء كلمة المرور للإدارة
-    toggleAdminPassword.addEventListener('click', function() {
-        const type = adminPassword.getAttribute('type') === 'password' ? 'text' : 'password';
-        adminPassword.setAttribute('type', type);
-        toggleAdminPassword.classList.toggle('fa-eye');
-        toggleAdminPassword.classList.toggle('fa-eye-slash');
-    });
+    if (toggleAdminPassword) {
+        toggleAdminPassword.addEventListener('click', function() {
+            const type = adminPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            adminPassword.setAttribute('type', type);
+            toggleAdminPassword.classList.toggle('fa-eye');
+            toggleAdminPassword.classList.toggle('fa-eye-slash');
+        });
+    }
     
     // معالجة تسجيل الدخول للإدارة
     adminLoginForm.addEventListener('submit', async function(e) {
@@ -1353,7 +1272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // إظهار حالة التحميل
         adminLoginBtn.disabled = true;
-        adminLoadingSpinner.style.display = 'inline-block';
+        if (adminLoadingSpinner) adminLoadingSpinner.style.display = 'inline-block';
         adminLoginMessage.style.display = 'none';
         
         try {
@@ -1387,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // إعادة تمكين الزر وإخفاء مؤشر التحميل
             adminLoginBtn.disabled = false;
-            adminLoadingSpinner.style.display = 'none';
+            if (adminLoadingSpinner) adminLoadingSpinner.style.display = 'none';
             
             // إغلاق النافذة وإعادة التوجيه إلى لوحة الإدارة
             setTimeout(() => {
@@ -1398,7 +1317,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             // إعادة تمكين الزر وإخفاء مؤشر التحميل
             adminLoginBtn.disabled = false;
-            adminLoadingSpinner.style.display = 'none';
+            if (adminLoadingSpinner) adminLoadingSpinner.style.display = 'none';
             
             // عرض رسالة الخطأ
             adminLoginMessage.textContent = error.message;
@@ -1409,7 +1328,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast(error.message, 'error');
         }
     });
-});
+}
 </script>
 
 </body>
