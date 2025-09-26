@@ -88,18 +88,42 @@
         font-size:22px; width:100%; cursor:pointer;   
     }  
     
-    .merchant-name {  
+    .merchant-info {  
         text-align: center;  
         margin-top: -15px;  
         margin-bottom: 20px;  
+        background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(41, 128, 185, 0.1));  
+        border-radius: 10px;  
+        padding: 10px 15px;  
+        width: 100%;  
+        border: 1px solid rgba(52, 152, 219, 0.3);  
+    }
+    
+    .merchant-name {  
         font-size: 18px;  
         color: var(--secondary-color);  
         font-weight: 600;  
-        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));  
-        -webkit-background-clip: text;  
-        background-clip: text;  
-        color: transparent;  
-        padding: 5px 0;  
+        margin-bottom: 5px;  
+    }
+    
+    .merchant-details {  
+        font-size: 14px;  
+        color: var(--dark-color);  
+        display: flex;  
+        justify-content: center;  
+        gap: 15px;  
+        flex-wrap: wrap;  
+    }
+    
+    .merchant-detail {  
+        display: flex;  
+        align-items: center;  
+        gap: 5px;  
+    }
+    
+    .merchant-detail i {  
+        color: var(--primary-color);  
+        font-size: 12px;  
     }
       
     .buttons-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:15px; width:100%; }  
@@ -219,6 +243,7 @@
         .footer-marquee { height: 35px; } .footer-text-container { height: 35px; }  
         .footer-scrolling-text { font-size: 14px; line-height: 35px; }  
         .merchant-name { font-size: 16px; }  
+        .merchant-details { font-size: 12px; }  
     }  
       
     @media(max-width:480px){  
@@ -227,6 +252,7 @@
         .footer-marquee { height: 30px; } .footer-text-container { height: 30px; }  
         .footer-scrolling-text { font-size: 12px; line-height: 30px; }  
         .merchant-name { font-size: 14px; }  
+        .merchant-details { font-size: 11px; gap: 10px; }  
     }  
     </style>  
 </head>  
@@ -243,9 +269,17 @@
             <h2 class="box-title">  
                 <i class="fas fa-cog"></i> مدخلات المنتجات والوجبات  
             </h2>  
-            <div class="merchant-name" id="merchantName">  
-                <!-- سيتم عرض اسم التاجر هنا -->  
+            
+            <!-- قسم عرض بيانات التاجر -->  
+            <div class="merchant-info" id="merchantInfo">  
+                <div class="merchant-name" id="merchantName">  
+                    جاري تحميل بيانات التاجر...  
+                </div>  
+                <div class="merchant-details" id="merchantDetails">  
+                    <!-- سيتم عرض التفاصيل هنا -->  
+                </div>  
             </div>  
+            
             <div class="buttons-grid">  
                 <button class="btn" onclick="openPage('fah.html')">  
                     <i class="fas fa-tags"></i>  
@@ -373,20 +407,71 @@
         window.location.href = pageUrl;  
     }  
     
-    // دالة عرض اسم التاجر  
-    function displayMerchantName() {
-        const merchantNameElement = document.getElementById('merchantName');
+    // دالة عرض بيانات التاجر من globalUser  
+    function displayMerchantInfo() {  
+        const merchantNameElement = document.getElementById('merchantName');  
+        const merchantDetailsElement = document.getElementById('merchantDetails');  
         
-        // محاولة جلب اسم التاجر من localStorage
-        const merchantData = localStorage.getItem('merchantData');
+        // جلب بيانات التاجر من globalUser  
+        const userData = globalUser.getUserData();  
         
-        if (merchantData) {
-            const merchant = JSON.parse(merchantData);
-            merchantNameElement.textContent = `التاجر: ${merchant.name || 'غير محدد'}`;
-        } else {
-            merchantNameElement.textContent = 'التاجر: لم يتم تحديده';
-        }
-    }
+        if (userData && userData.type === 'merchant') {  
+            // عرض اسم التاجر  
+            merchantNameElement.textContent = `التاجر: ${userData.name || userData.username || 'غير محدد'}`;  
+            
+            // عرض التفاصيل الإضافية  
+            let detailsHTML = '';  
+            
+            if (userData.commercialName) {  
+                detailsHTML += `<div class="merchant-detail">  
+                    <i class="fas fa-store"></i>  
+                    <span>${userData.commercialName}</span>  
+                </div>`;  
+            }  
+            
+            if (userData.email) {  
+                detailsHTML += `<div class="merchant-detail">  
+                    <i class="fas fa-envelope"></i>  
+                    <span>${userData.email}</span>  
+                </div>`;  
+            }  
+            
+            if (userData.phone) {  
+                detailsHTML += `<div class="merchant-detail">  
+                    <i class="fas fa-phone"></i>  
+                    <span>${userData.phone}</span>  
+                </div>`;  
+            }  
+            
+            // إضافة وقت تسجيل الدخول  
+            if (userData.loginTime) {  
+                const loginTime = new Date(userData.loginTime).toLocaleString('ar-SA');  
+                detailsHTML += `<div class="merchant-detail">  
+                    <i class="fas fa-clock"></i>  
+                    <span>${loginTime}</span>  
+                </div>`;  
+            }  
+            
+            merchantDetailsElement.innerHTML = detailsHTML;  
+            
+            // إظهار رسالة ترحيب  
+            showToast(`مرحباً ${userData.name || userData.username}!
+تم تسجيل الدخول بنجاح`, 'welcome');  
+            
+        } else {  
+            // إذا لم يكن هناك تاجر مسجل  
+            merchantNameElement.textContent = 'لم يتم تسجيل الدخول كتاجر';  
+            merchantDetailsElement.innerHTML = `  
+                <div class="merchant-detail">  
+                    <i class="fas fa-exclamation-triangle"></i>  
+                    <span>يرجى تسجيل الدخول للوصول إلى الميزات</span>  
+                </div>  
+            `;  
+            
+            // إظهار رسالة تحذير  
+            showToast('يرجى تسجيل الدخول كتاجر للوصول إلى هذه الصفحة', 'warning');  
+        }  
+    }  
       
     // ===== أحداث تحميل الصفحة والتفاعل =====  
       
@@ -424,8 +509,8 @@
             footerScrollingText.textContent = texts[currentTextIndex];  
         }, 8000);  
         
-        // عرض اسم التاجر
-        displayMerchantName();
+        // عرض بيانات التاجر  
+        displayMerchantInfo();  
     });  
       
     // ===== معالجة الأخطاء العامة =====  
@@ -438,4 +523,4 @@
     });  
     </script>  
 </body>  
-</html>
+    </html>
