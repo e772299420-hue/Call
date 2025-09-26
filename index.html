@@ -18,6 +18,7 @@
     --light-color: #ecf0f1;
     --dark-color: #2c3e50;
     --welcome-color: #27ae60;
+    --block-color: #e74c3c;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -615,6 +616,81 @@ body::before {
     margin-left: 10px;
 }
 
+/* شاشة الحظر */
+.blocked-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.blocked-content {
+    background: rgba(255,255,255,0.1);
+    padding: 30px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    max-width: 500px;
+    animation: popIn 0.8s ease-out;
+}
+
+.blocked-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    color: #e74c3c;
+}
+
+.blocked-title {
+    font-size: 28px;
+    margin-bottom: 15px;
+}
+
+.blocked-message {
+    font-size: 18px;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.blocked-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.blocked-btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.blocked-btn-primary {
+    background: #e74c3c;
+}
+
+.blocked-btn-secondary {
+    background: #3498db;
+}
+
+.blocked-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
 /* الأنيميشنات */
 @keyframes spin {
     to { transform: rotate(360deg); }
@@ -665,6 +741,19 @@ body::before {
     .footer-marquee { height: 35px; }
     .footer-text-container { height: 35px; }
     .footer-scrolling-text { font-size: 14px; line-height: 35px; }
+    
+    .blocked-content {
+        padding: 20px;
+        margin: 15px;
+    }
+    
+    .blocked-title {
+        font-size: 24px;
+    }
+    
+    .blocked-message {
+        font-size: 16px;
+    }
 }
 
 @media(max-width:480px){
@@ -692,6 +781,16 @@ body::before {
     .merchant-login-title,
     .admin-login-title {
         font-size: 20px;
+    }
+    
+    .blocked-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .blocked-btn {
+        width: 100%;
+        max-width: 250px;
     }
 }
 </style>
@@ -831,6 +930,22 @@ body::before {
     </div>
 </div>
 
+<!-- شاشة الحظر -->
+<div class="blocked-screen" id="blockedScreen">
+    <div class="blocked-content">
+        <i class="fas fa-ban blocked-icon"></i>
+        <h2 class="blocked-title">وصول محظور</h2>
+        <p class="blocked-message">
+            عذراً، ليس لديك صلاحية للوصول إلى هذه الصفحة.
+            إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع المسؤول.
+        </p>
+        <div class="blocked-buttons">
+            <button class="blocked-btn blocked-btn-primary" onclick="goToHomePage()">العودة للصفحة الرئيسية</button>
+            <button class="blocked-btn blocked-btn-secondary" onclick="reloadPage()">إعادة تحميل الصفحة</button>
+        </div>
+    </div>
+</div>
+
 <!-- حاوية الإشعارات المتقدمة -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -843,6 +958,283 @@ const firebaseConfig = {
 // تهيئة Firebase
 const app = firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+
+// ========== نظام تتبع الزوار المحسن ==========
+const VisitorService = {
+    // الحصول على معرف الزائر (ثابت عبر جميع الصفحات)
+    getVisitorId: function() {
+        let visitorId = localStorage.getItem("globalVisitorId");
+        if(!visitorId){
+            visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+            localStorage.setItem("globalVisitorId", visitorId);
+        }
+        return visitorId;
+    },
+    
+    // تسجيل دخول الزائر إلى صفحة معينة
+    trackPageVisit: function(pageName) {
+        const visitorId = this.getVisitorId();
+        const visitData = {
+            visitorId: visitorId,
+            page: pageName,
+            enterTime: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            screenResolution: `${screen.width}x${screen.height}`,
+            referrer: document.referrer || 'direct',
+            timestamp: Date.now()
+        };
+        
+        console.log('📊 تسجيل زيارة الصفحة:', visitData);
+        
+        // حفظ محلي
+        const visits = JSON.parse(localStorage.getItem('pageVisits') || '[]');
+        visits.push(visitData);
+        localStorage.setItem('pageVisits', JSON.stringify(visits));
+        localStorage.setItem('currentVisit', JSON.stringify(visitData));
+        
+        // حفظ في Firebase
+        if (navigator.onLine) {
+            database.ref('visitors/' + visitorId + '/visits').push(visitData)
+                .then(() => console.log('✅ تم حفظ زيارة الصفحة في Firebase'))
+                .catch(error => console.error('❌ فشل في حفظ زيارة الصفحة:', error));
+        }
+        
+        return visitorId;
+    },
+    
+    // تسجيل خروج الزائر من صفحة معينة
+    trackPageExit: function(pageName) {
+        const visitorId = this.getVisitorId();
+        const exitTime = new Date().toISOString();
+        
+        console.log('👋 تسجيل مغادرة الصفحة:', pageName);
+        
+        // تحديث آخر زيارة محلياً
+        const currentVisit = JSON.parse(localStorage.getItem('currentVisit') || '{}');
+        if (currentVisit.enterTime) {
+            currentVisit.exitTime = exitTime;
+            currentVisit.duration = Date.now() - currentVisit.timestamp;
+            localStorage.setItem('currentVisit', JSON.stringify(currentVisit));
+            
+            // تحديث في Firebase
+            if (navigator.onLine) {
+                // البحث عن آخر زيارة وتحديثها
+                database.ref('visitors/' + visitorId + '/visits')
+                    .orderByChild('timestamp')
+                    .limitToLast(1)
+                    .once('value')
+                    .then(snapshot => {
+                        snapshot.forEach(childSnapshot => {
+                            if (!childSnapshot.child('exitTime').exists()) {
+                                childSnapshot.ref.update({ 
+                                    exitTime: exitTime,
+                                    duration: Date.now() - childSnapshot.child('timestamp').val()
+                                });
+                            }
+                        });
+                    });
+            }
+        }
+    },
+    
+    // تتبع الإجراءات (نقرات، إلخ)
+    trackAction: function(action, data) {
+        const actionData = {
+            visitorId: this.getVisitorId(),
+            action: action,
+            data: data,
+            timestamp: new Date().toISOString(),
+            page: window.location.pathname.split('/').pop()
+        };
+        
+        console.log('🔔 تتبع الإجراء:', actionData);
+        
+        // حفظ في Firebase
+        if (navigator.onLine) {
+            database.ref('userActions').push(actionData);
+        }
+    }
+};
+
+// ========== نظام الحظر والمراقبة المحسن ==========
+const BlockingSystem = {
+    // قائمة الزوار المحظورين
+    bannedVisitors: {},
+    
+    // تهيئة النظام
+    init: function() {
+        return this.loadBannedVisitors();
+    },
+    
+    // تحميل قائمة الزوار المحظورين من المسار الصحيح
+    loadBannedVisitors: function() {
+        return new Promise((resolve) => {
+            if (navigator.onLine) {
+                console.log('🔍 جاري تحميل قائمة الزوار المحظورين...');
+                
+                // المسار الصحيح للزوار المحظورين
+                database.ref('bannedVisitors').on('value', (snapshot) => {
+                    this.bannedVisitors = snapshot.val() || {};
+                    console.log('🔒 قائمة الزوار المحظورين المحدثة:', this.bannedVisitors);
+                    
+                    // التحقق من الحظر بعد تحميل البيانات
+                    const isAllowed = this.checkAccess();
+                    resolve(isAllowed);
+                }, (error) => {
+                    console.error('❌ خطأ في تحميل قائمة المحظورين:', error);
+                    // في حالة الخطأ، نسمح بالوصول مؤقتاً
+                    resolve(true);
+                });
+            } else {
+                console.log('📴 لا يوجد اتصال، السماح بالوصول مؤقتاً');
+                resolve(true);
+            }
+        });
+    },
+    
+    // التحقق من صلاحية الوصول للصفحة الحالية
+    checkAccess: function() {
+        const visitorId = VisitorService.getVisitorId();
+        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        
+        console.log('🔍 فحص الوصول للزائر:', visitorId, 'للصفحة:', currentPage);
+        
+        // التحقق إذا كان الزائر محظوراً
+        if (this.bannedVisitors[visitorId]) {
+            const banInfo = this.bannedVisitors[visitorId];
+            console.log('🚫 الزائر محظور:', banInfo);
+            
+            // التحقق إذا كان الحظر يشمل هذه الصفحة
+            if (banInfo.bannedPages && banInfo.bannedPages.includes(currentPage)) {
+                console.log('🚫 الصفحة محظورة على هذا الزائر');
+                this.showBlockedScreen(banInfo);
+                return false;
+            }
+            
+            // التحقق إذا كان الحظر لجميع الصفحات
+            if (banInfo.bannedPages && banInfo.bannedPages.includes('all')) {
+                console.log('🚫 جميع الصفحات محظورة على هذا الزائر');
+                this.showBlockedScreen(banInfo);
+                return false;
+            }
+            
+            // التحقق من تاريخ انتهاء الحظر
+            if (banInfo.expiryDate) {
+                const expiryDate = new Date(banInfo.expiryDate);
+                const now = new Date();
+                
+                if (now > expiryDate) {
+                    console.log('✅ انتهى مدة الحظر، السماح بالوصول');
+                    // إزالة الحظر من القائمة المحلية
+                    delete this.bannedVisitors[visitorId];
+                    return true;
+                }
+            }
+        }
+        
+        console.log('✅ الوصول مسموح للزائر');
+        return true;
+    },
+    
+    // عرض شاشة الحظر مع معلومات الحظر
+    showBlockedScreen: function(banInfo) {
+        const blockedScreen = document.getElementById('blockedScreen');
+        const blockedMessage = blockedScreen.querySelector('.blocked-message');
+        
+        // تخصيص رسالة الحظر بناءً على المعلومات
+        let message = 'عذراً، ليس لديك صلاحية للوصول إلى هذه الصفحة.';
+        
+        if (banInfo.reason) {
+            message += `<br><strong>سبب الحظر:</strong> ${banInfo.reason}`;
+        }
+        
+        if (banInfo.expiryDate) {
+            const expiryDate = new Date(banInfo.expiryDate);
+            message += `<br><strong>تاريخ انتهاء الحظر:</strong> ${expiryDate.toLocaleDateString('ar-SA')}`;
+        }
+        
+        if (banInfo.bannedBy) {
+            message += `<br><strong>تم الحظر بواسطة:</strong> ${banInfo.bannedBy}`;
+        }
+        
+        message += '<br>إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع المسؤول.';
+        
+        blockedMessage.innerHTML = message;
+        blockedScreen.style.display = 'flex';
+        
+        // منع أي تفاعل مع المحتوى الأصلي
+        document.body.style.overflow = 'hidden';
+        
+        VisitorService.trackAction('page_blocked', {
+            page: window.location.pathname.split('/').pop(),
+            reason: banInfo.reason || 'مستخدم محظور',
+            banInfo: banInfo
+        });
+    }
+};
+
+// ========== نظام الإشعارات المحسن ==========
+const EnhancedNotifications = {
+    showWelcomeMessage: function() {
+        const visitorId = VisitorService.getVisitorId();
+        const lastVisit = localStorage.getItem('lastVisitTime');
+        const now = new Date().toISOString();
+        
+        if (!lastVisit) {
+            // أول زيارة
+            showToast('مرحباً بك في AZ التسويق الشامل! نتمنى لك تجربة ممتعة.', 'welcome');
+            VisitorService.trackAction('first_visit', {});
+        } else {
+            // زيارة متكررة
+            const daysSinceLastVisit = Math.floor((new Date(now) - new Date(lastVisit)) / (1000 * 60 * 60 * 24));
+            if (daysSinceLastVisit > 7) {
+                showToast('مرحباً بعودتك! لقد افتقدناك.', 'welcome');
+            }
+        }
+        
+        localStorage.setItem('lastVisitTime', now);
+    },
+    
+    showNewFeatures: function() {
+        // إشعار بالميزات الجديدة (يمكن تحديثه دورياً)
+        const lastFeatureNotification = localStorage.getItem('lastFeatureNotification') || '0';
+        const currentTime = Date.now();
+        
+        if (currentTime - parseInt(lastFeatureNotification) > 7 * 24 * 60 * 60 * 1000) {
+            showToast('جرب خدمتنا الجديدة للمنتجات التجارية!', 'success');
+            localStorage.setItem('lastFeatureNotification', currentTime.toString());
+        }
+    }
+};
+
+// ========== نظام الإحصائيات والتقارير ==========
+const AnalyticsSystem = {
+    trackUserBehavior: function() {
+        // تتبع النقرات
+        document.addEventListener('click', function(e) {
+            const target = e.target;
+            if (target.classList.contains('btn') || target.closest('.btn')) {
+                const buttonText = target.textContent || target.closest('.btn').textContent;
+                VisitorService.trackAction('button_click', { 
+                    button: buttonText.trim(),
+                    page: window.location.pathname.split('/').pop()
+                });
+            }
+        });
+        
+        // تتبع وقت البقاء في الصفحة
+        let pageEnterTime = new Date();
+        window.addEventListener('beforeunload', function() {
+            const timeSpent = new Date() - pageEnterTime;
+            VisitorService.trackAction('page_time_spent', { 
+                duration: timeSpent,
+                page: window.location.pathname.split('/').pop()
+            });
+        });
+    }
+};
+
+// ========== الوظائف الأساسية للصفحة ==========
 
 // كائن تخزين بيانات المستخدم بشكل عام (جلوبال)
 const globalUser = {
@@ -868,49 +1260,8 @@ const globalUser = {
         }
         
         return null;
-    },
-    
-    getUsername: function() {
-        const userData = this.getUserData();
-        return userData ? userData.username : 'زائر';
-    },
-    
-    getUserId: function() {
-        const userData = this.getUserData();
-        return userData ? userData.id : null;
-    },
-    
-    isLoggedIn: function() {
-        return this.getUserData() !== null;
-    },
-    
-    logout: function() {
-        this.data = null;
-        localStorage.removeItem('globalUserData');
-        console.log('تم تسجيل الخروج');
     }
 };
-
-// تخزين البيانات محلياً
-function saveDataToLocalStorage(key, data) {
-    localStorage.setItem(key, JSON.stringify(data));
-    localStorage.setItem(key + '_timestamp', Date.now());
-}
-
-function getDataFromLocalStorage(key, maxAge = 24 * 60 * 60 * 1000) {
-    const data = localStorage.getItem(key);
-    const timestamp = localStorage.getItem(key + '_timestamp');
-    
-    if (!data || !timestamp) return null;
-    
-    if (Date.now() - parseInt(timestamp) > maxAge) {
-        localStorage.removeItem(key);
-        localStorage.removeItem(key + '_timestamp');
-        return null;
-    }
-    
-    return JSON.parse(data);
-}
 
 // دالة عرض الإشعارات المتقدمة
 function showToast(message, type = 'success') {
@@ -973,136 +1324,10 @@ function generateId(text) {
         .replace(/[^\w]/g, '');
 }
 
-// 🔹 إنشاء معرف ثابت للزائر
-let visitorId = localStorage.getItem("visitorId");
-if(!visitorId){
-  visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random()*1000);
-  localStorage.setItem("visitorId", visitorId);
-}
-
-// 🔹 الإشارة إلى جدول visitors
-const visitorsRef = database.ref("visitors");
-const visitorRef = visitorsRef.child(visitorId);
-
-// 🔹 دالة تسجيل الزائر المحسنة
-function registerVisitor(ip = "unknown") {
-    const visitorData = {
-        enterTime: new Date().toISOString(),
-        exitTime: null,
-        online: true,
-        page: window.location.pathname.split("/").pop() || "index.html",
-        visitorId: visitorId,
-        ip: ip,
-        userAgent: navigator.userAgent,
-        screenResolution: `${screen.width}x${screen.height}`,
-        language: navigator.language,
-        lastActivity: new Date().toISOString(),
-        timestamp: Date.now()
-    };
-    
-    console.log('📊 بيانات الزائر المراد حفظها:', visitorData);
-    console.log('🗂️ المسار في Firebase:', `visitors/${visitorId}`);
-    
-    // تخزين محلي أولاً
-    saveDataToLocalStorage('visitorData', visitorData);
-    
-    // محاولة الإرسال إلى Firebase
-    if (navigator.onLine) {
-        visitorRef.set(visitorData)
-            .then(() => {
-                console.log('✅ تم حفظ بيانات الزائر في Firebase بنجاح');
-                   })
-            .catch((error) => {
-                console.error('❌ فشل في حفظ بيانات الزائر في Firebase:', error);
-                      });
-    } else {
-        console.log('📴 لا يوجد اتصال، سيتم حفظ البيانات محلياً فقط');
-        showToast('مرحبا بك أيها الزائر الكريم! لا تنسى ذكر الله والصلاة على النبي ﷺ', 'welcome');
-    }
-}
-
-// 🔹 تحديث حالة المغادرة (محسّن)
-function setupUnloadHandler() {
-    const handleUnload = () => {
-        const exitData = {
-            exitTime: new Date().toISOString(),
-            online: false,
-            lastActivity: new Date().toISOString(),
-            sessionEnd: new Date().toISOString(),
-            sessionDuration: Date.now() - parseInt(localStorage.getItem('sessionStart') || Date.now())
-        };
-        
-        console.log('👋 تحديث حالة مغادرة الزائر:', exitData);
-        
-        // تخزين محلي أولاً (لضمان الحفظ)
-        const currentData = getDataFromLocalStorage('visitorData') || {};
-        const updatedData = {...currentData, ...exitData};
-        saveDataToLocalStorage('visitorData', updatedData);
-        
-        // محاولة إرسال إلى Firebase (باستخدام sendBeacon إذا كان متاحاً)
-        if (navigator.onLine) {
-            // استخدام sendBeacon للمغادرة لأنه أكثر موثوقية
-            const dataBlob = new Blob([JSON.stringify(exitData)], {type: 'application/json'});
-            
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon(`${firebaseConfig.databaseURL}/visitors/${visitorId}.json`, dataBlob);
-                console.log('✅ تم إرسال حالة المغادرة باستخدام sendBeacon');
-            } else {
-                // Fallback إلى update العادي
-                visitorRef.update(exitData)
-                    .then(() => console.log('✅ تم تحديث حالة المغادرة'))
-                    .catch(error => console.error('❌ فشل في تحديث حالة المغادرة:', error));
-            }
-        }
-    };
-    
-    // حفظ وقت بدء الجلسة
-    if (!localStorage.getItem('sessionStart')) {
-        localStorage.setItem('sessionStart', Date.now().toString());
-    }
-    
-    window.addEventListener('beforeunload', handleUnload);
-    window.addEventListener('unload', handleUnload);
-    
-    // أيضًا التعامل مع إغلاق التبويب/التصفح على الجوال
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            handleUnload();
-        }
-    });
-}
-
-// 🔹 جلب IP وتسجيل الزائر
-function initVisitorTracking() {
-    console.log('🚀 بدء تتبع الزائر...');
-    
-    if (navigator.onLine) {
-        console.log('🌐 جاري جلب عنوان IP...');
-        fetch("https://api.ipify.org?format=json")
-            .then(response => {
-                if (!response.ok) throw new Error('فشل في جلب IP');
-                return response.json();
-            })
-            .then(data => {
-                console.log('✅ تم جلب IP الزائر:', data.ip);
-                registerVisitor(data.ip);
-            })
-            .catch(err => {
-                console.warn("⚠️ فشل جلب IP، استخدام القيمة الافتراضية:", err);
-                registerVisitor("unknown");
-            });
-    } else {
-        console.log('📴 لا يوجد اتصال، تسجيل الزائر بدون IP');
-        registerVisitor("offline");
-    }
-    
-    // إعداد معالج المغادرة
-    setupUnloadHandler();
-}
-
 // دالة تثبيت التطبيق
 function installApp() {
     showToast('جاري تحضير تطبيق المتجر...', 'success');
+    VisitorService.trackAction('app_install_attempt', {});
     
     try {
         const appUrl = 'https://drive.google.com/file/d/1tbpZe4plqF5-fNG7e6aUvwimkPkzB9mh/view?usp=drivesdk';
@@ -1120,11 +1345,14 @@ function installApp() {
 
 // الوظائف الأساسية للصفحة
 function openPage(pageUrl) {
+    VisitorService.trackAction('navigation', { to: pageUrl });
     window.location.href = pageUrl;
 }
 
 // فتح شاشة تسجيل الدخول للتاجر
 function openCommercialSettings() {
+    VisitorService.trackAction('open_merchant_login', {});
+    
     // التحقق من وجود مستخدم مسجل مسبقاً
     const userData = globalUser.getUserData();
     if (userData && userData.type === 'merchant') {
@@ -1142,6 +1370,8 @@ function openCommercialSettings() {
 
 // فتح شاشة تسجيل الدخول للإدارة
 function openAdminLogin() {
+    VisitorService.trackAction('open_admin_login', {});
+    
     // التحقق من وجود مستخدم مسجل مسبقاً
     const userData = globalUser.getUserData();
     if (userData && userData.type === 'admin') {
@@ -1157,11 +1387,41 @@ function openAdminLogin() {
     }
 }
 
-// تأثيرات تحميل الصفحة
-document.addEventListener('DOMContentLoaded', function() {
+// وظائف شاشة الحظر
+function goToHomePage() {
+    VisitorService.trackAction('blocked_redirect_home', {});
+    window.location.href = 'index.html';
+}
+
+function reloadPage() {
+    VisitorService.trackAction('blocked_reload', {});
+    location.reload();
+}
+
+// ========== تهيئة الصفحة ==========
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 بدء تحميل الصفحة...');
+    
+    // 1. التحقق من الحظر أولاً (باستخدام Promise)
+    try {
+        const isAllowed = await BlockingSystem.init();
+        if (!isAllowed) {
+            console.log('⛔ تم إيقاف تحميل الصفحة بسبب الحظر');
+            return; // إيقاف التحميل إذا كان محظوراً
+        }
+    } catch (error) {
+        console.error('❌ خطأ في نظام الحظر:', error);
+        // في حالة الخطأ، نستمر في تحميل الصفحة
+    }
+    
+    // 2. تتبع الزائر
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const visitorId = VisitorService.trackPageVisit(currentPage);
+    console.log('👤 معرف الزائر:', visitorId);
+    
+    // 3. تحميم تأثيرات الصفحة (الكود الأصلي)
     const boxes = document.querySelectorAll('.box');
     const totalBoxes = boxes.length;
-
     boxes.forEach((box, index) => {
         const reverseIndex = totalBoxes - 1 - index;
         setTimeout(() => { 
@@ -1177,7 +1437,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }, randomDelay);
     });
     
-    // تغيير نص الشريط المتحرك
+    // 4. الإشعارات الترحيبية
+    EnhancedNotifications.showWelcomeMessage();
+    EnhancedNotifications.showNewFeatures();
+    
+    // 5. تتبع سلوك المستخدم
+    AnalyticsSystem.trackUserBehavior();
+    
+    // 6. إعداد معالج المغادرة
+    window.addEventListener('beforeunload', function() {
+        VisitorService.trackPageExit(currentPage);
+    });
+    
+    // 7. تغيير نص الشريط المتحرك
     const footerScrollingText = document.getElementById('footerScrollingText');
     const texts = [
         "المميز سوفت للأنظمة المحاسبية المتكاملة - أول نظام محاسبي يصنع حسب الطلب - للطلب والاستفسار اتصل على 772299420",
@@ -1191,13 +1463,10 @@ document.addEventListener('DOMContentLoaded', function() {
         footerScrollingText.textContent = texts[currentTextIndex];
     }, 8000);
     
-    // بدء تتبع الزوار بعد تحميل الصفحة
-    setTimeout(() => {
-        initVisitorTracking();
-    }, 1000);
+    console.log('✅ تم تحميل الصفحة بنجاح');
 });
 
-// أحداث شاشة تسجيل الدخول للتاجر
+// ========== أحداث شاشة تسجيل الدخول للتاجر ==========
 document.addEventListener('DOMContentLoaded', function() {
     const merchantLoginModal = document.getElementById('merchantLoginModal');
     const closeMerchantLogin = document.getElementById('closeMerchantLogin');
@@ -1279,6 +1548,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             globalUser.setUserData(userDataToStore);
             
+            VisitorService.trackAction('merchant_login_success', { username: username });
             showToast('تم تسجيل الدخول بنجاح! مرحباً ' + username, 'success');
             merchantLoginForm.reset();
             
@@ -1302,13 +1572,15 @@ document.addEventListener('DOMContentLoaded', function() {
             merchantLoginMessage.className = 'merchant-login-message merchant-error';
             merchantLoginMessage.style.display = 'block';
             
+            VisitorService.trackAction('merchant_login_failed', { error: error.message });
+            
             // عرض إشعار Toast أيضاً
             showToast(error.message, 'error');
         }
     });
 });
 
-// أحداث شاشة تسجيل الدخول للإدارة
+// ========== أحداث شاشة تسجيل الدخول للإدارة ==========
 document.addEventListener('DOMContentLoaded', function() {
     const adminLoginModal = document.getElementById('adminLoginModal');
     const closeAdminLogin = document.getElementById('closeAdminLogin');
@@ -1382,6 +1654,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             globalUser.setUserData(userDataToStore);
             
+            VisitorService.trackAction('admin_login_success', { username: username });
             showToast('تم تسجيل الدخول بنجاح! مرحباً ' + username, 'success');
             adminLoginForm.reset();
             
@@ -1405,11 +1678,21 @@ document.addEventListener('DOMContentLoaded', function() {
             adminLoginMessage.className = 'admin-login-message admin-error';
             adminLoginMessage.style.display = 'block';
             
+            VisitorService.trackAction('admin_login_failed', { error: error.message });
+            
             // عرض إشعار Toast أيضاً
             showToast(error.message, 'error');
         }
     });
 });
+
+// التأكد من تحميل Font Awesome للشاشات الديناميكية
+if (!document.querySelector('link[href*="font-awesome"]')) {
+    const faLink = document.createElement('link');
+    faLink.rel = 'stylesheet';
+    faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+    document.head.appendChild(faLink);
+}
 </script>
 
 </body>
