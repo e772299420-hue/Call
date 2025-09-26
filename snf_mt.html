@@ -1,1 +1,1070 @@
-hereاا
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المنتجات والوجبات</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --info-color: #3498db;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --gray-color: #7f8c8d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .merchant-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .merchant-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .merchant-detail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        .merchant-detail i {
+            color: var(--light-color);
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--light-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            border-right: 1px solid #ddd;
+        }
+
+        .tab:last-child {
+            border-right: none;
+        }
+
+        .tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+        }
+
+        .form-section h3 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-group input[readonly] {
+            background-color: #f8f9fa;
+            color: var(--gray-color);
+        }
+
+        .image-upload-section {
+            border: 2px dashed #bdc3c7;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .image-upload-section:hover {
+            border-color: var(--primary-color);
+            background: #ecf0f1;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, var(--success-color), #2ecc71);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .upload-progress {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .uploaded-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .uploaded-image {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 3px solid white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .uploaded-image:hover {
+            transform: scale(1.05);
+        }
+
+        .image-urls-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .image-url {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .image-url:last-child {
+            margin-bottom: 0;
+        }
+
+        .image-url-text {
+            flex: 1;
+            font-size: 14px;
+            word-break: break-all;
+            padding: 5px;
+        }
+
+        .copy-url-btn {
+            background: var(--info-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .copy-url-btn:hover {
+            background: #2980b9;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px auto;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .products-table th, .products-table td {
+            padding: 15px;
+            text-align: right;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .products-table th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        .products-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-edit {
+            background: var(--warning-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit:hover {
+            background: #e67e22;
+        }
+
+        .btn-delete {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-right: 4px solid var(--success-color);
+        }
+
+        .toast.error {
+            border-right-color: var(--danger-color);
+        }
+
+        .toast.warning {
+            border-right-color: var(--warning-color);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+            }
+            
+            .merchant-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- الهيدر -->
+        <div class="header">
+            <h1><i class="fas fa-boxes"></i> إدارة المنتجات والوجبات</h1>
+            <div class="merchant-info">
+                <div class="merchant-details" id="merchantDetails">
+                    <!-- سيتم تعبئة بيانات التاجر هنا -->
+                </div>
+            </div>
+        </div>
+
+        <!-- التبويبات -->
+        <div class="tabs">
+            <div class="tab active" data-tab="add-product">إضافة منتج/وجبة</div>
+            <div class="tab" data-tab="view-products">عرض المنتجات</div>
+        </div>
+
+        <!-- محتوى التبويب الأول: إضافة منتج -->
+        <div id="add-product" class="tab-content active">
+            <div class="form-section">
+                <h3><i class="fas fa-plus-circle"></i> إضافة منتج/وجبة جديدة</h3>
+                <form id="product-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="category-number"><i class="fas fa-tags"></i> رقم منتج الفئة</label>
+                            <input type="number" id="category-number" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="product-id"><i class="fas fa-fingerprint"></i> رقم المنتج (معرف أساسي)</label>
+                            <input type="text" id="product-id" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="product-name"><i class="fas fa-tag"></i> اسم المنتج</label>
+                            <input type="text" id="product-name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="product-description"><i class="fas fa-align-left"></i> الوصف</label>
+                            <textarea id="product-description" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- قسم رفع الصور -->
+                    <div class="form-group">
+                        <label><i class="fas fa-images"></i> صورة المنتج</label>
+                        <div class="image-upload-section">
+                            <p>اسحب الصور هنا أو انقر لاختيارها</p>
+                            <input type="file" id="product-image" accept="image/*" style="display: none;">
+                            <button type="button" class="upload-btn" onclick="document.getElementById('product-image').click()">
+                                <i class="fas fa-upload"></i> رفع الصورة
+                            </button>
+                            
+                            <div class="upload-progress" id="upload-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progress-fill"></div>
+                                </div>
+                                <span id="progress-text">جاري رفع الصورة...</span>
+                            </div>
+                            
+                            <div class="uploaded-images" id="uploaded-images"></div>
+                            
+                            <div class="image-urls-container" id="image-urls-container" style="display: none;">
+                                <h4>رابط الصورة المرفوعة:</h4>
+                                <div id="image-urls-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="image-url"><i class="fas fa-link"></i> رابط الصورة</label>
+                        <input type="text" id="image-url" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="merchant-id"><i class="fas fa-user"></i> معرف التاجر</label>
+                        <input type="text" id="merchant-id" readonly>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> حفظ المنتج
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- محتوى التبويب الثاني: عرض المنتجات -->
+        <div id="view-products" class="tab-content">
+            <div class="form-section">
+                <h3><i class="fas fa-list"></i> قائمة المنتجات والوجبات</h3>
+                
+                <table class="products-table">
+                    <thead>
+                        <tr>
+                            <th>رقم المنتج</th>
+                            <th>اسم المنتج</th>
+                            <th>رقم الفئة</th>
+                            <th>رابط الصورة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-table-body">
+                        <!-- سيتم تعبئة الجدول بالبيانات -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة التحميل -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- حاوية الإشعارات -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // إعدادات Google Drive
+        const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms';
+        const DRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbwk7cLtyeG1lC--OUvfHJB8VQHccabTjPxbWbEmFjqQPbRxOrOGvMpjncFk2R9r8RNL/exec';
+
+        // نظام إدارة المستخدم العام
+        const globalUser = {
+            data: null,
+            
+            setUserData: function(userData) {
+                this.data = userData;
+                localStorage.setItem('globalUserData', JSON.stringify(userData));
+            },
+            
+            getUserData: function() {
+                if (this.data) return this.data;
+                
+                const storedData = localStorage.getItem('globalUserData');
+                if (storedData) {
+                    this.data = JSON.parse(storedData);
+                    return this.data;
+                }
+                return null;
+            },
+            
+            getUsername: function() {
+                const userData = this.getUserData();
+                return userData ? userData.username : 'زائر';
+            },
+            
+            getUserId: function() {
+                const userData = this.getUserData();
+                return userData ? userData.id : null;
+            },
+            
+            isLoggedIn: function() {
+                return this.getUserData() !== null;
+            }
+        };
+
+        // متغيرات التطبيق
+        let uploadedImageUrl = '';
+        let currentEditProductId = null;
+        let isEditing = false;
+
+        // دالة لعرض الإشعارات
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'check-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            const container = document.getElementById('toast-container');
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        // دالة لعرض/إخفاء التحميل
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+
+        // تحويل الملف إلى Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // رفع الصورة إلى Google Drive
+        async function uploadImageToDrive(file) {
+            try {
+                showLoading(true);
+                
+                // تحويل الملف إلى Base64
+                const base64Data = await fileToBase64(file);
+                
+                // إعداد البيانات للإرسال
+                const formData = new FormData();
+                formData.append('fileData', base64Data);
+                formData.append('fileName', file.name);
+                formData.append('mimeType', file.type);
+                formData.append('folderId', DRIVE_FOLDER_ID);
+                
+                const response = await fetch(DRIVE_API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`خطأ HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success && data.fileId) {
+                    const imageUrl = `https://drive.usercontent.google.com/download?id=${data.fileId}&authuser=0`;
+                    return imageUrl;
+                } else {
+                    throw new Error(data.error || 'فشل رفع الصورة');
+                }
+                
+            } catch (error) {
+                console.error('خطأ في رفع الصورة:', error);
+                throw error;
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // معالجة اختيار الصورة
+        async function handleImageSelection(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // التحقق من نوع الملف
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                showToast('يرجى اختيار ملف صورة صالح (JPEG, PNG, GIF, WebP)', 'error');
+                return;
+            }
+            
+            // التحقق من حجم الملف (5MB)
+            const maxSize = 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+                showToast('حجم الصورة يجب أن يكون أقل من 5 ميجابايت', 'error');
+                return;
+            }
+            
+            const progressElement = document.getElementById('upload-progress');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const uploadedImagesElement = document.getElementById('uploaded-images');
+            const imageUrlsContainer = document.getElementById('image-urls-container');
+            const imageUrlsList = document.getElementById('image-urls-list');
+            
+            progressElement.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressText.textContent = 'جاري رفع الصورة...';
+            
+            try {
+                // محاكاة التقدم
+                const progressInterval = setInterval(() => {
+                    const currentWidth = parseInt(progressFill.style.width) || 0;
+                    if (currentWidth < 90) {
+                        progressFill.style.width = (currentWidth + 10) + '%';
+                    }
+                }, 200);
+                
+                const imageUrl = await uploadImageToDrive(file);
+                
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+                progressText.textContent = 'تم رفع الصورة بنجاح';
+                
+                // عرض الصورة المرفوعة
+                uploadedImagesElement.innerHTML = '';
+                const img = document.createElement('img');
+                img.className = 'uploaded-image';
+                img.src = imageUrl;
+                img.alt = file.name;
+                uploadedImagesElement.appendChild(img);
+                
+                // عرض رابط الصورة
+                imageUrlsList.innerHTML = '';
+                const urlElement = document.createElement('div');
+                urlElement.className = 'image-url';
+                
+                const urlText = document.createElement('div');
+                urlText.className = 'image-url-text';
+                urlText.textContent = imageUrl;
+                
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-url-btn';
+                copyBtn.innerHTML = '<i class="fas fa-copy"></i> نسخ';
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(imageUrl).then(() => {
+                        showToast('تم نسخ الرابط', 'success');
+                    });
+                };
+                
+                urlElement.appendChild(urlText);
+                urlElement.appendChild(copyBtn);
+                imageUrlsList.appendChild(urlElement);
+                
+                imageUrlsContainer.style.display = 'block';
+                
+                uploadedImageUrl = imageUrl;
+                document.getElementById('image-url').value = imageUrl;
+                
+                showToast('تم رفع الصورة بنجاح', 'success');
+                
+            } catch (error) {
+                progressText.textContent = 'حدث خطأ في رفع الصورة';
+                progressText.style.color = 'var(--danger-color)';
+                showToast('حدث خطأ في رفع الصورة: ' + error.message, 'error');
+            }
+        }
+
+        // توليد معرف منتج فريد
+        function generateProductId() {
+            return 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // تحديث معرف المنتج
+        function updateProductId() {
+            if (!isEditing) {
+                document.getElementById('product-id').value = generateProductId();
+            }
+        }
+
+        // تحميل بيانات التاجر
+        function loadMerchantData() {
+            const userData = globalUser.getUserData();
+            
+            if (!userData) {
+                showToast('يجب تسجيل الدخول أولاً', 'error');
+                return;
+            }
+            
+            // عرض بيانات التاجر
+            const merchantDetails = document.getElementById('merchantDetails');
+            merchantDetails.innerHTML = `
+                <div class="merchant-detail">
+                    <i class="fas fa-user"></i>
+                    <span>اسم التاجر: ${userData.name || userData.username}</span>
+                </div>
+                <div class="merchant-detail">
+                    <i class="fas fa-id-card"></i>
+                    <span>معرف التاجر: ${userData.id}</span>
+                </div>
+                <div class="merchant-detail">
+                    <i class="fas fa-store"></i>
+                    <span>الاسم التجاري: ${userData.commercialName || 'غير محدد'}</span>
+                </div>
+            `;
+            
+            // تعبئة حقل معرف التاجر
+            document.getElementById('merchant-id').value = userData.id;
+        }
+
+        // تحميل المنتجات
+        async function loadProducts() {
+            try {
+                showLoading(true);
+                
+                const userData = globalUser.getUserData();
+                if (!userData) return;
+                
+                const productsSnapshot = await database.ref('products').orderByChild('merchantId').equalTo(userData.id).once('value');
+                const products = productsSnapshot.val() || {};
+                
+                const tableBody = document.getElementById('products-table-body');
+                tableBody.innerHTML = '';
+                
+                if (Object.keys(products).length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 20px;">
+                                لا توجد منتجات مسجلة بعد
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                Object.entries(products).forEach(([id, product]) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${id}</td>
+                        <td>${product.name}</td>
+                        <td>${product.categoryNumber}</td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                            ${product.imageUrl ? '<a href="' + product.imageUrl + '" target="_blank">عرض الصورة</a>' : 'لا يوجد'}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-edit" onclick="editProduct('${id}')">
+                                    <i class="fas fa-edit"></i> تعديل
+                                </button>
+                                <button class="btn-delete" onclick="deleteProduct('${id}')">
+                                    <i class="fas fa-trash"></i> حذف
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+            } catch (error) {
+                console.error('خطأ في تحميل المنتجات:', error);
+                showToast('حدث خطأ في تحميل المنتجات', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // إضافة/تعديل منتج
+        async function saveProduct(e) {
+            e.preventDefault();
+            
+            const categoryNumber = document.getElementById('category-number').value;
+            const productId = document.getElementById('product-id').value;
+            const productName = document.getElementById('product-name').value;
+            const productDescription = document.getElementById('product-description').value;
+            const imageUrl = document.getElementById('image-url').value;
+            const merchantId = document.getElementById('merchant-id').value;
+            
+            if (!categoryNumber || !productName) {
+                showToast('يرجى ملء الحقول المطلوبة', 'warning');
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                const productData = {
+                    categoryNumber: categoryNumber,
+                    name: productName,
+                    description: productDescription,
+                    imageUrl: imageUrl,
+                    merchantId: merchantId,
+                    createdAt: Date.now()
+                };
+                
+                if (isEditing && currentEditProductId) {
+                    // تعديل المنتج
+                    await database.ref(`products/${currentEditProductId}`).update(productData);
+                    showToast('تم تعديل المنتج بنجاح', 'success');
+                } else {
+                    // إضافة منتج جديد
+                    await database.ref(`products/${productId}`).set(productData);
+                    showToast('تم إضافة المنتج بنجاح', 'success');
+                }
+                
+                // إعادة تعيين النموذج
+                resetForm();
+                // تحميل المنتجات مرة أخرى
+                loadProducts();
+                
+            } catch (error) {
+                console.error('خطأ في حفظ المنتج:', error);
+                showToast('حدث خطأ في حفظ المنتج', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // تعديل منتج
+        async function editProduct(productId) {
+            try {
+                showLoading(true);
+                
+                const productSnapshot = await database.ref(`products/${productId}`).once('value');
+                const product = productSnapshot.val();
+                
+                if (!product) {
+                    showToast('لم يتم العثور على المنتج', 'error');
+                    return;
+                }
+                
+                // تعبئة النموذج ببيانات المنتج
+                document.getElementById('category-number').value = product.categoryNumber;
+                document.getElementById('product-id').value = productId;
+                document.getElementById('product-name').value = product.name;
+                document.getElementById('product-description').value = product.description || '';
+                document.getElementById('image-url').value = product.imageUrl || '';
+                
+                // عرض الصورة إذا كانت موجودة
+                if (product.imageUrl) {
+                    const uploadedImagesElement = document.getElementById('uploaded-images');
+                    uploadedImagesElement.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.className = 'uploaded-image';
+                    img.src = product.imageUrl;
+                    img.alt = product.name;
+                    uploadedImagesElement.appendChild(img);
+                    
+                    document.getElementById('image-urls-container').style.display = 'block';
+                }
+                
+                uploadedImageUrl = product.imageUrl || '';
+                isEditing = true;
+                currentEditProductId = productId;
+                
+                // التبديل إلى تبويب الإضافة
+                switchTab('add-product');
+                
+                showToast('يمكنك الآن تعديل بيانات المنتج', 'info');
+                
+            } catch (error) {
+                console.error('خطأ في تحميل بيانات المنتج:', error);
+                showToast('حدث خطأ في تحميل بيانات المنتج', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // حذف منتج
+        async function deleteProduct(productId) {
+            if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                await database.ref(`products/${productId}`).remove();
+                showToast('تم حذف المنتج بنجاح', 'success');
+                loadProducts();
+            } catch (error) {
+                console.error('خطأ في حذف المنتج:', error);
+                showToast('حدث خطأ في حذف المنتج', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // إعادة تعيين النموذج
+        function resetForm() {
+            document.getElementById('product-form').reset();
+            document.getElementById('uploaded-images').innerHTML = '';
+            document.getElementById('image-urls-container').style.display = 'none';
+            document.getElementById('upload-progress').style.display = 'none';
+            uploadedImageUrl = '';
+            isEditing = false;
+            currentEditProductId = null;
+            updateProductId();
+            document.getElementById('merchant-id').value = globalUser.getUserData()?.id || '';
+        }
+
+        // التبديل بين التبويبات
+        function switchTab(tabName) {
+            // إزالة النشاط من جميع التبويبات
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // إخفاء جميع المحتويات
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // تفعيل التبويب المحدد
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            // إذا كان التبويب هو عرض المنتجات، قم بتحميلها
+            if (tabName === 'view-products') {
+                loadProducts();
+            }
+        }
+
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // تحميل بيانات التاجر
+            loadMerchantData();
+            
+            // تحديث معرف المنتج
+            updateProductId();
+            
+            // إعداد مستمعات الأحداث
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    switchTab(tabName);
+                });
+            });
+            
+            document.getElementById('product-image').addEventListener('change', handleImageSelection);
+            document.getElementById('product-form').addEventListener('submit', saveProduct);
+            
+            // تحميل المنتجات إذا كان التبويب النشط هو العرض
+            if (document.getElementById('view-products').classList.contains('active')) {
+                loadProducts();
+            }
+        });
+    </script>
+</body>
+</html>
