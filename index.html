@@ -20,6 +20,7 @@
     --welcome-color: #27ae60;
     --warning-color: #f39c12;
     --danger-color: #e74c3c;
+    --restaurant-color: #e67e22;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -564,6 +565,10 @@ body::before {
     background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,248,248,0.95) 100%);
 }
 
+.box:nth-child(4) {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,248,230,0.95) 100%);
+}
+
 @media(max-width:768px){
     .container{grid-template-columns:1fr;}
     .header{flex-direction:column;gap:20px;text-align:center; padding: 20px;}
@@ -690,6 +695,23 @@ body::before {
             </button>
         </div>
     </div>
+
+    <!-- الحاوية الجديدة لخدمات المطاعم والتوصيل السريع -->
+    <div class="box" id="box4">
+        <h2 class="box-title">
+            <i class="fas fa-utensils"></i> خدمات المطاعم والتوصيل السريع
+        </h2>
+        <div class="buttons-grid">
+            <button class="btn" onclick="openPage('index_mt.html')">
+                <i class="fas fa-search"></i>
+                <span class="btn-text">تصفح واطلب</span>
+            </button>
+            <button class="btn" onclick="openRestaurantMerchantLogin()">
+                <i class="fas fa-cog"></i>
+                <span class="btn-text">إعدادات إدارة المدخلات</span>
+            </button>
+        </div>
+    </div>
 </div>
 
 <!-- النص المتحرك في التذييل -->
@@ -792,6 +814,43 @@ body::before {
         </form>
         
         <div id="adminLoginMessage" class="login-message"></div>
+    </div>
+</div>
+
+<!-- شاشة تسجيل الدخول لتاجر المطاعم -->
+<div class="login-modal" id="restaurantMerchantLoginModal">
+    <div class="login-container">
+        <button class="close-btn" id="closeRestaurantMerchantLogin">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="login-header">
+            <div class="login-logo">
+                <i class="fas fa-utensils"></i>
+                <span>AZ</span>
+            </div>
+            <h2 class="login-title">تسجيل الدخول لإدارة المطاعم</h2>
+            <p class="login-subtitle">أدخل بيانات الدخول للوصول إلى لوحة إدارة المطاعم</p>
+        </div>
+        
+        <form id="restaurantMerchantLoginForm">
+            <div class="form-group">
+                <label for="restaurantMerchantUsername">اسم المستخدم</label>
+                <input type="text" id="restaurantMerchantUsername" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="restaurantMerchantPassword">كلمة المرور</label>
+                <input type="password" id="restaurantMerchantPassword" name="password" required>
+                <i class="fas fa-eye password-toggle" id="toggleRestaurantMerchantPassword"></i>
+            </div>
+            
+            <button type="submit" class="login-btn" id="restaurantMerchantLoginBtn">
+                تسجيل الدخول
+                <span class="loading-spinner" id="restaurantMerchantLoadingSpinner" style="display: none;"></span>
+            </button>
+        </form>
+        
+        <div id="restaurantMerchantLoginMessage" class="login-message"></div>
     </div>
 </div>
 
@@ -1322,6 +1381,18 @@ function openAdminLogin() {
     });
 }
 
+// دالة فتح إعدادات تاجر المطاعم - دائماً تطلب تسجيل الدخول
+function openRestaurantMerchantLogin() {
+    // إظهار شاشة تسجيل الدخول مباشرة دون فحص الحالة الحالية
+    document.getElementById('restaurantMerchantLoginModal').classList.add('show');
+    
+    // تسجيل محاولة الوصول
+    visitorTracker.updateVisitorData({
+        restaurantMerchantLoginAttempt: new Date().toISOString(),
+        restaurantMerchantLoginAttempts: (JSON.parse(localStorage.getItem('visitorData') || '{}').restaurantMerchantLoginAttempts || 0) + 1
+    });
+}
+
 // ===== أحداث تحميل الصفحة والتفاعل =====
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1402,6 +1473,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // إعداد أحداث تسجيل الدخول
     setupMerchantLogin();
     setupAdminLogin();
+    setupRestaurantMerchantLogin();
 });
 
 // ===== إعداد تسجيل الدخول للتاجر =====
@@ -1577,6 +1649,7 @@ function setupAdminLogin() {
                 throw new Error('يرجى ملء جميع الحقول');
             }
             
+            // مسار قاعدة البيانات للتحقق من الإدمن
             const adminSnapshot = await database.ref('admins').child(username).once('value');
             const adminData = adminSnapshot.val();
             
@@ -1595,15 +1668,7 @@ function setupAdminLogin() {
                 });
                 throw new Error('كلمة المرور غير صحيحة');
             }
-            
-            if (!['active', 'نشط', 'فعال'].includes(adminData.status)) {
-                visitorTracker.updateVisitorData({
-                    failedAdminLogin: new Date().toISOString(),
-                    failedLoginReason: 'حساب موقوف'
-                });
-                throw new Error('الحساب غير نشط');
-            }
-            
+
             const userDataToStore = {
                 id: username,
                 username: username,
@@ -1631,6 +1696,128 @@ function setupAdminLogin() {
             setTimeout(() => {
                 modal.classList.remove('show');
                 window.location.href = 'mnjr_admin.html';
+            }, 1500);
+            
+        } catch (error) {
+            messageDiv.textContent = error.message;
+            messageDiv.className = 'login-message error-message';
+            messageDiv.style.display = 'block';
+        } finally {
+            loginBtn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    });
+}
+
+// ===== إعداد تسجيل الدخول لتاجر المطاعم =====
+function setupRestaurantMerchantLogin() {
+    const modal = document.getElementById('restaurantMerchantLoginModal');
+    const closeBtn = document.getElementById('closeRestaurantMerchantLogin');
+    const form = document.getElementById('restaurantMerchantLoginForm');
+    const usernameInput = document.getElementById('restaurantMerchantUsername');
+    const passwordInput = document.getElementById('restaurantMerchantPassword');
+    const togglePassword = document.getElementById('toggleRestaurantMerchantPassword');
+    const loginBtn = document.getElementById('restaurantMerchantLoginBtn');
+    const spinner = document.getElementById('restaurantMerchantLoadingSpinner');
+    const messageDiv = document.getElementById('restaurantMerchantLoginMessage');
+    
+    // إغلاق النافذة
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        form.reset();
+        messageDiv.style.display = 'none';
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            form.reset();
+            messageDiv.style.display = 'none';
+        }
+    });
+    
+    // إظهار/إخفاء كلمة المرور
+    togglePassword.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        togglePassword.classList.toggle('fa-eye');
+        togglePassword.classList.toggle('fa-eye-slash');
+    });
+    
+    // معالجة تسجيل الدخول
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+        
+        loginBtn.disabled = true;
+        spinner.style.display = 'inline-block';
+        messageDiv.style.display = 'none';
+        
+        try {
+            if (!username || !password) {
+                throw new Error('يرجى ملء جميع الحقول');
+            }
+            
+            const merchantId = generateId(username);
+            const merchantSnapshot = await database.ref('merchants').child(merchantId).once('value');
+            const merchantData = merchantSnapshot.val();
+            
+            if (!merchantData) {
+                visitorTracker.updateVisitorData({
+                    failedRestaurantMerchantLogin: new Date().toISOString(),
+                    failedLoginReason: 'اسم المستخدم غير موجود'
+                });
+                throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
+            }
+            
+            if (merchantData.password !== password) {
+                visitorTracker.updateVisitorData({
+                    failedRestaurantMerchantLogin: new Date().toISOString(),
+                    failedLoginReason: 'كلمة مرور خاطئة'
+                });
+                throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
+            }
+            
+            if (!['active', 'نشط', 'فعال'].includes(merchantData.status)) {
+                visitorTracker.updateVisitorData({
+                    failedRestaurantMerchantLogin: new Date().toISOString(),
+                    failedLoginReason: 'حساب موقوف'
+                });
+                throw new Error('المستخدم تم توقيفه من قبل مسؤول النظام');
+            }
+            
+            const userDataToStore = {
+                id: merchantId,
+                username: username,
+                name: merchantData.name || username,
+                commercialName: merchantData.commercialName || '',
+                email: merchantData.email || '',
+                phone: merchantData.phone || '',
+                type: 'merchant',
+                loginTime: new Date().toISOString()
+            };
+            
+            globalUser.setUserData(userDataToStore);
+            
+            // تسجيل تسجيل دخول ناجح
+            visitorTracker.updateVisitorData({
+                successfulRestaurantMerchantLogin: new Date().toISOString(),
+                restaurantMerchantUsername: username,
+                userType: 'merchant'
+            });
+            
+            // عرض رسالة نجاح
+            messageDiv.textContent = 'تم تسجيل الدخول بنجاح! جاري التوجيه...';
+            messageDiv.className = 'login-message success-message';
+            messageDiv.style.display = 'block';
+            
+            form.reset();
+            
+            setTimeout(() => {
+                modal.classList.remove('show');
+                window.location.href = 'manjr_mt.html';
             }, 1500);
             
         } catch (error) {
