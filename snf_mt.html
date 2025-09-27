@@ -82,6 +82,35 @@
             color: var(--light-color);
         }
 
+        .global-data-section {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .global-data-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #e3f2fd;
+            font-size: 14px;
+        }
+
+        .global-data-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .global-data-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px;
+            border-radius: 4px;
+            border-left: 3px solid #4CAF50;
+        }
+
         .tabs {
             display: flex;
             background: var(--light-color);
@@ -481,11 +510,6 @@
             animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
         .hidden {
             display: none;
         }
@@ -516,6 +540,10 @@
             .action-buttons {
                 flex-direction: column;
             }
+            
+            .global-data-content {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -527,6 +555,12 @@
             <div class="merchant-info">
                 <div class="merchant-details" id="merchantDetails">
                     <!-- سيتم تعبئة بيانات التاجر هنا -->
+                </div>
+                
+                <!-- قسم عرض بيانات الجلوبالات -->
+                <div id="global-data-section" class="global-data-section hidden">
+                    <div class="global-data-title">بيانات الجلوبالات:</div>
+                    <div id="global-data-content" class="global-data-content"></div>
                 </div>
             </div>
         </div>
@@ -716,6 +750,46 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
+        // ===== نظام تخزين بيانات التاجر في الجلوبال =====
+        const merchantGlobal = {
+            // الحصول على اسم التاجر من sessionStorage
+            getMerchantName: function() {
+                return sessionStorage.getItem('merchantName') || '';
+            },
+            
+            // الحصول على رقم الجوال/الواتساب من sessionStorage
+            getMerchantPhone: function() {
+                return sessionStorage.getItem('merchantPhone') || '';
+            },
+            
+            // الحصول على معرف التاجر من sessionStorage
+            getMerchantId: function() {
+                return sessionStorage.getItem('merchantId') || '';
+            },
+            
+            // التحقق من وجود بيانات التاجر
+            hasMerchantData: function() {
+                return this.getMerchantName() !== '' && this.getMerchantId() !== '';
+            },
+            
+            // إفراغ جميع بيانات التاجر
+            clearAll: function() {
+                sessionStorage.removeItem('merchantName');
+                sessionStorage.removeItem('merchantPhone');
+                sessionStorage.removeItem('merchantId');
+                console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
+            },
+            
+            // دالة جديدة: الحصول على جميع بيانات التاجر ككائن
+            getAllMerchantData: function() {
+                return {
+                    name: this.getMerchantName(),
+                    phone: this.getMerchantPhone(),
+                    id: this.getMerchantId()
+                };
+            }
+        };
+
         // تهيئة Firebase
         const firebaseConfig = {
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
@@ -760,8 +834,71 @@
             
             isLoggedIn: function() {
                 return this.getUserData() !== null;
+            },
+            
+            // دالة جديدة لمسح البيانات  
+            clearUserData: function() {  
+                this.data = null;  
+                localStorage.removeItem('globalUserData');  
+                console.log('🧹 تم مسح بيانات المستخدم');  
             }
         };
+
+        // ===== دوال عرض بيانات الجلوبالات =====
+        
+        // عرض بيانات الجلوبالات
+        function displayGlobalData() {
+            const globalData = merchantGlobal.getAllMerchantData();
+            
+            if (merchantGlobal.hasMerchantData()) {
+                document.getElementById('global-data-section').classList.remove('hidden');
+                document.getElementById('global-data-content').innerHTML = `
+                    <div class="global-data-item">
+                        <strong>اسم التاجر:</strong> ${globalData.name || 'غير محدد'}
+                    </div>
+                    <div class="global-data-item">
+                        <strong>رقم الجوال:</strong> ${globalData.phone || 'غير محدد'}
+                    </div>
+                    <div class="global-data-item">
+                        <strong>معرف التاجر:</strong> ${globalData.id || 'غير محدد'}
+                    </div>
+                `;
+                
+                console.log('📊 بيانات الجلوبالات المعروضة:', globalData);
+            } else {
+                document.getElementById('global-data-section').classList.add('hidden');
+                console.log('⚠️ لا توجد بيانات في الجلوبالات');
+            }
+        }
+        
+        // التحقق من صحة بيانات التاجر من الجلوبالات
+        function validateGlobalMerchantData() {
+            if (!merchantGlobal.hasMerchantData()) {
+                console.warn('❌ بيانات التاجر غير موجودة في الجلوبالات');
+                return false;
+            }
+            
+            const globalData = merchantGlobal.getAllMerchantData();
+            console.log('✅ بيانات التاجر من الجلوبالات:', globalData);
+            return true;
+        }
+        
+        // دالة لاستخدام بيانات الجلوبالات كبديل إذا لم تكن هناك بيانات من globalUser
+        function loadMerchantFromGlobal() {
+            if (merchantGlobal.hasMerchantData()) {
+                const globalData = merchantGlobal.getAllMerchantData();
+                
+                return {
+                    id: globalData.id,
+                    name: globalData.name,
+                    username: globalData.name,
+                    phone: globalData.phone,
+                    type: 'merchant',
+                    loginTime: new Date().toISOString()
+                };
+            }
+            return null;
+        }
 
         // متغيرات التطبيق
         let uploadedImageUrl = '';
@@ -885,10 +1022,10 @@
         // توليد رقم منتج فريد يبدأ من 1 لكل تاجر
         async function generateProductNumber() {
             try {
-                const userData = globalUser.getUserData();
-                if (!userData) return 1;
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) return 1;
                 
-                const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(userData.id).once('value');
+                const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
                 const products = productsSnapshot.val() || {};
                 
                 let maxNumber = 0;
@@ -909,10 +1046,10 @@
         // توليد رقم سعر فريد يبدأ من 1 لكل تاجر
         async function generatePriceNumber() {
             try {
-                const userData = globalUser.getUserData();
-                if (!userData) return 1;
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) return 1;
                 
-                const pricesSnapshot = await database.ref('rpt_snf_mt').orderByChild('merchantId').equalTo(userData.id).once('value');
+                const pricesSnapshot = await database.ref('rpt_snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
                 const prices = pricesSnapshot.val() || {};
                 
                 let maxNumber = 0;
@@ -928,6 +1065,21 @@
                 console.error('خطأ في توليد رقم السعر:', error);
                 return 1;
             }
+        }
+
+        // الحصول على معرف التاجر الحالي (من globalUser أو الجلوبالات)
+        function getCurrentMerchantId() {
+            const userData = globalUser.getUserData();
+            if (userData && userData.id) {
+                return userData.id;
+            }
+            
+            const globalData = merchantGlobal.getAllMerchantData();
+            if (globalData.id) {
+                return globalData.id;
+            }
+            
+            return null;
         }
 
         // تحديث رقم المنتج
@@ -949,10 +1101,10 @@
             try {
                 showLoading(true);
                 
-                const userData = globalUser.getUserData();
-                if (!userData) return;
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) return;
                 
-                const categoriesSnapshot = await database.ref('fah/categories').orderByChild('merchantId').equalTo(userData.id).once('value');
+                const categoriesSnapshot = await database.ref('fah/categories').orderByChild('merchantId').equalTo(merchantId).once('value');
                 const categories = categoriesSnapshot.val() || {};
                 
                 allCategories = Object.entries(categories).map(([id, category]) => ({
@@ -960,7 +1112,7 @@
                     name: category.name || 'غير معروف',
                     number: category.id || id,
                     merchantId: category.merchantId
-                })).filter(category => category.merchantId === userData.id);
+                })).filter(category => category.merchantId === merchantId);
                 
                 const categorySelect = document.getElementById('category-id');
                 categorySelect.innerHTML = '<option value="">اختر الفئة</option>';
@@ -1015,15 +1167,15 @@
         // التحقق من عدم تكرار اسم المنتج لنفس التاجر
         async function checkProductNameExists(productName, excludeProductId = null) {
             try {
-                const userData = globalUser.getUserData();
-                if (!userData) return false;
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) return false;
                 
-                const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(userData.id).once('value');
+                const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
                 const products = productsSnapshot.val() || {};
                 
                 return Object.entries(products).some(([id, product]) => {
                     if (excludeProductId && id === excludeProductId) return false;
-                    return product.name.toLowerCase() === productName.toLowerCase() && product.merchantId === userData.id;
+                    return product.name.toLowerCase() === productName.toLowerCase() && product.merchantId === merchantId;
                 });
             } catch (error) {
                 console.error('خطأ في التحقق من اسم المنتج:', error);
@@ -1050,8 +1202,18 @@
         // تحميل بيانات التاجر
         function loadMerchantData() {
             const userData = globalUser.getUserData();
+            const globalMerchantData = loadMerchantFromGlobal();
             
-            if (!userData) {
+            let currentMerchant = null;
+            
+            // إعطاء الأولوية لـ globalUser، ثم الجلوبالات
+            if (userData) {
+                currentMerchant = userData;
+                console.log('👤 استخدام بيانات التاجر من globalUser');
+            } else if (globalMerchantData) {
+                currentMerchant = globalMerchantData;
+                console.log('🌐 استخدام بيانات التاجر من الجلوبالات');
+            } else {
                 showToast('يجب تسجيل الدخول أولاً', 'error');
                 return;
             }
@@ -1060,13 +1222,26 @@
             merchantDetails.innerHTML = `
                 <div class="merchant-detail">
                     <i class="fas fa-user"></i>
-                    <span>اسم التاجر: ${userData.name || userData.username}</span>
+                    <span>اسم التاجر: ${currentMerchant.name || currentMerchant.username || 'غير محدد'}</span>
                 </div>
                 <div class="merchant-detail">
                     <i class="fas fa-id-card"></i>
-                    <span>معرف التاجر: ${userData.id}</span>
+                    <span>معرف التاجر: ${currentMerchant.id || 'غير محدد'}</span>
+                </div>
+                ${currentMerchant.phone ? `
+                <div class="merchant-detail">
+                    <i class="fas fa-phone"></i>
+                    <span>رقم الجوال: ${currentMerchant.phone}</span>
+                </div>
+                ` : ''}
+                <div class="merchant-detail">
+                    <i class="fas fa-database"></i>
+                    <span>مصدر البيانات: ${userData ? 'globalUser' : 'الجولبالات'}</span>
                 </div>
             `;
+            
+            // عرض بيانات الجلوبالات
+            displayGlobalData();
         }
 
         // تحميل المنتجات
@@ -1074,10 +1249,10 @@
             try {
                 showLoading(true);
                 
-                const userData = globalUser.getUserData();
-                if (!userData) return;
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) return;
                 
-                const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(userData.id).once('value');
+                const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
                 const products = productsSnapshot.val() || {};
                 
                 allProducts = Object.entries(products).map(([id, product]) => ({
@@ -1300,8 +1475,8 @@
             try {
                 showLoading(true);
                 
-                const userData = globalUser.getUserData();
-                if (!userData) {
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) {
                     showToast('يجب تسجيل الدخول أولاً', 'error');
                     return;
                 }
@@ -1312,7 +1487,7 @@
                     name: productName,
                     description: productDescription,
                     imageUrl: uploadedImageUrl,
-                    merchantId: userData.id,
+                    merchantId: merchantId,
                     createdAt: Date.now(),
                     updatedAt: Date.now()
                 };
@@ -1366,8 +1541,8 @@
             try {
                 showLoading(true);
                 
-                const userData = globalUser.getUserData();
-                if (!userData) {
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) {
                     showToast('يجب تسجيل الدخول أولاً', 'error');
                     return;
                 }
@@ -1381,7 +1556,7 @@
                     officialPrice: officialPrice,
                     discountPrice: discountPrice,
                     status: status,
-                    merchantId: userData.id,
+                    merchantId: merchantId,
                     createdAt: Date.now()
                 };
                 
@@ -1520,6 +1695,10 @@
 
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', function() {
+            // التحقق من بيانات الجلوبالات أولاً
+            validateGlobalMerchantData();
+            
+            // تحميل بيانات التاجر
             loadMerchantData();
             
             Promise.all([loadCategories(), loadUnits(), updateProductNumber()]);
@@ -1551,6 +1730,13 @@
             if (document.getElementById('view-products').classList.contains('active')) {
                 loadProducts();
             }
+            
+            // تسجيل بيانات الجلوبالات في الكونسول للفحص
+            console.log('🔍 فحص بيانات الجلوبالات:');
+            console.log('- اسم التاجر:', merchantGlobal.getMerchantName());
+            console.log('- رقم الجوال:', merchantGlobal.getMerchantPhone());
+            console.log('- معرف التاجر:', merchantGlobal.getMerchantId());
+            console.log('- هل توجد بيانات؟', merchantGlobal.hasMerchantData());
         });
     </script>
 </body>
