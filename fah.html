@@ -220,6 +220,20 @@
             text-align: center;
             margin-bottom: 20px;
         }
+        
+        .global-data-info {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .global-data-title {
+            font-weight: bold;
+            color: #1976d2;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -228,6 +242,12 @@
             <h3 style="margin: 0 0 10px 0; color: #2e7d32;">معلومات التاجر</h3>
             <div id="merchant-details">
                 <p>جارٍ تحميل معلومات التاجر...</p>
+            </div>
+            
+            <!-- قسم عرض بيانات الجلوبالات -->
+            <div id="global-data-display" class="global-data-info hidden">
+                <div class="global-data-title">بيانات الجلوبالات:</div>
+                <div id="global-data-content"></div>
             </div>
         </div>
         
@@ -301,6 +321,46 @@
     </div>
 
     <script>
+        // ===== نظام تخزين بيانات التاجر في الجلوبال =====
+        const merchantGlobal = {
+            // الحصول على اسم التاجر من sessionStorage
+            getMerchantName: function() {
+                return sessionStorage.getItem('merchantName') || '';
+            },
+            
+            // الحصول على رقم الجوال/الواتساب من sessionStorage
+            getMerchantPhone: function() {
+                return sessionStorage.getItem('merchantPhone') || '';
+            },
+            
+            // الحصول على معرف التاجر من sessionStorage
+            getMerchantId: function() {
+                return sessionStorage.getItem('merchantId') || '';
+            },
+            
+            // التحقق من وجود بيانات التاجر
+            hasMerchantData: function() {
+                return this.getMerchantName() !== '' && this.getMerchantId() !== '';
+            },
+            
+            // إفراغ جميع بيانات التاجر
+            clearAll: function() {
+                sessionStorage.removeItem('merchantName');
+                sessionStorage.removeItem('merchantPhone');
+                sessionStorage.removeItem('merchantId');
+                console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
+            },
+            
+            // دالة جديدة: الحصول على جميع بيانات التاجر ككائن
+            getAllMerchantData: function() {
+                return {
+                    name: this.getMerchantName(),
+                    phone: this.getMerchantPhone(),
+                    id: this.getMerchantId()
+                };
+            }
+        };
+
         // تهيئة Firebase
         const firebaseConfig = {
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
@@ -354,6 +414,13 @@
                 this.data = null;
                 localStorage.removeItem('globalUserData');
                 console.log('🚪 تم تسجيل الخروج');
+            },
+            
+            // دالة جديدة لمسح البيانات  
+            clearUserData: function() {  
+                this.data = null;  
+                localStorage.removeItem('globalUserData');  
+                console.log('🧹 تم مسح بيانات المستخدم');  
             }
         };
         
@@ -372,6 +439,8 @@
         const merchantDetails = document.getElementById('merchant-details');
         const loginWarning = document.getElementById('login-warning');
         const mainContent = document.getElementById('main-content');
+        const globalDataDisplay = document.getElementById('global-data-display');
+        const globalDataContent = document.getElementById('global-data-content');
         
         // متغيرات التطبيق
         let nextCategoryId = 1;
@@ -379,19 +448,96 @@
         let currentEditId = null;
         let currentMerchant = null;
         
-        // تحميل بيانات التاجر من globalUser
+        // ===== دوال عرض بيانات الجلوبالات =====
+        
+        // عرض بيانات الجلوبالات
+        function displayGlobalData() {
+            const globalData = merchantGlobal.getAllMerchantData();
+            
+            if (merchantGlobal.hasMerchantData()) {
+                globalDataDisplay.classList.remove('hidden');
+                globalDataContent.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
+                        <div><strong>اسم التاجر:</strong> ${globalData.name || 'غير محدد'}</div>
+                        <div><strong>رقم الجوال:</strong> ${globalData.phone || 'غير محدد'}</div>
+                        <div><strong>معرف التاجر:</strong> ${globalData.id || 'غير محدد'}</div>
+                    </div>
+                `;
+                
+                console.log('📊 بيانات الجلوبالات المعروضة:', globalData);
+            } else {
+                globalDataDisplay.classList.add('hidden');
+                console.log('⚠️ لا توجد بيانات في الجلوبالات');
+            }
+        }
+        
+        // التحقق من صحة بيانات التاجر من الجلوبالات
+        function validateGlobalMerchantData() {
+            if (!merchantGlobal.hasMerchantData()) {
+                console.warn('❌ بيانات التاجر غير موجودة في الجلوبالات');
+                return false;
+            }
+            
+            const globalData = merchantGlobal.getAllMerchantData();
+            console.log('✅ بيانات التاجر من الجلوبالات:', globalData);
+            return true;
+        }
+        
+        // دالة لاستخدام بيانات الجلوبالات كبديل إذا لم تكن هناك بيانات من globalUser
+        function loadMerchantFromGlobal() {
+            if (merchantGlobal.hasMerchantData()) {
+                const globalData = merchantGlobal.getAllMerchantData();
+                
+                return {
+                    id: globalData.id,
+                    name: globalData.name,
+                    username: globalData.name,
+                    phone: globalData.phone,
+                    type: 'merchant',
+                    loginTime: new Date().toISOString()
+                };
+            }
+            return null;
+        }
+        
+        // تحميل بيانات التاجر من globalUser أو الجلوبالات
         function loadMerchantData() {
             const userData = globalUser.getUserData();
+            const globalMerchantData = loadMerchantFromGlobal();
             
-            if (!userData || !globalUser.isMerchant()) {
-                // إذا لم يكن المستخدم مسجل الدخول كتاجر
+            // إعطاء الأولوية لـ globalUser، ثم الجلوبالات
+            if (userData && globalUser.isMerchant()) {
+                currentMerchant = userData;
+                console.log('👤 استخدام بيانات التاجر من globalUser');
+            } else if (globalMerchantData) {
+                currentMerchant = globalMerchantData;
+                console.log('🌐 استخدام بيانات التاجر من الجلوبالات');
+            } else {
+                // إذا لم يكن المستخدم مسجل الدخول كتاجر ولا توجد بيانات في الجلوبالات
                 showLoginWarning();
                 return;
             }
             
-            currentMerchant = userData;
-            
             // عرض معلومات التاجر بشكل مفصل
+            displayMerchantInfo();
+            
+            // عرض بيانات الجلوبالات
+            displayGlobalData();
+            
+            // تعبئة حقل معرف التاجر في النموذج
+            merchantIdInput.value = currentMerchant.id;
+            
+            // إخفاء التحذير وإظهار المحتوى الرئيسي
+            loginWarning.classList.add('hidden');
+            mainContent.style.display = 'block';
+            
+            // تحميل الفئات بعد تحميل بيانات التاجر
+            loadCategories();
+            updateCategoryId();
+        }
+        
+        // عرض معلومات التاجر
+        function displayMerchantInfo() {
             merchantDetails.innerHTML = `
                 <div class="merchant-details-grid">
                     <div class="merchant-detail-item">
@@ -410,13 +556,15 @@
                         </div>
                     </div>
                     
+                    ${currentMerchant.commercialName ? `
                     <div class="merchant-detail-item">
                         <i class="fas fa-store"></i>
                         <div>
                             <div class="detail-label">الاسم التجاري</div>
-                            <div class="detail-value">${currentMerchant.commercialName || 'غير محدد'}</div>
+                            <div class="detail-value">${currentMerchant.commercialName}</div>
                         </div>
                     </div>
+                    ` : ''}
                     
                     ${currentMerchant.email ? `
                     <div class="merchant-detail-item">
@@ -447,19 +595,16 @@
                         </div>
                     </div>
                     ` : ''}
+                    
+                    <div class="merchant-detail-item">
+                        <i class="fas fa-database"></i>
+                        <div>
+                            <div class="detail-label">مصدر البيانات</div>
+                            <div class="detail-value">${currentMerchant.commercialName ? 'globalUser' : 'الجولبالات'}</div>
+                        </div>
+                    </div>
                 </div>
             `;
-            
-            // تعبئة حقل معرف التاجر في النموذج
-            merchantIdInput.value = currentMerchant.id;
-            
-            // إخفاء التحذير وإظهار المحتوى الرئيسي
-            loginWarning.classList.add('hidden');
-            mainContent.style.display = 'block';
-            
-            // تحميل الفئات بعد تحميل بيانات التاجر
-            loadCategories();
-            updateCategoryId();
         }
         
         // عرض تحذير تسجيل الدخول
@@ -467,6 +612,11 @@
             merchantDetails.innerHTML = '<p>لم يتم تسجيل الدخول كتاجر</p>';
             loginWarning.classList.remove('hidden');
             mainContent.style.display = 'none';
+            
+            // التحقق من وجود بيانات في الجلوبالات وعرض رسالة مناسبة
+            if (merchantGlobal.hasMerchantData()) {
+                console.log('⚠️ يوجد بيانات في الجلوبالات ولكن لم يتم تحميلها تلقائياً');
+            }
         }
         
         // إدارة التبويبات
@@ -641,7 +791,7 @@
                 status: categoryStatus,
                 merchantId: merchantId,
                 createdAt: new Date().toISOString(),
-                createdBy: currentMerchant.username
+                createdBy: currentMerchant.username || currentMerchant.name
             }).then(() => {
                 if (isEditing) {
                     alert('تم تعديل الفئة بنجاح');
@@ -722,7 +872,18 @@
         
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', () => {
+            // التحقق من بيانات الجلوبالات أولاً
+            validateGlobalMerchantData();
+            
+            // تحميل بيانات التاجر
             loadMerchantData();
+            
+            // تسجيل بيانات الجلوبالات في الكونسول للفحص
+            console.log('🔍 فحص بيانات الجلوبالات:');
+            console.log('- اسم التاجر:', merchantGlobal.getMerchantName());
+            console.log('- رقم الجوال:', merchantGlobal.getMerchantPhone());
+            console.log('- معرف التاجر:', merchantGlobal.getMerchantId());
+            console.log('- هل توجد بيانات؟', merchantGlobal.hasMerchantData());
         });
     </script>
     
