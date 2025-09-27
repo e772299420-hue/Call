@@ -746,6 +746,14 @@
                 sessionStorage.removeItem('merchantName');
                 sessionStorage.removeItem('merchantPhone');
                 sessionStorage.removeItem('merchantId');
+            },
+            
+            getAllMerchantData: function() {
+                return {
+                    name: this.getMerchantName(),
+                    phone: this.getMerchantPhone(),
+                    id: this.getMerchantId()
+                };
             }
         };
 
@@ -1561,17 +1569,29 @@
 
         // التبديل بين التبويبات
         function switchTab(tabName) {
+            // إزالة النشاط من جميع التبويبات
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             
+            // إزالة النشاط من جميع محتويات التبويبات
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-            document.getElementById(tabName).classList.add('active');
+            // إضافة النشاط للتبويب المحدد
+            const activeTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
             
+            // إضافة النشاط لمحتوى التبويب المحدد
+            const activeContent = document.getElementById(tabName);
+            if (activeContent) {
+                activeContent.classList.add('active');
+            }
+            
+            // تحميل البيانات إذا لزم الأمر
             if (tabName === 'view-products') {
                 loadProducts();
             }
@@ -1583,6 +1603,7 @@
             
             Promise.all([loadCategories(), loadUnits()]);
             
+            // إضافة أحداث النقر للتبويبات
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     const tabName = this.getAttribute('data-tab');
@@ -1606,11 +1627,7 @@
             // البحث التلقائي
             document.getElementById('search-input').addEventListener('input', searchProducts);
             document.getElementById('category-filter').addEventListener('change', searchProducts);
-            
-            if (document.getElementById('view-products').classList.contains('active')) {
-                loadProducts();
-            }
         });
     </script>
 </body>
-    </html>
+</html>
