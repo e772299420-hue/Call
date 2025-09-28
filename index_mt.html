@@ -73,9 +73,18 @@
             margin-bottom: 20px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
             gap: 10px;
             font-weight: 600;
             color: var(--dark-color);
+        }
+
+        .merchant-details {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .merchant-status {
@@ -85,7 +94,6 @@
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 0.85rem;
-            margin-left: 10px;
         }
 
         .merchant-status.active {
@@ -105,101 +113,24 @@
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 0.85rem;
-            margin-left: 10px;
             background: var(--info-color);
             color: white;
         }
 
-        .location-section {
-            background: white;
-            padding: 15px;
-            border-radius: var(--border-radius);
-            margin-bottom: 20px;
-            box-shadow: var(--box-shadow);
-        }
-
-        .location-section h3 {
-            margin-bottom: 10px;
-            color: var(--dark-color);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .location-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
-
-        .location-btn {
-            background: var(--info-color);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: var(--border-radius);
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
+        .location-info {
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-
-        .location-btn:hover {
-            background: #138496;
-        }
-
-        .location-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .location-btn.fast {
-            background: var(--success-color);
-        }
-
-        .location-btn.manual {
-            background: var(--warning-color);
-        }
-
-        .location-status {
-            padding: 10px;
-            border-radius: 5px;
             font-size: 0.9rem;
-        }
-
-        .location-status.default {
-            background: #f8f9fa;
             color: var(--gray-color);
         }
 
-        .location-status.success {
-            background: #d4edda;
+        .location-info.success {
             color: var(--success-color);
-            border: 1px solid #c3e6cb;
         }
 
-        .location-status.error {
-            background: #f8d7da;
+        .location-info.error {
             color: var(--danger-color);
-            border: 1px solid #f5c6cb;
-        }
-
-        .location-status.warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
-        .manual-location-input {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            width: 100%;
         }
 
         .filters {
@@ -229,7 +160,12 @@
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
         }
 
-        .whatsapp-order-btn {
+        .order-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .whatsapp-order-btn, .sms-order-btn {
             background: #25D366;
             color: white;
             border: none;
@@ -245,12 +181,21 @@
             white-space: nowrap;
         }
 
+        .sms-order-btn {
+            background: #ff6b00;
+        }
+
         .whatsapp-order-btn:hover {
             background: #128C7E;
             transform: translateY(-2px);
         }
 
-        .whatsapp-order-btn:disabled {
+        .sms-order-btn:hover {
+            background: #e55a00;
+            transform: translateY(-2px);
+        }
+
+        .whatsapp-order-btn:disabled, .sms-order-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
             transform: none;
@@ -366,6 +311,10 @@
             margin-bottom: 15px;
             font-size: 0.95rem;
             flex-grow: 1;
+        }
+
+        .product-description:empty {
+            display: none;
         }
 
         .view-prices-btn {
@@ -571,7 +520,7 @@
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+           100% { transform: rotate(360deg); }
         }
 
         .price-table-header {
@@ -625,8 +574,14 @@
                 width: 100%;
             }
             
-            .location-buttons {
+            .merchant-info {
                 flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .order-buttons {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
@@ -634,39 +589,28 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-shopping-cart"></i> طلب المنتجات عبر واتساب</h1>
-            <p>اختر التاجر ثم اختر المنتجات وأدخل الكميات المطلوبة ثم أرسل الطلب عبر واتساب</p>
+            <h1><i class="fas fa-shopping-cart"></i> طلب المنتجات</h1>
+            <p>اختر التاجر ثم اختر المنتجات وأدخل الكميات المطلوبة ثم أرسل الطلب</p>
         </div>
 
         <div class="merchant-info" id="merchant-info">
-            <i class="fas fa-store"></i>
-            <span id="merchant-name">يرجى اختيار التاجر من القائمة</span>
-            <span id="merchant-status" class="merchant-status inactive" style="display: none;">غير نشيط</span>
-            <span id="merchant-type" class="merchant-type" style="display: none;">نوع التاجر</span>
-        </div>
-
-        <!-- قسم تحديد الموقع -->
-        <div class="location-section">
-            <h3><i class="fas fa-map-marker-alt"></i> تحديد موقع التوصيل</h3>
-            <div class="location-buttons">
-                <button class="location-btn fast" id="fast-location-btn">
-                    <i class="fas fa-bolt"></i> تحديد سريع (5 ثواني)
-                </button>
-                <button class="location-btn" id="normal-location-btn">
-                    <i class="fas fa-location-arrow"></i> تحديد عادي (10 ثواني)
-                </button>
-                <button class="location-btn manual" id="manual-location-btn">
-                    <i class="fas fa-edit"></i> إدخال يدوي
-                </button>
+            <div class="merchant-details">
+                <i class="fas fa-store"></i>
+                <span id="merchant-name">يرجى اختيار التاجر من القائمة</span>
+                <span id="merchant-status" class="merchant-status inactive" style="display: none;">غير نشط</span>
+                <span id="merchant-type" class="merchant-type" style="display: none;">نوع التاجر</span>
+                <div class="location-info" id="location-info">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span id="location-text">جاري تحديد الموقع...</span>
+                </div>
             </div>
-            <div id="manual-location-container" style="display: none;">
-                <input type="text" id="manual-location-input" class="manual-location-input" placeholder="أدخل عنوانك يدويًا...">
-                <button class="location-btn" id="save-manual-location" style="margin-top: 10px; width: 100%;">
-                    <i class="fas fa-save"></i> حفظ العنوان
+            <div class="order-buttons">
+                <button class="whatsapp-order-btn" id="whatsapp-order-btn" disabled>
+                    <i class="fab fa-whatsapp"></i>
                 </button>
-            </div>
-            <div class="location-status default" id="location-status">
-                لم يتم تحديد الموقع بعد - يجب تحديد موقعك قبل إرسال الطلب
+                <button class="sms-order-btn" id="sms-order-btn" disabled>
+                    <i class="fas fa-sms"></i>
+                </button>
             </div>
         </div>
 
@@ -692,9 +636,6 @@
                     <option value="">جميع الفئات</option>
                 </select>
             </div>
-            <button class="whatsapp-order-btn" id="whatsapp-order-btn" disabled>
-                <i class="fab fa-whatsapp"></i> إرسال الطلب عبر واتساب
-            </button>
         </div>
 
         <div class="products-grid" id="products-container">
@@ -748,16 +689,12 @@
         const merchantStatus = document.getElementById('merchant-status');
         const merchantType = document.getElementById('merchant-type');
         const whatsappOrderBtn = document.getElementById('whatsapp-order-btn');
+        const smsOrderBtn = document.getElementById('sms-order-btn');
         const orderSummary = document.getElementById('order-summary');
         const orderItems = document.getElementById('order-items');
         const orderTotal = document.getElementById('order-total');
-        const fastLocationBtn = document.getElementById('fast-location-btn');
-        const normalLocationBtn = document.getElementById('normal-location-btn');
-        const manualLocationBtn = document.getElementById('manual-location-btn');
-        const manualLocationContainer = document.getElementById('manual-location-container');
-        const manualLocationInput = document.getElementById('manual-location-input');
-        const saveManualLocationBtn = document.getElementById('save-manual-location');
-        const locationStatus = document.getElementById('location-status');
+        const locationInfo = document.getElementById('location-info');
+        const locationText = document.getElementById('location-text');
 
         // متغيرات التطبيق
         let allProducts = [];
@@ -772,28 +709,23 @@
         let userAddress = "لم يتم تحديد العنوان";
         let locationRequested = false;
 
-        // دالة للحصول على موقع المستخدم مع خيارات مهلة مختلفة
-        function getUserLocation(timeout = 10000, enableHighAccuracy = false) {
+        // دالة للحصول على موقع المستخدم
+        function getUserLocation() {
             if (locationRequested) return;
             
             if (!navigator.geolocation) {
-                locationStatus.textContent = 'Geolocation غير مدعوم في هذا المتصفح';
-                locationStatus.className = 'location-status error';
-                showMessage('متصفحك لا يدعم تحديد الموقع', 'error');
+                locationText.textContent = 'المتصفح لا يدعم تحديد الموقع';
+                locationInfo.className = 'location-info error';
                 return;
             }
 
             locationRequested = true;
-            locationStatus.textContent = `جاري تحديد الموقع... (${timeout/1000} ثواني)`;
-            locationStatus.className = 'location-status';
-            fastLocationBtn.disabled = true;
-            normalLocationBtn.disabled = true;
+            locationText.textContent = 'جاري تحديد الموقع...';
 
-            // استخدام خيارات مختلفة حسب الطلب
             const options = {
-                enableHighAccuracy: enableHighAccuracy,
-                timeout: timeout,
-                maximumAge: 300000  // 5 دقائق لاستخدام البيانات المخزنة
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 60000
             };
 
             navigator.geolocation.getCurrentPosition(
@@ -803,50 +735,36 @@
                         lng: position.coords.longitude
                     };
                     
-                    // الحصول على العنوان من الإحداثيات
                     await getAddressFromCoordinates(userLocation.lat, userLocation.lng);
                     
-                    fastLocationBtn.disabled = false;
-                    normalLocationBtn.disabled = false;
-                    locationStatus.textContent = `تم تحديد موقعك: ${userAddress}`;
-                    locationStatus.className = 'location-status success';
+                    locationText.textContent = userAddress;
+                    locationInfo.className = 'location-info success';
                     
-                    // تفعيل زر إرسال الطلب إذا كان هناك منتجات
-                    updateWhatsAppButton();
+                    updateOrderButtons();
                     
-                    console.log('تم الحصول على الموقع:', userLocation);
-                    showMessage('تم تحديد موقعك بنجاح', 'success');
+                    console.log('تم الحصول على الموقع:', userLocation, userAddress);
                 },
                 (error) => {
-                    fastLocationBtn.disabled = false;
-                    normalLocationBtn.disabled = false;
                     locationRequested = false;
-                    let errorMessage = 'خطأ في الحصول على الموقع: ';
+                    let errorMessage = 'تحديد الموقع غير متاح';
                     
                     switch(error.code) {
                         case error.PERMISSION_DENIED:
-                            errorMessage += 'تم رفض الإذن للوصول إلى الموقع. يرجى السماح بالوصول إلى موقعك في إعدادات المتصفح';
-                            showMessage('يجب السماح بالوصول إلى الموقع في إعدادات المتصفح', 'error');
+                            errorMessage = 'الوصول للموقع مرفوض';
                             break;
                         case error.POSITION_UNAVAILABLE:
-                            errorMessage += 'معلومات الموقع غير متاحة. تأكد من تشغيل GPS';
-                            showMessage('تأكد من تشغيل خدمة تحديد الموقع (GPS) على جهازك', 'error');
+                            errorMessage = 'معلومات الموقع غير متاحة';
                             break;
                         case error.TIMEOUT:
-                            errorMessage += `انتهت مهلة طلب الموقع (${timeout/1000} ثواني). جرب الخيار السريع أو الإدخال اليدوي`;
-                            showMessage('انتهت مهلة تحديد الموقع. جرب الخيار السريع أو أدخل العنوان يدويًا', 'warning');
-                            break;
-                        default:
-                            errorMessage += 'حدث خطأ غير معروف';
+                            errorMessage = 'انتهت مهلة تحديد الموقع';
                             break;
                     }
                     
-                    locationStatus.textContent = errorMessage;
-                    locationStatus.className = 'location-status error';
+                    locationText.textContent = errorMessage;
+                    locationInfo.className = 'location-info error';
                     userLocation = null;
                     
-                    // تعطيل زر إرسال الطلب
-                    updateWhatsAppButton();
+                    updateOrderButtons();
                     
                     console.error('خطأ في الحصول على الموقع:', error);
                 },
@@ -854,11 +772,11 @@
             );
         }
 
-        // دالة للحصول على العنوان من الإحداثيات
+        // دالة للحصول على العنوان من الإحداثيات - محسنة
         async function getAddressFromCoordinates(lat, lng) {
             try {
-                // استخدام خدمة بديلة إذا فشلت الأولى
-                const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=ar`);
+                // محاولة استخدام خدمة مختلفة للحصول على عنوان أكثر دقة
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar`);
                 
                 if (!response.ok) {
                     throw new Error('فشل في الحصول على العنوان');
@@ -866,8 +784,22 @@
                 
                 const data = await response.json();
                 
-                if (data && data.locality) {
-                    userAddress = `${data.locality}, ${data.city}, ${data.countryName}`;
+                if (data && data.address) {
+                    const address = data.address;
+                    // بناء العنوان من المكونات المتاحة
+                    let formattedAddress = '';
+                    
+                    if (address.road) formattedAddress += address.road;
+                    if (address.neighbourhood) formattedAddress += (formattedAddress ? ', ' : '') + address.neighbourhood;
+                    if (address.suburb) formattedAddress += (formattedAddress ? ', ' : '') + address.suburb;
+                    if (address.city) formattedAddress += (formattedAddress ? ', ' : '') + address.city;
+                    if (address.state) formattedAddress += (formattedAddress ? ', ' : '') + address.state;
+                    
+                    if (formattedAddress) {
+                        userAddress = formattedAddress;
+                    } else {
+                        userAddress = `الموقع: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    }
                 } else {
                     userAddress = `الموقع: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
                 }
@@ -878,27 +810,27 @@
             }
         }
 
-        // دالة لتحديد الموقع تلقائيًا عند فتح الصفحة
-        function autoGetLocation() {
-            // طلب الموقع فور تحميل الصفحة بخيارات سريعة
-            setTimeout(() => {
-                getUserLocation(5000, false); // 5 ثواني فقط، بدون دقة عالية
-            }, 1000);
-        }
-
-        // دالة لتحديث حالة زر إرسال الطلب
-        function updateWhatsAppButton() {
+        // دالة لتحديث حالة أزرار الإرسال
+        function updateOrderButtons() {
             const hasProducts = Object.keys(selectedProducts).length > 0;
             const hasLocation = userLocation !== null || userAddress !== "لم يتم تحديد العنوان";
+            const isMerchantActive = checkMerchantStatus();
             
-            whatsappOrderBtn.disabled = !(hasProducts && hasLocation);
+            whatsappOrderBtn.disabled = !(hasProducts && hasLocation && isMerchantActive);
+            smsOrderBtn.disabled = !(hasProducts && hasLocation && isMerchantActive);
             
             if (!hasLocation) {
                 whatsappOrderBtn.title = 'يجب تحديد موقعك أولاً';
+                smsOrderBtn.title = 'يجب تحديد موقعك أولاً';
             } else if (!hasProducts) {
                 whatsappOrderBtn.title = 'يجب إضافة منتجات إلى الطلب أولاً';
+                smsOrderBtn.title = 'يجب إضافة منتجات إلى الطلب أولاً';
+            } else if (!isMerchantActive) {
+                whatsappOrderBtn.title = 'التاجر غير نشط حالياً';
+                smsOrderBtn.title = 'التاجر غير نشط حالياً';
             } else {
                 whatsappOrderBtn.title = 'إرسال الطلب عبر واتساب';
+                smsOrderBtn.title = 'إرسال الطلب عبر رسالة SMS';
             }
         }
 
@@ -909,8 +841,7 @@
             const merchant = allMerchants.find(m => m.id === currentMerchantId);
             if (!merchant) return false;
             
-            // التحقق من أن التاجر نشط ونوعه مطعم
-            return merchant.status === 'نشيط' && merchant.job === 'مطعم';
+            return merchant.status === 'active' && merchant.job === 'مطعم';
         }
 
         // دالة لتحميل بيانات التجار من Firebase مع تصفية حسب job = "مطعم"
@@ -922,21 +853,19 @@
                 console.log('بيانات merchants:', merchantsData);
                 
                 if (merchantsData) {
-                    // تصفية التجار حسب job = "مطعم"
                     allMerchants = Object.entries(merchantsData)
                         .map(([id, merchant]) => ({
                             id: id,
                             name: merchant.name || 'غير معروف',
                             phone: merchant.phone || 'غير متوفر',
-                            status: merchant.status || 'غير نشيط',
+                            status: merchant.status || 'inactive',
                             job: merchant.job || 'غير محدد'
                         }))
-                        .filter(merchant => merchant.job === 'مطعم'); // تصفية حسب job = "مطعم"
+                        .filter(merchant => merchant.job === 'مطعم');
                 } else {
                     allMerchants = [];
                 }
                 
-                // تحديث قائمة التجار في واجهة المستخدم
                 merchantSelect.innerHTML = '<option value="">اختر التاجر...</option>';
                 
                 if (allMerchants.length === 0) {
@@ -951,8 +880,7 @@
                         option.value = merchant.id;
                         option.textContent = merchant.name;
                         
-                        // إضافة رمز للتجار النشطين
-                        if (merchant.status === 'نشيط') {
+                        if (merchant.status === 'active') {
                             option.textContent += ' ✓';
                         }
                         
@@ -968,7 +896,7 @@
             }
         }
 
-        // دالة لتحميل الفئات من Firebase مع ربطها بالتاجر
+        // دالة لتحميل الفئات من Firebase
         async function loadCategories() {
             try {
                 const categoriesSnapshot = await database.ref('fah').once('value');
@@ -990,7 +918,6 @@
                 
             } catch (error) {
                 console.error('خطأ في تحميل الفئات:', error);
-                showMessage('حدث خطأ في تحميل الفئات', 'error');
             }
         }
 
@@ -1015,11 +942,10 @@
                 
             } catch (error) {
                 console.error('خطأ في تحميل الوحدات:', error);
-                showMessage('حدث خطأ في تحميل الوحدات', 'error');
             }
         }
 
-        // دالة لتحميل المنتجات من Firebase مع ربطها بالتاجر
+        // دالة لتحميل المنتجات من Firebase
         async function loadProducts() {
             try {
                 productsContainer.innerHTML = `
@@ -1039,7 +965,7 @@
                         id: id,
                         name: product.name || 'غير معروف',
                         categoryId: product.categoryId,
-                        description: product.description || 'لا يوجد وصف',
+                        description: product.description || '',
                         imageUrl: product.imageUrl || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
                         merchantId: product.merchantId || 'default',
                         productNumber: product.productNumber || 0
@@ -1050,10 +976,8 @@
                 
                 console.log('المنتجات المحملة:', allProducts);
                 
-                // تحميل الأسعار بعد تحميل المنتجات
                 await loadPrices();
                 
-                // عرض المنتجات بعد تحميل البيانات
                 if (currentMerchantId) {
                     displayProducts(allProducts);
                 }
@@ -1070,7 +994,7 @@
             }
         }
 
-        // دالة لتحميل الأسعار من Firebase مع ربطها بالتاجر
+        // دالة لتحميل الأسعار من Firebase - تم التعديل هنا لاستخدام "نشط" بدلاً من "active"
         async function loadPrices() {
             try {
                 const pricesSnapshot = await database.ref('rpt_snf_mt').once('value');
@@ -1085,7 +1009,7 @@
                         unitId: price.unitId,
                         officialPrice: price.officialPrice || 0,
                         discountPrice: price.discountPrice || null,
-                        status: price.status || 'نشيط',
+                        status: price.status || 'نشط', // تم التعديل هنا
                         merchantId: price.merchantId || 'default'
                     }));
                 } else {
@@ -1096,7 +1020,6 @@
                 
             } catch (error) {
                 console.error('خطأ في تحميل الأسعار:', error);
-                showMessage('حدث خطأ في تحميل الأسعار', 'error');
             }
         }
 
@@ -1155,7 +1078,7 @@
                         <p class="product-description">${product.description}</p>
                         
                         <button class="view-prices-btn" data-product-id="${product.id}">
-                            <i class="fas fa-tags"></i> اختيار الوحدة والكمية
+                            <i class="fas fa-cart-plus"></i> اطلب الآن / إضافة للطلب
                         </button>
                     </div>
                 `;
@@ -1163,7 +1086,6 @@
                 productsContainer.appendChild(productCard);
             });
             
-            // إضافة مستمعي الأحداث لأزرار عرض الأسعار
             document.querySelectorAll('.view-prices-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     const productId = this.getAttribute('data-product-id');
@@ -1172,7 +1094,7 @@
             });
         }
 
-        // دالة لعرض أسعار منتج معين
+        // دالة لعرض أسعار منتج معين - تم التعديل هنا لاستخدام "نشط" بدلاً من "active"
         function showProductPrices(productId) {
             const product = allProducts.find(p => p.id === productId);
             if (!product) return;
@@ -1181,8 +1103,14 @@
             modalProductName.textContent = product.name;
             pricesList.innerHTML = '';
             
-            // الحصول على أسعار هذا المنتج
-            const productPrices = allPrices.filter(price => price.productId === productId && price.status === 'نشيط');
+            // الحصول على أسعار هذا المنتج للتاجر الحالي
+            const productPrices = allPrices.filter(price => 
+                price.productId === productId && 
+                price.status === 'نشط' // تم التعديل هنا
+            );
+            
+            console.log('أسعار المنتج:', productPrices);
+            console.log('الوحدات المتاحة:', allUnits);
             
             if (productPrices.length === 0) {
                 pricesList.innerHTML = `
@@ -1197,15 +1125,15 @@
                     const priceItem = document.createElement('div');
                     priceItem.className = 'price-item';
                     
-                    // التحقق مما إذا كان هذا المنتج والوحدة موجودين مسبقًا في الطلب
                     const existingItemKey = `${productId}_${price.unitId}`;
                     const existingItem = selectedProducts[existingItemKey];
+                    const unitName = getUnitName(price.unitId);
                     
                     priceItem.innerHTML = `
-                        <div class="unit-name">${getUnitName(price.unitId)}</div>
+                        <div class="unit-name">${unitName}</div>
                         <div class="prices">
-                            <span class="official-price">${price.officialPrice}</span>
-                            ${price.discountPrice ? `<span class="discount-price">${price.discountPrice}</span>` : ''}
+                            <span class="official-price">${price.officialPrice} ريال</span>
+                            ${price.discountPrice ? `<span class="discount-price">${price.discountPrice} ريال</span>` : ''}
                         </div>
                         <div class="price-actions">
                             <input type="number" min="0" placeholder="الكمية" class="quantity-input" data-product-id="${productId}" data-unit-id="${price.unitId}" data-price="${price.officialPrice}" value="${existingItem ? existingItem.quantity : ''}">
@@ -1220,7 +1148,6 @@
                 });
             }
             
-            // إضافة مستمعي الأحداث لأزرار الإضافة
             document.querySelectorAll('.add-to-cart-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     const productId = this.getAttribute('data-product-id');
@@ -1232,7 +1159,6 @@
                     
                     if (quantity > 0) {
                         addToCart(productId, unitId, quantity, notes);
-                        // إغلاق النافذة المنبثقة بعد الإضافة
                         closePricesModal();
                     } else {
                         showMessage('يرجى إدخال كمية صحيحة', 'error');
@@ -1292,16 +1218,15 @@
                         <div>${item.product.name} (${item.unitName}) - ${item.quantity}</div>
                         ${item.notes ? `<div class="order-item-notes">ملاحظات: ${item.notes}</div>` : ''}
                     </div>
-                    <span>${itemTotal}</span>
+                    <span>${itemTotal} ريال</span>
                 `;
                 
                 orderItems.appendChild(orderItem);
             });
             
-            orderTotal.textContent = `المجموع: ${total}`;
+            orderTotal.textContent = `المجموع: ${total} ريال`;
             
-            // تحديث حالة زر الإرسال
-            updateWhatsAppButton();
+            updateOrderButtons();
         }
 
         // دالة لتصفية المنتجات
@@ -1311,7 +1236,6 @@
             
             let filteredProducts = allProducts.filter(product => product.merchantId === currentMerchantId);
             
-            // التصفية حسب البحث
             if (searchTerm) {
                 filteredProducts = filteredProducts.filter(product => 
                     product.name.toLowerCase().includes(searchTerm) || 
@@ -1319,7 +1243,6 @@
                 );
             }
             
-            // التصفية حسب الفئة
             if (categoryValue) {
                 filteredProducts = filteredProducts.filter(product => 
                     product.categoryId === categoryValue
@@ -1343,13 +1266,11 @@
                 return;
             }
             
-            // التحقق من حالة التاجر
             if (!checkMerchantStatus()) {
-                showMessage('التاجر غير نشيط حالياً أو ليس مطعماً', 'error');
+                showMessage('التاجر غير نشط حالياً أو ليس مطعماً', 'error');
                 return;
             }
             
-            // بناء نص الطلب
             let orderText = "السلام عليكم انني عميل متجر AZ السوق الشامل لتلبية احتياجك بالكامل\n\n";
             
             orderText += "https://e772299420-hue.github.io/Call/index.html\n\n";
@@ -1374,7 +1295,6 @@
             
             orderText += `إجمالي سعر الفاتورة: ${total} ريال يمني\n\n`;
             
-            // إضافة الموقع
             if (userLocation) {
                 orderText += `موقعي على خريطة جوجل:\n`;
                 orderText += `https://www.google.com/maps?q=${userLocation.lat},${userLocation.lng}\n\n`;
@@ -1383,13 +1303,57 @@
             
             orderText += "شكرًا لكم!";
             
-            // ترميز النص للرابط
             const encodedText = encodeURIComponent(orderText);
             const phoneNumber = "967772299420";
             const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedText}`;
             
-            // فتح واتساب
             window.open(whatsappUrl, '_blank');
+        }
+
+        // دالة لإرسال الطلب عبر SMS
+        function sendSMSOrder() {
+            const productKeys = Object.keys(selectedProducts);
+            
+            if (productKeys.length === 0) {
+                showMessage('لم تقم باختيار أي منتجات', 'error');
+                return;
+            }
+            
+            if (!userLocation && userAddress === "لم يتم تحديد العنوان") {
+                showMessage('يجب تحديد موقعك أولاً قبل إرسال الطلب', 'error');
+                return;
+            }
+            
+            if (!checkMerchantStatus()) {
+                showMessage('التاجر غير نشط حالياً أو ليس مطعماً', 'error');
+                return;
+            }
+            
+            let orderText = "طلب جديد:\n\n";
+            
+            let total = 0;
+            
+            productKeys.forEach(key => {
+                const item = selectedProducts[key];
+                const itemTotal = item.quantity * item.price.officialPrice;
+                total += itemTotal;
+                
+                orderText += `${item.product.name} - ${item.unitName} - ${item.quantity} × ${item.price.officialPrice}\n`;
+                
+                if (item.notes) {
+                    orderText += `ملاحظات: ${item.notes}\n`;
+                }
+                
+                orderText += `\n`;
+            });
+            
+            orderText += `المجموع: ${total} ريال يمني\n`;
+            orderText += `العنوان: ${userAddress}`;
+            
+            const phoneNumber = "967772299420";
+            const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(orderText)}`;
+            
+            window.location.href = smsUrl;
         }
 
         // دالة لإغلاق نافذة الأسعار
@@ -1401,7 +1365,6 @@
         function showMessage(message, type = 'info') {
             console.log(`${type}: ${message}`);
             
-            // عرض رسالة بسيطة للمستخدم
             const messageDiv = document.createElement('div');
             messageDiv.style.cssText = `
                 position: fixed;
@@ -1442,24 +1405,20 @@
             
             merchantName.textContent = `التاجر: ${merchant.name}`;
             
-            // تحديث حالة التاجر
-            merchantStatus.textContent = merchant.status === 'نشيط' ? 'نشيط' : 'غير نشيط';
-            merchantStatus.className = `merchant-status ${merchant.status === 'نشيط' ? 'active' : 'inactive'}`;
+            merchantStatus.textContent = merchant.status === 'active' ? 'نشط' : 'غير نشط';
+            merchantStatus.className = `merchant-status ${merchant.status === 'active' ? 'active' : 'inactive'}`;
             merchantStatus.style.display = 'inline-flex';
             
-            // تحديث نوع التاجر
             merchantType.textContent = merchant.job || 'غير محدد';
             merchantType.style.display = 'inline-flex';
             
-            // إظهار رسالة إذا كان التاجر غير نشط أو ليس مطعماً
-            if (merchant.status !== 'نشيط' || merchant.job !== 'مطعم') {
-                showMessage('هذا التاجر غير نشيط حالياً أو ليس مطعماً', 'warning');
+            if (merchant.status !== 'active' || merchant.job !== 'مطعم') {
+                showMessage('هذا التاجر غير نشط حالياً أو ليس مطعماً', 'warning');
             }
         }
 
         // تهيئة التطبيق عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', async function() {
-            // تحميل البيانات من Firebase
             try {
                 await Promise.all([
                     loadMerchants(),
@@ -1469,22 +1428,17 @@
                 
                 showMessage('تم تحميل البيانات بنجاح', 'success');
                 
-                // طلب الموقع تلقائيًا عند تحميل الصفحة
-                autoGetLocation();
+                getUserLocation();
                 
             } catch (error) {
                 showMessage('حدث خطأ في تحميل البيانات', 'error');
             }
             
-            // إضافة مستمعي الأحداث
             merchantSelect.addEventListener('change', function() {
                 currentMerchantId = this.value;
                 updateMerchantInfo(currentMerchantId);
                 
                 if (currentMerchantId) {
-                    const selectedMerchant = allMerchants.find(m => m.id === currentMerchantId);
-                    
-                    // تحديث قائمة الفئات حسب التاجر المحدد
                     const merchantCategories = allCategories.filter(cat => cat.merchantId === currentMerchantId);
                     categorySelect.innerHTML = '<option value="">جميع الفئات</option>';
                     merchantCategories.forEach(category => {
@@ -1494,7 +1448,6 @@
                         categorySelect.appendChild(option);
                     });
                     
-                    // تحميل وعرض المنتجات
                     loadProducts();
                 } else {
                     productsContainer.innerHTML = `
@@ -1506,47 +1459,22 @@
                     `;
                 }
                 
-                // تحديث حالة زر الإرسال
-                updateWhatsAppButton();
-            });
-            
-            // أحداث تحديد الموقع
-            fastLocationBtn.addEventListener('click', () => getUserLocation(5000, false));
-            normalLocationBtn.addEventListener('click', () => getUserLocation(10000, true));
-            
-            manualLocationBtn.addEventListener('click', function() {
-                manualLocationContainer.style.display = manualLocationContainer.style.display === 'none' ? 'block' : 'none';
-            });
-            
-            saveManualLocationBtn.addEventListener('click', function() {
-                const address = manualLocationInput.value.trim();
-                if (address) {
-                    userAddress = address;
-                    userLocation = null; // لا توجد إحداثيات للموقع اليدوي
-                    locationStatus.textContent = `تم حفظ العنوان: ${userAddress}`;
-                    locationStatus.className = 'location-status success';
-                    manualLocationContainer.style.display = 'none';
-                    updateWhatsAppButton();
-                    showMessage('تم حفظ العنوان بنجاح', 'success');
-                } else {
-                    showMessage('يرجى إدخال عنوان صحيح', 'error');
-                }
+                updateOrderButtons();
             });
             
             searchInput.addEventListener('input', filterProducts);
             categorySelect.addEventListener('change', filterProducts);
             closeModal.addEventListener('click', closePricesModal);
             whatsappOrderBtn.addEventListener('click', sendWhatsAppOrder);
+            smsOrderBtn.addEventListener('click', sendSMSOrder);
             
-            // إغلاق النافذة عند النقر خارجها
             pricesModal.addEventListener('click', function(e) {
                 if (e.target === pricesModal) {
                     closePricesModal();
                 }
             });
             
-            // تحديث حالة زر الإرسال أول مرة
-            updateWhatsAppButton();
+            updateOrderButtons();
         });
     </script>
 </body>
