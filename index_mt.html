@@ -1,1 +1,1341 @@
-hereتاا
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طلب المنتجات عبر واتساب</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --gray-color: #6c757d;
+            --border-radius: 10px;
+            --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header h1 {
+            color: var(--dark-color);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .header p {
+            color: var(--gray-color);
+            font-size: 1.1rem;
+        }
+
+        .merchant-info {
+            background: var(--light-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .location-section {
+            background: white;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            box-shadow: var(--box-shadow);
+        }
+
+        .location-section h3 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .location-btn {
+            background: var(--info-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .location-btn:hover {
+            background: #138496;
+        }
+
+        .location-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .location-status {
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .location-status.default {
+            background: #f8f9fa;
+            color: var(--gray-color);
+        }
+
+        .location-status.success {
+            background: #d4edda;
+            color: var(--success-color);
+            border: 1px solid #c3e6cb;
+        }
+
+        .location-status.error {
+            background: #f8d7da;
+            color: var(--danger-color);
+            border: 1px solid #f5c6cb;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .merchant-filter, .search-box, .category-filter {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .merchant-filter select, .search-box input, .category-filter select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: var(--transition);
+        }
+
+        .merchant-filter select:focus, .search-box input:focus, .category-filter select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .whatsapp-order-btn {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .whatsapp-order-btn:hover {
+            background: #128C7E;
+            transform: translateY(-2px);
+        }
+
+        .whatsapp-order-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .order-summary {
+            background: white;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            box-shadow: var(--box-shadow);
+            display: none;
+        }
+
+        .order-summary.active {
+            display: block;
+        }
+
+        .order-summary h3 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .order-items {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .order-item-notes {
+            font-size: 0.85rem;
+            color: var(--gray-color);
+            margin-top: 5px;
+        }
+
+        .order-total {
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            background: var(--light-color);
+            border-radius: 5px;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 3px solid var(--light-color);
+        }
+
+        .product-info {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-category {
+            display: inline-block;
+            background: var(--light-color);
+            color: var(--gray-color);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            align-self: flex-start;
+        }
+
+        .product-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--dark-color);
+        }
+
+        .product-description {
+            color: var(--gray-color);
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            flex-grow: 1;
+        }
+
+        .view-prices-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .view-prices-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .prices-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .prices-content {
+            background: white;
+            border-radius: var(--border-radius);
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .prices-header {
+            padding: 20px;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .prices-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-modal:hover {
+            transform: scale(1.1);
+        }
+
+        .prices-body {
+            padding: 20px;
+        }
+
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            transition: var(--transition);
+        }
+
+        .price-item:hover {
+            background: #f9f9f9;
+        }
+
+        .price-item:last-child {
+            border-bottom: none;
+        }
+
+        .unit-name {
+            font-weight: 600;
+            color: var(--dark-color);
+            flex: 1;
+        }
+
+        .prices {
+            display: flex;
+            gap: 15px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .official-price {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        .discount-price {
+            color: var(--danger-color);
+            text-decoration: line-through;
+        }
+
+        .quantity-input, .notes-input {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .quantity-input {
+            width: 80px;
+            text-align: center;
+        }
+
+        .notes-input {
+            width: 150px;
+        }
+
+        .quantity-input:focus, .notes-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .add-to-cart-btn {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .add-to-cart-btn:hover {
+            background: #219653;
+        }
+
+        .no-prices {
+            text-align: center;
+            padding: 30px;
+            color: var(--gray-color);
+        }
+
+        .no-products {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .no-products i {
+            font-size: 50px;
+            color: var(--gray-color);
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: var(--gray-color);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .price-table-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: var(--light-color);
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .price-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        @media (max-width: 768px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                flex-direction: column;
+            }
+            
+            .prices-content {
+                margin: 10px;
+                max-height: 90vh;
+            }
+            
+            .price-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .prices, .price-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .price-table-header {
+                display: none;
+            }
+            
+            .quantity-input, .notes-input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-shopping-cart"></i> طلب المنتجات عبر واتساب</h1>
+            <p>اختر التاجر ثم اختر المنتجات وأدخل الكميات المطلوبة ثم أرسل الطلب عبر واتساب</p>
+        </div>
+
+        <div class="merchant-info" id="merchant-info">
+            <i class="fas fa-store"></i>
+            <span id="merchant-name">يرجى اختيار التاجر من القائمة</span>
+        </div>
+
+        <!-- قسم تحديد الموقع -->
+        <div class="location-section">
+            <h3><i class="fas fa-map-marker-alt"></i> تحديد موقع التوصيل</h3>
+            <button class="location-btn" id="get-location-btn">
+                <i class="fas fa-location-arrow"></i> تحديد موقعي الحالي
+            </button>
+            <div class="location-status default" id="location-status">
+                لم يتم تحديد الموقع بعد - يجب تحديد موقعك قبل إرسال الطلب
+            </div>
+        </div>
+
+        <div class="order-summary" id="order-summary">
+            <h3><i class="fas fa-receipt"></i> ملخص الطلب</h3>
+            <div class="order-items" id="order-items">
+                <!-- سيتم تعبئة العناصر المطلوبة هنا -->
+            </div>
+            <div class="order-total" id="order-total">المجموع: 0</div>
+        </div>
+
+        <div class="filters">
+            <div class="merchant-filter">
+                <select id="merchant-select">
+                    <option value="">اختر التاجر...</option>
+                </select>
+            </div>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="ابحث عن منتج...">
+            </div>
+            <div class="category-filter">
+                <select id="category-select">
+                    <option value="">جميع الفئات</option>
+                </select>
+            </div>
+            <button class="whatsapp-order-btn" id="whatsapp-order-btn" disabled>
+                <i class="fab fa-whatsapp"></i> إرسال الطلب عبر واتساب
+            </button>
+        </div>
+
+        <div class="products-grid" id="products-container">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>جاري تحميل البيانات...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة عرض الأسعار -->
+    <div class="prices-modal" id="prices-modal">
+        <div class="prices-content">
+            <div class="prices-header">
+                <h3><i class="fas fa-tags"></i> <span id="modal-product-name">اسم المنتج</span></h3>
+                <button class="close-modal" id="close-modal">&times;</button>
+            </div>
+            <div class="prices-body">
+                <div class="price-table-header">
+                    <div class="unit-name">الوحدة</div>
+                    <div class="prices">السعر الرسمي / المخفض</div>
+                    <div class="price-actions">الكمية والملاحظات والإجراء</div>
+                </div>
+                <div id="prices-list">
+                    <!-- سيتم تعبئة الأسعار هنا -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // عناصر DOM
+        const productsContainer = document.getElementById('products-container');
+        const merchantSelect = document.getElementById('merchant-select');
+        const searchInput = document.getElementById('search-input');
+        const categorySelect = document.getElementById('category-select');
+        const pricesModal = document.getElementById('prices-modal');
+        const modalProductName = document.getElementById('modal-product-name');
+        const pricesList = document.getElementById('prices-list');
+        const closeModal = document.getElementById('close-modal');
+        const merchantInfo = document.getElementById('merchant-info');
+        const merchantName = document.getElementById('merchant-name');
+        const whatsappOrderBtn = document.getElementById('whatsapp-order-btn');
+        const orderSummary = document.getElementById('order-summary');
+        const orderItems = document.getElementById('order-items');
+        const orderTotal = document.getElementById('order-total');
+        const getLocationBtn = document.getElementById('get-location-btn');
+        const locationStatus = document.getElementById('location-status');
+
+        // متغيرات التطبيق
+        let allProducts = [];
+        let allCategories = [];
+        let allUnits = [];
+        let allPrices = [];
+        let allMerchants = [];
+        let currentMerchantId = null;
+        let selectedProducts = {};
+        let currentProductId = null;
+        let userLocation = null;
+        let userAddress = "لم يتم تحديد العنوان";
+
+        // دالة للحصول على موقع المستخدم
+        function getUserLocation() {
+            if (!navigator.geolocation) {
+                locationStatus.textContent = 'Geolocation غير مدعوم في هذا المتصفح';
+                locationStatus.className = 'location-status error';
+                showMessage('متصفحك لا يدعم تحديد الموقع', 'error');
+                return;
+            }
+
+            locationStatus.textContent = 'جاري تحديد الموقع...';
+            locationStatus.className = 'location-status';
+            getLocationBtn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    
+                    // الحصول على العنوان من الإحداثيات
+                    await getAddressFromCoordinates(userLocation.lat, userLocation.lng);
+                    
+                    getLocationBtn.disabled = false;
+                    locationStatus.textContent = `تم تحديد موقعك: ${userAddress}`;
+                    locationStatus.className = 'location-status success';
+                    
+                    // تفعيل زر إرسال الطلب إذا كان هناك منتجات
+                    updateWhatsAppButton();
+                    
+                    console.log('تم الحصول على الموقع:', userLocation);
+                    showMessage('تم تحديد موقعك بنجاح', 'success');
+                },
+                (error) => {
+                    getLocationBtn.disabled = false;
+                    let errorMessage = 'خطأ في الحصول على الموقع: ';
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += 'تم رفض الإذن للوصول إلى الموقع. يرجى السماح بالوصول إلى موقعك';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += 'معلومات الموقع غير متاحة';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += 'انتهت مهلة طلب الموقع. يرجى المحاولة مرة أخرى';
+                            break;
+                        default:
+                            errorMessage += 'حدث خطأ غير معروف';
+                            break;
+                    }
+                    
+                    locationStatus.textContent = errorMessage;
+                    locationStatus.className = 'location-status error';
+                    userLocation = null;
+                    
+                    // تعطيل زر إرسال الطلب
+                    updateWhatsAppButton();
+                    
+                    console.error('خطأ في الحصول على الموقع:', error);
+                    showMessage('فشل في تحديد الموقع', 'error');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 60000
+                }
+            );
+        }
+
+        // دالة للحصول على العنوان من الإحداثيات
+        async function getAddressFromCoordinates(lat, lng) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+                
+                if (!response.ok) {
+                    throw new Error('فشل في الحصول على العنوان');
+                }
+                
+                const data = await response.json();
+                
+                if (data && data.display_name) {
+                    userAddress = data.display_name;
+                } else {
+                    userAddress = `الموقع: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                }
+                
+            } catch (error) {
+                console.error('خطأ في الحصول على العنوان:', error);
+                userAddress = `الموقع: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            }
+        }
+
+        // دالة لتحديث حالة زر إرسال الطلب
+        function updateWhatsAppButton() {
+            const hasProducts = Object.keys(selectedProducts).length > 0;
+            const hasLocation = userLocation !== null;
+            
+            whatsappOrderBtn.disabled = !(hasProducts && hasLocation);
+            
+            if (!hasLocation) {
+                whatsappOrderBtn.title = 'يجب تحديد موقعك أولاً';
+            } else if (!hasProducts) {
+                whatsappOrderBtn.title = 'يجب إضافة منتجات إلى الطلب أولاً';
+            } else {
+                whatsappOrderBtn.title = 'إرسال الطلب عبر واتساب';
+            }
+        }
+
+        // دالة لتحميل بيانات التجار من Firebase
+        async function loadMerchants() {
+            try {
+                const merchantsSnapshot = await database.ref('merchants').once('value');
+                const merchantsData = merchantsSnapshot.val();
+                
+                console.log('بيانات merchants:', merchantsData);
+                
+                if (merchantsData) {
+                    allMerchants = Object.entries(merchantsData).map(([id, merchant]) => ({
+                        id: id,
+                        name: merchant.name || 'غير معروف',
+                        phone: merchant.phone || 'غير متوفر'
+                    }));
+                } else {
+                    allMerchants = [];
+                }
+                
+                // تحديث قائمة التجار في واجهة المستخدم
+                merchantSelect.innerHTML = '<option value="">اختر التاجر...</option>';
+                allMerchants.forEach(merchant => {
+                    const option = document.createElement('option');
+                    option.value = merchant.id;
+                    option.textContent = merchant.name;
+                    merchantSelect.appendChild(option);
+                });
+                
+                console.log('التجار المحملون:', allMerchants);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل بيانات التجار:', error);
+                showMessage('حدث خطأ في تحميل بيانات التجار', 'error');
+            }
+        }
+
+        // دالة لتحميل الفئات من Firebase مع ربطها بالتاجر
+        async function loadCategories() {
+            try {
+                const categoriesSnapshot = await database.ref('fah').once('value');
+                const fahData = categoriesSnapshot.val();
+                
+                console.log('بيانات fah:', fahData);
+                
+                if (fahData && fahData.categories) {
+                    allCategories = Object.entries(fahData.categories).map(([id, category]) => ({
+                        id: id,
+                        name: category.name || 'غير معروف',
+                        merchantId: category.merchantId || 'default'
+                    }));
+                } else {
+                    allCategories = [];
+                }
+                
+                console.log('الفئات المحملة:', allCategories);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل الفئات:', error);
+                showMessage('حدث خطأ في تحميل الفئات', 'error');
+            }
+        }
+
+        // دالة لتحميل الوحدات من Firebase
+        async function loadUnits() {
+            try {
+                const unitsSnapshot = await database.ref('whda').once('value');
+                const whdaData = unitsSnapshot.val();
+                
+                console.log('بيانات whda:', whdaData);
+                
+                if (whdaData && whdaData.units) {
+                    allUnits = Object.entries(whdaData.units).map(([id, unit]) => ({
+                        id: id,
+                        name: unit.name || 'غير معروف'
+                    }));
+                } else {
+                    allUnits = [];
+                }
+                
+                console.log('الوحدات المحملة:', allUnits);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل الوحدات:', error);
+                showMessage('حدث خطأ في تحميل الوحدات', 'error');
+            }
+        }
+
+        // دالة لتحميل المنتجات من Firebase مع ربطها بالتاجر
+        async function loadProducts() {
+            try {
+                productsContainer.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>جاري تحميل المنتجات...</p>
+                    </div>
+                `;
+                
+                const productsSnapshot = await database.ref('snf_mt').once('value');
+                const productsData = productsSnapshot.val();
+                
+                console.log('بيانات snf_mt:', productsData);
+                
+                if (productsData) {
+                    allProducts = Object.entries(productsData).map(([id, product]) => ({
+                        id: id,
+                        name: product.name || 'غير معروف',
+                        categoryId: product.categoryId,
+                        description: product.description || 'لا يوجد وصف',
+                        imageUrl: product.imageUrl || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+                        merchantId: product.merchantId || 'default',
+                        productNumber: product.productNumber || 0
+                    }));
+                } else {
+                    allProducts = [];
+                }
+                
+                console.log('المنتجات المحملة:', allProducts);
+                
+                // تحميل الأسعار بعد تحميل المنتجات
+                await loadPrices();
+                
+                // عرض المنتجات بعد تحميل البيانات
+                if (currentMerchantId) {
+                    displayProducts(allProducts);
+                }
+                
+            } catch (error) {
+                console.error('خطأ في تحميل المنتجات:', error);
+                productsContainer.innerHTML = `
+                    <div class="no-products">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>حدث خطأ في تحميل المنتجات</h3>
+                        <p>يرجى المحاولة مرة أخرى</p>
+                    </div>
+                `;
+            }
+        }
+
+        // دالة لتحميل الأسعار من Firebase مع ربطها بالتاجر
+        async function loadPrices() {
+            try {
+                const pricesSnapshot = await database.ref('rpt_snf_mt').once('value');
+                const pricesData = pricesSnapshot.val();
+                
+                console.log('بيانات rpt_snf_mt:', pricesData);
+                
+                if (pricesData) {
+                    allPrices = Object.entries(pricesData).map(([id, price]) => ({
+                        id: id,
+                        productId: price.productId,
+                        unitId: price.unitId,
+                        officialPrice: price.officialPrice || 0,
+                        discountPrice: price.discountPrice || null,
+                        status: price.status || 'نشط',
+                        merchantId: price.merchantId || 'default'
+                    }));
+                } else {
+                    allPrices = [];
+                }
+                
+                console.log('الأسعار المحملة:', allPrices);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل الأسعار:', error);
+                showMessage('حدث خطأ في تحميل الأسعار', 'error');
+            }
+        }
+
+        // دالة للحصول على اسم الفئة من ID
+        function getCategoryName(categoryId) {
+            if (!categoryId) return 'غير محدد';
+            const category = allCategories.find(cat => cat.id === categoryId);
+            return category ? category.name : 'غير محدد';
+        }
+
+        // دالة للحصول على اسم الوحدة من ID
+        function getUnitName(unitId) {
+            if (!unitId) return 'غير محدد';
+            const unit = allUnits.find(u => u.id === unitId);
+            return unit ? unit.name : 'غير محدد';
+        }
+
+        // دالة لعرض المنتجات بناءً على التاجر المحدد
+        function displayProducts(products) {
+            productsContainer.innerHTML = '';
+            
+            if (products.length === 0) {
+                productsContainer.innerHTML = `
+                    <div class="no-products">
+                        <i class="fas fa-box-open"></i>
+                        <h3>لا توجد منتجات</h3>
+                        <p>لم يتم العثور على أي منتجات في قاعدة البيانات</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // تصفية المنتجات حسب التاجر الحالي
+            let filteredProducts = products.filter(product => product.merchantId === currentMerchantId);
+            
+            if (filteredProducts.length === 0) {
+                productsContainer.innerHTML = `
+                    <div class="no-products">
+                        <i class="fas fa-box-open"></i>
+                        <h3>لا توجد منتجات</h3>
+                        <p>لم يتم العثور على أي منتجات لهذا التاجر</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filteredProducts.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card';
+                
+                productCard.innerHTML = `
+                    <img src="${product.imageUrl}" alt="${product.name}" class="product-image" onerror="this.src='https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'">
+                    <div class="product-info">
+                        <span class="product-category">${getCategoryName(product.categoryId)}</span>
+                        <h3 class="product-name">${product.name}</h3>
+                        <p class="product-description">${product.description}</p>
+                        
+                        <button class="view-prices-btn" data-product-id="${product.id}">
+                            <i class="fas fa-tags"></i> اختيار الوحدة والكمية
+                        </button>
+                    </div>
+                `;
+                
+                productsContainer.appendChild(productCard);
+            });
+            
+            // إضافة مستمعي الأحداث لأزرار عرض الأسعار
+            document.querySelectorAll('.view-prices-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = this.getAttribute('data-product-id');
+                    showProductPrices(productId);
+                });
+            });
+        }
+
+        // دالة لعرض أسعار منتج معين
+        function showProductPrices(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            if (!product) return;
+            
+            currentProductId = productId;
+            modalProductName.textContent = product.name;
+            pricesList.innerHTML = '';
+            
+            // الحصول على أسعار هذا المنتج
+            const productPrices = allPrices.filter(price => price.productId === productId && price.status === 'نشط');
+            
+            if (productPrices.length === 0) {
+                pricesList.innerHTML = `
+                    <div class="no-prices">
+                        <i class="fas fa-tags"></i>
+                        <h3>لا توجد أسعار</h3>
+                        <p>لا توجد أسعار مسجلة لهذا المنتج</p>
+                    </div>
+                `;
+            } else {
+                productPrices.forEach(price => {
+                    const priceItem = document.createElement('div');
+                    priceItem.className = 'price-item';
+                    
+                    // التحقق مما إذا كان هذا المنتج والوحدة موجودين مسبقًا في الطلب
+                    const existingItemKey = `${productId}_${price.unitId}`;
+                    const existingItem = selectedProducts[existingItemKey];
+                    
+                    priceItem.innerHTML = `
+                        <div class="unit-name">${getUnitName(price.unitId)}</div>
+                        <div class="prices">
+                            <span class="official-price">${price.officialPrice}</span>
+                            ${price.discountPrice ? `<span class="discount-price">${price.discountPrice}</span>` : ''}
+                        </div>
+                        <div class="price-actions">
+                            <input type="number" min="0" placeholder="الكمية" class="quantity-input" data-product-id="${productId}" data-unit-id="${price.unitId}" data-price="${price.officialPrice}" value="${existingItem ? existingItem.quantity : ''}">
+                            <input type="text" placeholder="ملاحظات" class="notes-input" data-product-id="${productId}" data-unit-id="${price.unitId}" value="${existingItem ? existingItem.notes : ''}">
+                            <button class="add-to-cart-btn" data-product-id="${productId}" data-unit-id="${price.unitId}">
+                                <i class="fas fa-cart-plus"></i> إضافة
+                            </button>
+                        </div>
+                    `;
+                    
+                    pricesList.appendChild(priceItem);
+                });
+            }
+            
+            // إضافة مستمعي الأحداث لأزرار الإضافة
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = this.getAttribute('data-product-id');
+                    const unitId = this.getAttribute('data-unit-id');
+                    const quantityInput = this.previousElementSibling.previousElementSibling;
+                    const notesInput = this.previousElementSibling;
+                    const quantity = parseInt(quantityInput.value);
+                    const notes = notesInput.value.trim();
+                    
+                    if (quantity > 0) {
+                        addToCart(productId, unitId, quantity, notes);
+                        // إغلاق النافذة المنبثقة بعد الإضافة
+                        closePricesModal();
+                    } else {
+                        showMessage('يرجى إدخال كمية صحيحة', 'error');
+                    }
+                });
+            });
+            
+            pricesModal.style.display = 'flex';
+        }
+
+        // دالة لإضافة منتج إلى سلة الطلب
+        function addToCart(productId, unitId, quantity, notes) {
+            const product = allProducts.find(p => p.id === productId);
+            const price = allPrices.find(p => p.productId === productId && p.unitId === unitId);
+            const unitName = getUnitName(unitId);
+            
+            if (!product || !price) {
+                showMessage('حدث خطأ في إضافة المنتج', 'error');
+                return;
+            }
+            
+            const itemKey = `${productId}_${unitId}`;
+            selectedProducts[itemKey] = {
+                product: product,
+                price: price,
+                unitName: unitName,
+                quantity: quantity,
+                notes: notes
+            };
+            
+            updateOrderSummary();
+            showMessage(`تم إضافة ${product.name} (${unitName}) إلى الطلب`, 'success');
+        }
+
+        // دالة لتحديث ملخص الطلب
+        function updateOrderSummary() {
+            const productKeys = Object.keys(selectedProducts);
+            
+            if (productKeys.length === 0) {
+                orderSummary.classList.remove('active');
+            } else {
+                orderSummary.classList.add('active');
+            }
+            
+            let total = 0;
+            orderItems.innerHTML = '';
+            
+            productKeys.forEach(key => {
+                const item = selectedProducts[key];
+                const itemTotal = item.quantity * item.price.officialPrice;
+                total += itemTotal;
+                
+                const orderItem = document.createElement('div');
+                orderItem.className = 'order-item';
+                orderItem.innerHTML = `
+                    <div>
+                        <div>${item.product.name} (${item.unitName}) - ${item.quantity}</div>
+                        ${item.notes ? `<div class="order-item-notes">ملاحظات: ${item.notes}</div>` : ''}
+                    </div>
+                    <span>${itemTotal}</span>
+                `;
+                
+                orderItems.appendChild(orderItem);
+            });
+            
+            orderTotal.textContent = `المجموع: ${total}`;
+            
+            // تحديث حالة زر الإرسال
+            updateWhatsAppButton();
+        }
+
+        // دالة لتصفية المنتجات
+        function filterProducts() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const categoryValue = categorySelect.value;
+            
+            let filteredProducts = allProducts.filter(product => product.merchantId === currentMerchantId);
+            
+            // التصفية حسب البحث
+            if (searchTerm) {
+                filteredProducts = filteredProducts.filter(product => 
+                    product.name.toLowerCase().includes(searchTerm) || 
+                    product.description.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // التصفية حسب الفئة
+            if (categoryValue) {
+                filteredProducts = filteredProducts.filter(product => 
+                    product.categoryId === categoryValue
+                );
+            }
+            
+            displayProducts(filteredProducts);
+        }
+
+        // دالة لإرسال الطلب عبر واتساب
+        function sendWhatsAppOrder() {
+            const productKeys = Object.keys(selectedProducts);
+            
+            if (productKeys.length === 0) {
+                showMessage('لم تقم باختيار أي منتجات', 'error');
+                return;
+            }
+            
+            if (!userLocation) {
+                showMessage('يجب تحديد موقعك أولاً قبل إرسال الطلب', 'error');
+                return;
+            }
+            
+            // بناء نص الطلب
+            let orderText = "السلام عليكم انني عميل متجر AZ السوق الشامل لتلبية احتياجك بالكامل\n\n";
+            
+            orderText += "https://e772299420-hue.github.io/Call/index.html\n\n";
+            
+            orderText += "اود اطلب المنتجات التاليه :\n";
+            
+            let total = 0;
+            
+            productKeys.forEach(key => {
+                const item = selectedProducts[key];
+                const itemTotal = item.quantity * item.price.officialPrice;
+                total += itemTotal;
+                
+                orderText += `- ${item.product.name} - ${item.unitName} - ${item.quantity} × ${item.price.officialPrice} - ${itemTotal} ريال يمني`;
+                
+                if (item.notes) {
+                    orderText += `\n  الملاحظة: ${item.notes}`;
+                }
+                
+                orderText += `\n\n`;
+            });
+            
+            orderText += `إجمالي سعر الفاتورة: ${total} ريال يمني\n\n`;
+            
+            // إضافة الموقع
+            orderText += `موقعي على خريطة جوجل:\n`;
+            orderText += `https://www.google.com/maps?q=${userLocation.lat},${userLocation.lng}\n\n`;
+            orderText += `العنوان: ${userAddress}\n\n`;
+            
+            orderText += "شكرًا لكم!";
+            
+            // ترميز النص للرابط
+            const encodedText = encodeURIComponent(orderText);
+            const phoneNumber = "967772299420";
+            const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+            
+            // فتح واتساب
+            window.open(whatsappUrl, '_blank');
+        }
+
+        // دالة لإغلاق نافذة الأسعار
+        function closePricesModal() {
+            pricesModal.style.display = 'none';
+        }
+
+        // دالة لعرض رسائل للمستخدم
+        function showMessage(message, type = 'info') {
+            console.log(`${type}: ${message}`);
+            
+            // عرض رسالة بسيطة للمستخدم
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                background: ${type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : '#d1ecf1'};
+                color: ${type === 'error' ? '#721c24' : type === 'success' ? '#155724' : '#0c5460'};
+                border-radius: 5px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            `;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // تهيئة التطبيق عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', async function() {
+            // تحميل البيانات من Firebase
+            try {
+                await Promise.all([
+                    loadMerchants(),
+                    loadCategories(),
+                    loadUnits()
+                ]);
+                
+                showMessage('تم تحميل البيانات بنجاح', 'success');
+            } catch (error) {
+                showMessage('حدث خطأ في تحميل البيانات', 'error');
+            }
+            
+            // إضافة مستمعي الأحداث
+            merchantSelect.addEventListener('change', function() {
+                currentMerchantId = this.value;
+                if (currentMerchantId) {
+                    const selectedMerchant = allMerchants.find(m => m.id === currentMerchantId);
+                    merchantName.textContent = `التاجر: ${selectedMerchant.name}`;
+                    
+                    // تحديث قائمة الفئات حسب التاجر المحدد
+                    const merchantCategories = allCategories.filter(cat => cat.merchantId === currentMerchantId);
+                    categorySelect.innerHTML = '<option value="">جميع الفئات</option>';
+                    merchantCategories.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        categorySelect.appendChild(option);
+                    });
+                    
+                    // تحميل وعرض المنتجات
+                    loadProducts();
+                } else {
+                    merchantName.textContent = 'يرجى اختيار التاجر من القائمة';
+                    productsContainer.innerHTML = `
+                        <div class="no-products">
+                            <i class="fas fa-store"></i>
+                            <h3>لم يتم اختيار تاجر</h3>
+                            <p>يرجى اختيار تاجر من القائمة لعرض المنتجات</p>
+                        </div>
+                    `;
+                }
+            });
+            
+            getLocationBtn.addEventListener('click', getUserLocation);
+            searchInput.addEventListener('input', filterProducts);
+            categorySelect.addEventListener('change', filterProducts);
+            closeModal.addEventListener('click', closePricesModal);
+            whatsappOrderBtn.addEventListener('click', sendWhatsAppOrder);
+            
+            // إغلاق النافذة عند النقر خارجها
+            pricesModal.addEventListener('click', function(e) {
+                if (e.target === pricesModal) {
+                    closePricesModal();
+                }
+            });
+            
+            // تحديث حالة زر الإرسال أول مرة
+            updateWhatsAppButton();
+        });
+    </script>
+</body>
+</html> 
