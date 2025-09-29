@@ -46,7 +46,7 @@
             background: linear-gradient(135deg,  #ffffff 100%);
             color: var(--text-color);
             min-height: 100vh;
-            padding: 240px 20px 100px 20px;
+            padding: 200px 20px 100px 20px;
             line-height: 1.6;
             transition: var(--transition);
         }
@@ -280,7 +280,7 @@
         }
 
         /* ==========================================
-           🔍 الفلاتر الثابتة العائمة
+           🔍 الفلاتر الثابتة العائمة - التصميم الجديد
            ========================================== */
         .fixed-filters {
             position: fixed;
@@ -288,31 +288,24 @@
             left: 0;
             width: 100%;
             background: var(--background-color);
-            padding: 20px;
+            padding: 15px 20px;
             z-index: 998;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(0,0,0,0.1);
         }
 
-        .filters-grid {
+        .merchant-filter {
+            max-width: 800px;
+            margin: 0 auto 15px auto;
+        }
+
+        .filters-row {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
             max-width: 800px;
             margin: 0 auto;
-        }
-
-        .filter-row {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-        }
-
-        @media (min-width: 768px) {
-            .filter-row {
-                grid-template-columns: 1fr 1fr 1fr;
-            }
         }
 
         .filter-group {
@@ -937,7 +930,7 @@
            ========================================== */
         @media (max-width: 768px) {
             body {
-                padding: 280px 15px 100px 15px;
+                padding: 240px 15px 100px 15px;
             }
 
             .header {
@@ -974,7 +967,8 @@
                 font-size: 18px;
             }
 
-            .filters-grid {
+            .filters-row {
+                grid-template-columns: 1fr;
                 gap: 12px;
             }
 
@@ -1182,52 +1176,34 @@
     </div>
 
     <!-- ==========================================
-       🔍 الفلاتر الثابتة العائمة
+       🔍 الفلاتر الثابتة العائمة - التصميم الجديد
        ========================================== -->
     <div class="fixed-filters">
-        <div class="filters-grid">
-            <!-- الصف الأول: حقل التاجر فقط -->
-            <div class="filter-row">
-                <div class="filter-group" style="grid-column: 1 / -1;">
-                    <select class="filter-select merchant-select" id="merchant-select">
-                        <option value="">اختر التاجر...</option>
-                    </select>
-                </div>
+        <!-- حقل التاجر فقط في الأعلى -->
+        <div class="merchant-filter">
+            <select class="filter-select merchant-select" id="merchant-select">
+                <option value="">اختر التاجر...</option>
+            </select>
+        </div>
+        
+        <!-- صف الفلاتر: الفئة والبحث -->
+        <div class="filters-row">
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="fas fa-tags"></i>
+                    الفئة
+                </label>
+                <select class="filter-select" id="category-select">
+                    <option value="">جميع الفئات</option>
+                </select>
             </div>
             
-            <!-- الصف الثاني: الفئة وترتيب حسب -->
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label class="filter-label">
-                        <i class="fas fa-tags"></i>
-                        الفئة
-                    </label>
-                    <select class="filter-select" id="category-select">
-                        <option value="">جميع الفئات</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label class="filter-label">
-                        <i class="fas fa-sort-amount-down"></i>
-                        ترتيب حسب
-                    </label>
-                    <select class="filter-select" id="sort-select">
-                        <option value="name">الاسم (أ-ي)</option>
-                        <option value="name_desc">الاسم (ي-أ)</option>
-                        <option value="category">الفئة</option>
-                        <option value="price">السعر (منخفض-عالي)</option>
-                        <option value="price_desc">السعر (عالي-منخفض)</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label class="filter-label">
-                        <i class="fas fa-search"></i>
-                        بحث
-                    </label>
-                    <input type="text" class="search-input" id="search-input" placeholder="ابحث عن منتج...">
-                </div>
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="fas fa-search"></i>
+                    بحث
+                </label>
+                <input type="text" class="search-input" id="search-input" placeholder="ابحث عن منتج...">
             </div>
         </div>
     </div>
@@ -1347,7 +1323,6 @@
         const merchantSelect = document.getElementById('merchant-select');
         const searchInput = document.getElementById('search-input');
         const categorySelect = document.getElementById('category-select');
-        const sortSelect = document.getElementById('sort-select');
         const pricesModal = document.getElementById('prices-modal');
         const modalProductName = document.getElementById('modal-product-name');
         const pricesList = document.getElementById('prices-list');
@@ -1879,26 +1854,25 @@
                 return;
             }
             
-            // تطبيق الفرز
-            const sortValue = sortSelect.value;
-            filteredProducts.sort((a, b) => {
-                switch(sortValue) {
-                    case 'name_desc':
-                        return b.name.localeCompare(a.name);
-                    case 'category':
-                        return getCategoryName(a.categoryId).localeCompare(getCategoryName(b.categoryId));
-                    case 'price':
-                        const priceA = getProductMinPrice(a.id);
-                        const priceB = getProductMinPrice(b.id);
-                        return priceA - priceB;
-                    case 'price_desc':
-                        const priceADesc = getProductMinPrice(a.id);
-                        const priceBDesc = getProductMinPrice(b.id);
-                        return priceBDesc - priceADesc;
-                    default: // name
-                        return a.name.localeCompare(b.name);
-                }
-            });
+            // تطبيق البحث والتصفية
+            const searchTerm = searchInput.value.toLowerCase();
+            const categoryValue = categorySelect.value;
+            
+            if (searchTerm) {
+                filteredProducts = filteredProducts.filter(product => 
+                    product.name.toLowerCase().includes(searchTerm) || 
+                    (product.description && product.description.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            if (categoryValue) {
+                filteredProducts = filteredProducts.filter(product => 
+                    product.categoryId === categoryValue
+                );
+            }
+            
+            // ترتيب المنتجات حسب الاسم (افتراضي)
+            filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
             
             filteredProducts.forEach(product => {
                 const productCard = document.createElement('div');
@@ -1931,17 +1905,6 @@
                     showProductPrices(productId);
                 });
             });
-        }
-
-        function getProductMinPrice(productId) {
-            const productPrices = allPrices.filter(price => 
-                price.productId === productId && 
-                price.status === 'نشط'
-            );
-            
-            if (productPrices.length === 0) return 0;
-            
-            return Math.min(...productPrices.map(price => price.officialPrice));
         }
 
         function showProductPrices(productId) {
@@ -2044,25 +2007,9 @@
         }
 
         function filterProducts() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const categoryValue = categorySelect.value;
-            
-            let filteredProducts = allProducts.filter(product => product.merchantId === currentMerchantId);
-            
-            if (searchTerm) {
-                filteredProducts = filteredProducts.filter(product => 
-                    product.name.toLowerCase().includes(searchTerm) || 
-                    (product.description && product.description.toLowerCase().includes(searchTerm))
-                );
+            if (currentMerchantId) {
+                displayProducts(allProducts);
             }
-            
-            if (categoryValue) {
-                filteredProducts = filteredProducts.filter(product => 
-                    product.categoryId === categoryValue
-                );
-            }
-            
-            displayProducts(filteredProducts);
         }
 
         function sendWhatsAppOrder() {
@@ -2259,11 +2206,6 @@
             
             searchInput.addEventListener('input', filterProducts);
             categorySelect.addEventListener('change', filterProducts);
-            sortSelect.addEventListener('change', function() {
-                if (currentMerchantId) {
-                    displayProducts(allProducts);
-                }
-            });
             
             closeModal.addEventListener('click', closePricesModal);
             whatsappOrderBtn.addEventListener('click', sendWhatsAppOrder);
