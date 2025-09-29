@@ -1,293 +1,73 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>تحديد الموقع بدقة عالية</title>
-
-  <!-- Leaflet CSS (خريطة) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-sA+4yQ0hK3xViGkqGgJbqv3m3fQmVd5o2v9gk0Z6u0M=" crossorigin=""/>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تتبع الموقع المباشر</title>
   <style>
-    body {
-      font-family: "Arial", "Helvetica", sans-serif;
-      padding: 12px;
-      background:#f7f9fc;
-      color:#111;
-      direction: rtl;
-    }
-    header { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
-    h1 { font-size:18px; margin:0; }
-    #controls { margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap; }
-    button { padding:8px 12px; border-radius:8px; border:1px solid #cbd5e1; background:white; cursor:pointer; }
-    button:disabled { opacity:0.6; cursor:not-allowed; }
-    #info { background:white; padding:12px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.06); margin-bottom:12px; }
-    #map { height:360px; border-radius:8px; overflow:hidden; border:1px solid #e2e8f0; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; }
-    .label { min-width:110px; font-weight:600; }
-    small.gray { color:#6b7280; display:block; margin-top:6px; }
-    pre { background:#0f172a; color:#e6eef8; padding:8px; border-radius:6px; overflow:auto; }
-    @media(max-width:480px){ #map{height:280px} }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; direction: rtl; }
+    #map { height: 400px; margin-top: 20px; border: 1px solid #ccc; }
+    #msg { margin-top: 15px; font-weight: bold; color: red; }
   </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
 
-<header>
-  <h1>صفحة تحديد الموقع (دقة عالية)</h1>
-  <small class="gray">تعمل بشكل أفضل على هاتف به GPS وضمن صفحة مؤمنة (HTTPS).</small>
-</header>
+<h2>تتبع الموقع المباشر</h2>
+<p>الرجاء الضغط على <strong>"سماح"</strong> عند طلب الإذن لتحديد موقعك.</p>
 
-<div id="controls">
-  <button id="btn-get">جلب الموقع الآن</button>
-  <button id="btn-watch">بدء التتبع</button>
-  <button id="btn-stop" disabled>إيقاف التتبع</button>
-  <button id="btn-reverse" disabled>احصل على العنوان</button>
-</div>
-
-<div id="info">
-  <div class="row">
-    <div><span class="label">خط العرض:</span> <span id="lat">—</span></div>
-    <div><span class="label">خط الطول:</span> <span id="lon">—</span></div>
-    <div><span class="label">الدقة (م):</span> <span id="acc">—</span></div>
-  </div>
-  <div class="row" style="margin-top:8px;">
-    <div><span class="label">الارتفاع (م):</span> <span id="alt">—</span></div>
-    <div><span class="label">اتجاه الحركة:</span> <span id="heading">—</span></div>
-    <div><span class="label">السرعة (م/ث):</span> <span id="speed">—</span></div>
-  </div>
-  <div style="margin-top:8px;">
-    <div><span class="label">الوقت:</span> <span id="time">—</span></div>
-    <div style="margin-top:8px;"><span class="label">العنوان التقريبي:</span> <div id="address">—</div></div>
-  </div>
-  <small class="gray">ملاحظات: الدقة تقل على الحواسيب المكتبية، وتعتمد على وجود GPS والـ Wi-Fi والإذن.</small>
-</div>
-
+<div id="msg">جاري محاولة تحديد الموقع...</div>
 <div id="map"></div>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-o9N1j6kFQ0r2g0X8i6gYv7K8b0mT1w6fI6Z8i1iQeS8=" crossorigin=""></script>
-
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/*
-  صفحة تحديد الموقع بدقة:
-  - تحاول استخدام GPS (enableHighAccuracy: true)
-  - تعرض النتائج على خريطة Leaflet
-  - توفر تتبع مستمر عبر watchPosition
-  - تدعم استرجاع عنوان تقريبي عبر Nominatim (OpenStreetMap)
-  - توفر fallback باستخدام IP إذا لم يُعطَ الإذن
-*/
+let map, marker, circle;
 
-const latEl = document.getElementById('lat');
-const lonEl = document.getElementById('lon');
-const accEl = document.getElementById('acc');
-const altEl = document.getElementById('alt');
-const headingEl = document.getElementById('heading');
-const speedEl = document.getElementById('speed');
-const timeEl = document.getElementById('time');
-const addrEl = document.getElementById('address');
-
-const btnGet = document.getElementById('btn-get');
-const btnWatch = document.getElementById('btn-watch');
-const btnStop = document.getElementById('btn-stop');
-const btnReverse = document.getElementById('btn-reverse');
-
-let watchId = null;
-let map, marker, accuracyCircle;
-
-// إعداد خريطة Leaflet مركزة نقطة افتراضية
-function initMap() {
-  map = L.map('map', { zoomControl: true }).setView([15.3547, 44.2066], 6); // مركز افتراضي (اليمن تقريباً)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+// التحقق من دعم المتصفح
+if (!navigator.geolocation) {
+  document.getElementById("msg").innerText = "متصفحك لا يدعم تحديد الموقع.";
+} else {
+  // تتبع الموقع بشكل مستمر
+  navigator.geolocation.watchPosition(success, error, { enableHighAccuracy: true });
 }
 
-initMap();
+function success(pos) {
+  const lat = pos.coords.latitude;
+  const lon = pos.coords.longitude;
+  const acc = pos.coords.accuracy;
 
-// تحديث واجهة المستخدم وموقع الخريطة
-function updateLocationDisplay(pos) {
-  const { latitude, longitude, accuracy, altitude, heading, speed } = pos.coords;
-  latEl.textContent = latitude.toFixed(7);
-  lonEl.textContent = longitude.toFixed(7);
-  accEl.textContent = (accuracy != null) ? accuracy.toFixed(1) : '—';
-  altEl.textContent = (altitude != null) ? altitude.toFixed(2) : '—';
-  headingEl.textContent = (heading != null) ? heading.toFixed(2) : '—';
-  speedEl.textContent = (speed != null) ? speed.toFixed(2) : '—';
-  timeEl.textContent = new Date(pos.timestamp).toLocaleString();
+  document.getElementById("msg").style.color = "green";
+  document.getElementById("msg").innerText = `موقعك الحالي (دقة تقريبية ${acc} متر)`;
 
-  btnReverse.disabled = false;
+  if (!map) {
+    // إنشاء الخريطة أول مرة
+    map = L.map('map').setView([lat, lon], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
 
-  // وضع أو تحديث العلامة والدائرة التي تمثل الدقة
-  const latlng = [latitude, longitude];
-  if (!marker) {
-    marker = L.marker(latlng).addTo(map);
+    marker = L.marker([lat, lon]).addTo(map).bindPopup("موقعك الحالي").openPopup();
+    circle = L.circle([lat, lon], { radius: acc, color: "blue", fillOpacity: 0.1 }).addTo(map);
   } else {
-    marker.setLatLng(latlng);
+    // تحديث الموقع إذا تغير
+    marker.setLatLng([lat, lon]);
+    circle.setLatLng([lat, lon]);
+    circle.setRadius(acc);
+    map.setView([lat, lon]);
   }
+}
 
-  if (!accuracyCircle) {
-    accuracyCircle = L.circle(latlng, { radius: accuracy || 20, opacity:0.2, fillOpacity:0.12 }).addTo(map);
+function error(err) {
+  if (err.code === 1) {
+    document.getElementById("msg").innerText = "❌ تم رفض إذن الموقع. الرجاء السماح من إعدادات المتصفح.";
+  } else if (err.code === 2) {
+    document.getElementById("msg").innerText = "⚠️ الموقع غير متاح حالياً.";
+  } else if (err.code === 3) {
+    document.getElementById("msg").innerText = "⏳ انتهت مهلة تحديد الموقع.";
   } else {
-    accuracyCircle.setLatLng(latlng);
-    accuracyCircle.setRadius(accuracy || 20);
-  }
-
-  // ضبط مستوى التكبير ليُظهر الدقة (zoom مناسب)
-  if (map) {
-    const zoom = accuracyToZoom(accuracy || 20);
-    map.setView(latlng, zoom, { animate: true });
+    document.getElementById("msg").innerText = "حدث خطأ غير معروف.";
   }
 }
-
-// تحويل الدقة بالمتر إلى مستوى تكبير تقريبي للخرائط
-function accuracyToZoom(accuracyMeters) {
-  // خُطوط تقريبية: أكبر الدقة -> رقم تكبير أعلى
-  if (accuracyMeters <= 5) return 18;
-  if (accuracyMeters <= 10) return 17;
-  if (accuracyMeters <= 20) return 16;
-  if (accuracyMeters <= 50) return 15;
-  if (accuracyMeters <= 100) return 14;
-  if (accuracyMeters <= 500) return 12;
-  if (accuracyMeters <= 1000) return 11;
-  return 8;
-}
-
-// معالجة الأخطاء
-function onError(err) {
-  console.warn('Geolocation error', err);
-  switch(err.code) {
-    case err.PERMISSION_DENIED:
-      alert('المستخدم رفض إذن تحديد الموقع. سيتم المحاولة عبر IP كبديل.');
-      tryIPFallback();
-      break;
-    case err.POSITION_UNAVAILABLE:
-      alert('الموقع غير متاح حالياً.');
-      break;
-    case err.TIMEOUT:
-      alert('انتهى وقت الطلب — حاول مرة أخرى.');
-      break;
-    default:
-      alert('خطأ غير معروف في تحديد الموقع.');
-  }
-}
-
-// طلب الموقع مرة واحدة بدقة عالية
-function getLocationOnce() {
-  if (!navigator.geolocation) {
-    alert('Geolocation غير مدعوم في متصفحك.');
-    return;
-  }
-  btnGet.disabled = true;
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      updateLocationDisplay(pos);
-      btnGet.disabled = false;
-    },
-    err => {
-      onError(err);
-      btnGet.disabled = false;
-    },
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-  );
-}
-
-// بدء تتبع مستمر (watchPosition)
-function startWatch() {
-  if (!navigator.geolocation) {
-    alert('Geolocation غير مدعوم في متصفحك.');
-    return;
-  }
-  if (watchId !== null) return;
-  btnWatch.disabled = true;
-  btnStop.disabled = false;
-
-  watchId = navigator.geolocation.watchPosition(
-    pos => {
-      updateLocationDisplay(pos);
-    },
-    err => {
-      onError(err);
-      stopWatch();
-    },
-    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-  );
-}
-
-// إيقاف التتبع
-function stopWatch() {
-  if (watchId !== null) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-  }
-  btnWatch.disabled = false;
-  btnStop.disabled = true;
-}
-
-// ترجمة عكسية إلى عنوان باستخدام Nominatim (OpenStreetMap)
-// ملاحظة: استخدم هذه الخدمة بمسؤولية — هناك حدود طلبات. للاستخدام الإنتاجي استخدم خدمة خاصة أو مفتاح API.
-async function reverseGeocode(lat, lon) {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&accept-language=ar`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'GeoPage/1.0 (your-email@example.com)' }});
-    if (!res.ok) throw new Error('خدمة الترجمة العكسية لم ترد.');
-    const data = await res.json();
-    return data.display_name || JSON.stringify(data);
-  } catch (e) {
-    console.error(e);
-    return null;
-  }
-}
-
-// محاولة بديلة باستخدام IP في حال رفض الإذن أو فشل GPS
-async function tryIPFallback() {
-  try {
-    // خدمات IP بدون مفتاح متاحة ولكن محدودة؛ هذه مجرد محاولة سريعة.
-    const res = await fetch('https://ipapi.co/json/');
-    if (!res.ok) throw new Error('IP fallback failed');
-    const d = await res.json();
-    const lat = parseFloat(d.latitude);
-    const lon = parseFloat(d.longitude);
-    if (!lat || !lon) throw new Error('IP has no coords');
-    const fakePos = {
-      coords: { latitude: lat, longitude: lon, accuracy: 30000, altitude: null, heading: null, speed: null },
-      timestamp: Date.now()
-    };
-    updateLocationDisplay(fakePos);
-    addrEl.textContent = `${d.city || '-'}، ${d.region || '-'}، ${d.country_name || '-'}`;
-  } catch (e) {
-    console.warn('IP fallback failed', e);
-    alert('فشل الحصول على الموقع عبر GPS وIP. تأكد من اتصالك وحاول السماح بالإذن.');
-  }
-}
-
-// أحداث الأزرار
-btnGet.addEventListener('click', getLocationOnce);
-btnWatch.addEventListener('click', startWatch);
-btnStop.addEventListener('click', stopWatch);
-btnReverse.addEventListener('click', async () => {
-  const lat = parseFloat(latEl.textContent);
-  const lon = parseFloat(lonEl.textContent);
-  if (!lat || !lon || isNaN(lat) || isNaN(lon)) { alert('لا توجد إحداثيات صالحة حتى الآن.'); return; }
-  btnReverse.disabled = true;
-  addrEl.textContent = 'جاري الحصول على العنوان...';
-  const addr = await reverseGeocode(lat, lon);
-  if (addr) addrEl.textContent = addr;
-  else addrEl.textContent = 'فشل الحصول على العنوان';
-  btnReverse.disabled = false;
-});
-
-// تشغيل تلقائي عند فتح الصفحة: نطلب الموقع مرة واحدة ثم نبدأ تتبع خفيف
-window.addEventListener('load', () => {
-  // نجرب الحصول على الموقع فوراً (سيسأل المستخدم عن إذن)
-  getLocationOnce();
-
-  // بعد 4 ثوانٍ إن لم نتلقَ موقعاً جيداً، نبدأ watch لرفع فرص التقاط GPS.
-  setTimeout(() => {
-    if (watchId === null) startWatch();
-  }, 4000);
-});
 </script>
 
 </body>
