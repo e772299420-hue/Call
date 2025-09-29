@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تتبع الموقع المباشر</title>
+  <title>تتبع الموقع المباشر مع رسائل خطأ</title>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; direction: rtl; }
     #map { height: 400px; margin-top: 20px; border: 1px solid #ccc; }
-    #msg { margin-top: 15px; font-weight: bold; color: red; }
+    #msg { margin-top: 15px; font-weight: bold; color: red; white-space: pre-wrap; }
   </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
@@ -25,7 +25,7 @@ let map, marker, circle;
 
 // التحقق من دعم المتصفح
 if (!navigator.geolocation) {
-  document.getElementById("msg").innerText = "متصفحك لا يدعم تحديد الموقع.";
+  document.getElementById("msg").innerText = "❌ متصفحك لا يدعم تحديد الموقع.";
 } else {
   // تتبع الموقع بشكل مستمر
   navigator.geolocation.watchPosition(success, error, { enableHighAccuracy: true });
@@ -37,7 +37,7 @@ function success(pos) {
   const acc = pos.coords.accuracy;
 
   document.getElementById("msg").style.color = "green";
-  document.getElementById("msg").innerText = `موقعك الحالي (دقة تقريبية ${acc} متر)`;
+  document.getElementById("msg").innerText = `✅ موقعك الحالي (دقة تقريبية ${acc} متر)\nLat: ${lat}\nLon: ${lon}`;
 
   if (!map) {
     // إنشاء الخريطة أول مرة
@@ -58,15 +58,9 @@ function success(pos) {
 }
 
 function error(err) {
-  if (err.code === 1) {
-    document.getElementById("msg").innerText = "❌ تم رفض إذن الموقع. الرجاء السماح من إعدادات المتصفح.";
-  } else if (err.code === 2) {
-    document.getElementById("msg").innerText = "⚠️ الموقع غير متاح حالياً.";
-  } else if (err.code === 3) {
-    document.getElementById("msg").innerText = "⏳ انتهت مهلة تحديد الموقع.";
-  } else {
-    document.getElementById("msg").innerText = "حدث خطأ غير معروف.";
-  }
+  // إظهار كود الخطأ والرسالة النصية
+  document.getElementById("msg").style.color = "red";
+  document.getElementById("msg").innerText = `⚠️ خطأ في تحديد الموقع\nالكود: ${err.code}\nالرسالة: ${err.message}`;
 }
 </script>
 
