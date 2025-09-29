@@ -72,10 +72,54 @@
     font-weight: 500;
 }
 
+/* ===== شريط الجلوبلات ===== */
+.globals-bar {
+    position: fixed;
+    top: 70px; /* أسفل الشريط العلوي مباشرة */
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px 20px;
+    z-index: 999;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    justify-content: flex-start;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.global-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background: rgba(25, 118, 210, 0.1);
+    border-radius: 5px;
+    font-size: 13px;
+    color: #1976D2;
+    border: 1px solid rgba(25, 118, 210, 0.2);
+}
+
+.global-item i {
+    font-size: 12px;
+}
+
+.global-label {
+    font-weight: 500;
+}
+
+.global-value {
+    font-weight: 600;
+}
+
 /* ===== زر الرجوع ===== */
 .back-button {
     position: fixed;
-    top: 80px;
+    top: 130px; /* أسفل شريط الجلوبلات */
     left: 20px;
     display: inline-flex;
     align-items: center;
@@ -85,7 +129,7 @@
     border-radius: 5px;
     text-decoration: none;
     font-size: 14px;
-    z-index: 999;
+    z-index: 998;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
@@ -103,7 +147,7 @@
     padding: 10px;
     width: 1px; /* عرض 1 */
     height: 1px; /* ارتفاع 1 */
-    z-index: 998;
+    z-index: 997;
     text-align: center;
     backdrop-filter: blur(5px);
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -170,7 +214,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 80px 20px 70px 20px;
+    padding: 150px 20px 70px 20px; /* تعديل padding-top لاستيعاب شريط الجلوبلات */
     position: relative;
 }
 
@@ -290,7 +334,7 @@ body {
     }
     
     .back-button {
-        top: 75px;
+        top: 140px;
         left: 10px;
         padding: 8px 12px;
         font-size: 0.9rem;
@@ -325,6 +369,20 @@ body {
     .app-name {
         font-size: 16px;
     }
+    
+    .globals-bar {
+        padding: 8px 10px;
+        gap: 10px;
+    }
+    
+    .global-item {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    
+    body {
+        padding-top: 140px;
+    }
 }
 </style>
 </head>
@@ -343,6 +401,11 @@ body {
         <div class="merchant-name" id="user-display-name">تاجر: جاري التحميل...</div>
     </div>
 </header>
+
+<!-- شريط الجلوبلات -->
+<div class="globals-bar" id="globals-bar">
+    <!-- سيتم ملء هذا القسم بالجلوبلات ديناميكياً -->
+</div>
 
 <!-- زر الرجوع -->
 <a href="index.html" class="back-button">
@@ -428,6 +491,7 @@ const globalUser = {
         console.log('✅ تم تخزين بيانات المستخدم في الجلسة:', userData);
         updateUserDisplay();
         updateNamUsrField();
+        updateGlobalsBar(); // تحديث شريط الجلوبلات
     },
     
     getUserData: function() {
@@ -471,6 +535,7 @@ const globalUser = {
         console.log('🚪 تم تسجيل الخروج');
         updateUserDisplay();
         updateNamUsrField();
+        updateGlobalsBar(); // تحديث شريط الجلوبلات
     }
 };
 
@@ -480,6 +545,7 @@ const merchantGlobal = {
     setMerchantName: function(name) {
         sessionStorage.setItem('merchantName', name);
         console.log('✅ تم حفظ اسم التاجر في الجلوبال:', name);
+        updateGlobalsBar(); // تحديث شريط الجلوبلات
     },
     
     getMerchantName: function() {
@@ -490,6 +556,7 @@ const merchantGlobal = {
     setMerchantPhone: function(phone) {
         sessionStorage.setItem('merchantPhone', phone);
         console.log('✅ تم حفظ رقم التاجر في الجلوبال:', phone);
+        updateGlobalsBar(); // تحديث شريط الجلوبلات
     },
     
     getMerchantPhone: function() {
@@ -500,6 +567,7 @@ const merchantGlobal = {
     setMerchantId: function(merchantId) {
         sessionStorage.setItem('merchantId', merchantId);
         console.log('✅ تم حفظ معرف التاجر في الجلوبال:', merchantId);
+        updateGlobalsBar(); // تحديث شريط الجلوبلات
     },
     
     getMerchantId: function() {
@@ -512,6 +580,7 @@ const merchantGlobal = {
         sessionStorage.removeItem('merchantPhone');
         sessionStorage.removeItem('merchantId');
         console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
+        updateGlobalsBar(); // تحديث شريط الجلوبلات
     }
 };
 
@@ -550,6 +619,117 @@ function updateNamUsrField() {
         const merchantName = merchantGlobal.getMerchantName();
         namUsrField.value = merchantName || '';
     }
+}
+
+// دالة لتحديث شريط الجلوبلات
+function updateGlobalsBar() {
+    const globalsBar = document.getElementById('globals-bar');
+    
+    // الحصول على جميع البيانات من الجلوبالات
+    const userData = globalUser.getUserData();
+    const merchantName = merchantGlobal.getMerchantName();
+    const merchantPhone = merchantGlobal.getMerchantPhone();
+    const merchantId = merchantGlobal.getMerchantId();
+    
+    // إعداد HTML لشريط الجلوبلات
+    let globalsHTML = '';
+    
+    // إضافة بيانات المستخدم من globalUser
+    if (userData) {
+        if (userData.username) {
+            globalsHTML += `
+                <div class="global-item">
+                    <i class="fas fa-user"></i>
+                    <span class="global-label">اسم المستخدم:</span>
+                    <span class="global-value">${userData.username}</span>
+                </div>
+            `;
+        }
+        
+        if (userData.name) {
+            globalsHTML += `
+                <div class="global-item">
+                    <i class="fas fa-id-card"></i>
+                    <span class="global-label">الاسم:</span>
+                    <span class="global-value">${userData.name}</span>
+                </div>
+            `;
+        }
+        
+        if (userData.id) {
+            globalsHTML += `
+                <div class="global-item">
+                    <i class="fas fa-key"></i>
+                    <span class="global-label">المعرف:</span>
+                    <span class="global-value">${userData.id}</span>
+                </div>
+            `;
+        }
+        
+        if (userData.email) {
+            globalsHTML += `
+                <div class="global-item">
+                    <i class="fas fa-envelope"></i>
+                    <span class="global-label">البريد:</span>
+                    <span class="global-value">${userData.email}</span>
+                </div>
+            `;
+        }
+        
+        if (userData.mobile) {
+            globalsHTML += `
+                <div class="global-item">
+                    <i class="fas fa-phone"></i>
+                    <span class="global-label">الجوال:</span>
+                    <span class="global-value">${userData.mobile}</span>
+                </div>
+            `;
+        }
+    }
+    
+    // إضافة بيانات التاجر من merchantGlobal
+    if (merchantName) {
+        globalsHTML += `
+            <div class="global-item">
+                <i class="fas fa-store"></i>
+                <span class="global-label">اسم التاجر:</span>
+                <span class="global-value">${merchantName}</span>
+            </div>
+        `;
+    }
+    
+    if (merchantPhone) {
+        globalsHTML += `
+            <div class="global-item">
+                <i class="fas fa-phone-alt"></i>
+                <span class="global-label">هاتف المتجر:</span>
+                <span class="global-value">${merchantPhone}</span>
+            </div>
+        `;
+    }
+    
+    if (merchantId) {
+        globalsHTML += `
+            <div class="global-item">
+                <i class="fas fa-fingerprint"></i>
+                <span class="global-label">معرف التاجر:</span>
+                <span class="global-value">${merchantId}</span>
+            </div>
+        `;
+    }
+    
+    // إذا لم توجد بيانات، عرض رسالة
+    if (!globalsHTML) {
+        globalsHTML = `
+            <div class="global-item">
+                <i class="fas fa-info-circle"></i>
+                <span class="global-label">لا توجد بيانات متاحة</span>
+            </div>
+        `;
+    }
+    
+    // تحديث شريط الجلوبلات
+    globalsBar.innerHTML = globalsHTML;
 }
 
 // دالة للانتقال إلى صفحة تعديل بيانات التاجر مع نقل اسم التاجر
@@ -629,8 +809,8 @@ document.addEventListener('DOMContentLoaded', function() {
             username: 'تاجر_افتراضي',
             name: 'تاجر افتراضي',
             commercialName: 'متجر افتراضي',
-            email: '',
-            mobile: '',
+            email: 'merchant@example.com',
+            mobile: '772299420',
             job: 'تاجر',
             type: 'merchant',
             loginTime: new Date().toISOString(),
@@ -643,6 +823,7 @@ document.addEventListener('DOMContentLoaded', function() {
         globalUser.setUserData(defaultUserData);
         merchantGlobal.setMerchantName('تاجر افتراضي');
         merchantGlobal.setMerchantId('default_merchant');
+        merchantGlobal.setMerchantPhone('772299420');
     } else if (userData && !merchantName) {
         // إذا كانت هناك بيانات مستخدم ولكن لا توجد بيانات تاجر، نسخ البيانات
         console.log('🔄 نسخ بيانات المستخدم إلى بيانات التاجر...');
@@ -656,6 +837,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // تحديث واجهة المستخدم
     updateUserDisplay();
     updateNamUsrField();
+    updateGlobalsBar(); // تحديث شريط الجلوبلات
     
     console.log('✅ تم تحميل الصفحة بنجاح');
 });
