@@ -1506,6 +1506,40 @@
             smsOrderBtn.disabled = !(hasProducts && hasLocation);
         }
 
+        function showOrderSummary() {
+            const productKeys = Object.keys(selectedProducts);
+            
+            if (productKeys.length === 0) {
+                showMessage('لا توجد منتجات في الطلب', 'warning');
+                return;
+            }
+            
+            let total = 0;
+            orderItems.innerHTML = '';
+            
+            productKeys.forEach(key => {
+                const item = selectedProducts[key];
+                const itemTotal = item.quantity * item.price.officialPrice;
+                total += itemTotal;
+                
+                const orderItem = document.createElement('div');
+                orderItem.className = 'order-item';
+                orderItem.innerHTML = `
+                    <div class="order-item-details">
+                        <div class="order-item-name">${item.product.name}</div>
+                        <div class="order-item-unit">${item.unitName} - ${item.quantity} × ${item.price.officialPrice} ريال</div>
+                        ${item.notes ? `<div class="order-item-notes">${item.notes}</div>` : ''}
+                    </div>
+                    <div class="order-item-price">${itemTotal} ريال</div>
+                `;
+                
+                orderItems.appendChild(orderItem);
+            });
+            
+            orderTotal.textContent = `المجموع: ${total} ريال`;
+            orderSummaryModal.classList.add('active');
+        }
+
         function updateOrderSummary() {
             const productKeys = Object.keys(selectedProducts);
             
@@ -1990,7 +2024,9 @@
                 return;
             }
             
-            let orderText = "السلام عليكم، أود طلب المنتجات التالية:\n\n";
+            let orderText = "السلام عليكم ورحمة الله وبركاته\n";
+            orderText += "أنا عميل متجر AZ السوق الشامل لتلبية احتياجك بالكامل\n\n";
+            orderText += "أود طلب المنتجات التالية:\n\n";
             
             let total = 0;
             
@@ -2038,7 +2074,7 @@
                 return;
             }
             
-            let orderText = "طلب جديد:\n\n";
+            let orderText = "السلام عليكم، أود طلب المنتجات التالية:\n\n";
             
             let total = 0;
             
