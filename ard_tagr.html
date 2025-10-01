@@ -433,15 +433,23 @@
             currentMerchantData = merchant;
             const showDistanceField = hasValidPhoneNumber(merchant);
 
-            // محتوى الهاتف
-            let phoneContent = 'غير متوفر';
-            if(merchant.phone){
+            // محتوى الهاتف - إخفاء الحقل إذا كان النص "غير معروف"
+            let phoneContent = '';
+            if(merchant.phone && merchant.phone !== 'غير معروف'){
                 phoneContent = `
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span>${merchant.phone}</span>
-                        <button class="action-btn call-btn" onclick="callNumber('${merchant.phone.replace(/'/g,'\'')}')">
-                            <i class="fas fa-phone"></i> اتصال
-                        </button>
+                    <div class="detail-item">
+                        <div class="detail-icon"><i class="fas fa-phone"></i></div>
+                        <div class="detail-content">
+                            <div class="detail-label">رقم الهاتف</div>
+                            <div class="detail-value">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span>${merchant.phone}</span>
+                                    <button class="action-btn call-btn" onclick="callNumber('${merchant.phone.replace(/'/g,'\'')}')">
+                                        <i class="fas fa-phone"></i> اتصال
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>`;
             }
 
@@ -480,7 +488,7 @@
                 <div class="details-section">
                     <div class="section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
 
-                    ${merchant.phone?`<div class="detail-item"><div class="detail-icon"><i class="fas fa-phone"></i></div><div class="detail-content"><div class="detail-label">رقم الهاتف</div><div class="detail-value">${phoneContent}</div></div></div>`:''}
+                    ${phoneContent}
 
                     <div class="detail-item"><div class="detail-icon"><i class="fas fa-mobile-alt"></i></div><div class="detail-content"><div class="detail-label">رقم الجوال / واتساب</div><div class="detail-value">${mobileContent}</div></div></div>
 
@@ -488,7 +496,6 @@
 
                     <div class="action-buttons" style="margin-top:8px">
                         <button class="action-btn secondary-btn" id="showProductsBtn"><i class="fas fa-box-open"></i> عرض منتجات التاجر</button>
-                        <button class="action-btn secondary-btn" id="editWhatsAppMsgBtn"><i class="fas fa-edit"></i> تعديل رسالة واتساب</button>
                     </div>
                 </div>
 
@@ -518,8 +525,15 @@
             const finalShareBtn = shareBtn || shareBtnSmall;
             if(finalShareBtn){ finalShareBtn.addEventListener('click', ()=>{ shareMerchantDetailsViaWhatsApp(merchant); }); }
 
-            document.getElementById('showProductsBtn').addEventListener('click', ()=>{ showProductsModal(merchant); });
-            document.getElementById('editWhatsAppMsgBtn').addEventListener('click', ()=>{ openEditWhatsAppModal(); });
+            document.getElementById('showProductsBtn').addEventListener('click', ()=>{ 
+                // حفظ اسم التاجر ورقم الجوال في المتغيرات العامة
+                window.tag = merchant.name || 'غير معروف';
+                window.tlf = merchant.mobile || merchant.phone || 'غير معروف';
+                
+                // فتح صفحة mntg_tagr.html
+                window.location.href = 'mntg_tagr.html';
+            });
+
             document.getElementById('calcRouteBtn').addEventListener('click', ()=>{ calculateRoute(); });
 
             // اختفاء لودر
@@ -611,20 +625,6 @@
             } else { box.innerHTML = '<div class="text-muted">لا توجد منتجات</div>'; }
             new bootstrap.Modal(document.getElementById('productsModal')).show();
         }
-
-        // ====== تعديل رسالة واتساب وحفظها ======
-        function openEditWhatsAppModal(){
-            document.getElementById('whatsappMsgInput').value = localStorage.getItem('whatsappMsg') || defaultWhatsAppMsg;
-            new bootstrap.Modal(document.getElementById('whatsappMsgModal')).show();
-        }
-
-        document.getElementById('saveMsgBtn').addEventListener('click', ()=>{
-            const v = document.getElementById('whatsappMsgInput').value;
-            localStorage.setItem('whatsappMsg', v);
-            defaultWhatsAppMsg = v;
-            bootstrap.Modal.getInstance(document.getElementById('whatsappMsgModal')).hide();
-            alert('تم حفظ رسالة واتساب الجديدة');
-        });
 
         // ====== الحصول على موقع المستخدم ======
         function getUserLocationAndPlaceMarker(merchant){
