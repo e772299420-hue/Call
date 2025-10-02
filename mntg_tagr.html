@@ -108,6 +108,38 @@
             font-weight: 600;
         }
 
+        /* شريط عرض الجلوبالات الجديد */
+        .globals-bar {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 15px;
+            font-size: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .global-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .global-label {
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .global-value {
+            color: #fff;
+        }
+
         .tabs {
             display: flex;
             justify-content: center;
@@ -461,6 +493,12 @@
                 padding: 0 1rem;
             }
             
+            .globals-bar {
+                flex-direction: column;
+                gap: 8px;
+                padding: 10px;
+            }
+            
             .tabs {
                 flex-direction: column;
             }
@@ -717,6 +755,30 @@
             </div>
         </header>
 
+        <!-- شريط عرض الجلوبالات الجديد -->
+        <div class="globals-bar" id="globalsBar">
+            <div class="global-item">
+                <span class="global-label">tag:</span>
+                <span class="global-value" id="globalTagValue">غير محدد</span>
+            </div>
+            <div class="global-item">
+                <span class="global-label">tlf:</span>
+                <span class="global-value" id="globalTlfValue">غير محدد</span>
+            </div>
+            <div class="global-item">
+                <span class="global-label">selectedMerchant:</span>
+                <span class="global-value" id="globalMerchantValue">غير محدد</span>
+            </div>
+            <div class="global-item">
+                <span class="global-label">globalProductName:</span>
+                <span class="global-value" id="globalProductValue">غير محدد</span>
+            </div>
+            <div class="global-item">
+                <span class="global-label">userId:</span>
+                <span class="global-value" id="globalUserIdValue">غير محدد</span>
+            </div>
+        </div>
+
         <div class="container">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="view-products-tab">
@@ -789,7 +851,17 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <script>
-        // إعدادات Firebase
+        // ====== الجلوبالات من الكود السابق ======
+        
+        // الحصول على البيانات من localStorage أو استخدام القيم الافتراضية
+        const selectedMerchantName = localStorage.getItem("selectedMerchant") || "التاجر";
+        const globalProductName = localStorage.getItem("selectedProductName") || "المنتج";
+        
+        // متغيرات الجلوبالات الجديدة
+        let tag = "غير محدد"; // سيتم تعيينه عند النقر على زر عرض منتجات التاجر
+        let tlf = "غير محدد"; // سيتم تعيينه عند النقر على زر عرض منتجات التاجر
+
+        // ====== إعدادات Firebase ======
         const firebaseConfig = {
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
         };
@@ -820,6 +892,7 @@
                 localStorage.setItem('globalUserData', JSON.stringify(userData));
                 updateUserDisplay();
                 updateTabTitles();
+                updateGlobalsBar(); // تحديث شريط الجلوبالات
                 // عرض إشعار باسم التاجر المخزن
                 showMerchantNameNotification();
                 // تحميل وعرض رقم الجوال/الواتساب
@@ -870,10 +943,20 @@
                 localStorage.removeItem('globalUserData');
                 updateUserDisplay();
                 updateTabTitles();
+                updateGlobalsBar(); // تحديث شريط الجلوبالات
                 // إخفاء قسم عرض رقم الجوال/الواتساب
                 document.getElementById('whatsapp-number-display').style.display = 'none';
             }
         };
+
+        // دالة لتحديث شريط الجلوبالات
+        function updateGlobalsBar() {
+            document.getElementById('globalTagValue').textContent = tag;
+            document.getElementById('globalTlfValue').textContent = tlf;
+            document.getElementById('globalMerchantValue').textContent = selectedMerchantName;
+            document.getElementById('globalProductValue').textContent = globalProductName;
+            document.getElementById('globalUserIdValue').textContent = globalUser.getUserId() || 'غير محدد';
+        }
 
         // دالة جديدة: الحصول على رقم الجوال/الواتساب بناءً على userId
         async function getUserWhatsappNumber(userId) {
@@ -928,6 +1011,10 @@
                     document.getElementById('dialog-whatsapp-number').textContent = whatsappNumber;
                     document.getElementById('whatsapp-number-display').style.display = 'block';
                     
+                    // تحديث المتغير tlf
+                    tlf = whatsappNumber;
+                    updateGlobalsBar();
+                    
                     showToast('تم تحميل رقم واتساب التاجر بنجاح', 'success');
                 } else {
                     // إخفاء قسم عرض رقم الجوال/الواتساب إذا لم يتم العثور على رقم
@@ -953,6 +1040,10 @@
             const message = `اسم التاجر المخزن: ${merchantName}\nاسم المستخدم: ${username}\nمعرف المستخدم: ${userId || 'غير محدد'}`;
             
             showToast(message, 'info');
+            
+            // تحديث المتغير tag
+            tag = merchantName;
+            updateGlobalsBar();
             
             // عرض أيضًا في console للمطورين
             console.log('بيانات التاجر المخزنة:', {
@@ -1240,7 +1331,7 @@
                     sortedProducts.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
                     break;
                 case 'name-desc':
-                    sortedProducts.sort((a, b) => b.name.localeCompare(a.name, 'ar'));
+                    sortedProducts.sort((a, b) => b.name.localeCompare(b.name, 'ar'));
                     break;
                 case 'price-asc':
                     sortedProducts.sort((a, b) => a.price - b.price);
@@ -1431,6 +1522,7 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
             // تحديث عرض اسم المستخدم
             updateUserDisplay();
             updateTabTitles();
+            updateGlobalsBar(); // تحديث شريط الجلوبالات
             
             // إعداد مستمعات الأحداث
             document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1501,4 +1593,4 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
         });
     </script>
 </body>
-  </html>
+</html>
