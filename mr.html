@@ -1310,7 +1310,7 @@
 
     <script>
         // ==========================================
-        // 🔥 إصلاح مشكلة حفظ بيانات الزوار - الإصدار المعدل
+        // 🔥 إصلاح مشكلة حفظ بيانات الزوار - الإصدار النهائي
         // ==========================================
         
         // تهيئة Firebase
@@ -1368,7 +1368,7 @@
         const categoryValueDisplay = document.getElementById('category-value-display');
 
         // ==========================================
-        // 👤 نظام تتبع الزوار - تم الإصلاح بالكامل
+        // 👤 نظام تتبع الزوار - الإصدار المصحح
         // ==========================================
         
         /**
@@ -1455,8 +1455,13 @@
             };
 
             // استخدام navigator.sendBeacon لإرسال البيانات بشكل موثوق عند إغلاق الصفحة
-            const blob = new Blob([JSON.stringify(exitData)], {type : 'application/json'});
-            navigator.sendBeacon(`https://chat-fat-free-default-rtdb.firebaseio.com/visitors/${visitorId}.json`, blob);
+            const data = JSON.stringify(exitData);
+            const blob = new Blob([data], {type: 'application/json'});
+            
+            // إرسال البيانات باستخدام sendBeacon
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(`https://chat-fat-free-default-rtdb.firebaseio.com/visitors/${visitorId}.json`, blob);
+            }
 
             // أيضًا محاولة الحفظ العادي
             db.ref('visitors/' + visitorId).update(exitData)
@@ -1465,7 +1470,7 @@
         }
 
         /**
-         * تسجيل تفاعل إضافي للزائر
+         * تسجيل تفاعل إضافي للزائر - الإصدار المصحح
          */
         function recordVisitorInteraction(interactionType, productId = null, productName = null) {
             // زيادة عداد التفاعلات الكلي
@@ -1487,19 +1492,31 @@
                 .then(() => console.log('✅ تم تسجيل تفاعل الزائر:', interactionType))
                 .catch(error => console.error('❌ خطأ في تسجيل تفاعل الزائر:', error));
 
-            // تحديث إحصائيات التفاعل
+            // تحديث إحصائيات التفاعل - الإصدار المصحح
             updateInteractionStats(interactionType);
         }
 
         /**
-         * تحديث إحصائيات التفاعل
+         * تحديث إحصائيات التفاعل - الإصدار المصحح
          */
         function updateInteractionStats(interactionType) {
-            const statsUpdate = {};
-            statsUpdate[`interactionStats.${interactionType}`] = firebase.database.ServerValue.increment(1);
-            statsUpdate['lastInteraction'] = new Date().toISOString();
+            // استبدال النقاط بشرطات في اسم النوع لتجنب أخطاء Firebase
+            const safeInteractionType = interactionType.replace(/\./g, '_');
             
-            db.ref(`visitors/${visitorId}`).update(statsUpdate)
+            // الحصول على الإحصائيات الحالية أولاً
+            db.ref(`visitors/${visitorId}/interactionStats`).once('value')
+                .then((snapshot) => {
+                    const currentStats = snapshot.val() || {};
+                    const currentCount = currentStats[safeInteractionType] || 0;
+                    
+                    // تحديث الإحصاء
+                    const updates = {};
+                    updates[`interactionStats/${safeInteractionType}`] = currentCount + 1;
+                    updates['lastInteraction'] = new Date().toISOString();
+                    
+                    return db.ref(`visitors/${visitorId}`).update(updates);
+                })
+                .then(() => console.log('✅ تم تحديث إحصائيات التفاعل:', safeInteractionType))
                 .catch(error => console.error('❌ خطأ في تحديث إحصائيات التفاعل:', error));
         }
 
@@ -1672,7 +1689,7 @@
                 populateFilterOptions();
                 displayProducts(allProducts);
                 
-                // تسجيل تفاعل تحميل البيانات
+                // تسجيل تفاعل تحميل البيانات - باستخدام النوع المصحح
                 recordVisitorInteraction('load_products');
             } catch (error) {
                 console.error("خطأ في تحميل البيانات:", error);
