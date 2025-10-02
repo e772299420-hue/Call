@@ -140,6 +140,83 @@
             color: #fff;
         }
 
+        /* إشعار تفعيل GPS */
+        .gps-alert {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 15px 20px;
+            margin: 10px 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            display: none;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        .gps-alert h4 {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .gps-alert-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .gps-steps {
+            margin: 10px 0;
+            padding-right: 20px;
+        }
+
+        .gps-step {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .gps-step-number {
+            background: white;
+            color: #ee5a24;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .gps-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            float: left;
+            margin-top: 10px;
+            transition: var(--transition);
+        }
+
+        .gps-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
         .tabs {
             display: flex;
             justify-content: center;
@@ -755,6 +832,33 @@
             </div>
         </header>
 
+        <!-- إشعار تفعيل GPS -->
+        <div class="gps-alert" id="gpsAlert">
+            <h4><i class="fas fa-map-marker-alt"></i> تفعيل خدمة الموقع</h4>
+            <div class="gps-alert-content">
+                <p>يجب تفعيل خدمة الموقع (GPS) لاستخدام التطبيق بشكل كامل:</p>
+                <div class="gps-steps">
+                    <div class="gps-step">
+                        <span class="gps-step-number">1</span>
+                        <span>اذهب إلى إعدادات الجوال</span>
+                    </div>
+                    <div class="gps-step">
+                        <span class="gps-step-number">2</span>
+                        <span>اختر "الموقع" أو "Location"</span>
+                    </div>
+                    <div class="gps-step">
+                        <span class="gps-step-number">3</span>
+                        <span>قم بتفعيل خدمة الموقع</span>
+                    </div>
+                    <div class="gps-step">
+                        <span class="gps-step-number">4</span>
+                        <span>اختر "دقة عالية" أو "High accuracy"</span>
+                    </div>
+                </div>
+                <button class="gps-close" onclick="closeGpsAlert()">تم الفهم</button>
+            </div>
+        </div>
+
         <!-- شريط عرض الجلوبالات الجديد -->
         <div class="globals-bar" id="globalsBar">
             <div class="global-item">
@@ -782,14 +886,14 @@
         <div class="container">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="view-products-tab">
-                    <i class="fas fa-list"></i> <span id="tab-title">المنتجات الخاصة بالتاجر</span>
+                    <i class="fas fa-list"></i> <span id="tab-title">جميع المنتجات</span>
                 </button>
             </div>
 
             <!-- تبويب عرض الأصناف -->
             <div id="view-products-tab" class="tab-content active">
                 <div class="form-section">
-                    <h3><i class="fas fa-list"></i> <span id="section-title">المنتجات الخاصة بالتاجر</span></h3>
+                    <h3><i class="fas fa-list"></i> <span id="section-title">جميع المنتجات المتاحة</span></h3>
                     
                     <!-- قسم عرض رقم الجوال/الواتساب -->
                     <div class="whatsapp-number-display" id="whatsapp-number-display" style="display: none;">
@@ -858,8 +962,8 @@
         const globalProductName = localStorage.getItem("selectedProductName") || "المنتج";
         
         // متغيرات الجلوبالات الجديدة
-        let tag = "غير محدد"; // سيتم تعيينه عند النقر على زر عرض منتجات التاجر
-        let tlf = "غير محدد"; // سيتم تعيينه عند النقر على زر عرض منتجات التاجر
+        let tag = "غير محدد";
+        let tlf = "غير محدد";
 
         // ====== إعدادات Firebase ======
         const firebaseConfig = {
@@ -874,7 +978,6 @@
             console.log("تم تهيئة Firebase بنجاح");
         } catch (error) {
             console.error("خطأ في تهيئة Firebase:", error);
-            showToast("خطأ في تهيئة قاعدة البيانات: " + error.message, "error");
         }
 
         // متغيرات عامة
@@ -892,9 +995,7 @@
                 localStorage.setItem('globalUserData', JSON.stringify(userData));
                 updateUserDisplay();
                 updateTabTitles();
-                updateGlobalsBar(); // تحديث شريط الجلوبالات
-                // عرض إشعار باسم التاجر المخزن
-                showMerchantNameNotification();
+                updateGlobalsBar();
                 // تحميل وعرض رقم الجوال/الواتساب
                 loadAndDisplayWhatsappNumber();
             },
@@ -943,8 +1044,7 @@
                 localStorage.removeItem('globalUserData');
                 updateUserDisplay();
                 updateTabTitles();
-                updateGlobalsBar(); // تحديث شريط الجلوبالات
-                // إخفاء قسم عرض رقم الجوال/الواتساب
+                updateGlobalsBar();
                 document.getElementById('whatsapp-number-display').style.display = 'none';
             }
         };
@@ -958,6 +1058,41 @@
             document.getElementById('globalUserIdValue').textContent = globalUser.getUserId() || 'غير محدد';
         }
 
+        // دالة للتحقق من تفعيل GPS
+        function checkGPSPermission() {
+            if (!navigator.geolocation) {
+                showGpsAlert();
+                return false;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    // GPS مفعل
+                    console.log("GPS مفعل:", position.coords);
+                },
+                function(error) {
+                    // GPS غير مفعل
+                    console.log("GPS غير مفعل:", error.message);
+                    showGpsAlert();
+                },
+                { timeout: 5000 }
+            );
+            
+            return true;
+        }
+
+        // دالة لعرض إشعار تفعيل GPS
+        function showGpsAlert() {
+            const gpsAlert = document.getElementById('gpsAlert');
+            gpsAlert.style.display = 'block';
+        }
+
+        // دالة لإغلاق إشعار GPS
+        function closeGpsAlert() {
+            const gpsAlert = document.getElementById('gpsAlert');
+            gpsAlert.style.display = 'none';
+        }
+
         // دالة جديدة: الحصول على رقم الجوال/الواتساب بناءً على userId
         async function getUserWhatsappNumber(userId) {
             try {
@@ -969,15 +1104,12 @@
                     throw new Error("معرف المستخدم غير محدد");
                 }
                 
-                // البحث عن المستخدم في قاعدة البيانات للحصول على رقم الجوال/الواتساب
                 const usersSnapshot = await database.ref('users').once('value');
                 const users = usersSnapshot.val() || {};
                 
-                // البحث عن المستخدم باستخدام userId
                 const user = Object.values(users).find(u => u.id === userId);
                 
                 if (user) {
-                    // إرجاع رقم الجوال/الواتساب إذا كان موجوداً
                     return user.whatsappNumber || user.phoneNumber || null;
                 } else {
                     throw new Error("لم يتم العثور على المستخدم في قاعدة البيانات");
@@ -985,7 +1117,6 @@
                 
             } catch (error) {
                 console.error('خطأ في الحصول على رقم الجوال/الواتساب:', error);
-                showToast('حدث خطأ في تحميل رقم الجوال/الواتساب', 'error');
                 return null;
             }
         }
@@ -995,7 +1126,6 @@
             const userId = globalUser.getUserId();
             
             if (!userId) {
-                console.log("لا يوجد معرف مستخدم، إخفاء قسم رقم الجوال/الواتساب");
                 document.getElementById('whatsapp-number-display').style.display = 'none';
                 return;
             }
@@ -1006,52 +1136,22 @@
                 const whatsappNumber = await getUserWhatsappNumber(userId);
                 
                 if (whatsappNumber) {
-                    // عرض رقم الجوال/الواتساب
                     document.getElementById('whatsapp-number-text').textContent = whatsappNumber;
                     document.getElementById('dialog-whatsapp-number').textContent = whatsappNumber;
                     document.getElementById('whatsapp-number-display').style.display = 'block';
                     
-                    // تحديث المتغير tlf
                     tlf = whatsappNumber;
                     updateGlobalsBar();
-                    
-                    showToast('تم تحميل رقم واتساب التاجر بنجاح', 'success');
                 } else {
-                    // إخفاء قسم عرض رقم الجوال/الواتساب إذا لم يتم العثور على رقم
                     document.getElementById('whatsapp-number-display').style.display = 'none';
-                    showToast('لم يتم العثور على رقم واتساب مسجل للتاجر', 'warning');
                 }
                 
             } catch (error) {
                 console.error('خطأ في تحميل رقم الجوال/الواتساب:', error);
                 document.getElementById('whatsapp-number-display').style.display = 'none';
-                showToast('حدث خطأ في تحميل رقم الجوال/الواتساب', 'error');
             } finally {
                 showGlobalLoading(false);
             }
-        }
-
-        // دالة لعرض إشعار باسم التاجر المخزن
-        function showMerchantNameNotification() {
-            const merchantName = globalUser.getMerchantName();
-            const username = globalUser.getUsername();
-            const userId = globalUser.getUserId();
-            
-            const message = `اسم التاجر المخزن: ${merchantName}\nاسم المستخدم: ${username}\nمعرف المستخدم: ${userId || 'غير محدد'}`;
-            
-            showToast(message, 'info');
-            
-            // تحديث المتغير tag
-            tag = merchantName;
-            updateGlobalsBar();
-            
-            // عرض أيضًا في console للمطورين
-            console.log('بيانات التاجر المخزنة:', {
-                merchantName: merchantName,
-                username: username,
-                userId: userId,
-                fullData: globalUser.getUserData()
-            });
         }
 
         // دالة لتحديث عرض اسم المستخدم في واجهة المستخدم
@@ -1061,6 +1161,8 @@
             
             if (userData) {
                 userDisplayElement.textContent = `مرحباً، ${globalUser.getMerchantName()}`;
+                tag = globalUser.getMerchantName();
+                updateGlobalsBar();
             } else {
                 userDisplayElement.textContent = `جاري التحميل...`;
             }
@@ -1068,16 +1170,15 @@
 
         // دالة لتحديث عناوين التبويب والقسم
         function updateTabTitles() {
-            const merchantName = globalUser.getMerchantName();
             const tabTitleElement = document.getElementById('tab-title');
             const sectionTitleElement = document.getElementById('section-title');
             
             if (tabTitleElement) {
-                tabTitleElement.textContent = `المنتجات الخاصة بالتاجر / ${merchantName}`;
+                tabTitleElement.textContent = `جميع المنتجات`;
             }
             
             if (sectionTitleElement) {
-                sectionTitleElement.textContent = `المنتجات الخاصة بالتاجر / ${merchantName}`;
+                sectionTitleElement.textContent = `جميع المنتجات المتاحة`;
             }
         }
 
@@ -1106,21 +1207,23 @@
             const toastContainer = document.getElementById('toastContainer');
             toastContainer.appendChild(toast);
             
-            // إضافة حدث إغلاق عند النقر على زر الإغلاق
             const closeBtn = toast.querySelector('.toast-close');
             closeBtn.addEventListener('click', () => {
                 toast.style.opacity = '0';
                 setTimeout(() => {
-                    toastContainer.removeChild(toast);
+                    if (toast.parentNode === toastContainer) {
+                        toastContainer.removeChild(toast);
+                    }
                 }, 300);
             });
             
-            // إزالة الإشعار تلقائياً بعد 5 ثوان
             setTimeout(() => {
                 if (toast.parentNode === toastContainer) {
                     toast.style.opacity = '0';
                     setTimeout(() => {
-                        toastContainer.removeChild(toast);
+                        if (toast.parentNode === toastContainer) {
+                            toastContainer.removeChild(toast);
+                        }
                     }, 300);
                 }
             }, 5000);
@@ -1155,7 +1258,6 @@
             
             carousel.appendChild(carouselInner);
             
-            // إضافة عناصر التحكم إذا كان هناك أكثر من صورة
             if (images.length > 1) {
                 const prevButton = document.createElement('button');
                 prevButton.className = 'carousel-control prev';
@@ -1179,13 +1281,11 @@
                 carousel.appendChild(nextButton);
                 carousel.appendChild(indicators);
                 
-                // إضافة أحداث التحكم
                 let currentIndex = 0;
                 
                 function updateCarousel() {
                     carouselInner.style.transform = `translateX(-${currentIndex * 100}%)`;
                     
-                    // تحديث المؤشرات
                     document.querySelectorAll('.carousel-indicator').forEach((indicator, i) => {
                         indicator.classList.toggle('active', i === currentIndex);
                     });
@@ -1201,7 +1301,6 @@
                     updateCarousel();
                 });
                 
-                // النقر على المؤشرات
                 document.querySelectorAll('.carousel-indicator').forEach(indicator => {
                     indicator.addEventListener('click', () => {
                         currentIndex = parseInt(indicator.dataset.index);
@@ -1238,11 +1337,10 @@
                 
             } catch (error) {
                 console.error('خطأ في تحميل الأقسام:', error);
-                showToast('حدث خطأ في تحميل الأقسام', 'error');
             }
         }
 
-        // تحميل المنتجات الخاصة بالمستخدم الحالي فقط
+        // تحميل جميع المنتجات بدون شرط التاجر
         async function loadProducts() {
             try {
                 showGlobalLoading(true);
@@ -1251,35 +1349,26 @@
                     throw new Error("قاعدة البيانات غير مهيئة");
                 }
                 
-                // الحصول على معرف المستخدم الحالي
-                const currentUser = globalUser.getUserData();
-                if (!currentUser || !currentUser.id) {
-                    showToast('يجب تسجيل الدخول أولاً', 'error');
-                    return;
-                }
-                
                 const productsSnapshot = await database.ref('products').once('value');
                 const products = productsSnapshot.val() || {};
                 
-                // تصفية المنتجات الخاصة بالمستخدم الحالي فقط والنشطة فقط
+                // عرض جميع المنتجات المتاحة بدون شرط التاجر
                 allProducts = Object.entries(products)
                     .filter(([id, product]) => 
-                        product.userId === currentUser.id && 
-                        product.availability === 'available'
+                        product.availability === 'available' // فقط المنتجات المتاحة
                     )
                     .map(([id, product]) => ({
                         ...product,
                         id
                     }));
                 
-                // ترتيب المنتجات حسب تاريخ الإضافة (الأحدث أولاً) افتراضياً
+                // ترتيب المنتجات حسب تاريخ الإضافة (الأحدث أولاً)
                 allProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 
                 displayProducts(allProducts);
                 
             } catch (error) {
                 console.error('خطأ في تحميل المنتجات:', error);
-                showToast('حدث خطأ في تحميل المنتجات', 'error');
             } finally {
                 showGlobalLoading(false);
             }
@@ -1331,7 +1420,7 @@
                     sortedProducts.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
                     break;
                 case 'name-desc':
-                    sortedProducts.sort((a, b) => b.name.localeCompare(b.name, 'ar'));
+                    sortedProducts.sort((a, b) => b.name.localeCompare(a.name, 'ar'));
                     break;
                 case 'price-asc':
                     sortedProducts.sort((a, b) => a.price - b.price);
@@ -1340,7 +1429,6 @@
                     sortedProducts.sort((a, b) => b.price - a.price);
                     break;
                 default:
-                    // الترتيب الافتراضي (الأحدث أولاً)
                     sortedProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             }
             
@@ -1372,7 +1460,6 @@
                 const card = document.createElement('div');
                 card.className = 'product-card';
                 
-                // استخدام CORS Proxy لعرض الصور
                 const hasImages = product.imageUrls && product.imageUrls.length > 0;
                 
                 card.innerHTML = `
@@ -1405,7 +1492,6 @@
                     </div>
                 `;
                 
-                // إضافة الكاروسيل إذا كان هناك صور
                 if (hasImages) {
                     const imageContainer = card.querySelector('.product-image-container');
                     const carousel = createImageCarousel(product.imageUrls, product.name);
@@ -1414,7 +1500,6 @@
                 
                 container.appendChild(card);
                 
-                // إضافة مستمعي الأحداث لأزرار المشاركة عبر واتساب
                 const shareBtn = card.querySelector('.share-btn');
                 shareBtn.addEventListener('click', function() {
                     const productId = this.dataset.id;
@@ -1435,29 +1520,23 @@
             const product = allProducts.find(p => p.id === productId);
             
             if (!product) {
-                showToast('لم يتم العثور على المنتج', 'error');
                 return;
             }
             
             productToShare = product;
             const dialog = document.getElementById('whatsapp-dialog');
-            
-            // عرض النافذة
             dialog.style.display = 'flex';
         }
 
         // إرسال رسالة واتساب مباشرة
         function sendWhatsAppMessage() {
             if (!productToShare) {
-                showToast('لم يتم تحديد منتج للمشاركة', 'error');
                 return;
             }
             
-            // الحصول على رقم واتساب التاجر
             const whatsappNumberElement = document.getElementById('whatsapp-number-text');
             const whatsappNumber = whatsappNumberElement ? whatsappNumberElement.textContent : "+966500000000";
             
-            // إنشاء نص الرسالة
             const message = `متجر AZ السوق الشامل لتلبية احتياجك بالكامل
 https://e772299420-hue.github.io/Call/index.html
 
@@ -1469,35 +1548,24 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
 
 أنه عرض جميل هل المنتج متوفر ؟`;
 
-            // تنسيق رقم الهاتف (إزالة علامة + إذا كانت موجودة)
             const formattedNumber = whatsappNumber.replace('+', '');
-            
-            // إنشاء رابط واتساب
             const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
             
-            // فتح واتساب في نافذة جديدة
             window.open(whatsappUrl, '_blank');
-            
-            // إغلاق النافذة
             document.getElementById('whatsapp-dialog').style.display = 'none';
             productToShare = null;
-            
-            showToast('تم فتح واتساب لإرسال الرسالة', 'success');
         }
 
         // التبديل بين التبويبات
         function switchTab(tabName) {
-            // إزالة النشاط من جميع أزرار التبويب
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // إخفاء جميع محتويات التبويبات
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             
-            // تفعيل التبويب المحدد
             const tabButton = document.querySelector(`[data-tab="${tabName}"]`);
             const tabContent = document.getElementById(tabName);
             
@@ -1522,7 +1590,12 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
             // تحديث عرض اسم المستخدم
             updateUserDisplay();
             updateTabTitles();
-            updateGlobalsBar(); // تحديث شريط الجلوبالات
+            updateGlobalsBar();
+            
+            // التحقق من GPS
+            setTimeout(() => {
+                checkGPSPermission();
+            }, 2000);
             
             // إعداد مستمعات الأحداث
             document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1532,7 +1605,6 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
                 });
             });
             
-            // أحداث نافذة واتساب
             document.getElementById('cancel-whatsapp').addEventListener('click', function() {
                 document.getElementById('whatsapp-dialog').style.display = 'none';
                 productToShare = null;
@@ -1540,7 +1612,6 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
             
             document.getElementById('send-whatsapp').addEventListener('click', sendWhatsAppMessage);
             
-            // حدث البحث عند الكتابة
             document.getElementById('search-products').addEventListener('input', function() {
                 const query = this.value;
                 const searchResults = searchProducts(query);
@@ -1549,7 +1620,6 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
                 displayProducts(sortedResults);
             });
             
-            // حدث الترتيب
             document.getElementById('sort-products').addEventListener('change', function() {
                 const query = document.getElementById('search-products').value;
                 const searchResults = searchProducts(query);
@@ -1558,14 +1628,12 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
                 displayProducts(sortedResults);
             });
             
-            // حدث نسخ رقم الجوال/الواتساب
             document.getElementById('copy-whatsapp-btn').addEventListener('click', function() {
                 const whatsappNumber = document.getElementById('whatsapp-number-text').textContent;
                 navigator.clipboard.writeText(whatsappNumber).then(function() {
                     showToast('تم نسخ رقم الجوال/الواتساب إلى الحافظة', 'success');
                 }, function(err) {
                     console.error('خطأ في النسخ: ', err);
-                    showToast('حدث خطأ أثناء نسخ الرقم', 'error');
                 });
             });
             
@@ -1573,20 +1641,16 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
             loadCategories();
             loadProducts();
             
-            // إضافة بيانات تجريبية للتاجر (يمكن حذفها لاحقاً)
+            // إضافة بيانات تجريبية للتاجر
             setTimeout(() => {
                 const userData = globalUser.getUserData();
                 if (!userData) {
-                    // بيانات تجريبية للتاجر
                     globalUser.setUserData({
                         id: "user_123456",
                         username: "تاجرAZ",
                         name: "متجر AZ"
                     });
                 } else {
-                    // عرض إشعار بالبيانات المخزنة حالياً
-                    showMerchantNameNotification();
-                    // تحميل وعرض رقم الجوال/الواتساب
                     loadAndDisplayWhatsappNumber();
                 }
             }, 1000);
