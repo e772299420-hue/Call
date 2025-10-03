@@ -44,7 +44,7 @@
             color: var(--text-color);
             margin: 0;
             padding-top: 140px;
-            padding-bottom: 60px;
+            padding-bottom: 20px; /* تم تصغير الفوتر */
             transition: var(--transition);
             width: 100%;
             overflow-x: hidden;
@@ -216,7 +216,7 @@
             background: #e67e22;
         }
 
-        /* الفوتر */
+        /* الفوتر - تم تصغيره */
         .footer {
             position: fixed;
             bottom: 0;
@@ -225,15 +225,16 @@
             background: var(--primary-color);
             color: white;
             text-align: center;
-            padding: 15px;
+            padding: 10px; /* تم تصغير الارتفاع */
             z-index: 1000;
-            font-size: 14px;
+            font-size: 12px; /* تم تصغير الخط */
+            height: 20px; /* تم تحديد الارتفاع */
         }
 
         /* زر العودة للأعلى */
         .scroll-to-top {
             position: fixed;
-            bottom: 80px;
+            bottom: 30px; /* تعديل بسبب الفوتر المصغر */
             right: 20px;
             background: var(--primary-color);
             color: white;
@@ -386,7 +387,7 @@
 
         .images-preview img {
             width: 100%;
-            height: 250px; /* ارتفاع 250px مع الحفاظ على النسبة */
+            height: 1px; /* تم تعديل الارتفاع إلى 1 */
             object-fit: cover;
             border-radius: 10px;
             cursor: pointer;
@@ -405,7 +406,7 @@
         .image-slider {
             position: relative;
             width: 100%;
-            height: 250px; /* ارتفاع 250px مع الحفاظ على النسبة */
+            height: 1px; /* تم تعديل الارتفاع إلى 1 */
             overflow: hidden;
             border-radius: 10px;
             margin-bottom: 15px;
@@ -1100,8 +1101,8 @@
             .filter-item input { width: 100%; }
             .price-range { flex-wrap: wrap; }
             .products { grid-template-columns: 1fr; }
-            .images-preview img, .slider-image { height: 250px; }
-            .image-slider { height: 250px; }
+            .images-preview img, .slider-image { height: 1px; } /* تم تعديل الارتفاع إلى 1 */
+            .image-slider { height: 1px; } /* تم تعديل الارتفاع إلى 1 */
             .product-price { font-size: 18px; }
             .comments-list { max-height: 200px; }
 
@@ -1158,11 +1159,11 @@
         @media (max-width: 480px) {
             .images-preview img, .slider-image { 
                 width: 100%;
-                height: 250px; 
+                height: 1px; /* تم تعديل الارتفاع إلى 1 */
             }
             .image-slider { 
                 width: 100%;
-                height: 250px; 
+                height: 1px; /* تم تعديل الارتفاع إلى 1 */
             }
 
             .gallery-nav-btn {
@@ -1177,7 +1178,7 @@
             }
             
             .scroll-to-top {
-                bottom: 70px;
+                bottom: 25px; /* تعديل بسبب الفوتر المصغر */
                 right: 15px;
                 width: 45px;
                 height: 45px;
@@ -1303,14 +1304,14 @@
         </div>
     </div>
 
-    <!-- الفوتر -->
+    <!-- الفوتر - تم تصغيره -->
     <footer class="footer">
         جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة
     </footer>
 
     <script>
         // ==========================================
-        // 🔥 إصلاح مشكلة حفظ بيانات الزوار - الإصدار النهائي
+        // 🔥 نظام تتبع الزوار - الإصدار النهائي
         // ==========================================
         
         // تهيئة Firebase
@@ -1342,6 +1343,7 @@
         let showFavoritesOnly = false;
         let visitorId = null;
         let sessionStartTime = null;
+        let currentPage = 'index.html'; // الصفحة الحالية
 
         // متغيرات معرض الصور
         let galleryImages = [];
@@ -1391,6 +1393,9 @@
             sessionStartTime = new Date().toISOString();
             localStorage.setItem('sessionStart', sessionStartTime);
 
+            // تسجيل دخول الصفحة الحالية
+            recordPageEntry(currentPage);
+
             // جمع بيانات الزائر
             const visitorData = {
                 visitorId: visitorId,
@@ -1429,6 +1434,109 @@
         }
 
         /**
+         * تسجيل دخول الصفحة
+         */
+        function recordPageEntry(pageName) {
+            const visitId = Date.now().toString();
+            const visitData = {
+                pageName: pageName,
+                entryTime: new Date().toISOString(),
+                exitTime: null,
+                visitDuration: 0,
+                visitorId: visitorId
+            };
+
+            // حفظ بيانات الدخول للصفحة
+            db.ref(`visitors/${visitorId}/pageVisits/${visitId}`).set(visitData)
+                .then(() => console.log(`✅ تم تسجيل دخول الصفحة: ${pageName}`))
+                .catch(error => console.error('❌ خطأ في تسجيل دخول الصفحة:', error));
+
+            // تحديث إحصائيات الصفحة
+            updatePageStats(pageName, 'entry');
+        }
+
+        /**
+         * تسجيل خروج الصفحة
+         */
+        function recordPageExit(pageName) {
+            // البحث عن آخر زيارة للصفحة لم يتم تسجيل خروجها
+            db.ref(`visitors/${visitorId}/pageVisits`).orderByChild('pageName').equalTo(pageName).once('value')
+                .then(snapshot => {
+                    const visits = snapshot.val();
+                    if (visits) {
+                        const visitEntries = Object.entries(visits);
+                        const lastVisit = visitEntries.find(([key, visit]) => !visit.exitTime);
+                        
+                        if (lastVisit) {
+                            const [visitId, visitData] = lastVisit;
+                            const entryTime = new Date(visitData.entryTime);
+                            const exitTime = new Date();
+                            const visitDuration = Math.floor((exitTime - entryTime) / 1000); // بالميلي ثانية
+                            
+                            const updateData = {
+                                exitTime: exitTime.toISOString(),
+                                visitDuration: visitDuration
+                            };
+                            
+                            db.ref(`visitors/${visitorId}/pageVisits/${visitId}`).update(updateData)
+                                .then(() => console.log(`✅ تم تسجيل خروج الصفحة: ${pageName}`))
+                                .catch(error => console.error('❌ خطأ في تسجيل خروج الصفحة:', error));
+                            
+                            // تحديث إحصائيات الصفحة
+                            updatePageStats(pageName, 'exit', visitDuration);
+                        }
+                    }
+                })
+                .catch(error => console.error('❌ خطأ في البحث عن زيارة الصفحة:', error));
+        }
+
+        /**
+         * تحديث إحصائيات الصفحة
+         */
+        function updatePageStats(pageName, action, duration = 0) {
+            db.ref(`pageStats/${pageName}`).once('value')
+                .then(snapshot => {
+                    const currentStats = snapshot.val() || {};
+                    const currentVisits = currentStats.totalVisits || 0;
+                    const currentDuration = currentStats.totalDuration || 0;
+                    const currentEntries = currentStats.totalEntries || 0;
+                    
+                    const updates = {};
+                    
+                    if (action === 'entry') {
+                        updates.totalEntries = currentEntries + 1;
+                        updates.totalVisits = currentVisits + 1;
+                    } else if (action === 'exit') {
+                        updates.totalDuration = currentDuration + duration;
+                    }
+                    
+                    updates.lastVisit = new Date().toISOString();
+                    
+                    return db.ref(`pageStats/${pageName}`).update(updates);
+                })
+                .then(() => console.log(`✅ تم تحديث إحصائيات الصفحة: ${pageName}`))
+                .catch(error => console.error('❌ خطأ في تحديث إحصائيات الصفحة:', error));
+        }
+
+        /**
+         * الحصول على عدد مرات زيارة الصفحة
+         */
+        function getPageVisitCount(pageName) {
+            return new Promise((resolve) => {
+                db.ref(`visitors/${visitorId}/pageVisits`).orderByChild('pageName').equalTo(pageName).once('value')
+                    .then(snapshot => {
+                        const visits = snapshot.val();
+                        const count = visits ? Object.keys(visits).length : 0;
+                        resolve(count);
+                    })
+                    .catch(error => {
+                        console.error('❌ خطأ في الحصول على عدد الزيارات:', error);
+                        resolve(0);
+                    });
+            });
+        }
+
+        /**
          * تحديث آخر نشاط للزائر
          */
         function updateLastActivity() {
@@ -1447,6 +1555,9 @@
          */
         function recordExitTime() {
             const sessionDuration = Math.floor((new Date() - new Date(sessionStartTime)) / 1000);
+            
+            // تسجيل خروج الصفحة الحالية
+            recordPageExit(currentPage);
             
             const exitData = {
                 exitTime: new Date().toISOString(),
@@ -2170,9 +2281,10 @@
             
             const merchantNameEl = document.createElement('div'); 
             merchantNameEl.className = 'merchant-name';
-            merchantNameEl.innerHTML = `📍 ${escapeHtml(merchantName)}`; // تغيير الأيقونة إلى موقع
+            merchantNameEl.innerHTML = `<i class="fas fa-home"></i> ${escapeHtml(merchantName)}`; // تم تغيير الأيقونة إلى fa-home
             merchantNameEl.addEventListener('click', () => { 
                 incrementViewCount(product.id); // زيادة المشاهدات عند النقر على اسم التاجر
+                saveMerchantData(merchant, productName); // حفظ بيانات التاجر
                 openMerchantPage(merchantName, product.name); 
             });
             merchantDiv.appendChild(merchantNameEl);
@@ -2215,6 +2327,28 @@
 
             loadProductStats(product.id, card);
             return card;
+        }
+
+        // ==========================================
+        // 🏪 حفظ بيانات التاجر في المتغيرات العامة
+        // ==========================================
+        function saveMerchantData(merchant, productName) {
+            // حفظ اسم التاجر ومعلوماته في المتغيرات العامة
+            window.selectedMerchantName = merchant.name || merchant.username || "تاجر";
+            window.selectedMerchantId = merchant.id;
+            window.selectedMerchantData = merchant;
+            
+            console.log('✅ تم حفظ بيانات التاجر:', {
+                name: window.selectedMerchantName,
+                id: window.selectedMerchantId,
+                data: window.selectedMerchantData
+            });
+            
+            // يمكنك استخدام هذه البيانات في أي مكان في التطبيق
+            // مثال: window.selectedMerchantName, window.selectedMerchantId, window.selectedMerchantData
+            
+            // تسجيل تفاعل الزائر مع التاجر
+            recordVisitorInteraction('select_merchant', merchant.id, productName);
         }
 
         // استخراج الصور
