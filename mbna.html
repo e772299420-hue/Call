@@ -248,6 +248,15 @@
             background-color: #636e72;
         }
         
+        .btn-clear {
+            background-color: #e67e22;
+            margin-top: 10px;
+        }
+        
+        .btn-clear:hover {
+            background-color: #d35400;
+        }
+        
         /* جدول المنتجات */
         .products-table {
             width: 100%;
@@ -418,6 +427,7 @@
                 </div>
                 
                 <button type="submit" class="btn">إنشاء حساب</button>
+                <button type="button" class="btn btn-clear" onclick="clearAuthData()">مسح بيانات التسجيل المخزنة</button>
                 <div id="register-message" class="message" style="display: none;"></div>
             </form>
         </div>
@@ -614,6 +624,14 @@
             });
         });
         
+        // دالة للتحقق من وجود البريد الإلكتروني في Authentication
+        function checkEmailExists(email) {
+            return auth.fetchSignInMethodsForEmail(email)
+                .then((signInMethods) => {
+                    return signInMethods.length > 0;
+                });
+        }
+        
         // التحقق من حالة المستخدم
         function checkUserStatus(userId) {
             const userRef = database.ref('usr_ard/' + userId);
@@ -714,37 +732,70 @@
                 return;
             }
             
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // تم إنشاء الحساب بنجاح
-                    const user = userCredential.user;
+            // التحقق أولاً من وجود البريد الإلكتروني
+            messageElement.textContent = 'جاري التحقق من البريد الإلكتروني...';
+            messageElement.className = 'message info';
+            messageElement.style.display = 'block';
+            
+            checkEmailExists(email)
+                .then((emailExists) => {
+                    if (emailExists) {
+                        messageElement.textContent = 'هذا البريد الإلكتروني مستخدم بالفعل';
+                        messageElement.className = 'message error';
+                        messageElement.style.display = 'block';
+                        return;
+                    }
                     
-                    // تحديث ملف تعريف المستخدم
-                    return user.updateProfile({
-                        displayName: name
-                    }).then(() => {
-                        // حفظ بيانات المستخدم الإضافية في جدول usr_ard بدلاً من snf_tgara
-                        return database.ref('usr_ard/' + user.uid).set({
-                            name: name,
-                            phone: phone,
-                            email: email,
-                            status: "نشط", // حالة المستخدم الافتراضية
-                            createdAt: new Date().toISOString()
+                    // إذا لم يكن البريد مستخدمًا، نكمل عملية التسجيل
+                    messageElement.textContent = 'جاري إنشاء الحساب...';
+                    messageElement.className = 'message info';
+                    
+                    return auth.createUserWithEmailAndPassword(email, password)
+                        .then((userCredential) => {
+                            // تم إنشاء الحساب بنجاح
+                            const user = userCredential.user;
+                            
+                            // تحديث ملف تعريف المستخدم
+                            return user.updateProfile({
+                                displayName: name
+                            }).then(() => {
+                                // حفظ بيانات المستخدم الإضافية في جدول usr_ard
+                                return database.ref('usr_ard/' + user.uid).set({
+                                    name: name,
+                                    phone: phone,
+                                    email: email,
+                                    status: "نشط",
+                                    createdAt: new Date().toISOString()
+                                });
+                            });
+                        })
+                        .then(() => {
+                            messageElement.style.display = 'none';
+                            currentUser = auth.currentUser;
+                            userStatus = "نشط";
+                            showMainContent();
                         });
-                    });
-                })
-                .then(() => {
-                    messageElement.style.display = 'none';
-                    currentUser = auth.currentUser;
-                    userStatus = "نشط";
-                    showMainContent();
                 })
                 .catch((error) => {
                     // حدث خطأ في التسجيل
                     messageElement.textContent = getAuthErrorMessage(error.code);
                     messageElement.className = 'message error';
                     messageElement.style.display = 'block';
+                    console.error('Registration error:', error);
                 });
+        }
+        
+        // دالة لمسح البيانات المحلية
+        function clearAuthData() {
+            auth.signOut().then(() => {
+                localStorage.clear();
+                sessionStorage.clear();
+                alert('تم مسح البيانات المخزنة. جرب التسجيل مرة أخرى.');
+                location.reload();
+            }).catch(error => {
+                console.error('Error clearing auth data:', error);
+                alert('حدث خطأ أثناء مسح البيانات');
+            });
         }
         
         // تحميل رقم هاتف المستخدم من جدول usr_ard
@@ -788,10 +839,11 @@
                 'auth/user-not-found': 'لا يوجد حساب مرتبط بهذا البريد الإلكتروني',
                 'auth/wrong-password': 'كلمة المرور غير صحيحة',
                 'auth/email-already-in-use': 'هذا البريد الإلكتروني مستخدم بالفعل',
-                'auth/weak-password': 'كلمة المرور ضعيفة، يجب أن تكون至少 6 أحرف'
+                'auth/weak-password': 'كلمة المرور ضعيفة، يجب أن تكون至少 6 أحرف',
+                'auth/network-request-failed': 'خطأ في الاتصال بالشبكة، يرجى التحقق من اتصال الإنترنت'
             };
             
-            return errorMessages[errorCode] || 'حدث خطأ غير متوقع';
+            return errorMessages[errorCode] || 'حدث خطأ غير متوقع: ' + errorCode;
         }
         
         // إظهار المحتوى الرئيسي
