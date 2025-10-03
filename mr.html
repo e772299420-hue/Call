@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>التقاط صورة من الكاميرا الأمامية</title>
+    <title>التقاط صورة تلقائي من الكاميرا</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -41,7 +41,7 @@
             line-height: 1.6;
         }
         
-        .camera-container {
+        .result-container {
             position: relative;
             width: 100%;
             max-width: 500px;
@@ -56,21 +56,13 @@
             border: 2px dashed #bdc3c7;
         }
         
-        #videoElement {
-            width: 100%;
-            max-width: 100%;
-            border-radius: 8px;
-            display: none;
-            transform: scaleX(-1); /* عكس الصورة للمرآة */
-        }
-        
         #capturedImage {
             max-width: 100%;
             max-height: 400px;
             border-radius: 8px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             display: none;
-            transform: scaleX(-1); /* عكس الصورة الملتقطة أيضاً */
+            transform: scaleX(-1); /* عكس الصورة الملتقطة */
         }
         
         .placeholder {
@@ -111,29 +103,19 @@
             transform: translateY(1px);
         }
         
-        #captureBtn {
+        #retakeBtn {
             background-color: #2ecc71;
         }
         
-        #captureBtn:hover {
+        #retakeBtn:hover {
             background-color: #27ae60;
         }
         
-        #retakeBtn {
-            background-color: #e74c3c;
-        }
-        
-        #retakeBtn:hover {
-            background-color: #c0392b;
-        }
-        
-        #startBtn {
+        #downloadBtn {
             background-color: #9b59b6;
-            font-size: 18px;
-            padding: 15px 30px;
         }
         
-        #startBtn:hover {
+        #downloadBtn:hover {
             background-color: #8e44ad;
         }
         
@@ -201,6 +183,22 @@
             margin: 15px 0;
         }
         
+        .error-message {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .countdown {
+            font-size: 48px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 20px 0;
+        }
+        
         @media (max-width: 600px) {
             .container {
                 padding: 20px;
@@ -214,89 +212,76 @@
                 padding: 10px 20px;
                 font-size: 14px;
             }
-            
-            #startBtn {
-                font-size: 16px;
-                padding: 12px 25px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📷 التقاط صورة من الكاميرا الأمامية</h1>
+        <h1>📷 التقاط صورة تلقائي من الكاميرا</h1>
         
         <p class="description">
-            اضغط على الزر أدناه لتفعيل الكاميرا الأمامية والبدء في التقاط الصور
+            سيتم التقاط صورة تلقائياً من الكاميرا الأمامية خلال 3 ثوانٍ. استعد!
         </p>
         
-        <div class="camera-container">
+        <div class="countdown" id="countdown">3</div>
+        
+        <div class="result-container">
             <div class="placeholder" id="placeholder">
-                <div style="text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 15px;">📸</div>
-                    <p>انقر على "تفعيل الكاميرا" للبدء</p>
-                    <small style="color: #95a5a6;">سيطلب المتصفح الإذن للوصول إلى الكاميرا</small>
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>جاري إعداد الكاميرا...</div>
+                    <small>يرجى منح الإذن للوصول إلى الكاميرا</small>
                 </div>
             </div>
-            <video id="videoElement" autoplay playsinline></video>
             <img id="capturedImage" alt="الصورة الملتقطة">
         </div>
         
         <div class="buttons">
-            <button id="startBtn">تفعيل الكاميرا</button>
-            <button id="captureBtn" style="display:none;">التقاط الصورة</button>
-            <button id="retakeBtn" style="display:none;">تصوير مرة أخرى</button>
+            <button id="retakeBtn" style="display:none;">التقاط صورة أخرى</button>
+            <button id="downloadBtn" style="display:none;">تحميل الصورة</button>
         </div>
         
         <div class="permission-note">
             💡 <strong>ملاحظة هامة:</strong> 
             <ul style="text-align: right; margin: 10px 0; padding-right: 20px;">
-                <li>اضغط على "السماح" عندما يطلب المتصفح الإذن</li>
-                <li>إذا لم يظهر طلب الإذن، تحقق من إعدادات الكاميرا في المتصفح</li>
-                <li>تأكد من أن الكاميرا الأمامية غير مستخدمة من قبل تطبيق آخر</li>
+                <li>سيتم طلب الإذن للوصول إلى الكاميرا تلقائياً</li>
+                <li>الكاميرا لن تظهر على الشاشة - سيتم التقاط الصورة في الخلفية</li>
+                <li>الصورة الملتقطة فقط هي التي ستظهر</li>
             </ul>
         </div>
         
         <div class="instructions">
-            <h3>🎯 كيفية الاستخدام:</h3>
+            <h3>🎯 كيف تعمل:</h3>
             <ol>
-                <li>اضغط على زر "تفعيل الكاميرا"</li>
-                <li>اسمح للمتصفح بالوصول إلى الكاميرا عندما يطلب الإذن</li>
-                <li>اضبط وضعك أمام الكاميرا كما تريد</li>
-                <li>اضغط على "التقاط الصورة" لالتقاط صورتك</li>
-                <li>إذا أردت صورة جديدة، اضغط على "تصوير مرة أخرى"</li>
+                <li>افتح الصفحة واستعد للصورة</li>
+                <li>انتظر العد التنازلي (3 ثوانٍ)</li>
+                <li>سيتم التقاط الصورة تلقائياً دون عرض الكاميرا</li>
+                <li>ستظهر صورتك الملتقطة على الشاشة</li>
+                <li>يمكنك تحميل الصورة أو التقاط صورة جديدة</li>
             </ol>
         </div>
     </div>
 
     <script>
         // العناصر في DOM
-        const videoElement = document.getElementById('videoElement');
+        const countdownElement = document.getElementById('countdown');
         const capturedImage = document.getElementById('capturedImage');
         const placeholder = document.getElementById('placeholder');
-        const startBtn = document.getElementById('startBtn');
-        const captureBtn = document.getElementById('captureBtn');
         const retakeBtn = document.getElementById('retakeBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
         
         let stream = null;
+        let videoElement = null;
 
-        // دالة لبدء الكاميرا (يتم استدعاؤها فقط عند النقر على الزر)
-        async function startCamera() {
+        // دالة لبدء عملية الالتقاط التلقائي
+        async function startAutoCapture() {
             try {
-                console.log('بدء تشغيل الكاميرا...');
+                console.log('بدء الالتقاط التلقائي...');
                 
-                // إظهار حالة التحميل
-                placeholder.innerHTML = `
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <div>جاري تحميل الكاميرا...</div>
-                        <small>يرجى الانتظار</small>
-                    </div>
-                `;
-
-                // تعطيل زر البدء مؤقتاً
-                startBtn.disabled = true;
-                startBtn.textContent = 'جاري التحميل...';
+                // إنشاء عنصر فيديو مخفي
+                videoElement = document.createElement('video');
+                videoElement.style.display = 'none';
+                document.body.appendChild(videoElement);
 
                 // طلب الوصول إلى الكاميرا الأمامية
                 stream = await navigator.mediaDevices.getUserMedia({ 
@@ -315,70 +300,51 @@
                 
                 // الانتظار حتى يكون الفيديو جاهزاً
                 videoElement.onloadedmetadata = () => {
-                    console.log('الفيديو جاهز للعرض');
+                    console.log('الفيديو جاهز للالتقاط');
                     
-                    // إظهار الفيديو وإخفاء العناصر الأخرى
-                    videoElement.style.display = 'block';
-                    placeholder.style.display = 'none';
-                    
-                    // إظهار زر الالتقاط وإخفاء زر البدء
-                    captureBtn.style.display = 'block';
-                    startBtn.style.display = 'none';
-                    
-                    // إظهار رسالة نجاح
-                    showSuccessMessage('تم تفعيل الكاميرا بنجاح! يمكنك الآن التقاط الصور.');
+                    // بدء العد التنازلي
+                    startCountdown();
                 };
 
             } catch (error) {
-                console.error('فشل في تشغيل الكاميرا:', error);
-                
-                let errorMessage = '';
-                
-                if (error.name === 'NotAllowedError') {
-                    errorMessage = `
-                        <div style="color: #e74c3c; text-align: center;">
-                            <div style="font-size: 48px; margin-bottom: 15px;">❌</div>
-                            <p><strong>تم رفض الإذن للوصول إلى الكاميرا</strong></p>
-                            <p>يرجى اتباع هذه الخطوات:</p>
-                            <ol style="text-align: right; padding-right: 20px;">
-                                <li>انقر على أيقونة الكاميرا/Camera في شريط العنوان</li>
-                                <li>اختر "السماح" أو "Allow"</li>
-                                <li>أعد تحميل الصفحة وحاول مرة أخرى</li>
-                            </ol>
-                            <button onclick="location.reload()" style="margin-top: 15px;">إعادة تحميل الصفحة</button>
-                        </div>
-                    `;
-                } else if (error.name === 'NotFoundError') {
-                    errorMessage = 'لم يتم العثور على كاميرا أمامية في هذا الجهاز.';
-                } else {
-                    errorMessage = `حدث خطأ غير متوقع: ${error.message}`;
-                }
-                
-                placeholder.innerHTML = errorMessage;
-                
-                // إعادة تفعيل زر البدء
-                startBtn.disabled = false;
-                startBtn.textContent = 'تفعيل الكاميرا';
-                startBtn.style.display = 'block';
+                console.error('فشل في الوصول إلى الكاميرا:', error);
+                showError('فشل في الوصول إلى الكاميرا. يرجى التأكد من منح الإذن.');
             }
         }
 
-        // دالة لعرض رسالة النجاح
-        function showSuccessMessage(message) {
-            const successDiv = document.createElement('div');
-            successDiv.className = 'success-message';
-            successDiv.innerHTML = `✅ ${message}`;
-            document.querySelector('.buttons').parentNode.insertBefore(successDiv, document.querySelector('.permission-note'));
+        // دالة العد التنازلي
+        function startCountdown() {
+            let count = 3;
             
-            // إخفاء الرسالة بعد 5 ثواني
-            setTimeout(() => {
-                successDiv.remove();
-            }, 5000);
+            const countdownInterval = setInterval(() => {
+                countdownElement.textContent = count;
+                
+                if (count === 0) {
+                    clearInterval(countdownInterval);
+                    countdownElement.style.display = 'none';
+                    captureImage();
+                }
+                
+                count--;
+            }, 1000);
         }
 
         // التقاط الصورة
-        function captureImage() {
+        async function captureImage() {
             try {
+                console.log('جاري التقاط الصورة...');
+                
+                // تحديث واجهة المستخدم
+                placeholder.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div>جاري التقاط الصورة...</div>
+                    </div>
+                `;
+
+                // الانتظار قليلاً لضمان استقرار الصورة
+                await new Promise(resolve => setTimeout(resolve, 500));
+
                 // إنشاء عنصر canvas مؤقت
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
@@ -397,51 +363,122 @@
                 // تحويل canvas إلى صورة وعرضها
                 capturedImage.src = canvas.toDataURL('image/png');
                 capturedImage.style.display = 'block';
-                videoElement.style.display = 'none';
+                placeholder.style.display = 'none';
                 
                 // إيقاف بث الفيديو
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
+                    stream = null;
                 }
                 
-                // إخفاء زر الالتقاط وإظهار زر إعادة المحاولة
-                captureBtn.style.display = 'none';
+                // إزالة عنصر الفيديو المخفي
+                if (videoElement) {
+                    document.body.removeChild(videoElement);
+                    videoElement = null;
+                }
+                
+                // إظهار أزرار التحكم
                 retakeBtn.style.display = 'block';
+                downloadBtn.style.display = 'block';
+                
+                showSuccessMessage('تم التقاط الصورة بنجاح!');
                 
             } catch (error) {
                 console.error('خطأ في التقاط الصورة:', error);
-                alert('حدث خطأ أثناء التقاط الصورة. يرجى المحاولة مرة أخرى.');
+                showError('حدث خطأ أثناء التقاط الصورة. يرجى المحاولة مرة أخرى.');
             }
         }
 
         // إعادة المحاولة
         function retakePhoto() {
-            // إعادة تحميل الصفحة لفتح الكاميرا من جديد
-            location.reload();
+            // إعادة تعيين واجهة المستخدم
+            capturedImage.style.display = 'none';
+            placeholder.style.display = 'flex';
+            placeholder.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>جاري إعداد الكاميرا...</div>
+                </div>
+            `;
+            
+            // إخفاء الأزرار
+            retakeBtn.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            
+            // إظهار العد التنازلي
+            countdownElement.style.display = 'block';
+            countdownElement.textContent = '3';
+            
+            // إعادة بدء العملية
+            startAutoCapture();
+        }
+
+        // تحميل الصورة
+        function downloadImage() {
+            try {
+                const link = document.createElement('a');
+                link.download = 'صورة-ملتقطة-' + new Date().toISOString().slice(0, 19) + '.png';
+                link.href = capturedImage.src;
+                link.click();
+                showSuccessMessage('تم بدء تحميل الصورة');
+            } catch (error) {
+                console.error('خطأ في تحميل الصورة:', error);
+                showError('حدث خطأ أثناء تحميل الصورة.');
+            }
+        }
+
+        // دالة لعرض رسالة النجاح
+        function showSuccessMessage(message) {
+            // إزالة أي رسائل سابقة
+            const existingMessages = document.querySelectorAll('.success-message, .error-message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.innerHTML = `✅ ${message}`;
+            document.querySelector('.buttons').parentNode.insertBefore(successDiv, document.querySelector('.permission-note'));
+            
+            // إخفاء الرسالة بعد 5 ثواني
+            setTimeout(() => {
+                successDiv.remove();
+            }, 5000);
+        }
+
+        // دالة لعرض رسالة الخطأ
+        function showError(message) {
+            // إزالة أي رسائل سابقة
+            const existingMessages = document.querySelectorAll('.success-message, .error-message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `❌ ${message}`;
+            document.querySelector('.buttons').parentNode.insertBefore(errorDiv, document.querySelector('.permission-note'));
+            
+            placeholder.innerHTML = `
+                <div style="color: #e74c3c; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">❌</div>
+                    <p><strong>${message}</strong></p>
+                    <button onclick="retakePhoto()" style="margin-top: 15px;">المحاولة مرة أخرى</button>
+                </div>
+            `;
         }
 
         // إضافة مستمعي الأحداث للأزرار
-        startBtn.addEventListener('click', startCamera);
-        captureBtn.addEventListener('click', captureImage);
         retakeBtn.addEventListener('click', retakePhoto);
+        downloadBtn.addEventListener('click', downloadImage);
 
-        // التحقق من دعم API
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            placeholder.innerHTML = `
-                <div style="color: #e74c3c; text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
-                    <p><strong>المتصفح لا يدعم الوصول إلى الكاميرا</strong></p>
-                    <p>يرجى استخدام أحد المتصفحات الحديثة مثل:</p>
-                    <ul style="text-align: right; padding-right: 20px;">
-                        <li>Google Chrome</li>
-                        <li>Mozilla Firefox</li>
-                        <li>Microsoft Edge</li>
-                        <li>Safari (لأجهزة Apple)</li>
-                    </ul>
-                </div>
-            `;
-            startBtn.style.display = 'none';
-        }
+        // بدء الالتقاط التلقائي عند تحميل الصفحة
+        window.addEventListener('DOMContentLoaded', () => {
+            // التحقق من دعم API
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showError('المتصفح لا يدعم الوصول إلى الكاميرا. يرجى استخدام متصفح حديث.');
+                return;
+            }
+            
+            // بدء العملية بعد تحميل الصفحة مباشرة
+            setTimeout(startAutoCapture, 1000);
+        });
     </script>
 </body>
 </html>
