@@ -387,7 +387,7 @@
 
         .images-preview img {
             width: 100%;
-            height: 1px; /* تم تعديل الارتفاع إلى 1 */
+            height: 250px; /* تم تعديل الارتفاع إلى 250px */
             object-fit: cover;
             border-radius: 10px;
             cursor: pointer;
@@ -406,7 +406,7 @@
         .image-slider {
             position: relative;
             width: 100%;
-            height: 1px; /* تم تعديل الارتفاع إلى 1 */
+            height: 250px; /* تم تعديل الارتفاع إلى 250px */
             overflow: hidden;
             border-radius: 10px;
             margin-bottom: 15px;
@@ -1101,8 +1101,8 @@
             .filter-item input { width: 100%; }
             .price-range { flex-wrap: wrap; }
             .products { grid-template-columns: 1fr; }
-            .images-preview img, .slider-image { height: 1px; } /* تم تعديل الارتفاع إلى 1 */
-            .image-slider { height: 1px; } /* تم تعديل الارتفاع إلى 1 */
+            .images-preview img, .slider-image { height: 200px; }
+            .image-slider { height: 200px; }
             .product-price { font-size: 18px; }
             .comments-list { max-height: 200px; }
 
@@ -1159,11 +1159,11 @@
         @media (max-width: 480px) {
             .images-preview img, .slider-image { 
                 width: 100%;
-                height: 1px; /* تم تعديل الارتفاع إلى 1 */
+                height: 180px; 
             }
             .image-slider { 
                 width: 100%;
-                height: 1px; /* تم تعديل الارتفاع إلى 1 */
+                height: 180px; 
             }
 
             .gallery-nav-btn {
@@ -1311,7 +1311,7 @@
 
     <script>
         // ==========================================
-        // 🔥 نظام تتبع الزوار - الإصدار النهائي
+        // 🔥 نظام تتبع الزوار - الإصدار المصحح
         // ==========================================
         
         // تهيئة Firebase
@@ -1341,9 +1341,11 @@
         let viewedProducts = JSON.parse(sessionStorage.getItem('viewedProducts')) || {};
         let userInterests = JSON.parse(localStorage.getItem('userInterests')) || {};
         let showFavoritesOnly = false;
+        
+        // متغيرات تتبع الزوار
         let visitorId = null;
-        let sessionStartTime = null;
-        let currentPage = 'index.html'; // الصفحة الحالية
+        let currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        let currentVisitId = null;
 
         // متغيرات معرض الصور
         let galleryImages = [];
@@ -1389,43 +1391,34 @@
                 console.log('👤 تم العثور على معرف زائر موجود:', visitorId);
             }
 
-            // تسجيل وقت بداية الجلسة
-            sessionStartTime = new Date().toISOString();
-            localStorage.setItem('sessionStart', sessionStartTime);
-
             // تسجيل دخول الصفحة الحالية
             recordPageEntry(currentPage);
 
-            // جمع بيانات الزائر
+            // جمع بيانات الزائر الأساسية
             const visitorData = {
                 visitorId: visitorId,
-                pageName: 'AZ السوق الشامل',
-                entryTime: new Date().toISOString(),
                 userAgent: navigator.userAgent,
                 screenResolution: `${screen.width}x${screen.height}`,
                 language: navigator.language,
                 platform: navigator.platform,
                 referrer: document.referrer || 'Direct',
-                sessionStart: sessionStartTime,
                 lastActivity: new Date().toISOString(),
-                pageUrl: window.location.href
+                totalVisits: 0
             };
 
             console.log('📊 بيانات الزائر المجمعة:', visitorData);
 
-            // حفظ بيانات الدخول في Firebase
-            db.ref('visitors/' + visitorId).set(visitorData)
+            // حفظ بيانات الزائر في Firebase
+            db.ref('visitors/' + visitorId).update(visitorData)
                 .then(() => {
-                    console.log('✅ تم تسجيل بيانات الدخول للزائر بنجاح في Firebase');
-                    showNotification('مرحباً بك في AZ السوق الشامل!', 'success');
+                    console.log('✅ تم تسجيل بيانات الزائر بنجاح في Firebase');
                 })
                 .catch(error => {
-                    console.error('❌ خطأ في تسجيل بيانات الدخول:', error);
-                    showNotification('حدث خطأ في النظام', 'error');
+                    console.error('❌ خطأ في تسجيل بيانات الزائر:', error);
                 });
 
             // إضافة مستمع لحدث إغلاق الصفحة لتسجيل وقت المغادرة
-            window.addEventListener('beforeunload', recordExitTime);
+            window.addEventListener('beforeunload', recordPageExit);
             
             // تحديث آخر نشاط كل 30 ثانية
             setInterval(updateLastActivity, 30000);
@@ -1437,18 +1430,18 @@
          * تسجيل دخول الصفحة
          */
         function recordPageEntry(pageName) {
-            const visitId = Date.now().toString();
+            currentVisitId = 'visit_' + Date.now();
             const visitData = {
                 pageName: pageName,
                 entryTime: new Date().toISOString(),
                 exitTime: null,
                 visitDuration: 0,
-                visitorId: visitorId
+                serialNumber: await getNextSerialNumber(pageName)
             };
 
             // حفظ بيانات الدخول للصفحة
-            db.ref(`visitors/${visitorId}/pageVisits/${visitId}`).set(visitData)
-                .then(() => console.log(`✅ تم تسجيل دخول الصفحة: ${pageName}`))
+            db.ref(`visitors/${visitorId}/pageVisits/${currentVisitId}`).set(visitData)
+                .then(() => console.log(`✅ تم تسجيل دخول الصفحة: ${pageName} - الرقم التسلسلي: ${visitData.serialNumber}`))
                 .catch(error => console.error('❌ خطأ في تسجيل دخول الصفحة:', error));
 
             // تحديث إحصائيات الصفحة
@@ -1456,63 +1449,72 @@
         }
 
         /**
+         * الحصول على الرقم التسلسلي التالي للصفحة
+         */
+        async function getNextSerialNumber(pageName) {
+            return new Promise((resolve) => {
+                db.ref(`visitors/${visitorId}/pageVisits`)
+                    .orderByChild('pageName')
+                    .equalTo(pageName)
+                    .once('value')
+                    .then(snapshot => {
+                        const visits = snapshot.val();
+                        const count = visits ? Object.keys(visits).length : 0;
+                        resolve(count + 1);
+                    })
+                    .catch(error => {
+                        console.error('❌ خطأ في الحصول على الرقم التسلسلي:', error);
+                        resolve(1);
+                    });
+            });
+        }
+
+        /**
          * تسجيل خروج الصفحة
          */
-        function recordPageExit(pageName) {
-            // البحث عن آخر زيارة للصفحة لم يتم تسجيل خروجها
-            db.ref(`visitors/${visitorId}/pageVisits`).orderByChild('pageName').equalTo(pageName).once('value')
-                .then(snapshot => {
-                    const visits = snapshot.val();
-                    if (visits) {
-                        const visitEntries = Object.entries(visits);
-                        const lastVisit = visitEntries.find(([key, visit]) => !visit.exitTime);
-                        
-                        if (lastVisit) {
-                            const [visitId, visitData] = lastVisit;
-                            const entryTime = new Date(visitData.entryTime);
-                            const exitTime = new Date();
-                            const visitDuration = Math.floor((exitTime - entryTime) / 1000); // بالميلي ثانية
-                            
-                            const updateData = {
-                                exitTime: exitTime.toISOString(),
-                                visitDuration: visitDuration
-                            };
-                            
-                            db.ref(`visitors/${visitorId}/pageVisits/${visitId}`).update(updateData)
-                                .then(() => console.log(`✅ تم تسجيل خروج الصفحة: ${pageName}`))
-                                .catch(error => console.error('❌ خطأ في تسجيل خروج الصفحة:', error));
-                            
-                            // تحديث إحصائيات الصفحة
-                            updatePageStats(pageName, 'exit', visitDuration);
-                        }
-                    }
-                })
-                .catch(error => console.error('❌ خطأ في البحث عن زيارة الصفحة:', error));
+        function recordPageExit() {
+            if (!currentVisitId) return;
+            
+            const entryTime = new Date();
+            const exitTime = new Date();
+            const visitDuration = Math.floor((exitTime - entryTime) / 1000);
+            
+            const updateData = {
+                exitTime: exitTime.toISOString(),
+                visitDuration: visitDuration
+            };
+            
+            db.ref(`visitors/${visitorId}/pageVisits/${currentVisitId}`).update(updateData)
+                .then(() => console.log(`✅ تم تسجيل خروج الصفحة: ${currentPage}`))
+                .catch(error => console.error('❌ خطأ في تسجيل خروج الصفحة:', error));
+            
+            // تحديث إحصائيات الصفحة
+            updatePageStats(currentPage, 'exit', visitDuration);
         }
 
         /**
          * تحديث إحصائيات الصفحة
          */
         function updatePageStats(pageName, action, duration = 0) {
-            db.ref(`pageStats/${pageName}`).once('value')
+            db.ref(`pageStats/${pageName.replace('.', '_')}`).once('value')
                 .then(snapshot => {
                     const currentStats = snapshot.val() || {};
                     const currentVisits = currentStats.totalVisits || 0;
                     const currentDuration = currentStats.totalDuration || 0;
-                    const currentEntries = currentStats.totalEntries || 0;
                     
                     const updates = {};
                     
                     if (action === 'entry') {
-                        updates.totalEntries = currentEntries + 1;
                         updates.totalVisits = currentVisits + 1;
+                        updates.lastEntry = new Date().toISOString();
                     } else if (action === 'exit') {
                         updates.totalDuration = currentDuration + duration;
+                        updates.lastExit = new Date().toISOString();
                     }
                     
-                    updates.lastVisit = new Date().toISOString();
+                    updates.lastUpdate = new Date().toISOString();
                     
-                    return db.ref(`pageStats/${pageName}`).update(updates);
+                    return db.ref(`pageStats/${pageName.replace('.', '_')}`).update(updates);
                 })
                 .then(() => console.log(`✅ تم تحديث إحصائيات الصفحة: ${pageName}`))
                 .catch(error => console.error('❌ خطأ في تحديث إحصائيات الصفحة:', error));
@@ -1523,7 +1525,10 @@
          */
         function getPageVisitCount(pageName) {
             return new Promise((resolve) => {
-                db.ref(`visitors/${visitorId}/pageVisits`).orderByChild('pageName').equalTo(pageName).once('value')
+                db.ref(`visitors/${visitorId}/pageVisits`)
+                    .orderByChild('pageName')
+                    .equalTo(pageName)
+                    .once('value')
                     .then(snapshot => {
                         const visits = snapshot.val();
                         const count = visits ? Object.keys(visits).length : 0;
@@ -1541,8 +1546,7 @@
          */
         function updateLastActivity() {
             const updateData = {
-                lastActivity: new Date().toISOString(),
-                totalVisitTime: Math.floor((new Date() - new Date(sessionStartTime)) / 1000)
+                lastActivity: new Date().toISOString()
             };
 
             db.ref('visitors/' + visitorId).update(updateData)
@@ -1551,37 +1555,7 @@
         }
 
         /**
-         * تسجيل وقت المغادرة عند إغلاق الصفحة
-         */
-        function recordExitTime() {
-            const sessionDuration = Math.floor((new Date() - new Date(sessionStartTime)) / 1000);
-            
-            // تسجيل خروج الصفحة الحالية
-            recordPageExit(currentPage);
-            
-            const exitData = {
-                exitTime: new Date().toISOString(),
-                sessionDuration: sessionDuration,
-                totalInteractions: localStorage.getItem('totalInteractions') || 0
-            };
-
-            // استخدام navigator.sendBeacon لإرسال البيانات بشكل موثوق عند إغلاق الصفحة
-            const data = JSON.stringify(exitData);
-            const blob = new Blob([data], {type: 'application/json'});
-            
-            // إرسال البيانات باستخدام sendBeacon
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon(`https://chat-fat-free-default-rtdb.firebaseio.com/visitors/${visitorId}.json`, blob);
-            }
-
-            // أيضًا محاولة الحفظ العادي
-            db.ref('visitors/' + visitorId).update(exitData)
-                .then(() => console.log('✅ تم تسجيل بيانات المغادرة للزائر بنجاح'))
-                .catch(error => console.error('❌ خطأ في تسجيل بيانات المغادرة:', error));
-        }
-
-        /**
-         * تسجيل تفاعل إضافي للزائر - الإصدار المصحح
+         * تسجيل تفاعل إضافي للزائر
          */
         function recordVisitorInteraction(interactionType, productId = null, productName = null) {
             // زيادة عداد التفاعلات الكلي
@@ -1594,7 +1568,7 @@
                 type: interactionType,
                 productId: productId,
                 productName: productName,
-                page: window.location.href,
+                page: currentPage,
                 totalInteractions: totalInteractions
             };
 
@@ -1603,12 +1577,12 @@
                 .then(() => console.log('✅ تم تسجيل تفاعل الزائر:', interactionType))
                 .catch(error => console.error('❌ خطأ في تسجيل تفاعل الزائر:', error));
 
-            // تحديث إحصائيات التفاعل - الإصدار المصحح
+            // تحديث إحصائيات التفاعل
             updateInteractionStats(interactionType);
         }
 
         /**
-         * تحديث إحصائيات التفاعل - الإصدار المصحح
+         * تحديث إحصائيات التفاعل
          */
         function updateInteractionStats(interactionType) {
             // استبدال النقاط بشرطات في اسم النوع لتجنب أخطاء Firebase
@@ -1800,7 +1774,7 @@
                 populateFilterOptions();
                 displayProducts(allProducts);
                 
-                // تسجيل تفاعل تحميل البيانات - باستخدام النوع المصحح
+                // تسجيل تفاعل تحميل البيانات
                 recordVisitorInteraction('load_products');
             } catch (error) {
                 console.error("خطأ في تحميل البيانات:", error);
@@ -2343,9 +2317,6 @@
                 id: window.selectedMerchantId,
                 data: window.selectedMerchantData
             });
-            
-            // يمكنك استخدام هذه البيانات في أي مكان في التطبيق
-            // مثال: window.selectedMerchantName, window.selectedMerchantId, window.selectedMerchantData
             
             // تسجيل تفاعل الزائر مع التاجر
             recordVisitorInteraction('select_merchant', merchant.id, productName);
