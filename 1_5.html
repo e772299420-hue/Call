@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AZ التسوق الشامل لتلبية احتياجك بالكامل</title>
+    <!-- ربط Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <!-- ربط أيقونات Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 0;
+        }
+        
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* الشريط العلوي */
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .site-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        .site-tagline {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        /* عنوان الصفحة مع زر التعليمات */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-color);
+        }
+        
+        .page-title {
+            color: var(--dark-color);
+            text-align: center;
+            flex: 1;
+        }
+        
+        .page-subtitle {
+            color: #666;
+            text-align: center;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+        
+        .instructions-btn {
+            background-color: var(--warning-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .instructions-btn:hover {
+            background-color: #e67e22;
+            transform: scale(1.1);
+        }
+        
+        /* نافذة التعليمات */
+        .instructions-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .instructions-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        
+        .instructions-content h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
+        .instructions-content p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .close-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        /* نماذج الإدخال */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-sm {
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        .btn-like {
+            background-color: var(--accent-color);
+        }
+        
+        .btn-like:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-comment {
+            background-color: var(--success-color);
+        }
+        
+        .btn-comment:hover {
+            background-color: #219653;
+        }
+        
+        .btn-share {
+            background-color: var(--warning-color);
+        }
+        
+        .btn-share:hover {
+            background-color: #e67e22;
+        }
+        
+        /* حاوية المنتجات */
+        .products-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        .product-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .product-header {
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            position: relative;
+        }
+        
+        .product-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background-color: var(--success-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .my-product-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: var(--warning-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .product-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .product-image-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .product-image {
+            width: 100%;
+            max-width: 250px;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .product-footer {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+        
+        .product-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .product-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark-color);
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .product-detail {
+            margin-bottom: 12px;
+            display: flex;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            min-width: 100px;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .detail-value {
+            flex: 1;
+            color: #333;
+        }
+        
+        .publish-date {
+            font-size: 13px;
+            color: #777;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        /* نظام التعليقات */
+        .comments-section {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            display: none;
+            position: relative;
+        }
+        
+        .comments-section.active {
+            display: block;
+        }
+        
+        .comment-form {
+            display: flex;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        
+        .comment-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .comments-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) #f1f1f1;
+        }
+        
+        /* تخصيص شريط التمرير للمتصفحات التي تدعم Webkit */
+        .comments-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .comments-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .comments-list::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+        
+        .comments-list::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+        
+        .comments-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .comments-count {
+            font-weight: bold;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .comment-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 10px;
+            background-color: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .comment-item.my-comment {
+            border-right: 4px solid var(--warning-color);
+            background-color: #fff9e6;
+        }
+        
+        .comment-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .comment-author {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .comment-author.my-comment {
+            color: var(--warning-color);
+        }
+        
+        .comment-text {
+            margin: 8px 0;
+            line-height: 1.5;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            word-break: break-word;
+        }
+        
+        .bad-word {
+            background-color: #ffcccc;
+            color: #cc0000;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .comment-time {
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .reply-form {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .reply-item {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f0f2f5;
+            border-radius: 6px;
+            margin-right: 20px;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .reply-item.my-comment {
+            border-left: 3px solid var(--warning-color);
+            background-color: #fff9e6;
+        }
+        
+        .replies-count {
+            font-size: 12px;
+            color: var(--secondary-color);
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            cursor: pointer;
+        }
+        
+        /* نظام الإعجابات */
+        .likes-section {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            gap: 10px;
+        }
+        
+        .like-count {
+            font-weight: bold;
+            color: #555;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* فلترة البحث */
+        .search-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+        }
+        
+        .search-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .search-input {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            grid-column: 1 / 3;
+        }
+        
+        .filter-select {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        
+        /* حالة التحميل والرسائل */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .message {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        /* التكيف مع الشاشات الصغيرة */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .products-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .comment-form, .reply-form {
+                flex-direction: column;
+            }
+            
+            .search-box {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-input {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- الشريط العلوي -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true" alt="شعار المتجر" class="logo">
+                <div>
+                    <h1 class="site-name">AZ التسوق الشامل</h1>
+                    <div class="site-tagline">لتلبية احتياجك بالكامل</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- عنوان الصفحة مع زر التعليمات -->
+        <div class="page-header">
+            <div></div> <!-- عنصر فارغ للمحاذاة -->
+            <div>
+                <h2 class="page-title">سوق المباني والعقارات وتأجير المنازل</h2>
+                <div class="page-subtitle">توجد اراضي ومنازل معروضة للبيع أو الشراء أو للايجار</div>
+            </div>
+            <button class="instructions-btn" onclick="showInstructions()">
+                <i class="fas fa-info"></i>
+            </button>
+        </div>
+        
+        <!-- نافذة التعليمات -->
+        <div id="instructions-modal" class="instructions-modal">
+            <div class="instructions-content">
+                <h3>عزيزنا العميل</h3>
+                <p>متجر AZ السوق الشامل لتلبية احتياجك بالكامل <br>يرحب بكم</p>
+                <p>يمكنكم اضافه الأراضي والعقارات والشقق الى قسم المباني والعقارات 
+من الشاشه الرئيسية للمتجر والنقر علا زر إعدادات مدخلات المباني والعقارات
+قم بتسجيل الدخول والإضافة سوا كان بيع او شرا او ايجار</p>
+                <p>ملاحظه هامه هذا الخدمة مجانية</p>
+                <p>مع تحياتنا لكم</p>
+                <button class="close-btn" onclick="hideInstructions()">موافق</button>
+            </div>
+        </div>
+        
+        <!-- بحث وتصفية -->
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="search-products" class="search-input" placeholder="ابحث في العقارات..." onkeyup="filterProducts()">
+                <select id="filter-category" class="filter-select" onchange="filterProducts()">
+                    <option value="">جميع الفئات</option>
+                </select>
+                <select id="filter-type" class="filter-select" onchange="filterProducts()">
+                    <option value="">جميع الأنواع</option>
+                    <option value="بيع">بيع</option>
+                    <option value="شراء">شراء</option>
+                    <option value="إيجار">إيجار</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- حاوية المنتجات -->
+        <div id="browse-loading" class="loading">
+            <div class="spinner"></div>
+            <div>جاري تحميل العقارات النشطة...</div>
+        </div>
+        <div id="no-active-products" class="message info" style="display: none;">
+            <i class="fas fa-info-circle"></i> لا توجد عقارات نشطة لعرضها
+        </div>
+        
+        <div class="products-container" id="products-container">
+            <!-- سيتم ملء هذا القسم بالعقارات النشطة -->
+        </div>
+    </div>
+
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAub8yG87hhzVoZxflqpB_smvTFNpRY-Xw",
+            authDomain: "chat-fat-free.firebaseapp.com",
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com",
+            projectId: "chat-fat-free",
+            storageBucket: "chat-fat-free.appspot.com",
+            messagingSenderId: "888827487238",
+            appId: "1:888827238:web:6660cd0e8b7831dff40f87"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // متغيرات التطبيق
+        let activeProducts = [];
+        let governoratesData = {};
+        let categoriesData = {};
+        let usersCache = {};
+        let currentUserId = null;
+        let commentModalOpen = false;
+        let currentCommentProductId = null;
+        
+        // الكلمات المسيئة التي سيتم منعها مع الاختصارات
+        const badWords = [
+            'سيء', 'قبيح', 'مقزز', 'مزعج', 'مخزي', 'مقرف', 'مستفز', 'محرج', 
+            'مهين', 'مخجل', 'مقموع', 'مكروه', 'مرفوض', 'مستبعد', 'مستخف', 'مستنكر',
+            'كلب', 'خنزير', 'حمار', 'عاهر', 'داعر', 'قحبة', 'شرموط', 'زاني', 'زانية',
+            'لعنة', 'لعنه', 'لعين', 'ملعون', 'عاطل', 'فاشل', 'غبي', 'احمق', 'اهبل',
+            'سافل', 'وضيع', 'حقير', 'نذل', 'ولاد الحرام', 'ابن الحرام', 'كذاب', 'نصاب',
+            'عير', 'طيز', 'كسم', 'كس', 'شرموطة', 'دلخ', 'منيوك', 'منيوكة', 'قحبة', 'قحب',
+            'زبالة', 'وسخ', 'خرة', 'خرا', 'براز', 'بول', 'تبول', 'تخري', 'شرج', 'طيز',
+            'فشخة', 'فشخ', 'ينيك', 'ينيكك', 'نيكني', 'منيك', 'منيجة', 'منيجة', 'مناك', 'مناكة',
+            'داشر', 'داشرة', 'دعارة', 'عاهرة', 'عاهرات', 'داعر', 'داعرات', 'فحل', 'فحولة',
+            'قح', 'قحة', 'قوادة', 'قواد', 'لوطي', 'لواط', 'سحاق', 'سحاقية', 'شاذ', 'شاذة',
+            'منحرف', 'منحرفة', 'داعر', 'داعرة', 'زنا', 'زاني', 'زانية', 'فاجر', 'فاجرة',
+            'فاسق', 'فاسقة', 'منافق', 'منافقة', 'خائن', 'خائنة', 'لص', 'لصوص', 'سارق', 'سارقة',
+            // الاختصارات
+            'كس', 'طز', 'خرة', 'خرا', 'عير', 'طيز', 'كسم', 'شرموط', 'قحبة', 'زاني',
+            'زبالة', 'فشخ', 'ينيك', 'منيوك', 'داشر', 'فحل', 'قح', 'لوطي', 'سحاق', 'شاذ'
+        ];
+        
+        // عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // تحميل البيانات الأولية
+            loadGovernorates();
+            loadCategories();
+            loadActiveProducts();
+            
+            // عرض نافذة التعليمات عند فتح الصفحة لأول مرة
+            setTimeout(() => {
+                showInstructions();
+            }, 1000);
+            
+            // جلب معرف المستخدم الحالي من localStorage
+            currentUserId = localStorage.getItem('currentUserId');
+            if (!currentUserId) {
+                // إذا لم يكن هناك معرف مستخدم، ننشئ واحداً جديداً (لأغراض العرض)
+                currentUserId = generateUUID();
+                localStorage.setItem('currentUserId', currentUserId);
+            }
+            
+            // إضافة مستمع للنقر خارج نافذة التعليقات لإخفائها
+            document.addEventListener('click', function(event) {
+                if (commentModalOpen && !event.target.closest('.comments-section') && 
+                    !event.target.closest('.btn-comment-toggle')) {
+                    hideCommentsModal();
+                }
+            });
+        });
+        
+        // إظهار نافذة التعليمات
+        function showInstructions() {
+            document.getElementById('instructions-modal').style.display = 'flex';
+        }
+        
+        // إخفاء نافذة التعليمات
+        function hideInstructions() {
+            document.getElementById('instructions-modal').style.display = 'none';
+        }
+        
+        // تحميل المحافظات
+        function loadGovernorates() {
+            const governoratesRef = database.ref('governorates');
+            
+            governoratesRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        governoratesData = snapshot.val();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading governorates:', error);
+                });
+        }
+        
+        // تحميل الفئات
+        function loadCategories() {
+            const categoriesRef = database.ref('categories');
+            
+            categoriesRef.once('value')
+                .then(snapshot => {
+                    const categoriesSelect = document.getElementById('filter-category');
+                    
+                    if (snapshot.exists()) {
+                        categoriesData = snapshot.val();
+                        
+                        // إضافة الفئات إلى قائمة التصفية
+                        snapshot.forEach(childSnapshot => {
+                            const category = childSnapshot.val();
+                            const option = document.createElement('option');
+                            option.value = childSnapshot.key;
+                            option.textContent = category.name || 'غير معروف';
+                            categoriesSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading categories:', error);
+                });
+        }
+        
+        // تحميل المنتجات النشطة
+        function loadActiveProducts() {
+            const productsRef = database.ref('asnaf');
+            
+            document.getElementById('browse-loading').style.display = 'flex';
+            document.getElementById('no-active-products').style.display = 'none';
+            document.getElementById('products-container').innerHTML = '';
+            
+            productsRef.orderByChild('status').equalTo('نشط').once('value')
+                .then(snapshot => {
+                    document.getElementById('browse-loading').style.display = 'none';
+                    
+                    if (snapshot.exists()) {
+                        activeProducts = [];
+                        usersCache = {}; // كاش لأسماء المستخدمين
+                        
+                        snapshot.forEach(childSnapshot => {
+                            const product = childSnapshot.val();
+                            activeProducts.push(product);
+                            
+                            // جلب بيانات المستخدم من جدول snf_tgara
+                            if (!usersCache[product.userId]) {
+                                usersCache[product.userId] = { name: 'جاري التحميل...' };
+                                
+                                database.ref('snf_tgara/' + product.userId).once('value')
+                                    .then(userSnapshot => {
+                                        if (userSnapshot.exists()) {
+                                            const userData = userSnapshot.val();
+                                            usersCache[product.userId] = userData;
+                                            
+                                            // تحديث اسم المستخدم في البطاقة
+                                            const userElement = document.getElementById(`user-${product.id}`);
+                                            if (userElement) {
+                                                userElement.textContent = userData.name || 'مستخدم غير معروف';
+                                            }
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error loading user data:', error);
+                                    });
+                            }
+                            
+                            // إنشاء بطاقة المنتج
+                            const productCard = createProductCard(product, usersCache[product.userId]);
+                            document.getElementById('products-container').appendChild(productCard);
+                        });
+                    } else {
+                        document.getElementById('no-active-products').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('browse-loading').style.display = 'none';
+                    console.error('Error loading active products:', error);
+                });
+        }
+        
+        // إنشاء بطاقة منتج
+        function createProductCard(product, userData) {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.id = `product-${product.id}`;
+            
+            // جلب بيانات المحافظة والمنطقة
+            const governorateName = governoratesData[product.governorate]?.name || product.governorate;
+            const regionName = governoratesData[product.governorate]?.regions?.[product.region]?.name || product.region;
+            
+            // جلب اسم الفئة
+            const categoryName = categoriesData[product.category]?.name || product.category;
+            
+            // تنسيق تاريخ النشر بالميلادي عربي
+            let publishDate = 'غير محدد';
+            if (product.orderDate) {
+                publishDate = formatGregorianDate(new Date(product.orderDate));
+            }
+            
+            // التحقق من وجود بيانات في الحقول لإظهارها أو إخفائها
+            const specificationsDisplay = product.specifications ? 'flex' : 'none';
+            const addressDisplay = product.address ? 'flex' : 'none';
+            
+            // التحقق إذا كان المنتج منشور من قبل المستخدم الحالي
+            const isMyProduct = product.userId === currentUserId;
+            
+            card.innerHTML = `
+                <div class="product-header">
+                    <div class="product-badge">
+                        <i class="fas fa-tag"></i> ${product.requestType}
+                    </div>
+                    ${isMyProduct ? `
+                    <div class="my-product-badge">
+                        <i class="fas fa-user"></i> منشوري
+                    </div>
+                    ` : ''}
+                    <div class="product-title">${product.productName}</div>
+                    <div class="product-price">
+                        <i class="fas fa-coins"></i> ${product.price} ريال
+                    </div>
+                </div>
+                <div class="product-body">
+                    <div class="product-detail">
+                        <span class="detail-label"><i class="fas fa-user"></i> الناشر:</span>
+                        <span class="detail-value" id="user-${product.id}">${userData?.name || 'جاري التحميل...'}</span>
+                    </div>
+                    <div class="product-detail">
+                        <span class="detail-label"><i class="fas fa-shopping-cart"></i> نوع الطلب:</span>
+                        <span class="detail-value">${product.requestType}</span>
+                    </div>
+                    <div class="product-detail">
+                        <span class="detail-label"><i class="fas fa-check-circle"></i> الحالة:</span>
+                        <span class="detail-value">${product.condition}</span>
+                    </div>
+                    <div class="product-detail">
+                        <span class="detail-label"><i class="fas fa-list"></i> الفئة:</span>
+                        <span class="detail-value">${categoryName}</span>
+                    </div>
+                    <div class="product-detail">
+                        <span class="detail-label"><i class="fas fa-map-marker-alt"></i> المحافظة:</span>
+                        <span class="detail-value">${governorateName}</span>
+                    </div>
+                    <div class="product-detail">
+                        <span class="detail-label"><i class="fas fa-map-pin"></i> المنطقة:</span>
+                        <span class="detail-value">${regionName}</span>
+                    </div>
+                    <div class="product-detail" style="display: ${specificationsDisplay};">
+                        <span class="detail-label"><i class="fas fa-info-circle"></i> المواصفات:</span>
+                        <span class="detail-value">${product.specifications || 'لا يوجد'}</span>
+                    </div>
+                    <div class="product-detail" style="display: ${addressDisplay};">
+                        <span class="detail-label"><i class="fas fa-home"></i> العنوان:</span>
+                        <span class="detail-value">${product.address || 'غير محدد'}</span>
+                    </div>
+                    <div class="publish-date">
+                        <i class="far fa-calendar-alt"></i> تاريخ النشر: ${publishDate}
+                    </div>
+                </div>
+                <div class="product-footer">
+                    <div class="likes-section">
+                        <span class="like-count" id="like-count-${product.id}">
+                            <i class="fas fa-heart"></i> 70
+                        </span>
+                        <button class="btn btn-like btn-sm" onclick="likeProduct('${product.id}')">
+                            <i class="fas fa-thumbs-up"></i> إعجاب
+                        </button>
+                        <button class="btn btn-comment btn-sm btn-comment-toggle" onclick="toggleCommentsModal('${product.id}')">
+                            <i class="fas fa-comments"></i> تعليقات
+                        </button>
+                        <button class="btn btn-share btn-sm" onclick="shareProduct('${product.id}')">
+                            <i class="fas fa-share"></i> مشاركة
+                        </button>
+                    </div>
+                    
+                    <div class="comments-section" id="comments-section-${product.id}">
+                        <div class="comments-header">
+                            <span class="comments-count" id="comments-count-${product.id}">
+                                <i class="fas fa-comments"></i> التعليقات (0)
+                            </span>
+                        </div>
+                        
+                        <div class="comment-form">
+                            <input type="text" class="comment-input" id="comment-input-${product.id}" placeholder="أضف تعليقاً...">
+                            <button class="btn btn-comment btn-sm" onclick="addComment('${product.id}')">
+                                <i class="fas fa-paper-plane"></i> إرسال
+                            </button>
+                        </div>
+                        
+                        <div class="comments-list" id="comments-${product.id}">
+                            <!-- التعليقات سيتم تحميلها هنا -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // تمييز منشورات المستخدم الحالي
+            if (isMyProduct) {
+                card.style.border = '2px solid var(--warning-color)';
+                card.style.boxShadow = '0 4px 15px rgba(243, 156, 18, 0.3)';
+            }
+            
+            // تحميل التعليقات والإعجابات
+            loadComments(product.id);
+            loadLikes(product.id);
+            
+            return card;
+        }
+        
+        // تنسيق التاريخ الميلادي بالشكل المطلوب
+        function formatGregorianDate(date) {
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = date.getHours();
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
+            
+            const ampm = hours >= 12 ? 'م' : 'ص';
+            const formattedHours = hours % 12 || 12;
+            
+            return `${day}/${month}/${year}م - ${formattedHours}:${minutes}:${seconds} ${ampm}`;
+        }
+        
+        // إظهار/إخفاء نافذة التعليقات
+        function toggleCommentsModal(productId) {
+            const commentsSection = document.getElementById(`comments-section-${productId}`);
+            
+            if (commentsSection.classList.contains('active')) {
+                hideCommentsModal();
+            } else {
+                showCommentsModal(productId);
+            }
+        }
+        
+        // إظهار نافذة التعليقات
+        function showCommentsModal(productId) {
+            // إخفاء جميع نوافذ التعليقات المفتوحة
+            document.querySelectorAll('.comments-section.active').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // إظهار نافذة التعليقات للمنتج المحدد
+            const commentsSection = document.getElementById(`comments-section-${productId}`);
+            commentsSection.classList.add('active');
+            
+            commentModalOpen = true;
+            currentCommentProductId = productId;
+        }
+        
+        // إخفاء نافذة التعليقات
+        function hideCommentsModal() {
+            document.querySelectorAll('.comments-section.active').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            commentModalOpen = false;
+            currentCommentProductId = null;
+        }
+        
+        // تحميل التعليقات
+        function loadComments(productId) {
+            const commentsRef = database.ref(`comments/${productId}`);
+            
+            commentsRef.on('value', snapshot => {
+                const commentsList = document.getElementById(`comments-${productId}`);
+                const commentsCount = document.getElementById(`comments-count-${productId}`);
+                
+                if (!commentsList || !commentsCount) return;
+                
+                commentsList.innerHTML = '';
+                
+                if (snapshot.exists()) {
+                    const comments = [];
+                    let totalComments = 0;
+                    
+                    snapshot.forEach(childSnapshot => {
+                        const comment = childSnapshot.val();
+                        comment.id = childSnapshot.key;
+                        comments.push(comment);
+                        totalComments++;
+                        
+                        // حساب الردود
+                        if (comment.replies) {
+                            totalComments += Object.keys(comment.replies).length;
+                        }
+                    });
+                    
+                    // تحديث عدد التعليقات
+                    commentsCount.innerHTML = `<i class="fas fa-comments"></i> التعليقات (${totalComments})`;
+                    
+                    // ترتيب التعليقات من الأحدث إلى الأقدم
+                    comments.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    // عرض التعليقات
+                    comments.forEach(comment => {
+                        const commentItem = document.createElement('div');
+                        const isMyComment = comment.authorId === currentUserId;
+                        commentItem.className = `comment-item ${isMyComment ? 'my-comment' : ''}`;
+                        
+                        // تحويل الطابع الزمني إلى تاريخ ميلادي
+                        const commentDate = new Date(comment.timestamp);
+                        const formattedDate = formatGregorianDate(commentDate);
+                        
+                        // حساب عدد الردود
+                        const repliesCount = comment.replies ? Object.keys(comment.replies).length : 0;
+                        
+                        // تصفية النص من الكلمات المسيئة مع التلوين
+                        const filteredText = highlightBadWords(comment.text);
+                        
+                        commentItem.innerHTML = `
+                            <div class="comment-author ${isMyComment ? 'my-comment' : ''}">
+                                <i class="fas fa-user"></i> ${comment.authorName || 'زائر'}
+                                ${isMyComment ? '<span style="color: var(--warning-color); margin-right: 5px;">(أنت)</span>' : ''}
+                            </div>
+                            <div class="comment-text">${filteredText}</div>
+                            <div class="comment-time">
+                                <i class="far fa-clock"></i> ${formattedDate}
+                            </div>
+                            
+                            ${repliesCount > 0 ? `
+                                <div class="replies-count" onclick="toggleReplies('${productId}', '${comment.id}')">
+                                    <i class="fas fa-reply"></i> ${repliesCount} ردود
+                                </div>
+                            ` : ''}
+                            
+                            <div class="replies-list" id="replies-${comment.id}" style="display: ${repliesCount > 0 ? 'block' : 'none'};">
+                                <!-- الردود سيتم تحميلها هنا -->
+                            </div>
+                            
+                            <div class="reply-form">
+                                <input type="text" class="comment-input" id="reply-input-${comment.id}" placeholder="أضف رداً...">
+                                <button class="btn btn-comment btn-sm" onclick="addReply('${productId}', '${comment.id}')">
+                                    <i class="fas fa-reply"></i> رد
+                                </button>
+                            </div>
+                        `;
+                        
+                        commentsList.appendChild(commentItem);
+                        
+                        // تحميل الردود على هذا التعليق
+                        if (repliesCount > 0) {
+                            loadReplies(productId, comment.id);
+                        }
+                    });
+                } else {
+                    commentsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #888;">لا توجد تعليقات بعد</div>';
+                    commentsCount.innerHTML = '<i class="fas fa-comments"></i> التعليقات (0)';
+                }
+            });
+        }
+        
+        // تحميل الردود
+        function loadReplies(productId, commentId) {
+            const repliesRef = database.ref(`comments/${productId}/${commentId}/replies`);
+            
+            repliesRef.on('value', snapshot => {
+                const repliesList = document.getElementById(`replies-${commentId}`);
+                if (!repliesList) return;
+                
+                repliesList.innerHTML = '';
+                
+                if (snapshot.exists()) {
+                    const replies = [];
+                    
+                    snapshot.forEach(childSnapshot => {
+                        const reply = childSnapshot.val();
+                        reply.id = childSnapshot.key;
+                        replies.push(reply);
+                    });
+                    
+                    // ترتيب الردود من الأحدث إلى الأقدم
+                    replies.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    // عرض الردود
+                    replies.forEach(reply => {
+                        const replyItem = document.createElement('div');
+                        const isMyReply = reply.authorId === currentUserId;
+                        replyItem.className = `reply-item ${isMyReply ? 'my-comment' : ''}`;
+                        
+                        // تحويل الطابع الزمني إلى تاريخ ميلادي
+                        const replyDate = new Date(reply.timestamp);
+                        const formattedDate = formatGregorianDate(replyDate);
+                        
+                        // تصفية النص من الكلمات المسيئة مع التلوين
+                        const filteredText = highlightBadWords(reply.text);
+                        
+                        replyItem.innerHTML = `
+                            <div class="comment-author ${isMyReply ? 'my-comment' : ''}">
+                                <i class="fas fa-user"></i> ${reply.authorName || 'زائر'}
+                                ${isMyReply ? '<span style="color: var(--warning-color); margin-right: 5px;">(أنت)</span>' : ''}
+                            </div>
+                            <div class="comment-text">${filteredText}</div>
+                            <div class="comment-time">
+                                <i class="far fa-clock"></i> ${formattedDate}
+                            </div>
+                        `;
+                        
+                        repliesList.appendChild(replyItem);
+                    });
+                }
+            });
+        }
+        
+        // إظهار/إخفاء الردود
+        function toggleReplies(productId, commentId) {
+            const repliesList = document.getElementById(`replies-${commentId}`);
+            if (repliesList) {
+                repliesList.style.display = repliesList.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+        
+        // تحميل الإعجابات
+        function loadLikes(productId) {
+            const likesRef = database.ref(`likes/${productId}`);
+            
+            likesRef.on('value', snapshot => {
+                const likeCountElement = document.getElementById(`like-count-${productId}`);
+                if (!likeCountElement) return;
+                
+                if (snapshot.exists()) {
+                    // إضافة 70 إلى عدد الإعجابات الحقيقي
+                    likeCountElement.innerHTML = `<i class="fas fa-heart"></i> ${snapshot.numChildren() + 70}`;
+                } else {
+                    likeCountElement.innerHTML = '<i class="fas fa-heart"></i> 70';
+                }
+            });
+        }
+        
+        // إضافة تعليق
+        function addComment(productId) {
+            const commentInput = document.getElementById(`comment-input-${productId}`);
+            const commentText = commentInput.value.trim();
+            
+            if (!commentText) {
+                alert('يرجى إدخال نص التعليق');
+                return;
+            }
+            
+            // التحقق من الكلمات المسيئة
+            if (containsBadWords(commentText)) {
+                alert('التعليق يحتوي على كلمات غير لائقة. يرجى تعديله.');
+                return;
+            }
+            
+            const commentId = generateUUID();
+            const visitorId = getVisitorId();
+            const commentData = {
+                id: commentId,
+                text: commentText,
+                authorId: visitorId,
+                authorName: `زائر_${visitorId.substring(0, 8)}`,
+                timestamp: Date.now(),
+                productId: productId
+            };
+            
+            const commentRef = database.ref(`comments/${productId}/${commentId}`);
+            commentRef.set(commentData)
+                .then(() => {
+                    commentInput.value = '';
+                })
+                .catch(error => {
+                    console.error('Error adding comment:', error);
+                    alert('حدث خطأ أثناء إضافة التعليق');
+                });
+        }
+        
+        // إضافة رد
+        function addReply(productId, commentId) {
+            const replyInput = document.getElementById(`reply-input-${commentId}`);
+            const replyText = replyInput.value.trim();
+            
+            if (!replyText) {
+                alert('يرجى إدخال نص الرد');
+                return;
+            }
+            
+            // التحقق من الكلمات المسيئة
+            if (containsBadWords(replyText)) {
+                alert('الرد يحتوي على كلمات غير لائقة. يرجى تعديله.');
+                return;
+            }
+            
+            const replyId = generateUUID();
+            const visitorId = getVisitorId();
+            const replyData = {
+                id: replyId,
+                text: replyText,
+                authorId: visitorId,
+                authorName: `زائر_${visitorId.substring(0, 8)}`,
+                timestamp: Date.now(),
+                productId: productId,
+                commentId: commentId
+            };
+            
+            const replyRef = database.ref(`comments/${productId}/${commentId}/replies/${replyId}`);
+            replyRef.set(replyData)
+                .then(() => {
+                    replyInput.value = '';
+                })
+                .catch(error => {
+                    console.error('Error adding reply:', error);
+                    alert('حدث خطأ أثناء إضافة الرد');
+                });
+        }
+        
+        // إعجاب بمنتج
+        function likeProduct(productId) {
+            const visitorId = getVisitorId();
+            const likeRef = database.ref(`likes/${productId}/${visitorId}`);
+            
+            // التحقق إذا كان المستخدم قد أعجب بهذا المنتج مسبقاً
+            likeRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        // إزالة الإعجاب إذا كان موجوداً
+                        likeRef.remove()
+                            .catch(error => {
+                                console.error('Error removing like:', error);
+                            });
+                    } else {
+                        // إضافة إعجاب جديد
+                        likeRef.set({
+                            timestamp: Date.now()
+                        })
+                        .catch(error => {
+                            console.error('Error adding like:', error);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking like:', error);
+                });
+        }
+        
+        // مشاركة المنتج
+        function shareProduct(productId) {
+            const productUrl = window.location.href + '#product-' + productId;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'عقار من AZ التسوق الشامل',
+                    text: 'اكتشف هذا العقار الرائع على منصة AZ التسوق الشامل',
+                    url: productUrl
+                })
+                .catch(error => {
+                    console.error('Error sharing product:', error);
+                    copyToClipboard(productUrl);
+                });
+            } else {
+                copyToClipboard(productUrl);
+            }
+        }
+        
+        // نسخ إلى الحافظة
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    alert('تم نسخ رابط العقار إلى الحافظة!');
+                })
+                .catch(error => {
+                    console.error('Error copying to clipboard:', error);
+                    alert('رابط العقار: ' + text);
+                });
+        }
+        
+        // تصفية المنتجات
+        function filterProducts() {
+            const searchText = document.getElementById('search-products').value.toLowerCase();
+            const categoryFilter = document.getElementById('filter-category').value;
+            const typeFilter = document.getElementById('filter-type').value;
+            
+            const productCards = document.querySelectorAll('.product-card');
+            
+            productCards.forEach(card => {
+                const productId = card.id.replace('product-', '');
+                const product = activeProducts.find(p => p.id === productId);
+                
+                if (!product) {
+                    card.style.display = 'none';
+                    return;
+                }
+                
+                let matchesSearch = true;
+                let matchesCategory = true;
+                let matchesType = true;
+                
+                // تطبيق فلتر البحث
+                if (searchText) {
+                    const productText = (
+                        product.productName + ' ' + 
+                        (product.specifications || '') + ' ' + 
+                        (product.address || '')
+                    ).toLowerCase();
+                    
+                    matchesSearch = productText.includes(searchText);
+                }
+                
+                // تطبيق فلتر الفئة
+                if (categoryFilter) {
+                    matchesCategory = product.category === categoryFilter;
+                }
+                
+                // تطبيق فلتر النوع
+                if (typeFilter) {
+                    matchesType = product.requestType === typeFilter;
+                }
+                
+                // إظهار أو إخفاء البطاقة بناءً على نتائج التصفية
+                if (matchesSearch && matchesCategory && matchesType) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // التحقق من وجود كلمات مسيئة
+        function containsBadWords(text) {
+            const lowerText = text.toLowerCase();
+            return badWords.some(word => lowerText.includes(word.toLowerCase()));
+        }
+        
+        // تلوين الكلمات المسيئة
+        function highlightBadWords(text) {
+            let highlightedText = text;
+            badWords.forEach(word => {
+                const regex = new RegExp(word, 'gi');
+                highlightedText = highlightedText.replace(regex, `<span class="bad-word">${word}</span>`);
+            });
+            return highlightedText;
+        }
+        
+        // توليد UUID للزائر
+        function getVisitorId() {
+            let visitorId = localStorage.getItem('visitorId');
+            if (!visitorId) {
+                visitorId = generateUUID();
+                localStorage.setItem('visitorId', visitorId);
+            }
+            return visitorId;
+        }
+        
+        // توليد UUID
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0.3 | 0.8);
+                return v.toString(16);
+            });
+        }
+    </script>
+</body>
+                  </html>
