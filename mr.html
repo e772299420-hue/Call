@@ -282,7 +282,7 @@
             box-sizing: border-box;
         }
 
-        /* البطاقة - تم تعديل العرض ليملأ الشاشة بالكامل وإضافة إطار أزرق */
+        /* البطاقة - تم تعديل العرض ليملأ الشاشة بالكامل وإضافة إطار متوهج */
         .card {
             background: linear-gradient(145deg, var(--background-color), #f0f0f1);
             border-radius: 15px;
@@ -297,13 +297,37 @@
             height: fit-content;
             width: 100%;
             box-sizing: border-box;
-            border: 3px solid #2980b9; /* إطار أزرق */
+            border: 3px solid #2980b9;
+            /* تأثير التوهج المتحرك */
+            animation: glowing-border 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes glowing-border {
+            0% {
+                box-shadow: 0 0 5px #2980b9, 0 0 10px #2980b9, 0 0 15px #2980b9;
+                border-color: #2980b9;
+            }
+            100% {
+                box-shadow: 0 0 10px #e67e22, 0 0 20px #e67e22, 0 0 30px #e67e22;
+                border-color: #e67e22;
+            }
         }
 
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-            border-color: #3498db; /* تغيير لون الإطار عند التمرير */
+            animation: glowing-border-hover 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes glowing-border-hover {
+            0% {
+                box-shadow: 0 0 10px #2980b9, 0 0 20px #2980b9, 0 0 30px #2980b9;
+                border-color: #2980b9;
+            }
+            100% {
+                box-shadow: 0 0 15px #e67e22, 0 0 30px #e67e22, 0 0 45px #e67e22;
+                border-color: #e67e22;
+            }
         }
 
         .card.highlighted {
@@ -1659,29 +1683,8 @@
                 return;
             }
 
-            const sortBy = sortSelect.value || 'date';
-            const sorted = [...products].sort((a, b) => {
-                switch (sortBy) {
-                    case 'date': 
-                        return new Date(b.publishDate || b.createdAt || 0) - new Date(a.publishDate || a.createdAt || 0);
-                    case 'name': 
-                        return (a.name || '').localeCompare(b.name || '', 'ar');
-                    case 'category': {
-                        const catA = allCategories.find(c => c.id === a.categoryId)?.name || '';
-                        const catB = allCategories.find(c => c.id === b.categoryId)?.name || '';
-                        return catA.localeCompare(catB, 'ar');
-                    }
-                    case 'price': 
-                        return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
-                    case 'merchant': {
-                        const merA = allMerchants.find(m => m.id === a.userId)?.name || '';
-                        const merB = allMerchants.find(m => m.id === b.userId)?.name || '';
-                        return merA.localeCompare(merB, 'ar');
-                    }
-                    default: 
-                        return 0;
-                }
-            });
+            // ترتيب المنتجات حسب الأولوية
+            const sorted = sortProductsByPriority(products);
 
             const grid = document.createElement('div');
             grid.className = 'products';
@@ -1712,6 +1715,54 @@
             }
         }
 
+        // ==========================================
+        // 🚀 ترتيب المنتجات حسب الأولوية
+        // ==========================================
+        function sortProductsByPriority(products) {
+            return [...products].sort((a, b) => {
+                // 1. المنتجات المفضلة تأتي أولاً
+                const aIsFavorite = favoriteProducts[a.id] ? 1 : 0;
+                const bIsFavorite = favoriteProducts[b.id] ? 1 : 0;
+                if (aIsFavorite !== bIsFavorite) {
+                    return bIsFavorite - aIsFavorite;
+                }
+
+                // 2. المنتجات التي تتطابق مع اهتمامات المستخدم
+                const aInterestScore = calculateInterestScore(a);
+                const bInterestScore = calculateInterestScore(b);
+                if (aInterestScore !== bInterestScore) {
+                    return bInterestScore - aInterestScore;
+                }
+
+                // 3. المنتجات الأحدث تأتي أولاً
+                const aDate = new Date(a.publishDate || a.createdAt || 0);
+                const bDate = new Date(b.publishDate || b.createdAt || 0);
+                return bDate - aDate;
+            });
+        }
+
+        function calculateInterestScore(product) {
+            let score = 0;
+            
+            // إذا كانت الفئة من اهتمامات المستخدم
+            if (product.categoryId && userInterests[product.categoryId]) {
+                score += userInterests[product.categoryId] * 10;
+            }
+            
+            // إذا كان اسم المنتج يتطابق مع مصطلحات البحث السابقة
+            const searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            const productName = (product.name || '').toLowerCase();
+            const productDesc = (product.description || '').toLowerCase();
+            
+            searchHistory.forEach(term => {
+                if (productName.includes(term.toLowerCase()) || productDesc.includes(term.toLowerCase())) {
+                    score += 5;
+                }
+            });
+            
+            return score;
+        }
+
         function displayFavoriteProducts() {
             productsContainer.innerHTML = '';
             
@@ -1739,7 +1790,10 @@
             const favoritesGrid = document.createElement('div');
             favoritesGrid.className = 'products';
             
-            favoriteProductsList.forEach(p => {
+            // ترتيب المنتجات المفضلة حسب الأولوية
+            const sortedFavorites = sortProductsByPriority(favoriteProductsList);
+            
+            sortedFavorites.forEach(p => {
                 const merchant = allMerchants.find(m => m.id === p.userId);
                 if (merchant) {
                     const card = createProductCard(p, merchant);
@@ -1762,7 +1816,10 @@
                 const similarGrid = document.createElement('div');
                 similarGrid.className = 'products';
                 
-                similarProducts.forEach(p => {
+                // ترتيب المنتجات المشابهة حسب الأولوية
+                const sortedSimilar = sortProductsByPriority(similarProducts);
+                
+                sortedSimilar.forEach(p => {
                     const merchant = allMerchants.find(m => m.id === p.userId);
                     if (merchant) {
                         const card = createProductCard(p, merchant);
@@ -1810,10 +1867,7 @@
                 return sortedCategories.includes(p.categoryId);
             });
 
-            // ترتيب حسب التاريخ (الأحدث أولاً)
-            return similarProducts.sort((a, b) => 
-                new Date(b.publishDate || b.createdAt || 0) - new Date(a.publishDate || a.createdAt || 0)
-            ).slice(0, 12); // عرض حتى 12 منتج مشابه
+            return similarProducts;
         }
 
         function displayPersonalizedProducts() {
@@ -1840,9 +1894,7 @@
                 if (!isActive || !isMerchant) return false;
 
                 return favoriteCategories.includes(p.categoryId);
-            }).sort((a, b) => 
-                new Date(b.publishDate || b.createdAt || 0) - new Date(a.publishDate || a.createdAt || 0)
-            ).slice(0, 6);
+            });
         }
 
         function createProductCard(product, merchant) {
@@ -2267,6 +2319,11 @@
                 maxPrice: parseFloat(maxPriceInput.value) || Infinity
             };
 
+            // حفظ مصطلح البحث في السجل
+            if (filters.search) {
+                saveSearchTerm(filters.search);
+            }
+
             const result = allProducts.filter(product => {
                 if (!product) return false;
                 const merchant = allMerchants.find(m => m.id === product.userId);
@@ -2304,6 +2361,19 @@
             });
 
             displayProducts(result);
+        }
+
+        function saveSearchTerm(term) {
+            let searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            
+            // إضافة المصطلح الجديد وإزالة التكرارات
+            searchHistory = searchHistory.filter(t => t !== term);
+            searchHistory.unshift(term);
+            
+            // الحفاظ على آخر 10 مصطلحات بحث فقط
+            searchHistory = searchHistory.slice(0, 10);
+            
+            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
         }
 
         function resetFilters() {
