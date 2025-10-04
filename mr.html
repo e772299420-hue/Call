@@ -1345,15 +1345,6 @@
         let currentGalleryIndex = 0;
         let isImageZoomed = false;
 
-        // ==========================================
-        // 🎯 المتغيرات الجلوبال الجديدة
-        // ==========================================
-        
-        // إضافة المتغيرات الجلوبال المطلوبة
-        window.selectedMerchantName = null;
-        window.selectedMerchantId = null;
-        window.selectedProductName = null;
-
         // عناصر الواجهة
         const productsContainer = document.getElementById('products-container');
         const governorateSelect = document.getElementById('governorate');
@@ -2049,24 +2040,14 @@
             merchantNameEl.innerHTML = `📍 ${escapeHtml(merchantName)}`; // تغيير الأيقونة إلى موقع
             merchantNameEl.addEventListener('click', () => { 
                 // ==========================================
-                // 🎯 إفراغ وإعادة تعيين المتغيرات الجلوبال
+                // 🎯 حفظ البيانات في localStorage
                 // ==========================================
-                clearGlobalVariables();
-                
-                // ==========================================
-                // 🎯 حفظ البيانات الجديدة في المتغيرات الجلوبال
-                // ==========================================
-                window.selectedMerchantName = merchantName;
-                window.selectedMerchantId = product.userId;
-                window.selectedProductName = productName;
-                
-                // ==========================================
-                // 🎯 عرض إشعار بالبيانات المخزنة
-                // ==========================================
-                showGlobalVariablesNotification();
+                localStorage.setItem('selectedMerchantName', merchantName);
+                localStorage.setItem('selectedMerchantId', product.userId);
+                localStorage.setItem('selectedProductName', productName);
                 
                 incrementViewCount(product.id); // زيادة المشاهدات عند النقر على اسم التاجر
-                openMerchantPage(merchantName, product.name); 
+                openMerchantPage(); 
             });
             merchantDiv.appendChild(merchantNameEl);
             
@@ -2108,35 +2089,6 @@
 
             loadProductStats(product.id, card);
             return card;
-        }
-
-        // ==========================================
-        // 🎯 وظيفة إفراغ المتغيرات الجلوبال
-        // ==========================================
-        function clearGlobalVariables() {
-            window.selectedMerchantName = null;
-            window.selectedMerchantId = null;
-            window.selectedProductName = null;
-            console.log('تم إفراغ جميع المتغيرات الجلوبال');
-        }
-
-        // ==========================================
-        // 🎯 وظيفة عرض إشعار بالمتغيرات الجلوبال
-        // ==========================================
-        function showGlobalVariablesNotification() {
-            const notificationMessage = `
-                <strong>تم حفظ البيانات في المتغيرات الجلوبال:</strong><br>
-                - اسم التاجر: <strong>${window.selectedMerchantName || 'غير محدد'}</strong><br>
-                - معرف التاجر: <strong>${window.selectedMerchantId || 'غير محدد'}</strong><br>
-                - اسم المنتج: <strong>${window.selectedProductName || 'غير محدد'}</strong>
-            `;
-            
-            showNotification(notificationMessage, 'success');
-            
-            console.log('المتغيرات الجلوبال الحالية:');
-            console.log('اسم التاجر:', window.selectedMerchantName);
-            console.log('معرف التاجر:', window.selectedMerchantId);
-            console.log('اسم المنتج:', window.selectedProductName);
         }
 
         // استخراج الصور
@@ -2482,7 +2434,7 @@
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
             notification.className = 'notification';
-            notification.innerHTML = message; // استخدام innerHTML بدلاً من textContent للسماح بتنسيق HTML
+            notification.textContent = message;
             
             // تلوين الإشعار حسب النوع
             if (type === 'success') {
@@ -2495,10 +2447,10 @@
             
             document.body.appendChild(notification);
             
-            // إزالة الإشعار بعد 5 ثواني (زيادة المدة لعرض البيانات)
+            // إزالة الإشعار بعد 3 ثواني
             setTimeout(() => {
                 notification.remove();
-            }, 5000);
+            }, 3000);
         }
 
         // ==========================================
@@ -2676,9 +2628,11 @@
             }
         }
 
-        function openMerchantPage(merchantName, productName) {
-            localStorage.setItem('selectedMerchant', merchantName);
-            localStorage.setItem('selectedProductName', productName);
+        // ==========================================
+        // 🎯 تعديل دالة فتح صفحة التاجر
+        // ==========================================
+        function openMerchantPage() {
+            // البيانات محفوظة مسبقاً في localStorage
             window.open('ard_tagr.html', '_blank');
         }
 
