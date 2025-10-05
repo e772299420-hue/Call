@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        /* جميع الأنماط تبقى كما هي */
         * {
             margin: 0;
             padding: 0;
@@ -282,7 +283,7 @@
             box-sizing: border-box;
         }
 
-        /* البطاقة - تم تعديل العرض ليملأ الشاشة بالكامل */
+        /* البطاقة - تم تعديل العرض ليملأ الشاشة بالكامل وإضافة إطار ثابت */
         .card {
             background: linear-gradient(145deg, var(--background-color), #f0f0f1);
             border-radius: 15px;
@@ -297,11 +298,13 @@
             height: fit-content;
             width: 100%;
             box-sizing: border-box;
+            border: 3px solid #3498db; /* لون ثابت #3498db */
         }
 
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            border-color: #2980b9; /* تغيير لون الإطار عند التمرير */
         }
 
         .card.highlighted {
@@ -384,7 +387,7 @@
 
         .images-preview img {
             width: 100%;
-            height: 350px; /* ارتفاع مناسب مع الحفاظ على النسبة */
+            height: 250px; /* ارتفاع 250px مع الحفاظ على النسبة */
             object-fit: cover;
             border-radius: 10px;
             cursor: pointer;
@@ -403,7 +406,7 @@
         .image-slider {
             position: relative;
             width: 100%;
-            height: 350px; /* ارتفاع مناسب مع الحفاظ على النسبة */
+            height: 250px; /* ارتفاع 250px مع الحفاظ على النسبة */
             overflow: hidden;
             border-radius: 10px;
             margin-bottom: 15px;
@@ -774,7 +777,7 @@
         .info h3 {
             margin: 5px 0;
             font-size: 20px;
-            color: var(--text-color);
+            color: #ff0000 !important; /* اللون الأحمر لاسم المنتج */
             font-weight: bold;
         }
 
@@ -1098,8 +1101,8 @@
             .filter-item input { width: 100%; }
             .price-range { flex-wrap: wrap; }
             .products { grid-template-columns: 1fr; }
-            .images-preview img, .slider-image { height: 300px; }
-            .image-slider { height: 300px; }
+            .images-preview img, .slider-image { height: 250px; }
+            .image-slider { height: 250px; }
             .product-price { font-size: 18px; }
             .comments-list { max-height: 200px; }
 
@@ -1156,11 +1159,11 @@
         @media (max-width: 480px) {
             .images-preview img, .slider-image { 
                 width: 100%;
-                height: 280px; 
+                height: 250px; 
             }
             .image-slider { 
                 width: 100%;
-                height: 280px; 
+                height: 250px; 
             }
 
             .gallery-nav-btn {
@@ -1307,17 +1310,23 @@
     </footer>
 
     <script>
+        // ==========================================
+        // 🔥 إصلاح مشكلة عرض الصور من جوجل درايف
+        // ==========================================
+        
         // تهيئة Firebase
         const firebaseConfig = { 
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/" 
         };
         
+        // تهيئة Firebase أولاً قبل أي شيء آخر
         try {
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
+                console.log('✅ Firebase initialized successfully');
             }
         } catch (error) {
-            console.error("خطأ في تهيئة Firebase:", error);
+            console.error("❌ خطأ في تهيئة Firebase:", error);
         }
         
         const db = firebase.database();
@@ -1329,11 +1338,8 @@
         let allRegions = [];
         let allCategories = [];
         let favoriteProducts = JSON.parse(localStorage.getItem('favoriteProducts')) || {};
-        let viewedProducts = JSON.parse(sessionStorage.getItem('viewedProducts')) || {};
         let userInterests = JSON.parse(localStorage.getItem('userInterests')) || {};
         let showFavoritesOnly = false;
-        let visitorId = null; // معرف الزائر لتتبع البيانات
-        let sessionStartTime = null; // وقت بداية الجلسة
 
         // متغيرات معرض الصور
         let galleryImages = [];
@@ -1359,115 +1365,27 @@
         const scrollToTopBtn = document.getElementById('scroll-to-top');
         const categoryValueDisplay = document.getElementById('category-value-display');
 
-        // بدء التطبيق
+        // ==========================================
+        // 🎯 بدء التطبيق - الترتيب الصحيح
+        // ==========================================
+
+        // بدء التطبيق فور تحميل الصفحة
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('🏁 بدء تحميل التطبيق...');
+            
+            // 1. تهيئة التطبيق
             initializeApp();
+            
+            // 2. إعداد مستمعي الأحداث
             setupEventListeners();
-            initializeVisitorTracking(); // تهيئة تتبع الزوار
+            
+            // 3. تحميل البيانات
             loadAllData().then(() => {
                 checkUrlForProduct();
                 displayPersonalizedProducts();
+                console.log('🎉 تم تحميل التطبيق بالكامل بنجاح');
             });
         });
-
-        // ==========================================
-        // 👤 نظام تتبع الزوار - تم إصلاح المشكلة
-        // ==========================================
-        
-        /**
-         * تهيئة نظام تتبع الزوار
-         * يقوم بإنشاء معرف فريد للزائر وتسجيل وقت الدخول
-         */
-        function initializeVisitorTracking() {
-            // الحصول على معرف الزائر من التخزين المحلي أو إنشاء جديد
-            visitorId = localStorage.getItem('visitorId');
-            if (!visitorId) {
-                visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('visitorId', visitorId);
-            }
-
-            // تسجيل وقت بداية الجلسة
-            sessionStartTime = new Date().toISOString();
-            localStorage.setItem('sessionStart', sessionStartTime);
-
-            // بيانات الزائر
-            const visitorData = {
-                visitorId: visitorId,
-                pageName: 'AZ السوق الشامل', // اسم الصفحة
-                entryTime: new Date().toISOString(), // وقت وتاريخ الدخول
-                userAgent: navigator.userAgent, // معلومات المتصفح
-                screenResolution: `${screen.width}x${screen.height}`, // دقة الشاشة
-                language: navigator.language, // اللغة
-                platform: navigator.platform, // النظام الأساسي
-                referrer: document.referrer || 'Direct', // المصدر
-                sessionStart: sessionStartTime, // بداية الجلسة
-                lastActivity: new Date().toISOString() // آخر نشاط
-            };
-
-            // حفظ بيانات الدخول في Firebase
-            db.ref('visitors/' + visitorId).set(visitorData)
-                .then(() => console.log('✅ تم تسجيل بيانات الدخول للزائر بنجاح'))
-                .catch(error => console.error('❌ خطأ في تسجيل بيانات الدخول:', error));
-
-            // إضافة مستمع لحدث إغلاق الصفحة لتسجيل وقت المغادرة
-            window.addEventListener('beforeunload', recordExitTime);
-            
-            // تحديث آخر نشاط كل 30 ثانية
-            setInterval(updateLastActivity, 30000);
-        }
-
-        /**
-         * تحديث آخر نشاط للزائر
-         */
-        function updateLastActivity() {
-            const updateData = {
-                lastActivity: new Date().toISOString()
-            };
-
-            db.ref('visitors/' + visitorId).update(updateData)
-                .catch(error => console.error('❌ خطأ في تحديث آخر نشاط:', error));
-        }
-
-        /**
-         * تسجيل وقت المغادرة عند إغلاق الصفحة
-         */
-        function recordExitTime() {
-            const sessionStart = new Date(localStorage.getItem('sessionStart') || new Date());
-            const sessionDuration = Math.floor((new Date() - sessionStart) / 1000); // مدة الجلسة بالثواني
-            
-            const exitData = {
-                exitTime: new Date().toISOString(), // وقت وتاريخ المغادرة
-                sessionDuration: sessionDuration, // مدة الجلسة بالثواني
-                pageViews: parseInt(localStorage.getItem('pageViews') || '1') // عدد مشاهدات الصفحة
-            };
-
-            // تحديث بيانات الزائر بوقت المغادرة
-            db.ref('visitors/' + visitorId).update(exitData)
-                .then(() => console.log('✅ تم تسجيل بيانات المغادرة للزائر بنجاح'))
-                .catch(error => console.error('❌ خطأ في تسجيل بيانات المغادرة:', error));
-        }
-
-        /**
-         * تسجيل تفاعل إضافي للزائر (مثل النقر على منتج)
-         */
-        function recordVisitorInteraction(interactionType, productId = null, productName = null) {
-            const interactionData = {
-                timestamp: new Date().toISOString(),
-                type: interactionType,
-                productId: productId,
-                productName: productName,
-                page: window.location.href
-            };
-
-            // حفظ التفاعل في سجل الزائر
-            db.ref(`visitors/${visitorId}/interactions`).push(interactionData)
-                .then(() => console.log('✅ تم تسجيل تفاعل الزائر:', interactionType))
-                .catch(error => console.error('❌ خطأ في تسجيل تفاعل الزائر:', error));
-        }
-
-        // ==========================================
-        // 🎯 باقي دوال التطبيق مع التعديلات المطلوبة
-        // ==========================================
 
         function initializeApp() {
             // تطبيق السمة المحفوظة
@@ -1613,15 +1531,13 @@
                 populateFilterOptions();
                 displayProducts(allProducts);
                 
-                // تسجيل تفاعل تحميل البيانات
-                recordVisitorInteraction('load_products');
             } catch (error) {
                 console.error("خطأ في تحميل البيانات:", error);
                 productsContainer.innerHTML = `
                     <div class="error">
                         <h3>حدث خطأ في تحميل البيانات</h3>
                         <p>${error.message || 'تعذر التحميل'}</p>
-                        <p>يرجى التحقق من اتصال الإنترنت وإعادة تحميل الصفحة</p>
+                        <p>يرجاء التحقق من اتصال الإنترنت وإعادة تحميل الصفحة</p>
                         <button onclick="location.reload()">إعادة تحميل</button>
                     </div>
                 `;
@@ -1744,29 +1660,8 @@
                 return;
             }
 
-            const sortBy = sortSelect.value || 'date';
-            const sorted = [...products].sort((a, b) => {
-                switch (sortBy) {
-                    case 'date': 
-                        return new Date(b.publishDate || b.createdAt || 0) - new Date(a.publishDate || a.createdAt || 0);
-                    case 'name': 
-                        return (a.name || '').localeCompare(b.name || '', 'ar');
-                    case 'category': {
-                        const catA = allCategories.find(c => c.id === a.categoryId)?.name || '';
-                        const catB = allCategories.find(c => c.id === b.categoryId)?.name || '';
-                        return catA.localeCompare(catB, 'ar');
-                    }
-                    case 'price': 
-                        return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
-                    case 'merchant': {
-                        const merA = allMerchants.find(m => m.id === a.userId)?.name || '';
-                        const merB = allMerchants.find(m => m.id === b.userId)?.name || '';
-                        return merA.localeCompare(merB, 'ar');
-                    }
-                    default: 
-                        return 0;
-                }
-            });
+            // ترتيب المنتجات حسب الأولوية
+            const sorted = sortProductsByPriority(products);
 
             const grid = document.createElement('div');
             grid.className = 'products';
@@ -1797,6 +1692,54 @@
             }
         }
 
+        // ==========================================
+        // 🚀 ترتيب المنتجات حسب الأولوية
+        // ==========================================
+        function sortProductsByPriority(products) {
+            return [...products].sort((a, b) => {
+                // 1. المنتجات المفضلة تأتي أولاً
+                const aIsFavorite = favoriteProducts[a.id] ? 1 : 0;
+                const bIsFavorite = favoriteProducts[b.id] ? 1 : 0;
+                if (aIsFavorite !== bIsFavorite) {
+                    return bIsFavorite - aIsFavorite;
+                }
+
+                // 2. المنتجات التي تتطابق مع اهتمامات المستخدم
+                const aInterestScore = calculateInterestScore(a);
+                const bInterestScore = calculateInterestScore(b);
+                if (aInterestScore !== bInterestScore) {
+                    return bInterestScore - aInterestScore;
+                }
+
+                // 3. المنتجات الأحدث تأتي أولاً
+                const aDate = new Date(a.publishDate || a.createdAt || 0);
+                const bDate = new Date(b.publishDate || b.createdAt || 0);
+                return bDate - aDate;
+            });
+        }
+
+        function calculateInterestScore(product) {
+            let score = 0;
+            
+            // إذا كانت الفئة من اهتمامات المستخدم
+            if (product.categoryId && userInterests[product.categoryId]) {
+                score += userInterests[product.categoryId] * 10;
+            }
+            
+            // إذا كان اسم المنتج يتطابق مع مصطلحات البحث السابقة
+            const searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            const productName = (product.name || '').toLowerCase();
+            const productDesc = (product.description || '').toLowerCase();
+            
+            searchHistory.forEach(term => {
+                if (productName.includes(term.toLowerCase()) || productDesc.includes(term.toLowerCase())) {
+                    score += 5;
+                }
+            });
+            
+            return score;
+        }
+
         function displayFavoriteProducts() {
             productsContainer.innerHTML = '';
             
@@ -1824,7 +1767,10 @@
             const favoritesGrid = document.createElement('div');
             favoritesGrid.className = 'products';
             
-            favoriteProductsList.forEach(p => {
+            // ترتيب المنتجات المفضلة حسب الأولوية
+            const sortedFavorites = sortProductsByPriority(favoriteProductsList);
+            
+            sortedFavorites.forEach(p => {
                 const merchant = allMerchants.find(m => m.id === p.userId);
                 if (merchant) {
                     const card = createProductCard(p, merchant);
@@ -1847,7 +1793,10 @@
                 const similarGrid = document.createElement('div');
                 similarGrid.className = 'products';
                 
-                similarProducts.forEach(p => {
+                // ترتيب المنتجات المشابهة حسب الأولوية
+                const sortedSimilar = sortProductsByPriority(similarProducts);
+                
+                sortedSimilar.forEach(p => {
                     const merchant = allMerchants.find(m => m.id === p.userId);
                     if (merchant) {
                         const card = createProductCard(p, merchant);
@@ -1895,10 +1844,7 @@
                 return sortedCategories.includes(p.categoryId);
             });
 
-            // ترتيب حسب التاريخ (الأحدث أولاً)
-            return similarProducts.sort((a, b) => 
-                new Date(b.publishDate || b.createdAt || 0) - new Date(a.publishDate || a.createdAt || 0)
-            ).slice(0, 12); // عرض حتى 12 منتج مشابه
+            return similarProducts;
         }
 
         function displayPersonalizedProducts() {
@@ -1925,9 +1871,7 @@
                 if (!isActive || !isMerchant) return false;
 
                 return favoriteCategories.includes(p.categoryId);
-            }).sort((a, b) => 
-                new Date(b.publishDate || b.createdAt || 0) - new Date(a.publishDate || a.createdAt || 0)
-            ).slice(0, 6);
+            });
         }
 
         function createProductCard(product, merchant) {
@@ -2096,8 +2040,37 @@
             merchantNameEl.className = 'merchant-name';
             merchantNameEl.innerHTML = `📍 ${escapeHtml(merchantName)}`; // تغيير الأيقونة إلى موقع
             merchantNameEl.addEventListener('click', () => { 
-                incrementViewCount(product.id); // زيادة المشاهدات عند النقر على اسم التاجر
-                openMerchantPage(merchantName, product.name); 
+                // ==========================================
+                // 🎯 حفظ البيانات في localStorage
+                // ==========================================
+                
+                // اسم التاجر من merchant.name أو merchant.username
+                const merchantName = merchant.name || merchant.username || "تاجر";
+                
+                // معرف التاجر من product.userId
+                const merchantId = product.userId;
+                
+                // اسم المنتج من product.name
+                const productName = product.name || 'منتج بدون اسم';
+                
+                // حفظ البيانات في localStorage
+                localStorage.setItem('selectedMerchantName', merchantName);
+                localStorage.setItem('selectedMerchantId', merchantId);
+                localStorage.setItem('selectedProductName', productName);
+                
+                // ==========================================
+                // 🔔 تم حذف الإشعار هنا
+                // ==========================================
+                
+                // فقط طباعة في الكونسول للتأكد
+                console.log('تم حفظ بيانات التاجر:', {
+                    merchantName: merchantName,
+                    merchantId: merchantId,
+                    productName: productName
+                });
+                
+                incrementViewCount(product.id);
+                openMerchantPage(); 
             });
             merchantDiv.appendChild(merchantNameEl);
             
@@ -2157,30 +2130,47 @@
         }
 
         // ==========================================
-        // 🔍 تحسين أوامر روابط جوجل درايف + أحجام الصور
+        // 🔍 إصلاح مشكلة عرض الصور من جوجل درايف
         // ==========================================
         function formatDriveUrl(url, mode = 'thumb') {
             if (!url) return '';
+            
+            // استخراج معرف الملف من رابط جوجل درايف
             let id = '';
+            
+            // رابط مباشر للملف
             if (url.includes('/d/')) {
                 id = url.split('/d/')[1].split('/')[0];
-            } else if (url.includes('id=')) {
+            } 
+            // رابط مشاركة
+            else if (url.includes('id=')) {
                 try { 
                     id = new URLSearchParams(url.split('?')[1]).get('id') || ''; 
                 } catch { 
                     return url; 
                 }
             }
+            // رابط عرض
+            else if (url.includes('/file/d/')) {
+                id = url.split('/file/d/')[1].split('/')[0];
+            }
+            // رابط مسبق التنسيق
+            else if (url.includes('drive.google.com/uc?id=')) {
+                id = url.split('drive.google.com/uc?id=')[1].split('&')[0];
+            }
+            
             if (!id) return url;
 
+            // إصلاح مشكلة عرض الصور من جوجل درايف
+            // استخدام رابط العرض المباشر بدلاً من رابط التحميل
             if (mode === 'thumb') {
                 // صورة مصغرة سريعة التحميل للسلايدر والمصغرات
                 return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
             } else if (mode === 'main') {
-                // صورة كبيرة للمعرض (أكبر من السابق)
+                // صورة كبيرة للمعرض
                 return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
             } else if (mode === 'raw') {
-                // العرض المباشر (قد يكون أكبر حسب الملف)
+                // العرض المباشر
                 return `https://drive.google.com/uc?export=view&id=${id}`;
             }
             return url;
@@ -2201,9 +2191,6 @@
                     userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
                     localStorage.setItem('userInterests', JSON.stringify(userInterests));
                 }
-                
-                // تسجيل تفاعل الزائر مع المعرض
-                recordVisitorInteraction('open_gallery', productId, productName);
             }
 
             document.getElementById('gallery-product-name').textContent = productName;
@@ -2255,7 +2242,7 @@
             else currentGalleryIndex = index;
 
             const mainImage = document.getElementById('gallery-main-image');
-            // تحميل الصورة الكبيرة بحجم أكبر من السابق
+            // تحميل الصورة الكبيرة
             mainImage.src = formatDriveUrl(galleryImages[currentGalleryIndex], 'main');
             mainImage.alt = `صورة ${currentGalleryIndex + 1}`;
             mainImage.classList.remove('zoomed');
@@ -2338,6 +2325,11 @@
                 maxPrice: parseFloat(maxPriceInput.value) || Infinity
             };
 
+            // حفظ مصطلح البحث في السجل
+            if (filters.search) {
+                saveSearchTerm(filters.search);
+            }
+
             const result = allProducts.filter(product => {
                 if (!product) return false;
                 const merchant = allMerchants.find(m => m.id === product.userId);
@@ -2375,6 +2367,19 @@
             });
 
             displayProducts(result);
+        }
+
+        function saveSearchTerm(term) {
+            let searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            
+            // إضافة المصطلح الجديد وإزالة التكرارات
+            searchHistory = searchHistory.filter(t => t !== term);
+            searchHistory.unshift(term);
+            
+            // الحفاظ على آخر 10 مصطلحات بحث فقط
+            searchHistory = searchHistory.slice(0, 10);
+            
+            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
         }
 
         function resetFilters() {
@@ -2426,7 +2431,6 @@
                 delete favoriteProducts[productId]; 
                 button.classList.remove('active'); 
                 showNotification('تم إزالة المنتج من المفضلة', 'info');
-                recordVisitorInteraction('remove_from_favorites', productId, productName);
             } else { 
                 favoriteProducts[productId] = true; 
                 button.classList.add('active'); 
@@ -2438,9 +2442,6 @@
                     userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
                     localStorage.setItem('userInterests', JSON.stringify(userInterests));
                 }
-                
-                // تسجيل تفاعل الزائر مع المفضلة
-                recordVisitorInteraction('add_to_favorites', productId, productName);
             }
             localStorage.setItem('favoriteProducts', JSON.stringify(favoriteProducts));
             
@@ -2501,9 +2502,6 @@
                     userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
                     localStorage.setItem('userInterests', JSON.stringify(userInterests));
                 }
-                
-                // تسجيل تفاعل الزائر مع المشاهدة
-                recordVisitorInteraction('view_product', productId, product.name);
             }
         }
 
@@ -2545,10 +2543,8 @@
                 const idx = likes.indexOf(userId);
                 if (idx === -1) {
                     likes.push(userId);
-                    recordVisitorInteraction('like_product', productId, productName);
                 } else {
                     likes.splice(idx, 1);
-                    recordVisitorInteraction('unlike_product', productId, productName);
                 }
                 await likesRef.set(likes);
                 const likeEl = document.querySelector(`#product-${productId} .like-count`);
@@ -2568,10 +2564,6 @@
             const el = document.getElementById(`comments-${productId}`); 
             el.classList.add('active'); 
             loadComments(productId); 
-            
-            // تسجيل تفاعل الزائر مع التعليقات
-            const product = allProducts.find(p => p.id === productId);
-            recordVisitorInteraction('open_comments', productId, product?.name);
         }
 
         function closeComments(productId) { 
@@ -2638,10 +2630,6 @@
 
                 const commentEl = document.querySelector(`#product-${productId} .comment-count`);
                 if (commentEl) commentEl.textContent = (parseInt(commentEl.textContent) || 0) + 1;
-                
-                // تسجيل تفاعل الزائر مع إضافة التعليق
-                const product = allProducts.find(p => p.id === productId);
-                recordVisitorInteraction('add_comment', productId, product?.name);
             } catch (e) {
                 console.error('خطأ في إضافة التعليق:', e);
                 alert('حدث خطأ في إضافة التعليق');
@@ -2661,18 +2649,14 @@
                     })
                     .catch(() => prompt('يرجى نسخ النص التالي:', shareText));
             }
-            
-            // تسجيل تفاعل الزائر مع المشاركة
-            recordVisitorInteraction('share_product', productId, productName);
         }
 
-        function openMerchantPage(merchantName, productName) {
-            localStorage.setItem('selectedMerchant', merchantName);
-            localStorage.setItem('selectedProductName', productName);
+        // ==========================================
+        // 🎯 تعديل دالة فتح صفحة التاجر
+        // ==========================================
+        function openMerchantPage() {
+            // البيانات محفوظة مسبقاً في localStorage
             window.open('ard_tagr.html', '_blank');
-            
-            // تسجيل تفاعل الزائر مع فتح صفحة التاجر
-            recordVisitorInteraction('open_merchant_page', null, productName);
         }
 
         function getUserId() {
