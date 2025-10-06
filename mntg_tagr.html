@@ -6,7 +6,6 @@
     <title>نظام إدارة المتجر - إدارة الأصناف</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* أنماط CSS الحالية (نفس الكود السابق) */
         :root {
             --primary-color: #667eea;
             --secondary-color: #764ba2;
@@ -108,89 +107,54 @@
             font-weight: 600;
         }
 
-        /* شريط عرض الجلوبالات الجديد */
-        .globals-bar {
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 8px 15px;
-            font-size: 12px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-            justify-content: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .global-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-
-        .global-label {
-            font-weight: bold;
-            color: #ffd700;
-        }
-
-        .global-value {
-            color: #fff;
-        }
-
-        /* إشعار تفعيل GPS */
-        .gps-alert {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        /* إشعار عرض بيانات التاجر */
+        .merchant-data-alert {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
             color: white;
             padding: 15px 20px;
             margin: 10px 20px;
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
-            display: none;
             animation: slideDown 0.5s ease-out;
         }
 
-        .gps-alert h4 {
+        .merchant-data-alert h4 {
             margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .gps-alert-content {
+        .merchant-data-content {
             font-size: 14px;
             line-height: 1.6;
         }
 
-        .gps-steps {
+        .merchant-data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
             margin: 10px 0;
-            padding-right: 20px;
         }
 
-        .gps-step {
-            margin-bottom: 8px;
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
+        .data-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
         }
 
-        .gps-step-number {
-            background: white;
-            color: #ee5a24;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
+        .data-label {
             font-weight: bold;
-            flex-shrink: 0;
+            color: #ffd700;
+            margin-bottom: 5px;
         }
 
-        .gps-close {
+        .data-value {
+            color: #fff;
+            word-break: break-all;
+        }
+
+        .alert-close {
             background: rgba(255, 255, 255, 0.2);
             border: none;
             color: white;
@@ -202,7 +166,7 @@
             transition: var(--transition);
         }
 
-        .gps-close:hover {
+        .alert-close:hover {
             background: rgba(255, 255, 255, 0.3);
         }
 
@@ -570,12 +534,6 @@
                 padding: 0 1rem;
             }
             
-            .globals-bar {
-                flex-direction: column;
-                gap: 8px;
-                padding: 10px;
-            }
-            
             .tabs {
                 flex-direction: column;
             }
@@ -583,17 +541,9 @@
             .products-grid {
                 grid-template-columns: 1fr;
             }
-        }
-
-        @media (min-width: 1200px) {
-            .products-grid {
-                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            }
-        }
-
-        @media (min-width: 1400px) {
-            .products-grid {
-                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            
+            .merchant-data-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -832,54 +782,30 @@
             </div>
         </header>
 
-        <!-- إشعار تفعيل GPS -->
-        <div class="gps-alert" id="gpsAlert">
-            <h4><i class="fas fa-map-marker-alt"></i> تفعيل خدمة الموقع</h4>
-            <div class="gps-alert-content">
-                <p>يجب تفعيل خدمة الموقع (GPS) لاستخدام التطبيق بشكل كامل:</p>
-                <div class="gps-steps">
-                    <div class="gps-step">
-                        <span class="gps-step-number">1</span>
-                        <span>اذهب إلى إعدادات الجوال</span>
+        <!-- إشعار عرض بيانات التاجر -->
+        <div class="merchant-data-alert" id="merchantDataAlert">
+            <h4><i class="fas fa-user-tie"></i> بيانات التاجر والمنتج</h4>
+            <div class="merchant-data-content">
+                <p>بيانات التاجر والمنتج المحفوظة في النظام:</p>
+                <div class="merchant-data-grid" id="merchant-data-grid">
+                    <div class="data-item">
+                        <div class="data-label">اسم التاجر:</div>
+                        <div class="data-value" id="merchant-name-value">جاري التحميل...</div>
                     </div>
-                    <div class="gps-step">
-                        <span class="gps-step-number">2</span>
-                        <span>اختر "الموقع" أو "Location"</span>
+                    <div class="data-item">
+                        <div class="data-label">معرف التاجر:</div>
+                        <div class="data-value" id="merchant-id-value">جاري التحميل...</div>
                     </div>
-                    <div class="gps-step">
-                        <span class="gps-step-number">3</span>
-                        <span>قم بتفعيل خدمة الموقع</span>
+                    <div class="data-item">
+                        <div class="data-label">اسم المنتج:</div>
+                        <div class="data-value" id="product-name-value">جاري التحميل...</div>
                     </div>
-                    <div class="gps-step">
-                        <span class="gps-step-number">4</span>
-                        <span>اختر "دقة عالية" أو "High accuracy"</span>
+                    <div class="data-item">
+                        <div class="data-label">رقم الجوال/الواتساب:</div>
+                        <div class="data-value" id="whatsapp-value">جاري التحميل...</div>
                     </div>
                 </div>
-                <button class="gps-close" onclick="closeGpsAlert()">تم الفهم</button>
-            </div>
-        </div>
-
-        <!-- شريط عرض الجلوبالات الجديد -->
-        <div class="globals-bar" id="globalsBar">
-            <div class="global-item">
-                <span class="global-label">tag:</span>
-                <span class="global-value" id="globalTagValue">غير محدد</span>
-            </div>
-            <div class="global-item">
-                <span class="global-label">tlf:</span>
-                <span class="global-value" id="globalTlfValue">غير محدد</span>
-            </div>
-            <div class="global-item">
-                <span class="global-label">selectedMerchant:</span>
-                <span class="global-value" id="globalMerchantValue">غير محدد</span>
-            </div>
-            <div class="global-item">
-                <span class="global-label">globalProductName:</span>
-                <span class="global-value" id="globalProductValue">غير محدد</span>
-            </div>
-            <div class="global-item">
-                <span class="global-label">userId:</span>
-                <span class="global-value" id="globalUserIdValue">غير محدد</span>
+                <button class="alert-close" onclick="closeMerchantDataAlert()">إغلاق</button>
             </div>
         </div>
 
@@ -955,16 +881,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <script>
-        // ====== الجلوبالات من الكود السابق ======
-        
-        // الحصول على البيانات من localStorage أو استخدام القيم الافتراضية
-        const selectedMerchantName = localStorage.getItem("selectedMerchant") || "التاجر";
-        const globalProductName = localStorage.getItem("selectedProductName") || "المنتج";
-        
-        // متغيرات الجلوبالات الجديدة
-        let tag = "غير محدد";
-        let tlf = "غير محدد";
-
         // ====== إعدادات Firebase ======
         const firebaseConfig = {
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
@@ -995,7 +911,7 @@
                 localStorage.setItem('globalUserData', JSON.stringify(userData));
                 updateUserDisplay();
                 updateTabTitles();
-                updateGlobalsBar();
+                updateMerchantDataAlert();
                 // تحميل وعرض رقم الجوال/الواتساب
                 loadAndDisplayWhatsappNumber();
             },
@@ -1044,53 +960,41 @@
                 localStorage.removeItem('globalUserData');
                 updateUserDisplay();
                 updateTabTitles();
-                updateGlobalsBar();
+                updateMerchantDataAlert();
                 document.getElementById('whatsapp-number-display').style.display = 'none';
             }
         };
 
-        // دالة لتحديث شريط الجلوبالات
-        function updateGlobalsBar() {
-            document.getElementById('globalTagValue').textContent = tag;
-            document.getElementById('globalTlfValue').textContent = tlf;
-            document.getElementById('globalMerchantValue').textContent = selectedMerchantName;
-            document.getElementById('globalProductValue').textContent = globalProductName;
-            document.getElementById('globalUserIdValue').textContent = globalUser.getUserId() || 'غير محدد';
+        // دالة لعرض إشعار بيانات التاجر
+        function showMerchantDataAlert() {
+            const merchantDataAlert = document.getElementById('merchantDataAlert');
+            merchantDataAlert.style.display = 'block';
+            
+            // تحديث بيانات الإشعار
+            updateMerchantDataAlert();
         }
 
-        // دالة للتحقق من تفعيل GPS
-        function checkGPSPermission() {
-            if (!navigator.geolocation) {
-                showGpsAlert();
-                return false;
+        // دالة لإغلاق إشعار بيانات التاجر
+        function closeMerchantDataAlert() {
+            const merchantDataAlert = document.getElementById('merchantDataAlert');
+            merchantDataAlert.style.display = 'none';
+        }
+
+        // دالة لتحديث بيانات الإشعار
+        function updateMerchantDataAlert() {
+            const userData = globalUser.getUserData();
+            const selectedMerchantName = localStorage.getItem("selectedMerchant") || "غير محدد";
+            const globalProductName = localStorage.getItem("selectedProductName") || "غير محدد";
+            
+            document.getElementById('merchant-name-value').textContent = userData ? globalUser.getMerchantName() : "غير محدد";
+            document.getElementById('merchant-id-value').textContent = userData ? globalUser.getUserId() : "غير محدد";
+            document.getElementById('product-name-value').textContent = globalProductName;
+            document.getElementById('whatsapp-value').textContent = "جاري التحميل...";
+            
+            // تحميل رقم الواتساب إذا كان المستخدم موجوداً
+            if (userData) {
+                loadWhatsappNumberForAlert();
             }
-            
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    // GPS مفعل
-                    console.log("GPS مفعل:", position.coords);
-                },
-                function(error) {
-                    // GPS غير مفعل
-                    console.log("GPS غير مفعل:", error.message);
-                    showGpsAlert();
-                },
-                { timeout: 5000 }
-            );
-            
-            return true;
-        }
-
-        // دالة لعرض إشعار تفعيل GPS
-        function showGpsAlert() {
-            const gpsAlert = document.getElementById('gpsAlert');
-            gpsAlert.style.display = 'block';
-        }
-
-        // دالة لإغلاق إشعار GPS
-        function closeGpsAlert() {
-            const gpsAlert = document.getElementById('gpsAlert');
-            gpsAlert.style.display = 'none';
         }
 
         // دالة جديدة: الحصول على رقم الجوال/الواتساب بناءً على userId
@@ -1121,6 +1025,30 @@
             }
         }
 
+        // دالة جديدة: تحميل وعرض رقم الجوال/الواتساب للإشعار
+        async function loadWhatsappNumberForAlert() {
+            const userId = globalUser.getUserId();
+            
+            if (!userId) {
+                document.getElementById('whatsapp-value').textContent = "غير متوفر";
+                return;
+            }
+            
+            try {
+                const whatsappNumber = await getUserWhatsappNumber(userId);
+                
+                if (whatsappNumber) {
+                    document.getElementById('whatsapp-value').textContent = whatsappNumber;
+                } else {
+                    document.getElementById('whatsapp-value').textContent = "غير متوفر";
+                }
+                
+            } catch (error) {
+                console.error('خطأ في تحميل رقم الجوال/الواتساب:', error);
+                document.getElementById('whatsapp-value').textContent = "خطأ في التحميل";
+            }
+        }
+
         // دالة جديدة: تحميل وعرض رقم الجوال/الواتساب
         async function loadAndDisplayWhatsappNumber() {
             const userId = globalUser.getUserId();
@@ -1139,9 +1067,6 @@
                     document.getElementById('whatsapp-number-text').textContent = whatsappNumber;
                     document.getElementById('dialog-whatsapp-number').textContent = whatsappNumber;
                     document.getElementById('whatsapp-number-display').style.display = 'block';
-                    
-                    tlf = whatsappNumber;
-                    updateGlobalsBar();
                 } else {
                     document.getElementById('whatsapp-number-display').style.display = 'none';
                 }
@@ -1161,8 +1086,6 @@
             
             if (userData) {
                 userDisplayElement.textContent = `مرحباً، ${globalUser.getMerchantName()}`;
-                tag = globalUser.getMerchantName();
-                updateGlobalsBar();
             } else {
                 userDisplayElement.textContent = `جاري التحميل...`;
             }
@@ -1590,12 +1513,11 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
             // تحديث عرض اسم المستخدم
             updateUserDisplay();
             updateTabTitles();
-            updateGlobalsBar();
             
-            // التحقق من GPS
+            // عرض إشعار بيانات التاجر
             setTimeout(() => {
-                checkGPSPermission();
-            }, 2000);
+                showMerchantDataAlert();
+            }, 1000);
             
             // إعداد مستمعات الأحداث
             document.querySelectorAll('.tab-btn').forEach(btn => {
