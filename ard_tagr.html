@@ -234,6 +234,61 @@
         // ====== إعداد المتغيرات الأساسية ======
         function goBack(){ window.history.back(); }
         
+        // ====== نظام الجلوبال لتخزين بيانات التاجر ======
+        const merchantGlobal = {
+            // حفظ اسم التاجر في الجلوبال
+            setMerchantName: function(name) {
+                sessionStorage.setItem('merchantName', name);
+                localStorage.setItem('merchantName', name);
+                console.log('✅ تم حفظ اسم التاجر في الجلوبال:', name);
+            },
+            
+            getMerchantName: function() {
+                return sessionStorage.getItem('merchantName') || localStorage.getItem('merchantName') || '';
+            },
+            
+            // حفظ معرف التاجر في الجلوبال
+            setMerchantId: function(merchantId) {
+                sessionStorage.setItem('merchantId', merchantId);
+                localStorage.setItem('merchantId', merchantId);
+                console.log('✅ تم حفظ معرف التاجر في الجلوبال:', merchantId);
+            },
+            
+            getMerchantId: function() {
+                return sessionStorage.getItem('merchantId') || localStorage.getItem('merchantId') || '';
+            },
+            
+            // حفظ رقم الجوال/الواتساب في الجلوبال
+            setMerchantPhone: function(phone) {
+                sessionStorage.setItem('merchantPhone', phone);
+                localStorage.setItem('merchantPhone', phone);
+                console.log('✅ تم حفظ رقم التاجر في الجلوبال:', phone);
+            },
+            
+            getMerchantPhone: function() {
+                return sessionStorage.getItem('merchantPhone') || localStorage.getItem('merchantPhone') || '';
+            },
+            
+            // إفراغ جميع بيانات التاجر من الجلوبال
+            clearAll: function() {
+                sessionStorage.removeItem('merchantName');
+                sessionStorage.removeItem('merchantId');
+                sessionStorage.removeItem('merchantPhone');
+                localStorage.removeItem('merchantName');
+                localStorage.removeItem('merchantId');
+                localStorage.removeItem('merchantPhone');
+                console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
+            },
+            
+            // حفظ جميع بيانات التاجر دفعة واحدة
+            setMerchantData: function(merchantData) {
+                this.setMerchantName(merchantData.name || '');
+                this.setMerchantId(merchantData.userId || '');
+                this.setMerchantPhone(merchantData.mobile || merchantData.phone || '');
+                console.log('✅ تم حفظ جميع بيانات التاجر في الجلوبال:', merchantData);
+            }
+        };
+
         // ====== تصحيح قراءة البيانات من localStorage ======
         // قراءة جميع المفاتيح المحتملة من localStorage
         function getLocalStorageData() {
@@ -563,14 +618,23 @@
                 finalShareBtn.addEventListener('click', ()=>{ shareMerchantDetails(merchant); }); 
             }
 
+            // ====== تحديث مستمع زر عرض المنتجات ======
             document.getElementById('showProductsBtn').addEventListener('click', ()=>{ 
-                // حفظ بيانات التاجر في localStorage
-                localStorage.setItem('selectedMerchantId', merchant.userId || '');
-                localStorage.setItem('selectedMerchantName', merchant.name || 'غير معروف');
-                localStorage.setItem('selectedMerchantPhone', merchant.mobile || merchant.phone || 'غير معروف');
+                // حفظ بيانات التاجر في الجلوبال (sessionStorage و localStorage)
+                merchantGlobal.setMerchantData(merchant);
                 
-                // فتح صفحة mntg_tagr.html
-                window.location.href = 'mntg_tagr.html';
+                console.log('📦 تم حفظ بيانات التاجر في الجلوبال:', {
+                    name: merchantGlobal.getMerchantName(),
+                    id: merchantGlobal.getMerchantId(),
+                    phone: merchantGlobal.getMerchantPhone()
+                });
+                
+                showNotification('تم حفظ بيانات التاجر، جاري فتح صفحة المنتجات...', 'info');
+                
+                // فتح صفحة mntg_tagr.html بعد تأخير بسيط
+                setTimeout(() => {
+                    window.location.href = 'mntg_tagr.html';
+                }, 1000);
             });
 
             document.getElementById('calcRouteBtn').addEventListener('click', ()=>{ calculateRoute(); });
