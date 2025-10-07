@@ -407,14 +407,48 @@
             }, 3000);
         }
 
+        // ====== دالة التحقق من إعدادات عرض الرقم ======
+        function shouldShowPhoneNumber(merchant) {
+            // التحقق من حقل showNumber في بيانات التاجر
+            // إذا كان القيمة 1 أو true أو "1" يتم عرض الرقم
+            // إذا كان القيمة 0 أو false أو "0" أو غير موجود لا يتم عرض الرقم
+            const showNumber = merchant.showNumber;
+            
+            console.log('حقل showNumber للتاجر:', showNumber, 'نوع:', typeof showNumber);
+            
+            if (showNumber === undefined || showNumber === null) {
+                // إذا لم يكن الحقل موجوداً، نعرض الرقم افتراضياً للحفاظ على التوافق
+                console.log('حقل showNumber غير موجود، عرض الرقم افتراضياً');
+                return true;
+            }
+            
+            // التحقق من القيم المختلفة
+            if (showNumber === 1 || showNumber === '1' || showNumber === true) {
+                console.log('حقل showNumber مفعل، عرض الرقم');
+                return true;
+            }
+            
+            if (showNumber === 0 || showNumber === '0' || showNumber === false) {
+                console.log('حقل showNumber غير مفعل، إخفاء الرقم');
+                return false;
+            }
+            
+            // في حالة وجود قيمة غير متوقعة، نعرض الرقم افتراضياً
+            console.log('قيمة showNumber غير متوقعة، عرض الرقم افتراضياً');
+            return true;
+        }
+
         // ====== دالة عرض تفاصيل التاجر ======
         function displayMerchantDetails(merchant){
             currentMerchantData = merchant;
             const showDistanceField = hasValidPhoneNumber(merchant);
+            
+            // التحقق من إعدادات عرض الرقم
+            const shouldShowPhone = shouldShowPhoneNumber(merchant);
 
-            // محتوى الهاتف - إخفاء الحقل إذا كان النص "غير معروف"
+            // محتوى الهاتف - إخفاء الحقل إذا كان النص "غير معروف" أو إذا كان عرض الرقم معطلاً
             let phoneContent = '';
-            if(merchant.phone && merchant.phone !== 'غير معروف'){
+            if(merchant.phone && merchant.phone !== 'غير معروف' && shouldShowPhone){
                 phoneContent = `
                     <div class="detail-item">
                         <div class="detail-icon"><i class="fas fa-phone"></i></div>
@@ -430,11 +464,25 @@
                             </div>
                         </div>
                     </div>`;
+            } else if (merchant.phone && merchant.phone !== 'غير معروف' && !shouldShowPhone) {
+                // إذا كان الرقم موجوداً ولكن عرضه معطل
+                phoneContent = `
+                    <div class="detail-item">
+                        <div class="detail-icon"><i class="fas fa-phone"></i></div>
+                        <div class="detail-content">
+                            <div class="detail-label">رقم الهاتف</div>
+                            <div class="detail-value">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="color: var(--light-text); font-style: italic;">غير متاح للعامة</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
             }
 
-            // محتوى الجوال
-            let mobileContent = 'غير متوفر';
-            if(merchant.mobile){
+            // محتوى الجوال - التحكم في العرض بناءً على إعدادات التاجر
+            let mobileContent = '';
+            if(merchant.mobile && shouldShowPhone){
                 mobileContent = `
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <span>${merchant.mobile}</span>
@@ -444,8 +492,17 @@
                             <button class="action-btn share-btn" id="shareLocationBtn"><i class="fas fa-share-alt"></i></button>
                         </div>
                     </div>`;
+            } else if (merchant.mobile && !shouldShowPhone) {
+                // إذا كان الرقم موجوداً ولكن عرضه معطل
+                mobileContent = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="color: var(--light-text); font-style: italic;">غير متاح للعامة</span>
+                        <div class="action-buttons">
+                            <button class="action-btn share-btn" id="shareLocationBtnSmall"><i class="fas fa-share-alt"></i> مشاركة</button>
+                        </div>
+                    </div>`;
             } else {
-                // زر مشاركة الموقع حتى لو لم يكن هناك جوال (يرسل بدون رقم إذا لزم)
+                // إذا لم يكن هناك رقم جوال
                 mobileContent = `<div style="display:flex;justify-content:space-between;align-items:center;"><span>غير متوفر</span>
                     <div class="action-buttons">
                         <button class="action-btn share-btn" id="shareLocationBtnSmall"><i class="fas fa-share-alt"></i> مشاركة</button>
@@ -460,7 +517,7 @@
                     <div class="merchant-info">
                         <div class="merchant-name">${merchant.name || 'غير محدد'}</div>
                         <div class="merchant-category">معرف المستخدم: <span id="userIdField">${merchant.userId || 'غير متوفر'}</span></div>
-                        ${showDistanceField?`<div class="merchant-distance" id="distanceField"><i class="fas fa-road"></i> <span id="distanceValue">جاري حساب المسافة...</span></div>`:''}
+                        ${showDistanceField && shouldShowPhone ?`<div class="merchant-distance" id="distanceField"><i class="fas fa-road"></i> <span id="distanceValue">جاري حساب المسافة...</span></div>`:''}
                     </div>
                 </div>
 
@@ -495,12 +552,16 @@
 
             // بعد إدراج HTML، أضف مستمعات للأزرار الديناميكية
             const openWhatsBtn = document.getElementById('openWhatsAppBtn');
-            if(openWhatsBtn){ openWhatsBtn.addEventListener('click', ()=>{ openWhatsApp(merchant.mobile||merchant.phone); }); }
+            if(openWhatsBtn && shouldShowPhone){ 
+                openWhatsBtn.addEventListener('click', ()=>{ openWhatsApp(merchant.mobile||merchant.phone); }); 
+            }
 
             const shareBtn = document.getElementById('shareLocationBtn');
             const shareBtnSmall = document.getElementById('shareLocationBtnSmall');
             const finalShareBtn = shareBtn || shareBtnSmall;
-            if(finalShareBtn){ finalShareBtn.addEventListener('click', ()=>{ shareMerchantDetails(merchant); }); }
+            if(finalShareBtn){ 
+                finalShareBtn.addEventListener('click', ()=>{ shareMerchantDetails(merchant); }); 
+            }
 
             document.getElementById('showProductsBtn').addEventListener('click', ()=>{ 
                 // حفظ بيانات التاجر في localStorage
@@ -519,10 +580,19 @@
         }
 
         // ====== دوال الاتصال و واتساب ======
-        function callNumber(phoneNumber){ window.open(`tel:${phoneNumber}`,'_self'); }
+        function callNumber(phoneNumber){ 
+            if (!phoneNumber || phoneNumber === 'غير معروف') {
+                showNotification('لا يوجد رقم للتواصل', 'error');
+                return;
+            }
+            window.open(`tel:${phoneNumber}`,'_self'); 
+        }
 
         function openWhatsApp(phoneNumber){
-            if(!phoneNumber){ alert('لا يوجد رقم للتواصل.'); return; }
+            if(!phoneNumber || phoneNumber === 'غير معروف'){ 
+                showNotification('لا يوجد رقم للتواصل.', 'error'); 
+                return; 
+            }
             let clean = phoneNumber.replace(/\D/g,'');
             if(clean.startsWith('0') && clean.length===10) clean = '967' + clean.substring(1);
             if(!clean.startsWith('967') && clean.length===9) clean = '967' + clean;
@@ -533,6 +603,9 @@
 
         // دالة مشاركة الموقع + تفاصيل + منتجات عبر واتساب
         function shareMerchantDetails(merchant){
+            // التحقق من إعدادات عرض الرقم
+            const shouldShowPhone = shouldShowPhoneNumber(merchant);
+            
             // رابط الموقع
             const mapLink = merchant.location? `https://www.google.com/maps?q=${merchant.location}` : 'الموقع غير متوفر';
 
@@ -543,7 +616,15 @@
                 Object.values(merchant.products).forEach(p=>{ productsText += `- ${p.name || p.title || ''} ${p.price?(' - '+p.price):''}\n`; });
             }
 
-            const msg = `📍 تفاصيل التاجر:\n👤 الاسم: ${merchant.name || 'غير متوفر'}\n📞 الهاتف: ${merchant.phone || 'غير متوفر'}\n📱 الجوال: ${merchant.mobile || 'غير متوفر'}\n🌍 الموقع: ${mapLink}${productsText}\n🔗 عبر تطبيق AZ`;
+            // إعداد نص المشاركة بناءً على إعدادات عرض الرقم
+            let phoneText = '';
+            if (shouldShowPhone) {
+                phoneText = `📞 الهاتف: ${merchant.phone || 'غير متوفر'}\n📱 الجوال: ${merchant.mobile || 'غير متوفر'}\n`;
+            } else {
+                phoneText = `📞 معلومات الاتصال: غير متاحة للعامة\n`;
+            }
+
+            const msg = `📍 تفاصيل التاجر:\n👤 الاسم: ${merchant.name || 'غير متوفر'}\n${phoneText}🌍 الموقع: ${mapLink}${productsText}\n🔗 عبر تطبيق AZ`;
 
             // استخدام واجهة المشاركة العامة
             if (navigator.share) {
@@ -606,19 +687,26 @@
                         const dist = calculateDistance(userCoords[0],userCoords[1], currentMerchantCoords[0], currentMerchantCoords[1]);
                         const routeInfo = document.getElementById('routeInfo');
                         if(routeInfo) routeInfo.innerHTML += `<br><strong>المسافة المباشرة:</strong> ${dist} كم`;
-                        if(hasValidPhoneNumber(merchant)) updateDistanceField(dist);
+                        
+                        // التحقق من إعدادات عرض الرقم قبل تحديث المسافة
+                        const shouldShowPhone = shouldShowPhoneNumber(merchant);
+                        if(hasValidPhoneNumber(merchant) && shouldShowPhone) updateDistanceField(dist);
 
                         // ضبط الإطار لعرض كلا النقطتين
                         try{ const bounds = L.latLngBounds([userCoords, currentMerchantCoords]); map.fitBounds(bounds, { padding:[50,50] }); }catch(e){}
                     }
                 }, err=>{
                     console.warn('gps err', err);
-                    if(hasValidPhoneNumber(merchant)) updateDistanceField('غير متوفر');
+                    // التحقق من إعدادات عرض الرقم قبل تحديث المسافة
+                    const shouldShowPhone = shouldShowPhoneNumber(merchant);
+                    if(hasValidPhoneNumber(merchant) && shouldShowPhone) updateDistanceField('غير متوفر');
                     // عرض إشعار تفعيل GPS
                     showGpsAlert();
                 }, { timeout:10000 });
             } else {
-                if(hasValidPhoneNumber(merchant)) updateDistanceField('غير متوفر');
+                // التحقق من إعدادات عرض الرقم قبل تحديث المسافة
+                const shouldShowPhone = shouldShowPhoneNumber(merchant);
+                if(hasValidPhoneNumber(merchant) && shouldShowPhone) updateDistanceField('غير متوفر');
                 // عرض إشعار تفعيل GPS
                 showGpsAlert();
             }
