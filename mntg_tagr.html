@@ -116,7 +116,7 @@
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
             animation: slideDown 0.5s ease-out;
-            display: none; /* إخفاء الإشعار افتراضياً */
+            display: none;
         }
 
         .merchant-data-alert h4 {
@@ -862,12 +862,12 @@
             <div class="header-content">
                 <div class="app-info">
                     <div class="app-logo">
-                        <img src="https://github.com/T772299420/Call/raw/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png" alt="شعار السوق الشامل">
+                        <img src="https://raw.githubusercontent.com/e772299420-hue/Call/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png" alt="شعار AZ السوق الشامل">
                     </div>
-                    <div class="app-name">السوق الشامل</div>
+                    <div class="app-name">AZ السوق الشامل</div>
                 </div>
                 <div class="merchant-section">
-                    <div class="management-name">إدارة الأصناف والمنتجات</div>
+                    <div class="management-name">لتلبية احتياجك بالكامل</div>
                     <div class="merchant-name" id="user-display-name">جاري التحميل...</div>
                 </div>
             </div>
@@ -888,8 +888,8 @@
                         <div class="data-value" id="merchant-id-value">جاري التحميل...</div>
                     </div>
                     <div class="data-item">
-                        <div class="data-label">اسم المنتج:</div>
-                        <div class="data-value" id="product-name-value">جاري التحميل...</div>
+                        <div class="data-label">حقل الشيك بوكس (showNumber):</div>
+                        <div class="data-value" id="show-number-value">جاري التحميل...</div>
                     </div>
                     <div class="data-item">
                         <div class="data-label">رقم الجوال/الواتساب:</div>
@@ -1043,6 +1043,7 @@
         let currentMerchantData = null;
         let currentLightboxImages = [];
         let currentLightboxIndex = 0;
+        let currentShowNumberStatus = null;
 
         // دالة للتحقق من إعدادات عرض الرقم
         async function shouldShowWhatsAppButton(merchantId) {
@@ -1066,7 +1067,14 @@
                     
                     // التحقق من حقل showNumber
                     const showNumber = merchant.showNumber;
+                    currentShowNumberStatus = showNumber;
                     console.log('قيمة showNumber:', showNumber, 'نوع:', typeof showNumber);
+                    
+                    // تحديث عرض حقل الشيك بوكس في الإشعار
+                    updateShowNumberDisplay(showNumber);
+                    
+                    // عرض إشعار بحالة الشيك بوكس
+                    showCheckboxStatusNotification(showNumber);
                     
                     // إذا كان القيمة 1 أو "1" أو true يتم عرض الزر
                     if (showNumber === 1 || showNumber === '1' || showNumber === true) {
@@ -1085,6 +1093,35 @@
                 console.error('خطأ في التحقق من إعدادات التاجر:', error);
                 return false;
             }
+        }
+
+        // دالة لتحديث عرض حقل الشيك بوكس في الإشعار
+        function updateShowNumberDisplay(showNumber) {
+            const showNumberElement = document.getElementById('show-number-value');
+            if (showNumberElement) {
+                if (showNumber === 1 || showNumber === '1' || showNumber === true) {
+                    showNumberElement.textContent = '1 (مفعل - سيتم عرض زر واتساب)';
+                    showNumberElement.style.color = '#4ade80';
+                } else {
+                    showNumberElement.textContent = '0 (معطل - سيتم إخفاء زر واتساب)';
+                    showNumberElement.style.color = '#f87171';
+                }
+            }
+        }
+
+        // دالة لعرض إشعار بحالة الشيك بوكس
+        function showCheckboxStatusNotification(showNumber) {
+            let message, type;
+            
+            if (showNumber === 1 || showNumber === '1' || showNumber === true) {
+                message = 'حقل الشيك بوكس (showNumber) مفعل - سيتم عرض زر واتساب';
+                type = 'success';
+            } else {
+                message = 'حقل الشيك بوكس (showNumber) معطل - سيتم إخفاء زر واتساب';
+                type = 'warning';
+            }
+            
+            showToast(message, type);
         }
 
         // دالة لعرض إشعار بيانات التاجر
@@ -1116,10 +1153,14 @@
             document.getElementById('merchant-id-value').textContent = merchantId || "غير محدد";
             document.getElementById('product-name-value').textContent = globalProductName;
             document.getElementById('whatsapp-value').textContent = merchantPhone || "غير متوفر";
+            
+            // تحديث حقل الشيك بوكس إذا كانت البيانات متاحة
+            if (currentShowNumberStatus !== null) {
+                updateShowNumberDisplay(currentShowNumberStatus);
+            }
         }
 
-     
-                // دالة جديدة: الحصول على رقم الجوال/الواتساب بناءً على userId
+        // دالة جديدة: الحصول على رقم الجوال/الواتساب بناءً على userId
         async function getUserWhatsappNumber(userId) {
             try {
                 if (!database) {
@@ -1714,7 +1755,7 @@
                 return;
             }
             
-            const message = `متجر AZ السوق الشامل لتلبية احتياجك بالكامل
+            const message = `AZ السوق الشامل لتلبية احتياجك بالكامل
 https://e772299420-hue.github.io/Call/index.html
 
 مرحباً! أود الاستفسار بخصوص المنتج التالي
@@ -1846,9 +1887,6 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
             loadCategories();
             loadProducts();
             loadAndDisplayWhatsappNumber();
-            
-            // إخفاء الإشعار عند فتح الصفحة (تم تعيينه في CSS)
-            // يمكن إزالته نهائياً أو إضافة زر لعرضه يدوياً
         });
     </script>
 </body>
