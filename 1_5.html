@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AZ التسوق الشامل لتلبية احتياجك بالكامل</title>
+    <title>AZ السوق الشامل لتلبية احتياجك بالكامل</title>
     <!-- ربط Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
@@ -81,6 +81,14 @@
         .site-tagline {
             font-size: 0.9rem;
             opacity: 0.9;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .site-subtitle {
+            font-size: 1rem;
+            color: var(--dark-color);
+            margin-top: 5px;
         }
         
         /* عنوان الصفحة مع زر التعليمات */
@@ -220,28 +228,73 @@
             font-size: 14px;
         }
         
+        .btn-icon {
+            padding: 10px 12px;
+            background-color: transparent;
+            color: var(--dark-color);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            position: relative;
+        }
+        
+        .btn-icon:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-2px);
+        }
+        
         .btn-like {
-            background-color: var(--accent-color);
+            color: var(--accent-color);
         }
         
         .btn-like:hover {
-            background-color: #c0392b;
+            color: #c0392b;
         }
         
         .btn-comment {
-            background-color: var(--success-color);
+            color: var(--success-color);
         }
         
         .btn-comment:hover {
-            background-color: #219653;
+            color: #219653;
         }
         
         .btn-share {
-            background-color: var(--warning-color);
+            color: var(--warning-color);
         }
         
         .btn-share:hover {
-            background-color: #e67e22;
+            color: #e67e22;
+        }
+        
+        .action-count {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .like-count-badge {
+            background-color: var(--accent-color);
+        }
+        
+        .comment-count-badge {
+            background-color: var(--success-color);
         }
         
         /* حاوية المنتجات */
@@ -325,7 +378,7 @@
         }
         
         .product-footer {
-            padding: 20px;
+            padding: 15px 20px;
             background-color: #f8f9fa;
             border-top: 1px solid #eee;
         }
@@ -537,11 +590,12 @@
         .likes-section {
             display: flex;
             align-items: center;
-            margin-top: 15px;
-            padding: 12px;
+            justify-content: space-around;
+            margin-top: 10px;
+            padding: 10px;
             background-color: #f8f9fa;
             border-radius: 6px;
-            gap: 10px;
+            gap: 5px;
         }
         
         .like-count {
@@ -660,7 +714,8 @@
             <div class="logo-container">
                 <img src="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true" alt="شعار المتجر" class="logo">
                 <div>
-                    <h1 class="site-name">AZ التسوق الشامل</h1>
+                    <h1 class="site-name">AZ السوق الشامل</h1>
+                    <div class="site-subtitle">سوق المباني والعقارات وتأجير المنازل</div>
                     <div class="site-tagline">لتلبية احتياجك بالكامل</div>
                 </div>
             </div>
@@ -747,7 +802,6 @@
         
         // متغيرات التطبيق
         let activeProducts = [];
-        let governoratesData = {};
         let usersCache = {};
         let currentUserId = null;
         let commentModalOpen = false;
@@ -775,7 +829,6 @@
         // عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', function() {
             // تحميل البيانات الأولية
-            loadGovernorates();
             loadActiveProducts();
             
             // عرض نافذة التعليمات عند فتح الصفحة لأول مرة
@@ -808,21 +861,6 @@
         // إخفاء نافذة التعليمات
         function hideInstructions() {
             document.getElementById('instructions-modal').style.display = 'none';
-        }
-        
-        // تحميل المحافظات
-        function loadGovernorates() {
-            const governoratesRef = database.ref('governorates');
-            
-            governoratesRef.once('value')
-                .then(snapshot => {
-                    if (snapshot.exists()) {
-                        governoratesData = snapshot.val();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading governorates:', error);
-                });
         }
         
         // تحميل المنتجات النشطة من snf_ard
@@ -888,10 +926,6 @@
             card.className = 'product-card';
             card.id = `product-${product.id}`;
             
-            // جلب بيانات المحافظة والمنطقة
-            const governorateName = governoratesData[product.governorate]?.name || product.governorate;
-            const regionName = governoratesData[product.governorate]?.regions?.[product.region]?.name || product.region;
-            
             // تنسيق تاريخ النشر بالميلادي عربي
             let publishDate = 'غير محدد';
             if (product.orderDate) {
@@ -934,14 +968,6 @@
                         <span class="detail-label"><i class="fas fa-check-circle"></i> الحالة:</span>
                         <span class="detail-value">${product.condition || 'غير محدد'}</span>
                     </div>
-                    <div class="product-detail">
-                        <span class="detail-label"><i class="fas fa-map-marker-alt"></i> المحافظة:</span>
-                        <span class="detail-value">${governorateName || 'غير محدد'}</span>
-                    </div>
-                    <div class="product-detail">
-                        <span class="detail-label"><i class="fas fa-map-pin"></i> المنطقة:</span>
-                        <span class="detail-value">${regionName || 'غير محدد'}</span>
-                    </div>
                     <div class="product-detail" style="display: ${specificationsDisplay};">
                         <span class="detail-label"><i class="fas fa-info-circle"></i> المواصفات:</span>
                         <span class="detail-value">${product.specifications || 'لا يوجد'}</span>
@@ -960,17 +986,16 @@
                 </div>
                 <div class="product-footer">
                     <div class="likes-section">
-                        <span class="like-count" id="like-count-${product.id}">
-                            <i class="fas fa-heart"></i> 70
-                        </span>
-                        <button class="btn btn-like btn-sm" onclick="likeProduct('${product.id}')">
-                            <i class="fas fa-thumbs-up"></i> إعجاب
+                        <button class="btn-icon btn-like btn-comment-toggle" onclick="toggleCommentsModal('${product.id}')">
+                            <span class="action-count comment-count-badge" id="comment-count-badge-${product.id}">0</span>
+                            <i class="fas fa-comments"></i>
                         </button>
-                        <button class="btn btn-comment btn-sm btn-comment-toggle" onclick="toggleCommentsModal('${product.id}')">
-                            <i class="fas fa-comments"></i> تعليقات
+                        <button class="btn-icon btn-comment" onclick="likeProduct('${product.id}')">
+                            <span class="action-count like-count-badge" id="like-count-badge-${product.id}">70</span>
+                            <i class="fas fa-heart"></i>
                         </button>
-                        <button class="btn btn-share btn-sm" onclick="shareProduct('${product.id}')">
-                            <i class="fas fa-share"></i> مشاركة
+                        <button class="btn-icon btn-share" onclick="shareProduct('${product.id}')">
+                            <i class="fas fa-share"></i>
                         </button>
                     </div>
                     
@@ -1059,15 +1084,16 @@
             currentCommentProductId = null;
         }
         
-        // تحميل التعليقات
+        // تحميل التعليقات من snf_ard_talek
         function loadComments(productId) {
-            const commentsRef = database.ref(`comments/${productId}`);
+            const commentsRef = database.ref(`snf_ard_talek/${productId}/comments`);
             
             commentsRef.on('value', snapshot => {
                 const commentsList = document.getElementById(`comments-${productId}`);
                 const commentsCount = document.getElementById(`comments-count-${productId}`);
+                const commentCountBadge = document.getElementById(`comment-count-badge-${productId}`);
                 
-                if (!commentsList || !commentsCount) return;
+                if (!commentsList || !commentsCount || !commentCountBadge) return;
                 
                 commentsList.innerHTML = '';
                 
@@ -1089,6 +1115,7 @@
                     
                     // تحديث عدد التعليقات
                     commentsCount.innerHTML = `<i class="fas fa-comments"></i> التعليقات (${totalComments})`;
+                    commentCountBadge.textContent = totalComments;
                     
                     // ترتيب التعليقات من الأحدث إلى الأقدم
                     comments.sort((a, b) => b.timestamp - a.timestamp);
@@ -1147,13 +1174,14 @@
                 } else {
                     commentsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #888;">لا توجد تعليقات بعد</div>';
                     commentsCount.innerHTML = '<i class="fas fa-comments"></i> التعليقات (0)';
+                    commentCountBadge.textContent = '0';
                 }
             });
         }
         
-        // تحميل الردود
+        // تحميل الردود من snf_ard_talek
         function loadReplies(productId, commentId) {
-            const repliesRef = database.ref(`comments/${productId}/${commentId}/replies`);
+            const repliesRef = database.ref(`snf_ard_talek/${productId}/comments/${commentId}/replies`);
             
             repliesRef.on('value', snapshot => {
                 const repliesList = document.getElementById(`replies-${commentId}`);
@@ -1211,24 +1239,24 @@
             }
         }
         
-        // تحميل الإعجابات
+        // تحميل الإعجابات من snf_ard_talek
         function loadLikes(productId) {
-            const likesRef = database.ref(`likes/${productId}`);
+            const likesRef = database.ref(`snf_ard_talek/${productId}/likes`);
             
             likesRef.on('value', snapshot => {
-                const likeCountElement = document.getElementById(`like-count-${productId}`);
-                if (!likeCountElement) return;
+                const likeCountBadge = document.getElementById(`like-count-badge-${productId}`);
+                if (!likeCountBadge) return;
                 
                 if (snapshot.exists()) {
                     // إضافة 70 إلى عدد الإعجابات الحقيقي
-                    likeCountElement.innerHTML = `<i class="fas fa-heart"></i> ${snapshot.numChildren() + 70}`;
+                    likeCountBadge.textContent = snapshot.numChildren() + 70;
                 } else {
-                    likeCountElement.innerHTML = '<i class="fas fa-heart"></i> 70';
+                    likeCountBadge.textContent = '70';
                 }
             });
         }
         
-        // إضافة تعليق
+        // إضافة تعليق إلى snf_ard_talek
         function addComment(productId) {
             const commentInput = document.getElementById(`comment-input-${productId}`);
             const commentText = commentInput.value.trim();
@@ -1255,7 +1283,7 @@
                 productId: productId
             };
             
-            const commentRef = database.ref(`comments/${productId}/${commentId}`);
+            const commentRef = database.ref(`snf_ard_talek/${productId}/comments/${commentId}`);
             commentRef.set(commentData)
                 .then(() => {
                     commentInput.value = '';
@@ -1266,7 +1294,7 @@
                 });
         }
         
-        // إضافة رد
+        // إضافة رد إلى snf_ard_talek
         function addReply(productId, commentId) {
             const replyInput = document.getElementById(`reply-input-${commentId}`);
             const replyText = replyInput.value.trim();
@@ -1294,7 +1322,7 @@
                 commentId: commentId
             };
             
-            const replyRef = database.ref(`comments/${productId}/${commentId}/replies/${replyId}`);
+            const replyRef = database.ref(`snf_ard_talek/${productId}/comments/${commentId}/replies/${replyId}`);
             replyRef.set(replyData)
                 .then(() => {
                     replyInput.value = '';
@@ -1305,10 +1333,10 @@
                 });
         }
         
-        // إعجاب بمنتج
+        // إعجاب بمنتج في snf_ard_talek
         function likeProduct(productId) {
             const visitorId = getVisitorId();
-            const likeRef = database.ref(`likes/${productId}/${visitorId}`);
+            const likeRef = database.ref(`snf_ard_talek/${productId}/likes/${visitorId}`);
             
             // التحقق إذا كان المستخدم قد أعجب بهذا المنتج مسبقاً
             likeRef.once('value')
@@ -1340,8 +1368,8 @@
             
             if (navigator.share) {
                 navigator.share({
-                    title: 'عقار من AZ التسوق الشامل',
-                    text: 'اكتشف هذا العقار الرائع على منصة AZ التسوق الشامل',
+                    title: 'عقار من AZ السوق الشامل',
+                    text: 'اكتشف هذا العقار الرائع على منصة AZ السوق الشامل',
                     url: productUrl
                 })
                 .catch(error => {
