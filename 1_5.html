@@ -698,14 +698,19 @@
         <div class="search-container">
             <div class="search-box">
                 <input type="text" id="search-products" class="search-input" placeholder="ابحث في العقارات..." onkeyup="filterProducts()">
-                <select id="filter-category" class="filter-select" onchange="filterProducts()">
-                    <option value="">جميع الفئات</option>
+                <select id="filter-condition" class="filter-select" onchange="filterProducts()">
+                    <option value="">جميع الحالات</option>
+                    <option value="أراضي">أراضي</option>
+                    <option value="منازل">منازل</option>
+                    <option value="شقق">شقق</option>
+                    <option value="محلات">محلات</option>
+                    <option value="أخرى">أخرى</option>
                 </select>
                 <select id="filter-type" class="filter-select" onchange="filterProducts()">
                     <option value="">جميع الأنواع</option>
                     <option value="بيع">بيع</option>
                     <option value="شراء">شراء</option>
-                    <option value="إيجار">إيجار</option>
+                    <option value="ايجار">إيجار</option>
                 </select>
             </div>
         </div>
@@ -743,7 +748,6 @@
         // متغيرات التطبيق
         let activeProducts = [];
         let governoratesData = {};
-        let categoriesData = {};
         let usersCache = {};
         let currentUserId = null;
         let commentModalOpen = false;
@@ -772,7 +776,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             // تحميل البيانات الأولية
             loadGovernorates();
-            loadCategories();
             loadActiveProducts();
             
             // عرض نافذة التعليمات عند فتح الصفحة لأول مرة
@@ -822,35 +825,9 @@
                 });
         }
         
-        // تحميل الفئات
-        function loadCategories() {
-            const categoriesRef = database.ref('categories');
-            
-            categoriesRef.once('value')
-                .then(snapshot => {
-                    const categoriesSelect = document.getElementById('filter-category');
-                    
-                    if (snapshot.exists()) {
-                        categoriesData = snapshot.val();
-                        
-                        // إضافة الفئات إلى قائمة التصفية
-                        snapshot.forEach(childSnapshot => {
-                            const category = childSnapshot.val();
-                            const option = document.createElement('option');
-                            option.value = childSnapshot.key;
-                            option.textContent = category.name || 'غير معروف';
-                            categoriesSelect.appendChild(option);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading categories:', error);
-                });
-        }
-        
-        // تحميل المنتجات النشطة
+        // تحميل المنتجات النشطة من snf_ard
         function loadActiveProducts() {
-            const productsRef = database.ref('asnaf');
+            const productsRef = database.ref('snf_ard');
             
             document.getElementById('browse-loading').style.display = 'flex';
             document.getElementById('no-active-products').style.display = 'none';
@@ -866,13 +843,14 @@
                         
                         snapshot.forEach(childSnapshot => {
                             const product = childSnapshot.val();
+                            product.id = childSnapshot.key; // إضافة المعرف
                             activeProducts.push(product);
                             
-                            // جلب بيانات المستخدم من جدول snf_tgara
+                            // جلب بيانات المستخدم من جدول usr_ard
                             if (!usersCache[product.userId]) {
                                 usersCache[product.userId] = { name: 'جاري التحميل...' };
                                 
-                                database.ref('snf_tgara/' + product.userId).once('value')
+                                database.ref('usr_ard/' + product.userId).once('value')
                                     .then(userSnapshot => {
                                         if (userSnapshot.exists()) {
                                             const userData = userSnapshot.val();
@@ -914,9 +892,6 @@
             const governorateName = governoratesData[product.governorate]?.name || product.governorate;
             const regionName = governoratesData[product.governorate]?.regions?.[product.region]?.name || product.region;
             
-            // جلب اسم الفئة
-            const categoryName = categoriesData[product.category]?.name || product.category;
-            
             // تنسيق تاريخ النشر بالميلادي عربي
             let publishDate = 'غير محدد';
             if (product.orderDate) {
@@ -926,6 +901,7 @@
             // التحقق من وجود بيانات في الحقول لإظهارها أو إخفائها
             const specificationsDisplay = product.specifications ? 'flex' : 'none';
             const addressDisplay = product.address ? 'flex' : 'none';
+            const phoneDisplay = product.phone ? 'flex' : 'none';
             
             // التحقق إذا كان المنتج منشور من قبل المستخدم الحالي
             const isMyProduct = product.userId === currentUserId;
@@ -940,9 +916,9 @@
                         <i class="fas fa-user"></i> منشوري
                     </div>
                     ` : ''}
-                    <div class="product-title">${product.productName}</div>
+                    <div class="product-title">${product.productName || 'بدون عنوان'}</div>
                     <div class="product-price">
-                        <i class="fas fa-coins"></i> ${product.price} ريال
+                        <i class="fas fa-coins"></i> ${product.price || 'غير محدد'} ريال
                     </div>
                 </div>
                 <div class="product-body">
@@ -952,23 +928,19 @@
                     </div>
                     <div class="product-detail">
                         <span class="detail-label"><i class="fas fa-shopping-cart"></i> نوع الطلب:</span>
-                        <span class="detail-value">${product.requestType}</span>
+                        <span class="detail-value">${product.requestType || 'غير محدد'}</span>
                     </div>
                     <div class="product-detail">
                         <span class="detail-label"><i class="fas fa-check-circle"></i> الحالة:</span>
-                        <span class="detail-value">${product.condition}</span>
-                    </div>
-                    <div class="product-detail">
-                        <span class="detail-label"><i class="fas fa-list"></i> الفئة:</span>
-                        <span class="detail-value">${categoryName}</span>
+                        <span class="detail-value">${product.condition || 'غير محدد'}</span>
                     </div>
                     <div class="product-detail">
                         <span class="detail-label"><i class="fas fa-map-marker-alt"></i> المحافظة:</span>
-                        <span class="detail-value">${governorateName}</span>
+                        <span class="detail-value">${governorateName || 'غير محدد'}</span>
                     </div>
                     <div class="product-detail">
                         <span class="detail-label"><i class="fas fa-map-pin"></i> المنطقة:</span>
-                        <span class="detail-value">${regionName}</span>
+                        <span class="detail-value">${regionName || 'غير محدد'}</span>
                     </div>
                     <div class="product-detail" style="display: ${specificationsDisplay};">
                         <span class="detail-label"><i class="fas fa-info-circle"></i> المواصفات:</span>
@@ -977,6 +949,10 @@
                     <div class="product-detail" style="display: ${addressDisplay};">
                         <span class="detail-label"><i class="fas fa-home"></i> العنوان:</span>
                         <span class="detail-value">${product.address || 'غير محدد'}</span>
+                    </div>
+                    <div class="product-detail" style="display: ${phoneDisplay};">
+                        <span class="detail-label"><i class="fas fa-phone"></i> رقم الجوال:</span>
+                        <span class="detail-value">${product.phone || 'غير محدد'}</span>
                     </div>
                     <div class="publish-date">
                         <i class="far fa-calendar-alt"></i> تاريخ النشر: ${publishDate}
@@ -1392,7 +1368,7 @@
         // تصفية المنتجات
         function filterProducts() {
             const searchText = document.getElementById('search-products').value.toLowerCase();
-            const categoryFilter = document.getElementById('filter-category').value;
+            const conditionFilter = document.getElementById('filter-condition').value;
             const typeFilter = document.getElementById('filter-type').value;
             
             const productCards = document.querySelectorAll('.product-card');
@@ -1407,13 +1383,13 @@
                 }
                 
                 let matchesSearch = true;
-                let matchesCategory = true;
+                let matchesCondition = true;
                 let matchesType = true;
                 
                 // تطبيق فلتر البحث
                 if (searchText) {
                     const productText = (
-                        product.productName + ' ' + 
+                        (product.productName || '') + ' ' + 
                         (product.specifications || '') + ' ' + 
                         (product.address || '')
                     ).toLowerCase();
@@ -1421,9 +1397,9 @@
                     matchesSearch = productText.includes(searchText);
                 }
                 
-                // تطبيق فلتر الفئة
-                if (categoryFilter) {
-                    matchesCategory = product.category === categoryFilter;
+                // تطبيق فلتر الحالة
+                if (conditionFilter) {
+                    matchesCondition = product.condition === conditionFilter;
                 }
                 
                 // تطبيق فلتر النوع
@@ -1432,7 +1408,7 @@
                 }
                 
                 // إظهار أو إخفاء البطاقة بناءً على نتائج التصفية
-                if (matchesSearch && matchesCategory && matchesType) {
+                if (matchesSearch && matchesCondition && matchesType) {
                     card.style.display = 'block';
                 } else {
                     card.style.display = 'none';
@@ -1475,4 +1451,4 @@
         }
     </script>
 </body>
-                  </html>
+</html>
