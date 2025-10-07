@@ -6,7 +6,6 @@
     <title>نظام إدارة المتجر - إدارة الأصناف</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* الأنماط تبقى كما هي */
         :root {
             --primary-color: #667eea;
             --secondary-color: #764ba2;
@@ -117,6 +116,7 @@
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
             animation: slideDown 0.5s ease-out;
+            display: none; /* إخفاء الإشعار افتراضياً */
         }
 
         .merchant-data-alert h4 {
@@ -305,13 +305,13 @@
             width: 100%;
             height: 220px;
             overflow: hidden;
+            cursor: pointer;
         }
 
         .product-image {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            cursor: pointer;
             transition: var(--transition);
         }
 
@@ -763,6 +763,96 @@
             background: #128C7E;
             transform: translateY(-1px);
         }
+
+        /* استيدو الصور */
+        .image-lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            display: none;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .lightbox-image {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: var(--border-radius);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            transition: var(--transition);
+        }
+
+        .lightbox-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: var(--transition);
+        }
+
+        .lightbox-nav:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .lightbox-prev {
+            left: 20px;
+        }
+
+        .lightbox-next {
+            right: 20px;
+        }
+
+        .lightbox-counter {
+            position: absolute;
+            bottom: -40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -863,13 +953,30 @@
         <div class="whatsapp-content">
             <h3><i class="fab fa-whatsapp" style="color: #25D366;"></i> إرسال عبر واتساب</h3>
             <p>سيتم إرسال الرسالة مباشرة إلى التاجر:</p>
-            <div class="whatsapp-number" id="dialog-whatsapp-number">+966500000000</div>
+            <div class="whatsapp-number" id="dialog-whatsapp-number">جاري التحميل...</div>
             <div class="whatsapp-buttons">
                 <button class="btn-secondary" id="cancel-whatsapp">إلغاء</button>
                 <button class="btn-whatsapp" id="send-whatsapp">
                     <i class="fab fa-whatsapp"></i> إرسال مباشر
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- استيدو الصور -->
+    <div class="image-lightbox" id="image-lightbox">
+        <div class="lightbox-content">
+            <img class="lightbox-image" id="lightbox-image" src="" alt="">
+            <button class="lightbox-close" id="lightbox-close">
+                <i class="fas fa-times"></i>
+            </button>
+            <button class="lightbox-nav lightbox-prev" id="lightbox-prev">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="lightbox-nav lightbox-next" id="lightbox-next">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <div class="lightbox-counter" id="lightbox-counter"></div>
         </div>
     </div>
 
@@ -933,6 +1040,52 @@
         let allProducts = [];
         let allCategories = [];
         let productToShare = null;
+        let currentMerchantData = null;
+        let currentLightboxImages = [];
+        let currentLightboxIndex = 0;
+
+        // دالة للتحقق من إعدادات عرض الرقم
+        async function shouldShowWhatsAppButton(merchantId) {
+            try {
+                if (!database || !merchantId) {
+                    return false;
+                }
+                
+                const merchantsSnapshot = await database.ref('merchants').once('value');
+                const merchants = merchantsSnapshot.val() || {};
+                
+                // البحث عن التاجر في قاعدة البيانات
+                const merchant = Object.values(merchants).find(m => 
+                    m.userId === merchantId || m.id === merchantId
+                );
+                
+                if (merchant) {
+                    console.log('بيانات التاجر:', merchant);
+                    // حفظ بيانات التاجر الحالية
+                    currentMerchantData = merchant;
+                    
+                    // التحقق من حقل showNumber
+                    const showNumber = merchant.showNumber;
+                    console.log('قيمة showNumber:', showNumber, 'نوع:', typeof showNumber);
+                    
+                    // إذا كان القيمة 1 أو "1" أو true يتم عرض الزر
+                    if (showNumber === 1 || showNumber === '1' || showNumber === true) {
+                        console.log('✅ عرض زر واتساب - showNumber مفعل');
+                        return true;
+                    } else {
+                        console.log('❌ إخفاء زر واتساب - showNumber غير مفعل');
+                        return false;
+                    }
+                }
+                
+                console.log('⚠️ لم يتم العثور على بيانات التاجر');
+                return false;
+                
+            } catch (error) {
+                console.error('خطأ في التحقق من إعدادات التاجر:', error);
+                return false;
+            }
+        }
 
         // دالة لعرض إشعار بيانات التاجر
         function showMerchantDataAlert() {
@@ -965,7 +1118,8 @@
             document.getElementById('whatsapp-value').textContent = merchantPhone || "غير متوفر";
         }
 
-        // دالة جديدة: الحصول على رقم الجوال/الواتساب بناءً على userId
+     
+                // دالة جديدة: الحصول على رقم الجوال/الواتساب بناءً على userId
         async function getUserWhatsappNumber(userId) {
             try {
                 if (!database) {
@@ -976,13 +1130,26 @@
                     throw new Error("معرف المستخدم غير محدد");
                 }
                 
+                // البحث في جدول التجار أولاً
+                const merchantsSnapshot = await database.ref('merchants').once('value');
+                const merchants = merchantsSnapshot.val() || {};
+                
+                let merchant = Object.values(merchants).find(m => 
+                    m.userId === userId || m.id === userId
+                );
+                
+                if (merchant) {
+                    return merchant.mobile || merchant.phone || merchant.whatsappNumber || null;
+                }
+                
+                // إذا لم يتم العثور في التجار، نبحث في المستخدمين
                 const usersSnapshot = await database.ref('users').once('value');
                 const users = usersSnapshot.val() || {};
                 
                 const user = Object.values(users).find(u => u.id === userId);
                 
                 if (user) {
-                    return user.whatsappNumber || user.phoneNumber || null;
+                    return user.whatsappNumber || user.phoneNumber || user.mobile || null;
                 } else {
                     throw new Error("لم يتم العثور على المستخدم في قاعدة البيانات");
                 }
@@ -1119,6 +1286,7 @@
                 img.alt = `${productName} - صورة ${index + 1}`;
                 img.className = 'product-image';
                 img.crossOrigin = 'anonymous';
+                img.addEventListener('click', () => openImageLightbox(images, index));
                 
                 carouselItem.appendChild(img);
                 carouselInner.appendChild(carouselItem);
@@ -1178,6 +1346,57 @@
             }
             
             return carousel;
+        }
+
+        // دالة لفتح استيدو الصور
+        function openImageLightbox(images, startIndex = 0) {
+            currentLightboxImages = images;
+            currentLightboxIndex = startIndex;
+            
+            const lightbox = document.getElementById('image-lightbox');
+            const lightboxImage = document.getElementById('lightbox-image');
+            const lightboxCounter = document.getElementById('lightbox-counter');
+            
+            lightbox.style.display = 'flex';
+            updateLightboxImage();
+            
+            // تحديث العداد
+            lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${currentLightboxImages.length}`;
+        }
+
+        // دالة لتحديث صورة الاستيدو
+        function updateLightboxImage() {
+            const lightboxImage = document.getElementById('lightbox-image');
+            const lightboxCounter = document.getElementById('lightbox-counter');
+            
+            if (currentLightboxImages.length > 0) {
+                lightboxImage.src = getCorsImageUrl(currentLightboxImages[currentLightboxIndex]);
+                lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${currentLightboxImages.length}`;
+            }
+        }
+
+        // دالة لإغلاق استيدو الصور
+        function closeImageLightbox() {
+            const lightbox = document.getElementById('image-lightbox');
+            lightbox.style.display = 'none';
+            currentLightboxImages = [];
+            currentLightboxIndex = 0;
+        }
+
+        // دالة للصورة التالية في الاستيدو
+        function nextImage() {
+            if (currentLightboxImages.length > 0) {
+                currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
+                updateLightboxImage();
+            }
+        }
+
+        // دالة للصورة السابقة في الاستيدو
+        function prevImage() {
+            if (currentLightboxImages.length > 0) {
+                currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
+                updateLightboxImage();
+            }
         }
 
         // دالة لتحويل الطابع الزمني إلى تاريخ مقروء
@@ -1372,7 +1591,7 @@
         }
 
         // عرض المنتجات
-        function displayProducts(products) {
+        async function displayProducts(products) {
             const container = document.getElementById('products-container');
             
             if (!container) {
@@ -1395,6 +1614,10 @@
             
             container.innerHTML = '';
             
+            // التحقق من إعدادات عرض زر واتساب
+            const merchantId = merchantGlobal.getMerchantId();
+            const showWhatsAppButton = await shouldShowWhatsAppButton(merchantId);
+            
             products.forEach(product => {
                 const card = document.createElement('div');
                 card.className = 'product-card';
@@ -1404,7 +1627,7 @@
                 card.innerHTML = `
                     <div class="product-image-container">
                         ${hasImages ? '' : 
-                            `<div style="height: 100%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                            `<div style="height: 100%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b; cursor: pointer;" onclick="openImageLightbox(['https://via.placeholder.com/300x200?text=لا+توجد+صورة'], 0)">
                                 <i class="fas fa-image" style="font-size: 3rem;"></i>
                             </div>`
                         }
@@ -1424,9 +1647,11 @@
                             </span>
                         </div>
                         <div class="product-actions">
-                            <button class="btn-whatsapp share-btn" data-id="${product.id}">
-                                <i class="fab fa-whatsapp"></i> إرسال واتساب
-                            </button>
+                            ${showWhatsAppButton ? `
+                                <button class="btn-whatsapp share-btn" data-id="${product.id}">
+                                    <i class="fab fa-whatsapp"></i> إرسال واتساب
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -1435,15 +1660,23 @@
                     const imageContainer = card.querySelector('.product-image-container');
                     const carousel = createImageCarousel(product.imageUrls, product.name);
                     imageContainer.appendChild(carousel);
+                } else {
+                    // إضافة حدث النقر على الصورة الافتراضية
+                    const imageContainer = card.querySelector('.product-image-container');
+                    imageContainer.addEventListener('click', () => {
+                        openImageLightbox(['https://via.placeholder.com/300x200?text=لا+توجد+صورة'], 0);
+                    });
                 }
                 
                 container.appendChild(card);
                 
                 const shareBtn = card.querySelector('.share-btn');
-                shareBtn.addEventListener('click', function() {
-                    const productId = this.dataset.id;
-                    shareProductViaWhatsApp(productId);
-                });
+                if (shareBtn) {
+                    shareBtn.addEventListener('click', function() {
+                        const productId = this.dataset.id;
+                        shareProductViaWhatsApp(productId);
+                    });
+                }
             });
         }
 
@@ -1474,7 +1707,12 @@
             }
             
             const whatsappNumberElement = document.getElementById('whatsapp-number-text');
-            const whatsappNumber = whatsappNumberElement ? whatsappNumberElement.textContent : "+966500000000";
+            const whatsappNumber = whatsappNumberElement ? whatsappNumberElement.textContent : "";
+            
+            if (!whatsappNumber) {
+                showToast('لا يوجد رقم واتساب متاح', 'error');
+                return;
+            }
             
             const message = `متجر AZ السوق الشامل لتلبية احتياجك بالكامل
 https://e772299420-hue.github.io/Call/index.html
@@ -1487,7 +1725,7 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
 
 أنه عرض جميل هل المنتج متوفر ؟`;
 
-            const formattedNumber = whatsappNumber.replace('+', '');
+            const formattedNumber = whatsappNumber.replace('+', '').replace(/\s/g, '');
             const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
             
             window.open(whatsappUrl, '_blank');
@@ -1538,11 +1776,6 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
             updateUserDisplay();
             updateTabTitles();
             
-            // عرض إشعار بيانات التاجر
-            setTimeout(() => {
-                showMerchantDataAlert();
-            }, 1000);
-            
             // إعداد مستمعات الأحداث
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -1583,10 +1816,39 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
                 });
             });
             
+            // إعداد أحداث استيدو الصور
+            document.getElementById('lightbox-close').addEventListener('click', closeImageLightbox);
+            document.getElementById('lightbox-prev').addEventListener('click', prevImage);
+            document.getElementById('lightbox-next').addEventListener('click', nextImage);
+            
+            // إغلاق الاستيدو عند النقر خارج الصورة
+            document.getElementById('image-lightbox').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeImageLightbox();
+                }
+            });
+            
+            // إضافة أحداث لوحة المفاتيح للاستيدو
+            document.addEventListener('keydown', function(e) {
+                const lightbox = document.getElementById('image-lightbox');
+                if (lightbox.style.display === 'flex') {
+                    if (e.key === 'Escape') {
+                        closeImageLightbox();
+                    } else if (e.key === 'ArrowRight') {
+                        nextImage();
+                    } else if (e.key === 'ArrowLeft') {
+                        prevImage();
+                    }
+                }
+            });
+            
             // تحميل الأقسام والمنتجات عند فتح الصفحة
             loadCategories();
             loadProducts();
             loadAndDisplayWhatsappNumber();
+            
+            // إخفاء الإشعار عند فتح الصفحة (تم تعيينه في CSS)
+            // يمكن إزالته نهائياً أو إضافة زر لعرضه يدوياً
         });
     </script>
 </body>
