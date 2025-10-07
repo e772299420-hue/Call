@@ -812,14 +812,14 @@
         <div class="container">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="view-products-tab">
-                    <i class="fas fa-list"></i> <span id="tab-title">جميع المنتجات</span>
+                    <i class="fas fa-list"></i> <span id="tab-title">منتجات التاجر</span>
                 </button>
             </div>
 
             <!-- تبويب عرض الأصناف -->
             <div id="view-products-tab" class="tab-content active">
                 <div class="form-section">
-                    <h3><i class="fas fa-list"></i> <span id="section-title">جميع المنتجات المتاحة</span></h3>
+                    <h3><i class="fas fa-list"></i> <span id="section-title">منتجات التاجر</span></h3>
                     
                     <!-- قسم عرض رقم الجوال/الواتساب -->
                     <div class="whatsapp-number-display" id="whatsapp-number-display" style="display: none;">
@@ -895,6 +895,38 @@
         } catch (error) {
             console.error("خطأ في تهيئة Firebase:", error);
         }
+
+        // ====== نظام الجلوبال لتخزين بيانات التاجر ======
+        const merchantGlobal = {
+            // الحصول على اسم التاجر من الجلوبال
+            getMerchantName: function() {
+                return sessionStorage.getItem('merchantName') || localStorage.getItem('merchantName') || '';
+            },
+            
+            // الحصول على معرف التاجر من الجلوبال
+            getMerchantId: function() {
+                return sessionStorage.getItem('merchantId') || localStorage.getItem('merchantId') || '';
+            },
+            
+            // الحصول على رقم الجوال/الواتساب من الجلوبال
+            getMerchantPhone: function() {
+                return sessionStorage.getItem('merchantPhone') || localStorage.getItem('merchantPhone') || '';
+            },
+            
+            // التحقق من وجود بيانات تاجر في الجلوبال
+            hasMerchantData: function() {
+                return this.getMerchantId() !== '' && this.getMerchantName() !== '';
+            },
+            
+            // عرض بيانات الجلوبال في الكونسول للتشخيص
+            debug: function() {
+                console.log('=== بيانات الجلوبال ===');
+                console.log('اسم التاجر:', this.getMerchantName());
+                console.log('معرف التاجر:', this.getMerchantId());
+                console.log('رقم الجوال:', this.getMerchantPhone());
+                console.log('====================');
+            }
+        };
 
         // متغيرات عامة
         let allProducts = [];
@@ -982,19 +1014,18 @@
 
         // دالة لتحديث بيانات الإشعار
         function updateMerchantDataAlert() {
-            const userData = globalUser.getUserData();
-            const selectedMerchantName = localStorage.getItem("selectedMerchant") || "غير محدد";
+            // استخدام بيانات التاجر من الجلوبال
+            const merchantName = merchantGlobal.getMerchantName();
+            const merchantId = merchantGlobal.getMerchantId();
+            const merchantPhone = merchantGlobal.getMerchantPhone();
+            
+            // الحصول على اسم المنتج من localStorage
             const globalProductName = localStorage.getItem("selectedProductName") || "غير محدد";
             
-            document.getElementById('merchant-name-value').textContent = userData ? globalUser.getMerchantName() : "غير محدد";
-            document.getElementById('merchant-id-value').textContent = userData ? globalUser.getUserId() : "غير محدد";
+            document.getElementById('merchant-name-value').textContent = merchantName || "غير محدد";
+            document.getElementById('merchant-id-value').textContent = merchantId || "غير محدد";
             document.getElementById('product-name-value').textContent = globalProductName;
-            document.getElementById('whatsapp-value').textContent = "جاري التحميل...";
-            
-            // تحميل رقم الواتساب إذا كان المستخدم موجوداً
-            if (userData) {
-                loadWhatsappNumberForAlert();
-            }
+            document.getElementById('whatsapp-value').textContent = merchantPhone || "غير متوفر";
         }
 
         // دالة جديدة: الحصول على رقم الجوال/الواتساب بناءً على userId
@@ -1025,35 +1056,11 @@
             }
         }
 
-        // دالة جديدة: تحميل وعرض رقم الجوال/الواتساب للإشعار
-        async function loadWhatsappNumberForAlert() {
-            const userId = globalUser.getUserId();
-            
-            if (!userId) {
-                document.getElementById('whatsapp-value').textContent = "غير متوفر";
-                return;
-            }
-            
-            try {
-                const whatsappNumber = await getUserWhatsappNumber(userId);
-                
-                if (whatsappNumber) {
-                    document.getElementById('whatsapp-value').textContent = whatsappNumber;
-                } else {
-                    document.getElementById('whatsapp-value').textContent = "غير متوفر";
-                }
-                
-            } catch (error) {
-                console.error('خطأ في تحميل رقم الجوال/الواتساب:', error);
-                document.getElementById('whatsapp-value').textContent = "خطأ في التحميل";
-            }
-        }
-
         // دالة جديدة: تحميل وعرض رقم الجوال/الواتساب
         async function loadAndDisplayWhatsappNumber() {
-            const userId = globalUser.getUserId();
+            const merchantId = merchantGlobal.getMerchantId();
             
-            if (!userId) {
+            if (!merchantId) {
                 document.getElementById('whatsapp-number-display').style.display = 'none';
                 return;
             }
@@ -1061,7 +1068,7 @@
             try {
                 showGlobalLoading(true);
                 
-                const whatsappNumber = await getUserWhatsappNumber(userId);
+                const whatsappNumber = await getUserWhatsappNumber(merchantId);
                 
                 if (whatsappNumber) {
                     document.getElementById('whatsapp-number-text').textContent = whatsappNumber;
@@ -1081,11 +1088,11 @@
 
         // دالة لتحديث عرض اسم المستخدم في واجهة المستخدم
         function updateUserDisplay() {
-            const userData = globalUser.getUserData();
+            const merchantName = merchantGlobal.getMerchantName();
             const userDisplayElement = document.getElementById('user-display-name');
             
-            if (userData) {
-                userDisplayElement.textContent = `مرحباً، ${globalUser.getMerchantName()}`;
+            if (merchantName) {
+                userDisplayElement.textContent = `منتجات: ${merchantName}`;
             } else {
                 userDisplayElement.textContent = `جاري التحميل...`;
             }
@@ -1093,15 +1100,16 @@
 
         // دالة لتحديث عناوين التبويب والقسم
         function updateTabTitles() {
+            const merchantName = merchantGlobal.getMerchantName();
             const tabTitleElement = document.getElementById('tab-title');
             const sectionTitleElement = document.getElementById('section-title');
             
             if (tabTitleElement) {
-                tabTitleElement.textContent = `جميع المنتجات`;
+                tabTitleElement.textContent = merchantName ? `منتجات ${merchantName}` : `منتجات التاجر`;
             }
             
             if (sectionTitleElement) {
-                sectionTitleElement.textContent = `جميع المنتجات المتاحة`;
+                sectionTitleElement.textContent = merchantName ? `منتجات ${merchantName}` : `منتجات التاجر`;
             }
         }
 
@@ -1263,7 +1271,7 @@
             }
         }
 
-        // تحميل جميع المنتجات بدون شرط التاجر
+        // تحميل المنتجات المرتبطة بمعرف التاجر
         async function loadProducts() {
             try {
                 showGlobalLoading(true);
@@ -1272,12 +1280,22 @@
                     throw new Error("قاعدة البيانات غير مهيئة");
                 }
                 
+                // الحصول على معرف التاجر من الجلوبال
+                const merchantId = merchantGlobal.getMerchantId();
+                
+                if (!merchantId) {
+                    throw new Error("لم يتم العثور على معرف التاجر في الجلوبال");
+                }
+                
+                console.log(`جاري تحميل منتجات التاجر: ${merchantId}`);
+                
                 const productsSnapshot = await database.ref('products').once('value');
                 const products = productsSnapshot.val() || {};
                 
-                // عرض جميع المنتجات المتاحة بدون شرط التاجر
+                // تصفية المنتجات المرتبطة بمعرف التاجر
                 allProducts = Object.entries(products)
                     .filter(([id, product]) => 
+                        product.merchantId === merchantId && // فقط المنتجات المرتبطة بالتاجر
                         product.availability === 'available' // فقط المنتجات المتاحة
                     )
                     .map(([id, product]) => ({
@@ -1285,13 +1303,21 @@
                         id
                     }));
                 
+                console.log(`تم تحميل ${allProducts.length} منتج للتاجر ${merchantId}`);
+                
                 // ترتيب المنتجات حسب تاريخ الإضافة (الأحدث أولاً)
                 allProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 
                 displayProducts(allProducts);
                 
+                // إذا لم توجد منتجات، عرض رسالة توضيحية
+                if (allProducts.length === 0) {
+                    showToast(`لا توجد منتجات مسجلة للتاجر ${merchantGlobal.getMerchantName()}`, 'info');
+                }
+                
             } catch (error) {
                 console.error('خطأ في تحميل المنتجات:', error);
+                showToast('خطأ في تحميل المنتجات: ' + error.message, 'error');
             } finally {
                 showGlobalLoading(false);
             }
@@ -1371,7 +1397,7 @@
                 container.innerHTML = `
                     <div class="no-products">
                         <i class="fas fa-box-open"></i>
-                        <p>لا توجد منتجات نشطة مسجلة بعد</p>
+                        <p>لا توجد منتجات نشطة مسجلة للتاجر ${merchantGlobal.getMerchantName()}</p>
                     </div>
                 `;
                 return;
@@ -1510,6 +1536,14 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
 
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', function() {
+            // عرض بيانات الجلوبال للتشخيص
+            merchantGlobal.debug();
+            
+            // التحقق من وجود بيانات تاجر في الجلوبال
+            if (!merchantGlobal.hasMerchantData()) {
+                showToast('لم يتم العثور على بيانات التاجر. يرجى العودة إلى صفحة التاجر.', 'warning');
+            }
+            
             // تحديث عرض اسم المستخدم
             updateUserDisplay();
             updateTabTitles();
@@ -1562,20 +1596,7 @@ ${productToShare.description ? `الوصف: ${productToShare.description}` : ''}
             // تحميل الأقسام والمنتجات عند فتح الصفحة
             loadCategories();
             loadProducts();
-            
-            // إضافة بيانات تجريبية للتاجر
-            setTimeout(() => {
-                const userData = globalUser.getUserData();
-                if (!userData) {
-                    globalUser.setUserData({
-                        id: "user_123456",
-                        username: "تاجرAZ",
-                        name: "متجر AZ"
-                    });
-                } else {
-                    loadAndDisplayWhatsappNumber();
-                }
-            }, 1000);
+            loadAndDisplayWhatsappNumber();
         });
     </script>
 </body>
