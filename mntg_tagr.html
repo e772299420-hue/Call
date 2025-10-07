@@ -6,6 +6,7 @@
     <title>نظام إدارة المتجر - إدارة الأصناف</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* الأنماط تبقى كما هي */
         :root {
             --primary-color: #667eea;
             --secondary-color: #764ba2;
@@ -933,70 +934,6 @@
         let allCategories = [];
         let productToShare = null;
 
-        // كائن تخزين بيانات المستخدم بشكل عام (جلوبال)
-        const globalUser = {
-            data: null,
-            
-            // دالة لتخزين بيانات المستخدم
-            setUserData: function(userData) {
-                this.data = userData;
-                localStorage.setItem('globalUserData', JSON.stringify(userData));
-                updateUserDisplay();
-                updateTabTitles();
-                updateMerchantDataAlert();
-                // تحميل وعرض رقم الجوال/الواتساب
-                loadAndDisplayWhatsappNumber();
-            },
-            
-            // دالة لاسترجاع بيانات المستخدم
-            getUserData: function() {
-                if (this.data) {
-                    return this.data;
-                }
-                
-                const storedData = localStorage.getItem('globalUserData');
-                if (storedData) {
-                    this.data = JSON.parse(storedData);
-                    return this.data;
-                }
-                
-                return null;
-            },
-            
-            // دالة للحصول على اسم المستخدم
-            getUsername: function() {
-                const userData = this.getUserData();
-                return userData ? userData.username : 'زائر';
-            },
-            
-            // دالة للحصول على اسم التاجر
-            getMerchantName: function() {
-                const userData = this.getUserData();
-                return userData ? (userData.name || userData.username) : 'زائر';
-            },
-            
-            // دالة للحصول على معرف المستخدم
-            getUserId: function() {
-                const userData = this.getUserData();
-                return userData ? userData.id : null;
-            },
-            
-            // دالة للتحقق من وجود مستخدم مسجل
-            isLoggedIn: function() {
-                return this.getUserData() !== null;
-            },
-            
-            // دالة لتسجيل الخروج
-            logout: function() {
-                this.data = null;
-                localStorage.removeItem('globalUserData');
-                updateUserDisplay();
-                updateTabTitles();
-                updateMerchantDataAlert();
-                document.getElementById('whatsapp-number-display').style.display = 'none';
-            }
-        };
-
         // دالة لعرض إشعار بيانات التاجر
         function showMerchantDataAlert() {
             const merchantDataAlert = document.getElementById('merchantDataAlert');
@@ -1271,7 +1208,7 @@
             }
         }
 
-        // تحميل المنتجات المرتبطة بمعرف التاجر
+        // تحميل المنتجات المرتبطة بمعرف التاجر - نسخة محسنة
         async function loadProducts() {
             try {
                 showGlobalLoading(true);
@@ -1292,18 +1229,68 @@
                 const productsSnapshot = await database.ref('products').once('value');
                 const products = productsSnapshot.val() || {};
                 
-                // تصفية المنتجات المرتبطة بمعرف التاجر
+                console.log('جميع المنتجات في قاعدة البيانات:', products);
+                
+                // البحث عن المنتجات المرتبطة بالتاجر بعدة طرق
                 allProducts = Object.entries(products)
-                    .filter(([id, product]) => 
-                        product.merchantId === merchantId && // فقط المنتجات المرتبطة بالتاجر
-                        product.availability === 'available' // فقط المنتجات المتاحة
-                    )
+                    .filter(([id, product]) => {
+                        // طريقة 1: البحث في حقل merchantId
+                        const hasMerchantId = product.merchantId === merchantId;
+                        
+                        // طريقة 2: البحث في حقل userId (إذا كان موجوداً)
+                        const hasUserId = product.userId === merchantId;
+                        
+                        // طريقة 3: البحث في حقل merchant (إذا كان موجوداً)
+                        const hasMerchant = product.merchant === merchantId;
+                        
+                        // طريقة 4: البحث في أي حقل قد يحتوي على معرف التاجر
+                        const hasAnyMerchantField = 
+                            product.merchantId === merchantId ||
+                            product.userId === merchantId ||
+                            product.merchant === merchantId ||
+                            product.owner === merchantId ||
+                            product.seller === merchantId;
+                        
+                        // تسجيل المنتجات التي تطابق للتشخيص
+                        if (hasAnyMerchantField) {
+                            console.log(`✅ تم العثور على منتج مرتبط بالتاجر:`, {
+                                id: id,
+                                name: product.name,
+                                merchantId: product.merchantId,
+                                userId: product.userId,
+                                merchant: product.merchant
+                            });
+                        }
+                        
+                        return hasAnyMerchantField && product.availability === 'available';
+                    })
                     .map(([id, product]) => ({
                         ...product,
                         id
                     }));
                 
                 console.log(`تم تحميل ${allProducts.length} منتج للتاجر ${merchantId}`);
+                
+                // إذا لم نجد منتجات بالطرق السابقة، نحاول البحث بطرق أخرى
+                if (allProducts.length === 0) {
+                    console.log('لم يتم العثور على منتجات مرتبطة بالتاجر، جاري البحث بطرق بديلة...');
+                    
+                    // طريقة بديلة: البحث عن المنتجات التي ليس لها معرف تاجر (قد تكون قديمة)
+                    const alternativeProducts = Object.entries(products)
+                        .filter(([id, product]) => 
+                            !product.merchantId && !product.userId && !product.merchant &&
+                            product.availability === 'available'
+                        )
+                        .map(([id, product]) => ({
+                            ...product,
+                            id
+                        }));
+                    
+                    if (alternativeProducts.length > 0) {
+                        console.log(`تم العثور على ${alternativeProducts.length} منتج بدون معرف تاجر`);
+                        allProducts = alternativeProducts;
+                    }
+                }
                 
                 // ترتيب المنتجات حسب تاريخ الإضافة (الأحدث أولاً)
                 allProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -1398,6 +1385,9 @@
                     <div class="no-products">
                         <i class="fas fa-box-open"></i>
                         <p>لا توجد منتجات نشطة مسجلة للتاجر ${merchantGlobal.getMerchantName()}</p>
+                        <p style="margin-top: 10px; font-size: 0.9rem; color: rgba(255,255,255,0.6)">
+                            معرف التاجر: ${merchantGlobal.getMerchantId()}
+                        </p>
                     </div>
                 `;
                 return;
