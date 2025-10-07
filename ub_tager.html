@@ -366,6 +366,67 @@
             box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
         }
         
+        /* ===== تنسيق حقل الشيك بوكس ===== */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 12px;
+            min-height: 45px;
+            border: 1px solid rgba(74, 144, 226, 0.1);
+        }
+        
+        .checkbox-container.editable {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+        }
+        
+        .checkbox-label {
+            font-size: 16px;
+            color: var(--dark);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-custom {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--primary);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        .checkbox-custom.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .checkbox-custom.checked::after {
+            content: "✓";
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .checkbox-input {
+            display: none;
+        }
+        
+        .checkbox-info {
+            font-size: 12px;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+        
         .action-buttons {
             display: flex;
             justify-content: flex-end;
@@ -814,6 +875,19 @@
                 <!-- سيتم إضافة معلومات الدقة والخريطة هنا ديناميكياً -->
             </div>
             
+            <!-- حقل الشيك بوكس الجديد -->
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-eye"></i> عرض الرقم للعامة</div>
+                <div class="checkbox-container" id="showNumberContainer">
+                    <label class="checkbox-label" id="showNumberLabel">
+                        <div class="checkbox-custom" id="showNumberCustom"></div>
+                        <input type="checkbox" class="checkbox-input" id="showNumber" value="0">
+                        <span>السماح بعرض رقم الجوال للعامة</span>
+                    </label>
+                    <div class="checkbox-info">عند تفعيل هذا الخيار، سيتم عرض رقم الجوال للعامة في المتجر</div>
+                </div>
+            </div>
+            
             <div class="detail-item">
                 <div class="detail-label"><i class="fab fa-facebook"></i> رابط الفيسبوك</div>
                 <div class="detail-value" id="facebook">قيد التحميل...</div>
@@ -916,6 +990,12 @@
     const toastContainer = document.getElementById('toastContainer');
     const userDisplayElement = document.getElementById('user-display-name');
     const globalsBar = document.getElementById('globals-bar');
+    
+    // عناصر الشيك بوكس الجديد
+    const showNumberContainer = document.getElementById('showNumberContainer');
+    const showNumberLabel = document.getElementById('showNumberLabel');
+    const showNumberCustom = document.getElementById('showNumberCustom');
+    const showNumberInput = document.getElementById('showNumber');
     
     // أزرار شريط الجلوبلات
     const globalsEditBtn = document.getElementById('globalsEditBtn');
@@ -1102,7 +1182,26 @@
         
         // السماح بالإدخال اليدوي للموقع
         locationField.readOnly = false;
+        
+        // إعداد حدث النقر على الشيك بوكس
+        showNumberLabel.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isChecked = showNumberInput.checked;
+            showNumberInput.checked = !isChecked;
+            updateCheckboxDisplay();
+        });
     });
+    
+    // تحديث عرض الشيك بوكس
+    function updateCheckboxDisplay() {
+        if (showNumberInput.checked) {
+            showNumberCustom.classList.add('checked');
+            showNumberInput.value = '1';
+        } else {
+            showNumberCustom.classList.remove('checked');
+            showNumberInput.value = '0';
+        }
+    }
     
     // تحميل المحافظات
     async function loadGovernorates() {
@@ -1215,6 +1314,17 @@
         mobile.textContent = merchant.mobile || 'غير معروف';
         ip.textContent = merchant.ip || 'غير معروف';
         locationField.value = merchant.location || '';
+        
+        // عرض حقل الشيك بوكس
+        if (merchant.showNumber !== undefined) {
+            showNumberInput.checked = merchant.showNumber === '1' || merchant.showNumber === 1;
+            showNumberInput.value = showNumberInput.checked ? '1' : '0';
+        } else {
+            // القيمة الافتراضية 0 إذا لم تكن موجودة
+            showNumberInput.checked = false;
+            showNumberInput.value = '0';
+        }
+        updateCheckboxDisplay();
         
         // عرض روابط التواصل الاجتماعي
         facebook.innerHTML = merchant.facebook ? `<a href="${merchant.facebook}" target="_blank">${merchant.facebook}</a>` : 'غير معروف';
@@ -1492,6 +1602,7 @@
             mobile: mobile.textContent,
             ip: ip.textContent,
             location: locationField.value,
+            showNumber: showNumberInput.value,
             facebook: facebook.textContent,
             instagram: instagram.textContent,
             twitter: twitter.textContent,
@@ -1502,7 +1613,7 @@
         
         // جعل الحقول قابلة للتعديل
         const editableFields = [
-            merchantNameValue, username, phone, mobile, 
+            merchantNameValue, phone, mobile, 
             ip, locationField, facebook, instagram,
             twitter, youtube, google, password
         ];
@@ -1514,6 +1625,10 @@
         
         // تمكين زر تحديد الموقع
         getLocationBtn.disabled = false;
+        
+        // تمكين حقل الشيك بوكس
+        showNumberContainer.classList.add('editable');
+        showNumberLabel.style.cursor = 'pointer';
         
         // إظهار أزرار الحفظ والإلغاء وإخفاء زر التعديل في الواجهة الرئيسية
         editBtn.style.display = 'none';
@@ -1569,11 +1684,12 @@
             // تجميع البيانات المعدلة
             const updatedData = {
                 name: merchantNameValue.textContent,
-                username: username.textContent,
+                username: username.textContent, // اسم المستخدم غير قابل للتعديل
                 phone: phone.textContent,
                 mobile: mobile.textContent,
                 ip: ip.textContent,
                 location: locationValue,
+                showNumber: showNumberInput.value,
                 facebook: facebook.textContent,
                 instagram: instagram.textContent,
                 twitter: twitter.textContent,
@@ -1637,6 +1753,8 @@
         mobile.textContent = originalData.mobile;
         ip.textContent = originalData.ip;
         locationField.value = originalData.location;
+        showNumberInput.value = originalData.showNumber;
+        updateCheckboxDisplay();
         facebook.textContent = originalData.facebook;
         instagram.textContent = originalData.instagram;
         twitter.textContent = originalData.twitter;
@@ -1651,7 +1769,7 @@
     // تعطيل وضع التعديل
     function disableEditing() {
         const editableFields = [
-            merchantNameValue, username, phone, mobile, 
+            merchantNameValue, phone, mobile, 
             ip, locationField, facebook, instagram,
             twitter, youtube, google, password
         ];
@@ -1663,6 +1781,10 @@
         
         // تعطيل زر تحديد الموقع
         getLocationBtn.disabled = true;
+        
+        // تعطيل حقل الشيك بوكس
+        showNumberContainer.classList.remove('editable');
+        showNumberLabel.style.cursor = 'default';
         
         // إزالة عنصر دقة الموقع
         const accuracyElement = document.getElementById('location-accuracy');
