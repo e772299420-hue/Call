@@ -130,7 +130,7 @@
 
         .categories-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 1.5rem;
             padding: 1rem;
         }
@@ -155,27 +155,50 @@
             border-color: var(--primary-color);
         }
 
-        .category-icon {
-            width: 80px;
-            height: 80px;
+        .category-image-container {
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            overflow: hidden;
+            border: 3px solid #f1f5f9;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 1.8rem;
+            background: #f8fafc;
             transition: var(--transition);
         }
 
-        .category-card:hover .category-icon {
+        .category-card:hover .category-image-container {
+            border-color: var(--primary-color);
             transform: scale(1.1);
+        }
+
+        .category-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .category-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            color: #64748b;
+            font-size: 2.5rem;
         }
 
         .category-name {
             font-weight: 600;
             color: var(--dark-color);
             font-size: 0.95rem;
+            min-height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
 
         .category-count {
@@ -184,6 +207,14 @@
             background: #f8fafc;
             padding: 0.25rem 0.75rem;
             border-radius: 15px;
+        }
+
+        .category-description {
+            font-size: 0.8rem;
+            color: var(--gray-color);
+            text-align: center;
+            line-height: 1.4;
+            margin-top: 0.5rem;
         }
 
         .loading-categories {
@@ -248,14 +279,17 @@
 
         @media (max-width: 768px) {
             .categories-grid {
-                grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
                 gap: 1rem;
             }
             
-            .category-icon {
-                width: 70px;
-                height: 70px;
-                font-size: 1.5rem;
+            .category-image-container {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .category-placeholder {
+                font-size: 2rem;
             }
             
             .hero-section h1 {
@@ -277,10 +311,13 @@
                 padding: 1rem;
             }
             
-            .category-icon {
-                width: 60px;
-                height: 60px;
-                font-size: 1.3rem;
+            .category-image-container {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .category-placeholder {
+                font-size: 1.8rem;
             }
             
             .category-name {
@@ -358,23 +395,25 @@
             console.error("خطأ في تهيئة Firebase:", error);
         }
 
-        // ألوان متنوعة للأيقونات
-        const categoryColors = [
-            '#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe',
-            '#43e97b', '#38f9d7', '#fa709a', '#fee140', '#a8edea', '#fed6e3',
-            '#ff9a9e', '#fad0c4', '#ffecd2', '#fcb69f', '#a1c4fd', '#c2e9fb',
-            '#d4fc79', '#96e6a1', '#fccb90', '#d9afd9', '#8ec5fc', '#e0c3fc'
-        ];
-
-        // أيقونات متنوعة للفئات
-        const categoryIcons = [
-            'fas fa-building', 'fas fa-car', 'fas fa-home', 'fas fa-laptop', 
-            'fas fa-mobile-alt', 'fas fa-couch', 'fas fa-tshirt', 'fas fa-gamepad',
-            'fas fa-paw', 'fas fa-dumbbell', 'fas fa-book', 'fas fa-concierge-bell',
-            'fas fa-utensils', 'fas fa-baby', 'fas fa-gem', 'fas fa-tools',
-            'fas fa-palette', 'fas fa-music', 'fas fa-camera', 'fas fa-briefcase',
-            'fas fa-graduation-cap', 'fas fa-heart', 'fas fa-leaf', 'fas fa-plane'
-        ];
+        // دالة للبحث عن حقل الصورة في بيانات الفئة
+        function findImageField(category) {
+            // قائمة بأسماء الحقول المحتملة للصور
+            const possibleImageFields = [
+                'image', 'imageUrl', 'photo', 'img', 'picture', 
+                'icon', 'avatar', 'thumbnail', 'url', 'image_url',
+                'photo_url', 'img_url', 'imageURL', 'photoURL'
+            ];
+            
+            for (const field of possibleImageFields) {
+                if (category[field] && typeof category[field] === 'string') {
+                    console.log(`✅ تم العثور على صورة في الحقل: ${field}`, category[field]);
+                    return category[field];
+                }
+            }
+            
+            console.log('❌ لم يتم العثور على أي حقل صورة في الفئة:', category.name);
+            return null;
+        }
 
         // دالة لتحميل الفئات من Firebase
         async function loadCategoriesFromFirebase() {
@@ -396,6 +435,8 @@
                 // جلب الفئات من Firebase
                 const categoriesSnapshot = await database.ref('categories').once('value');
                 const categories = categoriesSnapshot.val() || {};
+                
+                console.log("الفئات المستلمة من قاعدة البيانات:", categories);
                 
                 // تحويل البيانات إلى مصفوفة
                 const categoriesArray = Object.entries(categories).map(([id, category]) => ({
@@ -438,21 +479,44 @@
                 const categoryCard = document.createElement('div');
                 categoryCard.className = 'category-card';
                 
-                // اختيار لون وأيقونة عشوائية (أو يمكن إضافتها في قاعدة البيانات)
-                const colorIndex = index % categoryColors.length;
-                const iconIndex = index % categoryIcons.length;
+                console.log(`🔍 فحص الفئة ${index + 1}:`, category);
+                
+                // التحقق من وجود بيانات الفئة
+                const categoryName = category.name || 'فئة بدون اسم';
+                const categoryImage = findImageField(category);
+                const categoryDescription = category.description || '';
+                
+                console.log(`📸 رابط الصورة للفئة "${categoryName}":`, categoryImage);
+                
+                // بناء محتوى البطاقة - الصورة فقط بدون أيقونات
+                let imageContent = '';
+                if (categoryImage) {
+                    // إذا كانت هناك صورة في قاعدة البيانات
+                    imageContent = `
+                        <img src="${categoryImage}" alt="${categoryName}" class="category-image" 
+                             onerror="handleImageError(this)">
+                    `;
+                } else {
+                    // إذا لم توجد صورة، عرض placeholder بسيط
+                    imageContent = `
+                        <div class="category-placeholder">
+                            <i class="fas fa-image"></i>
+                        </div>
+                    `;
+                }
                 
                 categoryCard.innerHTML = `
-                    <div class="category-icon" style="background: linear-gradient(135deg, ${categoryColors[colorIndex]}, ${categoryColors[colorIndex]}99)">
-                        <i class="${category.icon || categoryIcons[iconIndex]}"></i>
+                    <div class="category-image-container">
+                        ${imageContent}
                     </div>
-                    <div class="category-name">${category.name}</div>
+                    <div class="category-name">${categoryName}</div>
+                    ${categoryDescription ? `<div class="category-description">${categoryDescription}</div>` : ''}
                     <div class="category-count" id="count-${category.id}">جاري العد...</div>
                 `;
                 
                 // إضافة حدث النقر
                 categoryCard.addEventListener('click', () => {
-                    window.location.href = `products.html?category=${category.id}`;
+                    window.location.href = `products.html?category=${category.id}&name=${encodeURIComponent(categoryName)}`;
                 });
                 
                 categoriesGrid.appendChild(categoryCard);
@@ -460,6 +524,19 @@
                 // جلب عدد المنتجات في هذه الفئة
                 loadProductsCount(category.id);
             });
+        }
+
+        // دالة لمعالجة أخطاء تحميل الصور
+        function handleImageError(imgElement) {
+            console.log('❌ فشل تحميل الصورة:', imgElement.src);
+            
+            // استبدال الصورة المعطلة بـ placeholder
+            const placeholderDiv = document.createElement('div');
+            placeholderDiv.className = 'category-placeholder';
+            placeholderDiv.innerHTML = '<i class="fas fa-image"></i>';
+            
+            imgElement.parentNode.innerHTML = '';
+            imgElement.parentNode.appendChild(placeholderDiv);
         }
 
         // دالة لجلب عدد المنتجات في كل فئة
