@@ -240,34 +240,58 @@
             border-color: var(--primary-color);
         }
 
-        .category-icon-container {
-            width: 100px;
-            height: 100px;
+        .category-image-container {
+            width: 120px;
+            height: 120px;
             border-radius: 20px;
             overflow: hidden;
             border: 3px solid #f1f5f9;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
             transition: var(--transition);
             position: relative;
         }
 
-        .category-card:hover .category-icon-container {
+        .category-card:hover .category-image-container {
             border-color: var(--primary-color);
             transform: scale(1.05);
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
         }
 
-        .category-icon {
-            font-size: 2.5rem;
-            color: white;
+        .category-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
             transition: var(--transition);
         }
 
-        .category-card:hover .category-icon {
+        .category-card:hover .category-image {
             transform: scale(1.1);
+        }
+
+        .category-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-size: 2.5rem;
+            transition: var(--transition);
+        }
+
+        .category-card:hover .category-placeholder {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+        }
+
+        .placeholder-text {
+            font-size: 0.7rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
         }
 
         .category-name {
@@ -298,6 +322,19 @@
             text-align: center;
             line-height: 1.4;
             margin-top: 0.5rem;
+        }
+
+        .image-url-display {
+            font-size: 0.7rem;
+            color: var(--gray-color);
+            background: #f8fafc;
+            padding: 0.5rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            word-break: break-all;
+            max-width: 100%;
+            border: 1px solid #e2e8f0;
+            display: none; /* إخفاء عرض الرابط */
         }
 
         .loading-categories {
@@ -333,28 +370,19 @@
             opacity: 0.5;
         }
 
-        .progress-bar {
+        .image-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 4px;
-            background: #e2e8f0;
-            border-radius: 2px;
-            margin: 1rem 0;
-            overflow: hidden;
-        }
-
-        .progress-fill {
             height: 100%;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border-radius: 2px;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
-
-        .loading-text {
-            text-align: center;
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: var(--gray-color);
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
         .footer {
@@ -390,12 +418,12 @@
                 gap: 1rem;
             }
             
-            .category-icon-container {
-                width: 80px;
-                height: 80px;
+            .category-image-container {
+                width: 100px;
+                height: 100px;
             }
             
-            .category-icon {
+            .category-placeholder {
                 font-size: 2rem;
             }
             
@@ -423,13 +451,13 @@
                 padding: 1rem;
             }
             
-            .category-icon-container {
-                width: 70px;
-                height: 70px;
+            .category-image-container {
+                width: 80px;
+                height: 80px;
                 border-radius: 15px;
             }
             
-            .category-icon {
+            .category-placeholder {
                 font-size: 1.8rem;
             }
             
@@ -520,12 +548,6 @@
             تصفح الفئات
         </h2>
         
-        <!-- شريط التقدم -->
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <div class="loading-text" id="loadingText">جاري تحميل البيانات...</div>
-        
         <div class="categories-grid" id="categories-grid">
             <div class="loading-categories">
                 <div class="loading-spinner"></div>
@@ -552,150 +574,113 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
     <script>
-        // ==========================================
-        // ⚡ تهيئة سريعة للصفحة أولاً
-        // ==========================================
-        
         // إعدادات Firebase
         const firebaseConfig = {
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
         };
 
-        // متغيرات الأداء
+        // تهيئة Firebase
         let database;
-        let categoriesCache = null;
-        let lastLoadTime = 0;
-        const CACHE_DURATION = 5 * 60 * 1000; // 5 دقائق
+        try {
+            const app = firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log("تم تهيئة Firebase بنجاح");
+        } catch (error) {
+            console.error("خطأ في تهيئة Firebase:", error);
+        }
 
-        // ==========================================
-        // 🚀 تهيئة سريعة للواجهة
-        // ==========================================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('⚡ بدء التحميل السريع...');
-            
-            // تهيئة Firebase بشكل غير متزامن
-            initializeFirebaseAsync();
-            
-            // تحميل البيانات مع التقدم المرئي
-            loadDataWithProgress();
-            
-            // إعداد قائمة الإعدادات
-            setupSettingsMenu();
+        // إدارة قائمة الإعدادات
+        const settingsBtn = document.getElementById('settingsBtn');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        settingsBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('show');
+        });
+
+        // إغلاق القائمة عند النقر خارجها
+        document.addEventListener('click', function() {
+            dropdownMenu.classList.remove('show');
+        });
+
+        // منع إغلاق القائمة عند النقر داخلها
+        dropdownMenu.addEventListener('click', function(e) {
+            e.stopPropagation();
         });
 
         // ==========================================
-        // 🔧 تهيئة Firebase بشكل غير متزامن
+        // 🚀 دالة محسنة لتحويل روابط جوجل درايف
         // ==========================================
-        function initializeFirebaseAsync() {
-            setTimeout(() => {
-                try {
-                    const app = firebase.initializeApp(firebaseConfig);
-                    database = firebase.database();
-                    console.log("✅ تم تهيئة Firebase بنجاح");
-                } catch (error) {
-                    console.error("❌ خطأ في تهيئة Firebase:", error);
-                }
-            }, 100);
-        }
-
-        // ==========================================
-        // ⚙️ إعداد قائمة الإعدادات
-        // ==========================================
-        function setupSettingsMenu() {
-            const settingsBtn = document.getElementById('settingsBtn');
-            const dropdownMenu = document.getElementById('dropdownMenu');
-
-            settingsBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                dropdownMenu.classList.toggle('show');
-            });
-
-            document.addEventListener('click', function() {
-                dropdownMenu.classList.remove('show');
-            });
-
-            dropdownMenu.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-        }
-
-        // ==========================================
-        // 📊 تحديث شريط التقدم
-        // ==========================================
-        function updateProgress(percentage, message) {
-            const progressFill = document.getElementById('progressFill');
-            const loadingText = document.getElementById('loadingText');
+        function convertGoogleDriveUrl(url) {
+            if (!url) return null;
             
-            if (progressFill) {
-                progressFill.style.width = percentage + '%';
+            console.log('🔄 معالجة الرابط:', url);
+            
+            // استخراج معرف الملف من مختلف أنواع الروابط
+            let fileId = '';
+            
+            // النوع 1: رابط التحميل المباشر
+            if (url.includes('/download?id=')) {
+                fileId = url.split('/download?id=')[1].split('&')[0];
             }
-            if (loadingText) {
-                loadingText.textContent = message;
+            // النوع 2: رابط المشاركة
+            else if (url.includes('id=')) {
+                fileId = url.split('id=')[1].split('&')[0];
             }
+            // النوع 3: رابط العرض المباشر
+            else if (url.includes('/file/d/')) {
+                fileId = url.split('/file/d/')[1].split('/')[0];
+            }
+            // النوع 4: رابط مسبق التنسيق
+            else if (url.includes('/uc?id=')) {
+                fileId = url.split('/uc?id=')[1].split('&')[0];
+            }
+            // النوع 5: رابط usercontent.google.com
+            else if (url.includes('drive.usercontent.google.com')) {
+                fileId = url.split('id=')[1].split('&')[0];
+            }
+            
+            if (!fileId) {
+                console.log('❌ لم يتم استخراج معرف الملف من الرابط');
+                return url; // إرجاع الرابط الأصلي إذا فشل الاستخراج
+            }
+            
+            // إنشاء رابط العرض المناسب
+            const displayUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
+            console.log('✅ الرابط المحول:', displayUrl);
+            
+            return displayUrl;
         }
 
         // ==========================================
-        // ⚡ تحميل البيانات مع التقدم المرئي
+        // 🔧 دالة محسنة لتنظيف وتحسين رابط الصورة
         // ==========================================
-        async function loadDataWithProgress() {
-            try {
-                updateProgress(10, 'جاري الاتصال بقاعدة البيانات...');
-                
-                // التحقق من وجود بيانات مخزنة مؤقتاً
-                const now = Date.now();
-                if (categoriesCache && (now - lastLoadTime) < CACHE_DURATION) {
-                    console.log('🔄 استخدام البيانات المخزنة مؤقتاً');
-                    updateProgress(100, 'جاري عرض البيانات...');
-                    displayCategories(categoriesCache);
-                    return;
-                }
-
-                updateProgress(20, 'جاري جلب البيانات...');
-                
-                // انتظار تهيئة Firebase إذا لم تكتمل
-                if (!database) {
-                    await waitForFirebase();
-                }
-
-                updateProgress(40, 'جاري تحميل الفئات...');
-                const categories = await loadCategoriesFromFirebase();
-                
-                updateProgress(80, 'جاري تنظيم البيانات...');
-                
-                // تخزين البيانات مؤقتاً
-                categoriesCache = categories;
-                lastLoadTime = Date.now();
-                
-                updateProgress(100, 'جاري العرض النهائي...');
-                
-                // عرض البيانات
-                displayCategories(categories);
-                
-            } catch (error) {
-                console.error('❌ خطأ في تحميل البيانات:', error);
-                updateProgress(100, 'حدث خطأ في التحميل');
-                showError('حدث خطأ في تحميل البيانات: ' + error.message);
+        function cleanImageUrl(url) {
+            if (!url) return null;
+            
+            // إزالة المسافات الزائدة
+            url = url.trim();
+            
+            // معالجة روابط جوجل درايف أولاً
+            if (url.includes('google.com')) {
+                url = convertGoogleDriveUrl(url);
             }
-        }
-
-        // ==========================================
-        // ⏳ انتظار تهيئة Firebase
-        // ==========================================
-        function waitForFirebase() {
-            return new Promise((resolve) => {
-                const checkFirebase = setInterval(() => {
-                    if (database) {
-                        clearInterval(checkFirebase);
-                        resolve();
-                    }
-                }, 100);
-                
-                // مهلة زمنية
-                setTimeout(() => {
-                    clearInterval(checkFirebase);
-                    resolve();
-                }, 5000);
-            });
+            
+            // إذا كان الرابط يحتوي على مسافات، استبدلها بـ %20
+            url = url.replace(/ /g, '%20');
+            
+            // إذا كان الرابط يبدأ بـ //، أضف https:
+            if (url.startsWith('//')) {
+                url = 'https:' + url;
+            }
+            
+            // إذا كان الرابط لا يحتوي على بروتوكول، أضف https://
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            
+            console.log('🔗 رابط الصورة النهائي:', url);
+            return url;
         }
 
         // ==========================================
@@ -704,69 +689,139 @@
         function getCategoryIcon(categoryName) {
             const iconMap = {
                 // إلكترونيات وتكنولوجيا
-                'إلكترونيات': 'fas fa-laptop', 'هواتف': 'fas fa-mobile-alt', 'أجهزة': 'fas fa-tablet-alt',
-                'كمبيوتر': 'fas fa-desktop', 'تلفزيونات': 'fas fa-tv', 'الكترونيات': 'fas fa-laptop',
+                'إلكترونيات': 'fas fa-laptop',
+                'هواتف': 'fas fa-mobile-alt',
+                'أجهزة': 'fas fa-tablet-alt',
+                'كمبيوتر': 'fas fa-desktop',
+                'تلفزيونات': 'fas fa-tv',
                 
                 // مركبات
-                'سيارات': 'fas fa-car', 'دراجات': 'fas fa-motorcycle', 'مركبات': 'fas fa-car-side',
-                'عربيات': 'fas fa-car', 'دراجة': 'fas fa-motorcycle',
+                'سيارات': 'fas fa-car',
+                'دراجات': 'fas fa-motorcycle',
+                'مركبات': 'fas fa-car-side',
                 
                 // عقارات
-                'عقارات': 'fas fa-building', 'شقق': 'fas fa-home', 'فلل': 'fas fa-warehouse',
-                'أراضي': 'fas fa-mountain', 'عقار': 'fas fa-building',
+                'عقارات': 'fas fa-building',
+                'شقق': 'fas fa-home',
+                'فلل': 'fas fa-warehouse',
+                'أراضي': 'fas fa-mountain',
                 
                 // أزياء وملابس
-                'ملابس': 'fas fa-tshirt', 'أحذية': 'fas fa-shoe-prints', 'إكسسوارات': 'fas fa-gem',
-                'موضة': 'fas fa-tshirt', 'ازياء': 'fas fa-tshirt',
+                'ملابس': 'fas fa-tshirt',
+                'أحذية': 'fas fa-shoe-prints',
+                'إكسسوارات': 'fas fa-gem',
                 
                 // أثاث
-                'أثاث': 'fas fa-couch', 'منزل': 'fas fa-home', 'أثاث منزلي': 'fas fa-couch',
+                'أثاث': 'fas fa-couch',
+                'منزل': 'fas fa-home',
                 
                 // وظائف
-                'وظائف': 'fas fa-briefcase', 'عمل': 'fas fa-user-tie', 'توظيف': 'fas fa-briefcase',
+                'وظائف': 'fas fa-briefcase',
+                'عمل': 'fas fa-user-tie',
                 
                 // خدمات
-                'خدمات': 'fas fa-concierge-bell', 'تعليم': 'fas fa-graduation-cap',
-                'تدريس': 'fas fa-graduation-cap', 'دروس': 'fas fa-graduation-cap',
+                'خدمات': 'fas fa-concierge-bell',
+                'تعليم': 'fas fa-graduation-cap',
                 
                 // أخرى
-                'أخرى': 'fas fa-box', 'متنوع': 'fas fa-th-large', 'عام': 'fas fa-th-large'
+                'أخرى': 'fas fa-box',
+                'متنوع': 'fas fa-th-large'
             };
 
-            const name = categoryName.toLowerCase();
+            // البحث عن أيقونة مطابقة
             for (const [key, icon] of Object.entries(iconMap)) {
-                if (name.includes(key.toLowerCase())) {
+                if (categoryName.includes(key)) {
                     return icon;
                 }
             }
 
+            // إرجاع أيقونة افتراضية إذا لم يتم العثور على مطابقة
             return 'fas fa-tag';
         }
 
         // ==========================================
-        // 🎨 دالة لتعيين لون عشوائي للأيقونة
+        // 🖼️ دالة لاستخراج صورة الفئة من قاعدة البيانات
         // ==========================================
-        function getRandomColor() {
-            const colors = [
-                'linear-gradient(135deg, #667eea, #764ba2)',
-                'linear-gradient(135deg, #f093fb, #f5576c)',
-                'linear-gradient(135deg, #4facfe, #00f2fe)',
-                'linear-gradient(135deg, #43e97b, #38f9d7)',
-                'linear-gradient(135deg, #fa709a, #fee140)',
-                'linear-gradient(135deg, #a8edea, #fed6e3)',
-                'linear-gradient(135deg, #5ee7df, #b490ca)',
-                'linear-gradient(135deg, #d299c2, #fef9d7)'
-            ];
-            return colors[Math.floor(Math.random() * colors.length)];
+        function getCategoryImage(category) {
+            // البحث في حقل image أولاً
+            if (category.image && typeof category.image === 'string' && category.image.trim() !== '') {
+                console.log(`✅ تم العثور على صورة في حقل image:`, category.image);
+                return {
+                    url: cleanImageUrl(category.image),
+                    fieldName: 'image',
+                    originalUrl: category.image
+                };
+            }
+            
+            console.log('❌ لم يتم العثور على صورة في حقل image');
+            return null;
         }
 
         // ==========================================
-        // 📊 دالة سريعة لعرض الفئات
+        // ✅ دالة للتحقق من صحة الصورة قبل عرضها
         // ==========================================
-        function displayCategories(categories) {
+        function validateImageUrl(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve({ valid: true, url });
+                img.onerror = () => resolve({ valid: false, url });
+                img.src = url;
+                
+                // مهلة زمنية
+                setTimeout(() => resolve({ valid: false, url }), 5000);
+            });
+        }
+
+        // ==========================================
+        // 🖼️ دالة محسنة لإنشاء عنصر صورة
+        // ==========================================
+        async function createImageElement(imageUrl, categoryId, categoryName) {
+            try {
+                // أولاً: تحويل الرابط إذا كان من جوجل درايف
+                const processedUrl = cleanImageUrl(imageUrl);
+                
+                // ثانياً: التحقق من صحة الصورة
+                const validation = await validateImageUrl(processedUrl);
+                
+                if (!validation.valid) {
+                    console.log('❌ الصورة غير صالحة:', processedUrl);
+                    return {
+                        success: false,
+                        element: null,
+                        error: 'صورة غير صالحة'
+                    };
+                }
+                
+                // ثالثاً: إنشاء عنصر الصورة
+                const img = document.createElement('img');
+                img.className = 'category-image';
+                img.alt = categoryName;
+                img.src = processedUrl;
+                
+                return {
+                    success: true,
+                    element: img,
+                    url: processedUrl
+                };
+                
+            } catch (error) {
+                console.error('خطأ في معالجة الصورة:', error);
+                return {
+                    success: false,
+                    element: null,
+                    error: error.message
+                };
+            }
+        }
+
+        // ==========================================
+        // 📊 دالة محسنة لعرض الفئات
+        // ==========================================
+        async function displayCategories(categories) {
             const categoriesGrid = document.getElementById('categories-grid');
-            
-            if (!categories || categories.length === 0) {
+            categoriesGrid.innerHTML = '';
+
+            if (categories.length === 0) {
                 categoriesGrid.innerHTML = `
                     <div class="no-categories">
                         <i class="fas fa-folder-open"></i>
@@ -776,113 +831,170 @@
                 return;
             }
 
-            // إنشاء HTML دفعة واحدة لتحسين الأداء
-            const categoriesHTML = categories.map(category => {
+            for (const category of categories) {
+                const categoryCard = document.createElement('div');
+                categoryCard.className = 'category-card';
+                
                 const categoryName = category.name || 'فئة بدون اسم';
                 const categoryDescription = category.description || '';
                 const categoryIcon = getCategoryIcon(categoryName);
-                const iconColor = getRandomColor();
+                const imageData = getCategoryImage(category);
 
-                return `
-                    <div class="category-card" onclick="navigateToCategory('${category.id}', '${categoryName.replace(/'/g, "\\'")}')">
-                        <div class="category-icon-container" style="background: ${iconColor}">
-                            <i class="${categoryIcon} category-icon"></i>
+                // بناء البطاقة
+                categoryCard.innerHTML = `
+                    <div class="category-image-container">
+                        <div class="image-loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <div>جاري تحميل الصورة...</div>
                         </div>
-                        <div class="category-name">${categoryName}</div>
-                        ${categoryDescription ? `<div class="category-description">${categoryDescription}</div>` : ''}
-                        <div class="category-count" id="count-${category.id}">جاري العد...</div>
                     </div>
+                    <div class="category-name">${categoryName}</div>
+                    ${categoryDescription ? `<div class="category-description">${categoryDescription}</div>` : ''}
+                    <div class="image-url-display">
+                        <strong>حقل الصورة:</strong> ${imageData?.fieldName || 'غير موجود'}<br>
+                        <strong>الرابط:</strong> ${imageData?.originalUrl || 'لا يوجد رابط صورة'}
+                    </div>
+                    <div class="category-count" id="count-${category.id}">جاري العد...</div>
                 `;
-            }).join('');
-
-            categoriesGrid.innerHTML = categoriesHTML;
-
-            // تحميل أعداد المنتجات بشكل غير متزامن
-            loadAllProductsCounts(categories);
-        }
-
-        // ==========================================
-        // 📥 دالة سريعة لتحميل الفئات من Firebase
-        // ==========================================
-        async function loadCategoriesFromFirebase() {
-            try {
-                if (!database) {
-                    throw new Error("قاعدة البيانات غير مهيئة");
+                
+                categoriesGrid.appendChild(categoryCard);
+                
+                // معالجة الصورة إذا وجدت
+                if (imageData && imageData.url) {
+                    await processCategoryImage(categoryCard, category, imageData);
+                } else {
+                    showCategoryIcon(categoryCard, categoryIcon);
                 }
-
-                const categoriesSnapshot = await database.ref('categories').once('value');
-                const categories = categoriesSnapshot.val() || {};
                 
-                console.log("📊 الفئات المستلمة:", Object.keys(categories).length);
+                // إضافة حدث النقر
+                categoryCard.addEventListener('click', () => {
+                    window.location.href = `products.html?category=${category.id}&name=${encodeURIComponent(categoryName)}`;
+                });
                 
-                // تحويل البيانات إلى مصفوفة بسرعة
-                return Object.entries(categories).map(([id, category]) => ({
-                    id,
-                    ...category
-                }));
-                
-            } catch (error) {
-                console.error('❌ خطأ في تحميل الفئات:', error);
-                throw error;
+                // جلب عدد المنتجات
+                loadProductsCount(category.id);
             }
         }
 
         // ==========================================
-        // 🔢 دالة سريعة لجلب أعداد المنتجات
+        // 🔄 دالة معالجة الصورة للفئة
         // ==========================================
-        async function loadAllProductsCounts(categories) {
+        async function processCategoryImage(card, category, imageData) {
+            const imageContainer = card.querySelector('.category-image-container');
+            
+            try {
+                const result = await createImageElement(imageData.url, category.id, category.name);
+                
+                if (result.success) {
+                    imageContainer.innerHTML = '';
+                    imageContainer.appendChild(result.element);
+                    console.log(`✅ تم تحميل صورة الفئة: ${category.name}`);
+                } else {
+                    console.log(`❌ فشل تحميل صورة الفئة: ${category.name}`);
+                    showCategoryIcon(card, getCategoryIcon(category.name));
+                }
+            } catch (error) {
+                console.error('خطأ في معالجة الصورة:', error);
+                showCategoryIcon(card, getCategoryIcon(category.name));
+            }
+        }
+
+        // ==========================================
+        // 🎨 دالة لعرض أيقونة الفئة
+        // ==========================================
+        function showCategoryIcon(card, iconClass) {
+            const imageContainer = card.querySelector('.category-image-container');
+            imageContainer.innerHTML = `
+                <div class="category-placeholder">
+                    <i class="${iconClass}"></i>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // 📥 دالة محسنة لتحميل الفئات من Firebase
+        // ==========================================
+        async function loadCategoriesFromFirebase() {
+            try {
+                const categoriesGrid = document.getElementById('categories-grid');
+                
+                // عرض حالة التحميل
+                categoriesGrid.innerHTML = `
+                    <div class="loading-categories">
+                        <div class="loading-spinner"></div>
+                        <p>جاري تحميل الفئات...</p>
+                    </div>
+                `;
+
+                if (!database) {
+                    throw new Error("قاعدة البيانات غير مهيئة");
+                }
+
+                // جلب الفئات من Firebase
+                const categoriesSnapshot = await database.ref('categories').once('value');
+                const categories = categoriesSnapshot.val() || {};
+                
+                console.log("📊 الفئات المستلمة من قاعدة البيانات:", categories);
+                
+                // تحويل البيانات إلى مصفوفة
+                const categoriesArray = Object.entries(categories).map(([id, category]) => ({
+                    id,
+                    ...category
+                }));
+
+                // عرض الفئات
+                await displayCategories(categoriesArray);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل الفئات:', error);
+                const categoriesGrid = document.getElementById('categories-grid');
+                categoriesGrid.innerHTML = `
+                    <div class="no-categories">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>حدث خطأ في تحميل الفئات</p>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+            }
+        }
+
+        // ==========================================
+        // 🔢 دالة محسنة لجلب عدد المنتجات في كل فئة
+        // ==========================================
+        async function loadProductsCount(categoryId) {
             try {
                 if (!database) return;
 
                 const productsSnapshot = await database.ref('products').once('value');
                 const products = productsSnapshot.val() || {};
                 
-                // حساب الأعداد لكل فئة دفعة واحدة
-                categories.forEach(category => {
-                    const productsCount = Object.values(products).filter(
-                        product => product.category === category.id || product.categoryId === category.id
-                    ).length;
-                    
-                    const countElement = document.getElementById(`count-${category.id}`);
-                    if (countElement) {
-                        countElement.textContent = `${productsCount} إعلان`;
-                    }
-                });
+                // عد المنتجات التي تنتمي لهذه الفئة
+                const productsCount = Object.values(products).filter(
+                    product => product.category === categoryId || product.categoryId === categoryId
+                ).length;
+                
+                // تحديث العدد في الواجهة
+                const countElement = document.getElementById(`count-${categoryId}`);
+                if (countElement) {
+                    countElement.textContent = `${productsCount} إعلان`;
+                }
                 
             } catch (error) {
-                console.error('❌ خطأ في عد المنتجات:', error);
-                // لا نعرض خطأ للمستخدم، نكتفي بتسجيله
+                console.error('خطأ في عد المنتجات:', error);
+                const countElement = document.getElementById(`count-${categoryId}`);
+                if (countElement) {
+                    countElement.textContent = '0 إعلان';
+                }
             }
         }
 
         // ==========================================
-        // 🧭 دالة للتنقل إلى صفحة الفئة
+        // 🎉 تهيئة الصفحة
         // ==========================================
-        function navigateToCategory(categoryId, categoryName) {
-            window.location.href = `products.html?category=${categoryId}&name=${encodeURIComponent(categoryName)}`;
-        }
-
-        // ==========================================
-        // ❌ دالة لعرض الأخطاء
-        // ==========================================
-        function showError(message) {
-            const categoriesGrid = document.getElementById('categories-grid');
-            categoriesGrid.innerHTML = `
-                <div class="no-categories">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>${message}</p>
-                    <button onclick="loadDataWithProgress()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
-                        إعادة المحاولة
-                    </button>
-                </div>
-            `;
-        }
-
-        // ==========================================
-        // 🔄 جعل الدوال متاحة globally لل event handlers
-        // ==========================================
-        window.navigateToCategory = navigateToCategory;
-        window.loadDataWithProgress = loadDataWithProgress;
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 بدء تحميل التطبيق...');
+            loadCategoriesFromFirebase();
+        });
     </script>
 </body>
 </html>
