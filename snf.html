@@ -484,10 +484,11 @@
             box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
         }
 
+        /* توسيع حجم عرض الصورة في البطاقات */
         .product-image-container {
             position: relative;
             width: 100%;
-            height: 300px;
+            height: 350px; /* زيادة الارتفاع من 300px إلى 350px */
             overflow: hidden;
         }
 
@@ -1428,6 +1429,7 @@
             }, 5000);
         }
 
+        // دالة محسنة لتعيين التاريخ الحالي
         function setCurrentDate() {
             const today = new Date();
             const year = today.getFullYear();
@@ -1437,6 +1439,14 @@
             
             document.getElementById('product-date').value = todayFormatted;
             return todayFormatted;
+        }
+
+        // دالة جديدة: التحقق من حقل التاريخ وإضافة تاريخ اليوم إذا كان فارغاً
+        function ensureDateField() {
+            const dateField = document.getElementById('product-date');
+            if (!dateField.value) {
+                setCurrentDate();
+            }
         }
 
         // ضغط الصور مع الإعدادات المتوازنة
@@ -2002,7 +2012,7 @@
             }
         }
 
-        // إضافة منتج
+        // إضافة منتج - محسنة لحفظ التاريخ تلقائياً
         async function addProduct(e) {
             if (e) e.preventDefault();
             
@@ -2067,7 +2077,7 @@
                         imageUrls: uploadedImageUrls,
                         userId: currentUser.id,
                         createdAt: Date.now(),
-                        date: date
+                        date: date || setCurrentDate() // التأكد من وجود تاريخ
                     };
                 }
                 
@@ -2086,7 +2096,7 @@
                 isEditing = false;
                 currentEditProductId = null;
                 
-                setCurrentDate();
+                setCurrentDate(); // تعيين التاريخ الحالي بعد الحفظ
                 
                 showToast(isEditing ? 'تم تعديل المنتج بنجاح' : 'تم إضافة المنتج بنجاح', 'success');
                 
@@ -2100,7 +2110,7 @@
             }
         }
 
-        // تعديل منتج
+        // تعديل منتج - محسنة لإضافة تاريخ اليوم إذا كان الحقل فارغاً
         function editProduct(productId) {
             const product = allProducts.find(p => p.id === productId);
             
@@ -2115,10 +2125,11 @@
             document.getElementById('product-category').value = product.category;
             document.getElementById('product-availability').value = product.availability;
             
+            // التحقق من وجود تاريخ وإضافة تاريخ اليوم إذا كان فارغاً
             if (product.date) {
                 document.getElementById('product-date').value = product.date;
             } else {
-                setCurrentDate();
+                setCurrentDate(); // إضافة تاريخ اليوم تلقائياً
             }
             
             const uploadedImagesElement = document.getElementById('uploaded-images');
@@ -2209,7 +2220,7 @@
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', function() {
             updateUserDisplay();
-            setCurrentDate();
+            setCurrentDate(); // تعيين التاريخ الحالي عند تحميل الصفحة
             
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -2233,6 +2244,11 @@
             document.getElementById('product-price').addEventListener('input', checkRequiredFields);
             document.getElementById('product-category').addEventListener('change', checkRequiredFields);
             
+            // التحقق من حقل التاريخ عند التغيير
+            document.getElementById('product-date').addEventListener('change', function() {
+                ensureDateField();
+            });
+            
             document.getElementById('cancel-delete').addEventListener('click', function() {
                 document.getElementById('delete-confirm-dialog').style.display = 'none';
                 productToDelete = null;
@@ -2241,6 +2257,7 @@
             document.getElementById('confirm-delete').addEventListener('click', deleteProduct);
             
             document.getElementById('saveButton').addEventListener('click', function() {
+                ensureDateField(); // التأكد من وجود تاريخ قبل الحفظ
                 addProduct();
             });
             
@@ -2261,4 +2278,4 @@
         });
     </script>
 </body>
-</html>
+    </html>
