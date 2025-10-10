@@ -1096,6 +1096,28 @@
             background: #2563eb;
             transform: translateY(-1px);
         }
+
+        /* زر تحديث التواريخ */
+        .update-dates-btn {
+            background: var(--warning-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .update-dates-btn:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -1227,6 +1249,11 @@
                     <div class="form-group">
                         <input type="text" id="search-products" placeholder="ابحث عن صنف...">
                     </div>
+
+                    <!-- زر تحديث التواريخ المفقودة -->
+                    <button class="update-dates-btn" onclick="updateMissingDates()">
+                        <i class="fas fa-sync-alt"></i> تحديث التواريخ المفقودة
+                    </button>
 
                     <div id="products-container" class="products-grid">
                         <div class="no-products">
@@ -1478,6 +1505,71 @@
             const dateField = document.getElementById('product-date');
             if (!dateField.value) {
                 setCurrentDate();
+            }
+        }
+
+        // دالة لتحديث التواريخ المفقودة
+        async function updateMissingDates() {
+            try {
+                showGlobalLoading(true);
+                
+                const currentUser = globalUser.getUserData();
+                if (!currentUser || !currentUser.id) {
+                    showToast('يجب تسجيل الدخول أولاً', 'error');
+                    return;
+                }
+
+                const productsSnapshot = await database.ref('products').once('value');
+                const products = productsSnapshot.val() || {};
+                
+                let updatedCount = 0;
+                const updatePromises = [];
+
+                Object.entries(products).forEach(([productId, product]) => {
+                    // تحديث فقط منتجات المستخدم الحالي التي لا تحتوي على تاريخ
+                    if (product.userId === currentUser.id && !product.date) {
+                        let newDate;
+                        
+                        if (product.createdAt) {
+                            // استخدام createdAt لإنشاء تاريخ
+                            const dateFromTimestamp = new Date(product.createdAt);
+                            const year = dateFromTimestamp.getFullYear();
+                            const month = String(dateFromTimestamp.getMonth() + 1).padStart(2, '0');
+                            const day = String(dateFromTimestamp.getDate()).padStart(2, '0');
+                            newDate = `${year}-${month}-${day}`;
+                        } else {
+                            // إذا لم يكن هناك createdAt، استخدم تاريخ اليوم
+                            const today = new Date();
+                            const year = today.getFullYear();
+                            const month = String(today.getMonth() + 1).padStart(2, '0');
+                            const day = String(today.getDate()).padStart(2, '0');
+                            newDate = `${year}-${month}-${day}`;
+                        }
+
+                        const updatePromise = database.ref(`products/${productId}`).update({
+                            date: newDate
+                        });
+                        
+                        updatePromises.push(updatePromise);
+                        updatedCount++;
+                    }
+                });
+
+                await Promise.all(updatePromises);
+                
+                showGlobalLoading(false);
+                
+                if (updatedCount > 0) {
+                    showToast(`تم تحديث ${updatedCount} منتج بالتواريخ المفقودة`, 'success');
+                    loadProducts(); // إعادة تحميل المنتجات
+                } else {
+                    showToast('لا توجد منتجات تحتاج إلى تحديث', 'info');
+                }
+                
+            } catch (error) {
+                console.error('خطأ في تحديث التواريخ:', error);
+                showToast('حدث خطأ في تحديث التواريخ', 'error');
+                showGlobalLoading(false);
             }
         }
 
@@ -1902,18 +1994,41 @@
             return carousel;
         }
 
+        // دالة محسنة لعرض التاريخ تأخذ بعين الاعتبار جميع الحالات
         function formatDate(timestamp) {
             if (!timestamp) return 'غير محدد';
             
-            const date = new Date(timestamp);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            
-            return `${year}-${month}-${day}`;
+            try {
+                const date = new Date(timestamp);
+                if (isNaN(date.getTime())) {
+                    return 'غير محدد';
+                }
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                
+                return `${year}-${month}-${day}`;
+            } catch (error) {
+                console.error('خطأ في تنسيق التاريخ:', error);
+                return 'غير محدد';
+            }
         }
 
-        // عرض المنتجات
+        // دالة مساعدة للحصول على التاريخ من المنتج بأفضل طريقة ممكنة
+        function getProductDate(product) {
+            // الأولوية للتاريخ المخصص (date)
+            if (product.date) {
+                return product.date;
+            }
+            // ثم التاريخ من createdAt
+            if (product.createdAt) {
+                return formatDate(product.createdAt);
+            }
+            // إذا لم يكن هناك أي تاريخ
+            return 'غير محدد';
+        }
+
+        // عرض المنتجات - معدلة لعرض التاريخ بشكل صحيح
         function displayProducts(products) {
             const container = document.getElementById('products-container');
             
@@ -1939,6 +2054,7 @@
                 card.className = 'product-card';
                 
                 const hasImages = product.imageUrls && product.imageUrls.length > 0;
+                const productDate = getProductDate(product);
                 
                 card.innerHTML = `
                     <div class="product-image-container">
@@ -1954,7 +2070,7 @@
                         <div class="product-price">${product.price} د.ع</div>
                         <div class="product-date">
                             <i class="fas fa-calendar"></i>
-                            تاريخ الإضافة: ${formatDate(product.createdAt)}
+                            تاريخ الإضافة: ${productDate}
                         </div>
                         <div class="product-tags">
                             <span class="product-category">${getCategoryName(product.category) || 'غير مصنف'}</span>
@@ -2097,7 +2213,7 @@
                         imageUrls: uploadedImageUrls,
                         userId: currentUser.id,
                         updatedAt: Date.now(),
-                        date: date || setCurrentDate() // التأكد من وجود تاريخ
+                        date: date // ⬅️ التأكد من حفظ التاريخ
                     };
                 } else {
                     productId = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -2110,7 +2226,7 @@
                         imageUrls: uploadedImageUrls,
                         userId: currentUser.id,
                         createdAt: Date.now(),
-                        date: date || setCurrentDate() // التأكد من وجود تاريخ
+                        date: date || setCurrentDate() // ⬅️ التأكد من وجود تاريخ
                     };
                 }
                 
@@ -2129,7 +2245,7 @@
                 isEditing = false;
                 currentEditProductId = null;
                 
-                setCurrentDate(); // تعيين التاريخ الحالي بعد الحفظ
+                setCurrentDate();
                 
                 showToast(isEditing ? 'تم تعديل المنتج بنجاح' : 'تم إضافة المنتج بنجاح', 'success');
                 
@@ -2143,7 +2259,7 @@
             }
         }
 
-        // تعديل منتج - محسنة لإضافة تاريخ اليوم إذا كان الحقل فارغاً
+        // تعديل منتج - محسنة لعرض وحفظ التاريخ
         function editProduct(productId) {
             const product = allProducts.find(p => p.id === productId);
             
@@ -2158,11 +2274,19 @@
             document.getElementById('product-category').value = product.category;
             document.getElementById('product-availability').value = product.availability;
             
-            // التحقق من وجود تاريخ وإضافة تاريخ اليوم إذا كان فارغاً
+            // التحقق من وجود تاريخ وعرضه
             if (product.date) {
                 document.getElementById('product-date').value = product.date;
+            } else if (product.createdAt) {
+                // إذا لم يكن هناك date ولكن هناك createdAt، نعرض منه
+                const dateFromTimestamp = new Date(product.createdAt);
+                const year = dateFromTimestamp.getFullYear();
+                const month = String(dateFromTimestamp.getMonth() + 1).padStart(2, '0');
+                const day = String(dateFromTimestamp.getDate()).padStart(2, '0');
+                document.getElementById('product-date').value = `${year}-${month}-${day}`;
             } else {
-                setCurrentDate(); // إضافة تاريخ اليوم تلقائياً
+                // إذا لم يكن هناك أي تاريخ، نعرض تاريخ اليوم
+                setCurrentDate();
             }
             
             const uploadedImagesElement = document.getElementById('uploaded-images');
