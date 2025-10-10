@@ -1070,6 +1070,32 @@
             border-radius: 20px;
             font-size: 1rem;
         }
+
+        /* زر تعيين تاريخ اليوم */
+        .date-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .set-today-btn {
+            background: var(--info-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .set-today-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
@@ -1176,7 +1202,12 @@
 
                         <div class="form-group date-field">
                             <label for="product-date"><i class="fas fa-calendar"></i> تاريخ الإضافة</label>
-                            <input type="date" id="product-date" readonly>
+                            <input type="date" id="product-date">
+                            <div class="date-actions">
+                                <button type="button" class="set-today-btn" onclick="setCurrentDate()">
+                                    <i class="fas fa-calendar-day"></i> تعيين تاريخ اليوم
+                                </button>
+                            </div>
                         </div>
 
                         <div id="error-details" class="error-details">
@@ -1438,6 +1469,7 @@
             const todayFormatted = `${year}-${month}-${day}`;
             
             document.getElementById('product-date').value = todayFormatted;
+            showToast('تم تعيين تاريخ اليوم تلقائياً', 'success');
             return todayFormatted;
         }
 
@@ -2064,7 +2096,8 @@
                         availability: availability,
                         imageUrls: uploadedImageUrls,
                         userId: currentUser.id,
-                        updatedAt: Date.now()
+                        updatedAt: Date.now(),
+                        date: date || setCurrentDate() // التأكد من وجود تاريخ
                     };
                 } else {
                     productId = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -2244,11 +2277,6 @@
             document.getElementById('product-price').addEventListener('input', checkRequiredFields);
             document.getElementById('product-category').addEventListener('change', checkRequiredFields);
             
-            // التحقق من حقل التاريخ عند التغيير
-            document.getElementById('product-date').addEventListener('change', function() {
-                ensureDateField();
-            });
-            
             document.getElementById('cancel-delete').addEventListener('click', function() {
                 document.getElementById('delete-confirm-dialog').style.display = 'none';
                 productToDelete = null;
@@ -2278,4 +2306,4 @@
         });
     </script>
 </body>
-    </html>
+</html>
