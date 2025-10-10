@@ -180,32 +180,60 @@
             width: 200px;
         }
 
-        .price-range {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .price-range input {
-            width: 80px;
-        }
-
-        .reset-btn, .hide-btn {
-            padding: 6px 12px;
+        .reset-btn, .hide-btn, .filter-toggle-btn {
+            padding: 8px 12px;
             border: none;
             border-radius: var(--border-radius);
             cursor: pointer;
             font-size: 14px;
             transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .reset-btn {
-            background: var(--danger-color);
+            background: var(--primary-color);
             color: white;
+            position: relative;
         }
 
         .reset-btn:hover {
-            background: #c0392b;
+            background: var(--secondary-color);
+        }
+
+        .reset-btn .tooltip {
+            visibility: hidden;
+            width: 120px;
+            background-color: var(--dark-color);
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+        }
+
+        .reset-btn .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: var(--dark-color) transparent transparent transparent;
+        }
+
+        .reset-btn:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
         }
 
         .hide-btn {
@@ -215,6 +243,15 @@
 
         .hide-btn:hover {
             background: #e67e22;
+        }
+
+        .filter-toggle-btn {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .filter-toggle-btn:hover {
+            background: #27ae60;
         }
 
         /* الفوتر */
@@ -260,6 +297,33 @@
 
         .scroll-to-top:hover {
             background: var(--secondary-color);
+            transform: translateY(-3px);
+        }
+
+        /* زر تحكم الشريط */
+        .filter-control {
+            position: fixed;
+            bottom: 140px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999;
+            transition: var(--transition);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .filter-control:hover {
+            background: #27ae60;
             transform: translateY(-3px);
         }
 
@@ -1099,7 +1163,6 @@
             .filter-bar { top: 100px; padding: 8px 10px; }
             .filter-item { flex: 1 0 100%; }
             .filter-item input { width: 100%; }
-            .price-range { flex-wrap: wrap; }
             .products { grid-template-columns: 1fr; }
             .images-preview img, .slider-image { height: 250px; }
             .image-slider { height: 250px; }
@@ -1154,6 +1217,17 @@
             .brand-subtitle {
                 font-size: 11px;
             }
+
+            .scroll-to-top, .filter-control {
+                bottom: 70px;
+                right: 15px;
+                width: 45px;
+                height: 45px;
+            }
+
+            .filter-control {
+                bottom: 130px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1175,13 +1249,6 @@
             .gallery-main-image {
                 max-width: 100%;
                 max-height: 100%;
-            }
-            
-            .scroll-to-top {
-                bottom: 70px;
-                right: 15px;
-                width: 45px;
-                height: 45px;
             }
         }
     </style>
@@ -1231,12 +1298,6 @@
             <label for="search">بحث:</label>
             <input type="text" id="search" placeholder="ابحث عن منتج...">
         </div>
-        <div class="filter-item price-range">
-            <label for="min-price">السعر من:</label>
-            <input type="number" id="min-price" placeholder="أقل سعر" min="0">
-            <label for="max-price">إلى:</label>
-            <input type="number" id="max-price" placeholder="أعلى سعر" min="0">
-        </div>
         <div class="filter-item">
             <label for="sort-by">ترتيب:</label>
             <select id="sort-by">
@@ -1247,13 +1308,21 @@
                 <option value="merchant">التاجر</option>
             </select>
         </div>
-        <button class="reset-btn" id="reset-filters">إعادة تعيين</button>
+        <button class="reset-btn" id="reset-filters" title="إعادة تعيين الفلاتر">
+            <i class="fas fa-redo"></i>
+            <span class="tooltip">إعادة تعيين جميع الفلاتر</span>
+        </button>
         <button class="hide-btn" id="hide-btn">إخفاء الشريط</button>
     </div>
 
     <!-- زر العودة للأعلى -->
     <button class="scroll-to-top" id="scroll-to-top" title="العودة للأعلى">
         <i class="fas fa-chevron-up"></i>
+    </button>
+
+    <!-- زر تحكم الشريط -->
+    <button class="filter-control" id="filter-control" title="إظهار/إخفاء شريط الفلاتر">
+        <i class="fas fa-sliders-h"></i>
     </button>
 
     <!-- المحتوى -->
@@ -1353,8 +1422,6 @@
         const categorySelect = document.getElementById('category');
         const merchantSelect = document.getElementById('merchant');
         const searchInput = document.getElementById('search');
-        const minPriceInput = document.getElementById('min-price');
-        const maxPriceInput = document.getElementById('max-price');
         const resetButton = document.getElementById('reset-filters');
         const sortSelect = document.getElementById('sort-by');
         const themeToggle = document.getElementById('theme-toggle');
@@ -1363,6 +1430,7 @@
         const hideBtn = document.getElementById('hide-btn');
         const showBtn = document.getElementById('show-btn');
         const scrollToTopBtn = document.getElementById('scroll-to-top');
+        const filterControlBtn = document.getElementById('filter-control');
         const categoryValueDisplay = document.getElementById('category-value-display');
 
         // ==========================================
@@ -1399,6 +1467,8 @@
             const isFilterBarHidden = localStorage.getItem('filterBarHidden');
             if (isFilterBarHidden === 'true') {
                 hideFilterBar();
+            } else {
+                showFilterBar();
             }
         }
 
@@ -1409,14 +1479,13 @@
             regionSelect.addEventListener('change', filterProducts);
             categorySelect.addEventListener('change', handleCategoryChange);
             merchantSelect.addEventListener('change', filterProducts);
-            minPriceInput.addEventListener('input', filterProducts);
-            maxPriceInput.addEventListener('input', filterProducts);
             sortSelect.addEventListener('change', filterProducts);
             resetButton.addEventListener('click', resetFilters);
             themeToggle.addEventListener('click', toggleTheme);
             favoritesToggle.addEventListener('click', toggleFavoritesView);
             hideBtn.addEventListener('click', hideFilterBar);
             showBtn.addEventListener('click', showFilterBar);
+            filterControlBtn.addEventListener('click', toggleFilterBar);
 
             // إغلاق التعليقات عند النقر خارج البطاقة
             document.addEventListener('click', (e) => {
@@ -1488,6 +1557,15 @@
                 displayFavoriteProducts();
             } else {
                 filterProducts();
+            }
+        }
+
+        function toggleFilterBar() {
+            const isFilterBarHidden = localStorage.getItem('filterBarHidden');
+            if (isFilterBarHidden === 'true') {
+                showFilterBar();
+            } else {
+                hideFilterBar();
             }
         }
 
@@ -1693,9 +1771,17 @@
         }
 
         // ==========================================
-        // 🚀 نظام ترتيب المنتجات الجديد
+        // 🚀 نظام ترتيب المنتجات الجديد مع دعم خيارات الترتيب
         // ==========================================
         function sortProductsByPriority(products) {
+            const sortBy = sortSelect.value;
+            
+            // إذا كان هناك خيار ترتيب محدد من المستخدم، نستخدمه
+            if (sortBy && sortBy !== 'date') {
+                return sortProductsByOption(products, sortBy);
+            }
+            
+            // وإلا نستخدم نظام الأولويات الذكي
             return [...products].sort((a, b) => {
                 // 1. المنتجات الجديدة التي تتطابق مع اهتمامات المستخدم تأتي أولاً
                 const aIsNewAndInterested = isNewProduct(a) && hasUserInterest(a);
@@ -1730,6 +1816,49 @@
                 const bDate = new Date(b.publishDate || b.createdAt || 0);
                 return bDate - aDate;
             });
+        }
+
+        // دالة الترتيب حسب خيارات المستخدم
+        function sortProductsByOption(products, sortBy) {
+            return [...products].sort((a, b) => {
+                switch(sortBy) {
+                    case 'name':
+                        const nameA = (a.name || '').toLowerCase();
+                        const nameB = (b.name || '').toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    
+                    case 'category':
+                        const categoryA = getCategoryName(a.categoryId) || '';
+                        const categoryB = getCategoryName(b.categoryId) || '';
+                        return categoryA.localeCompare(categoryB);
+                    
+                    case 'price':
+                        const priceA = parseFloat(a.price) || 0;
+                        const priceB = parseFloat(b.price) || 0;
+                        return priceA - priceB;
+                    
+                    case 'merchant':
+                        const merchantA = getMerchantName(a.userId) || '';
+                        const merchantB = getMerchantName(b.userId) || '';
+                        return merchantA.localeCompare(merchantB);
+                    
+                    case 'date':
+                    default:
+                        const dateA = new Date(a.publishDate || a.createdAt || 0);
+                        const dateB = new Date(b.publishDate || b.createdAt || 0);
+                        return dateB - dateA;
+                }
+            });
+        }
+
+        function getCategoryName(categoryId) {
+            const category = allCategories.find(c => c.id === categoryId);
+            return category ? category.name : '';
+        }
+
+        function getMerchantName(merchantId) {
+            const merchant = allMerchants.find(m => m.id === merchantId);
+            return merchant ? (merchant.name || merchant.username) : '';
         }
 
         // التحقق إذا كان المنتج جديد (منشور خلال آخر 7 أيام)
@@ -2362,8 +2491,7 @@
                 category: categorySelect.value,
                 merchant: merchantSelect.value,
                 search: (searchInput.value || '').toLowerCase().trim(),
-                minPrice: parseFloat(minPriceInput.value) || 0,
-                maxPrice: parseFloat(maxPriceInput.value) || Infinity
+                sortBy: sortSelect.value
             };
 
             // حفظ مصطلح البحث في السجل
@@ -2391,9 +2519,6 @@
                 }
 
                 if (filters.merchant && product.userId !== filters.merchant) return false;
-
-                const price = parseFloat(product.price) || 0;
-                if (price < filters.minPrice || price > filters.maxPrice) return false;
 
                 if (filters.governorate) {
                     const merchantGovernorate = merchant.governorate || merchant.region;
@@ -2429,12 +2554,11 @@
             categorySelect.value = '';
             merchantSelect.value = '';
             searchInput.value = '';
-            minPriceInput.value = '';
-            maxPriceInput.value = '';
             sortSelect.value = 'date';
             categoryValueDisplay.textContent = '';
             updateRegionOptions();
             displayProducts(allProducts);
+            showNotification('تم إعادة تعيين جميع الفلاتر', 'success');
         }
 
         function toggleTheme() {
@@ -2455,6 +2579,8 @@
             showBtn.style.display = 'flex';
             document.body.style.paddingTop = '70px';
             localStorage.setItem('filterBarHidden', 'true');
+            filterControlBtn.innerHTML = '<i class="fas fa-sliders-h"></i>';
+            filterControlBtn.title = 'إظهار شريط الفلاتر';
         }
 
         function showFilterBar() {
@@ -2462,6 +2588,8 @@
             showBtn.style.display = 'none';
             document.body.style.paddingTop = '140px';
             localStorage.setItem('filterBarHidden', 'false');
+            filterControlBtn.innerHTML = '<i class="fas fa-times"></i>';
+            filterControlBtn.title = 'إخفاء شريط الفلاتر';
         }
 
         // ==========================================
