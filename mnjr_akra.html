@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الطلبات والمتاجرة</title>
+    <title>AZ السوق الشامل - نظام إدارة الطلبات والمتاجرة</title>
     <!-- ربط Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
@@ -31,7 +31,7 @@
         
         /* الشريط العلوي */
         header {
-            background: linear-gradient(135deg, #2c3e50, #4a6580);
+            background-color: #3498db;
             color: white;
             padding: 15px 0;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -54,14 +54,16 @@
         .logo {
             width: 50px;
             height: 50px;
-            background-color: #fff;
-            border-radius: 50%;
             margin-left: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            color: #2c3e50;
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         
         .site-name {
@@ -69,14 +71,21 @@
             font-weight: bold;
         }
         
-        /* التبويبات */
-        .tabs {
+        .site-subtitle {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 1.2rem;
+        }
+        
+        /* التبويبات الرئيسية */
+        .main-tabs {
             display: flex;
             margin: 20px 0;
             border-bottom: 2px solid #ddd;
+            flex-wrap: wrap;
         }
         
-        .tab {
+        .main-tab {
             padding: 12px 24px;
             cursor: pointer;
             background-color: #f1f1f1;
@@ -85,9 +94,35 @@
             border-radius: 5px 5px 0 0;
             margin-left: 5px;
             transition: all 0.3s;
+            font-weight: bold;
         }
         
-        .tab.active {
+        .main-tab.active {
+            background-color: #fff;
+            border-bottom: 2px solid #fff;
+            margin-bottom: -2px;
+            color: #3498db;
+        }
+        
+        /* التبويبات الفرعية */
+        .sub-tabs {
+            display: flex;
+            margin: 15px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .sub-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-left: 5px;
+            transition: all 0.3s;
+        }
+        
+        .sub-tab.active {
             background-color: #fff;
             border-bottom: 2px solid #fff;
             margin-bottom: -2px;
@@ -350,11 +385,11 @@
                 margin-bottom: 10px;
             }
             
-            .tabs {
+            .main-tabs, .sub-tabs {
                 flex-direction: column;
             }
             
-            .tab {
+            .main-tab, .sub-tab {
                 margin: 5px 0;
                 border-radius: 5px;
             }
@@ -374,18 +409,21 @@
     <header>
         <div class="container header-content">
             <div class="logo-container">
-                <div class="logo">ش</div>
-                <h1 class="site-name">موقع المتاجرة</h1>
+                <div class="logo">
+                    <img src="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true" alt="شعار AZ السوق الشامل">
+                </div>
+                <h1 class="site-name">AZ السوق الشامل</h1>
             </div>
             <nav>
                 <button id="logout-btn" class="btn btn-logout">تسجيل الخروج</button>
             </nav>
         </div>
+        <div class="container site-subtitle">
+            <h2>شاشة إدارة المتاجرة</h2>
+        </div>
     </header>
 
     <div class="container" id="main-content">
-        <h2>الطلبات والمتاجرة الجديدة والمستعملة</h2>
-        
         <!-- معلومات المستخدم -->
         <div class="user-info-bar" id="user-info">
             جاري تحميل معلومات المستخدم...
@@ -396,148 +434,212 @@
             لقد تم توقيف المستخدم الحالي، يرجى التواصل مع إدارة المميز سوفت لتزويدكم بالمعلومات
         </div>
         
-        <!-- التبويبات -->
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('add')">إضافة منتج</div>
-            <div class="tab" onclick="switchTab('view')">عرض المنتجات</div>
-            <div class="tab" onclick="switchTab('profile')">عرض بياناتي</div>
+        <!-- التبويبات الرئيسية -->
+        <div class="main-tabs">
+            <div class="main-tab active" onclick="switchMainTab('haraj')">الحراج</div>
+            <div class="main-tab" onclick="switchMainTab('realestate')">العقارات</div>
+            <div class="main-tab" onclick="switchMainTab('jobs')">الوظائف</div>
+            <div class="main-tab" onclick="switchMainTab('profile')">بياناتي</div>
         </div>
         
-        <!-- تبويب الإضافة -->
-        <div id="add-tab" class="tab-content active">
-            <form id="product-form">
-                <div class="form-group">
-                    <label for="governorate" class="required">المحافظة</label>
-                    <select id="governorate" required onchange="loadRegions(this.value)">
-                        <option value="">اختر المحافظة</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="region" class="required">المنطقة</label>
-                    <select id="region" required disabled>
-                        <option value="">اختر المنطقة</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="category" class="required">الفئة</label>
-                    <select id="category" required>
-                        <option value="">اختر الفئة</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="requestType" class="required">نوع الطلب</label>
-                    <select id="requestType" required>
-                        <option value="بيع">بيع</option>
-                        <option value="شراء">شراء</option>
-                        <option value="ايجار">إيجار</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="condition" class="required">بيان الحالة</label>
-                    <select id="condition" required>
-                        <option value="جديد">جديد</option>
-                        <option value="مستخدم">مستخدم</option>
-                        <option value="تالف">تالف</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="productName" class="required">اسم المنتج</label>
-                    <input type="text" id="productName" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="specifications">مواصفات المنتج (اختياري)</label>
-                    <textarea id="specifications"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="address">عنوان المنتج (اختياري)</label>
-                    <input type="text" id="address">
-                </div>
-                
-                <div class="form-group">
-                    <label for="price" class="required">السعر</label>
-                    <input type="number" id="price" required min="0">
-                </div>
-                
-                <div class="form-group">
-                    <label for="status" class="required">حالة المنتج</label>
-                    <select id="status" required>
-                        <option value="نشط">نشط</option>
-                        <option value="موقف">موقف</option>
-                    </select>
-                </div>
-                
-                <input type="hidden" id="productId">
-                <input type="hidden" id="orderDate">
-                <input type="hidden" id="userId">
-                
-                <button type="submit" class="btn" id="save-product-btn">حفظ المنتج</button>
-                <button type="button" class="btn" onclick="resetForm()" style="background-color: #95a5a6;">إلغاء</button>
-            </form>
-        </div>
-        
-        <!-- تبويب العرض -->
-        <div id="view-tab" class="tab-content">
-            <div id="loading" class="loading">جاري تحميل البيانات...</div>
-            <div id="no-products" class="message" style="display: none;">لا توجد منتجات لعرضها</div>
-            <table class="products-table" id="products-table" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>اسم المنتج</th>
-                        <th>السعر</th>
-                        <th>الحالة</th>
-                        <th>نوع الطلب</th>
-                        <th>تاريخ الطلب</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="products-list">
-                    <!-- سيتم ملء هذا القسم بالبيانات من قاعدة البيانات -->
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- تبويب عرض بياناتي -->
-        <div id="profile-tab" class="tab-content">
-            <div class="user-card">
-                <h2>معلومات المستخدم</h2>
-                <div class="user-info">
-                    <div class="info-item">
-                        <div class="info-label">الاسم الكامل</div>
-                        <div class="info-value" id="profile-name">جاري التحميل...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">البريد الإلكتروني</div>
-                        <div class="info-value" id="profile-email">جاري التحميل...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">رقم الجوال</div>
-                        <div class="info-value" id="profile-phone">جاري التحميل...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">حالة الحساب</div>
-                        <div class="info-value" id="profile-status">جاري التحميل...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">معرف المستخدم</div>
-                        <div class="info-value" id="profile-uid">جاري التحميل...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">تاريخ التسجيل</div>
-                        <div class="info-value" id="profile-created">جاري التحميل...</div>
-                    </div>
-                </div>
+        <!-- تبويب الحراج -->
+        <div id="haraj-tab" class="tab-content active">
+            <!-- التبويبات الفرعية للحراج -->
+            <div class="sub-tabs">
+                <div class="sub-tab active" onclick="switchSubTab('haraj', 'add')">إضافة منتج</div>
+                <div class="sub-tab" onclick="switchSubTab('haraj', 'view')">عرض المنتجات</div>
             </div>
             
-            <!-- رسالة عدم وجود بيانات -->
-            <div id="no-user-data" class="message error" style="display: none;">
-                لا توجد بيانات مستخدم مسجل.
+            <!-- تبويب إضافة منتج في الحراج -->
+            <div id="haraj-add-tab" class="tab-content active">
+                <form id="product-form">
+                    <div class="form-group">
+                        <label for="governorate" class="required">المحافظة</label>
+                        <select id="governorate" required onchange="loadRegions(this.value)">
+                            <option value="">اختر المحافظة</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="region" class="required">المنطقة</label>
+                        <select id="region" required disabled>
+                            <option value="">اختر المنطقة</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category" class="required">الفئة</label>
+                        <select id="category" required>
+                            <option value="">اختر الفئة</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="requestType" class="required">نوع الطلب</label>
+                        <select id="requestType" required>
+                            <option value="بيع">بيع</option>
+                            <option value="شراء">شراء</option>
+                            <option value="ايجار">إيجار</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="condition" class="required">بيان الحالة</label>
+                        <select id="condition" required>
+                            <option value="جديد">جديد</option>
+                            <option value="مستخدم">مستخدم</option>
+                            <option value="تالف">تالف</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productName" class="required">اسم المنتج</label>
+                        <input type="text" id="productName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="specifications">مواصفات المنتج (اختياري)</label>
+                        <textarea id="specifications"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="address">عنوان المنتج (اختياري)</label>
+                        <input type="text" id="address">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="price" class="required">السعر</label>
+                        <input type="number" id="price" required min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="status" class="required">حالة المنتج</label>
+                        <select id="status" required>
+                            <option value="نشط">نشط</option>
+                            <option value="موقف">موقف</option>
+                        </select>
+                    </div>
+                    
+                    <input type="hidden" id="productId">
+                    <input type="hidden" id="orderDate">
+                    <input type="hidden" id="userId">
+                    
+                    <button type="submit" class="btn" id="save-product-btn">حفظ المنتج</button>
+                    <button type="button" class="btn" onclick="resetForm()" style="background-color: #95a5a6;">إلغاء</button>
+                </form>
+            </div>
+            
+            <!-- تبويب عرض المنتجات في الحراج -->
+            <div id="haraj-view-tab" class="tab-content">
+                <div id="loading" class="loading">جاري تحميل البيانات...</div>
+                <div id="no-products" class="message" style="display: none;">لا توجد منتجات لعرضها</div>
+                <table class="products-table" id="products-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>اسم المنتج</th>
+                            <th>السعر</th>
+                            <th>الحالة</th>
+                            <th>نوع الطلب</th>
+                            <th>تاريخ الطلب</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-list">
+                        <!-- سيتم ملء هذا القسم بالبيانات من قاعدة البيانات -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- تبويب العقارات -->
+        <div id="realestate-tab" class="tab-content">
+            <!-- التبويبات الفرعية للعقارات -->
+            <div class="sub-tabs">
+                <div class="sub-tab active" onclick="switchSubTab('realestate', 'add')">إضافة عقار</div>
+                <div class="sub-tab" onclick="switchSubTab('realestate', 'view')">عرض العقارات</div>
+            </div>
+            
+            <!-- تبويب إضافة عقار -->
+            <div id="realestate-add-tab" class="tab-content active">
+                <h2>إضافة عقار جديد</h2>
+                <p>سيتم إضافة نموذج إضافة العقارات هنا...</p>
+                <!-- يمكنك إضافة نموذج إضافة العقارات هنا -->
+            </div>
+            
+            <!-- تبويب عرض العقارات -->
+            <div id="realestate-view-tab" class="tab-content">
+                <h2>عرض العقارات</h2>
+                <p>سيتم عرض العقارات هنا...</p>
+                <!-- يمكنك إضافة جدول عرض العقارات هنا -->
+            </div>
+        </div>
+        
+        <!-- تبويب الوظائف -->
+        <div id="jobs-tab" class="tab-content">
+            <!-- التبويبات الفرعية للوظائف -->
+            <div class="sub-tabs">
+                <div class="sub-tab active" onclick="switchSubTab('jobs', 'add')">إضافة وظيفة</div>
+                <div class="sub-tab" onclick="switchSubTab('jobs', 'view')">عرض الوظائف</div>
+            </div>
+            
+            <!-- تبويب إضافة وظيفة -->
+            <div id="jobs-add-tab" class="tab-content active">
+                <h2>إضافة وظيفة جديدة</h2>
+                <p>سيتم إضافة نموذج إضافة الوظائف هنا...</p>
+                <!-- يمكنك إضافة نموذج إضافة الوظائف هنا -->
+            </div>
+            
+            <!-- تبويب عرض الوظائف -->
+            <div id="jobs-view-tab" class="tab-content">
+                <h2>عرض الوظائف</h2>
+                <p>سيتم عرض الوظائف هنا...</p>
+                <!-- يمكنك إضافة جدول عرض الوظائف هنا -->
+            </div>
+        </div>
+        
+        <!-- تبويب بياناتي -->
+        <div id="profile-tab" class="tab-content">
+            <!-- التبويبات الفرعية لبياناتي -->
+            <div class="sub-tabs">
+                <div class="sub-tab active" onclick="switchSubTab('profile', 'view')">عرض بياناتي</div>
+            </div>
+            
+            <!-- تبويب عرض بياناتي -->
+            <div id="profile-view-tab" class="tab-content active">
+                <div class="user-card">
+                    <h2>معلومات المستخدم</h2>
+                    <div class="user-info">
+                        <div class="info-item">
+                            <div class="info-label">الاسم الكامل</div>
+                            <div class="info-value" id="profile-name">جاري التحميل...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">البريد الإلكتروني</div>
+                            <div class="info-value" id="profile-email">جاري التحميل...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">رقم الجوال</div>
+                            <div class="info-value" id="profile-phone">جاري التحميل...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">حالة الحساب</div>
+                            <div class="info-value" id="profile-status">جاري التحميل...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">معرف المستخدم</div>
+                            <div class="info-value" id="profile-uid">جاري التحميل...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">تاريخ التسجيل</div>
+                            <div class="info-value" id="profile-created">جاري التحميل...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- رسالة عدم وجود بيانات -->
+                <div id="no-user-data" class="message error" style="display: none;">
+                    لا توجد بيانات مستخدم مسجل.
+                </div>
             </div>
         </div>
     </div>
@@ -570,16 +672,6 @@
             // إعداد مستمعي النماذج
             document.getElementById('product-form').addEventListener('submit', handleFormSubmit);
             document.getElementById('logout-btn').addEventListener('click', handleLogout);
-            
-            // تحميل المنتجات عند فتح تبويب العرض
-            document.querySelector('.tab[onclick="switchTab(\'view\')"]').addEventListener('click', function() {
-                loadUserProducts();
-            });
-            
-            // تحميل بيانات المستخدم عند فتح تبويب الملف الشخصي
-            document.querySelector('.tab[onclick="switchTab(\'profile\')"]').addEventListener('click', function() {
-                loadUserProfileData();
-            });
             
             // تحميل بيانات المستخدم من localStorage
             loadUserData();
@@ -772,30 +864,82 @@
                 });
         }
         
-        // التبديل بين التبويبات
-        function switchTab(tabName) {
-            // إخفاء جميع محتويات التبويبات
+        // التبديل بين التبويبات الرئيسية
+        function switchMainTab(tabName) {
+            // إخفاء جميع محتويات التبويبات الرئيسية
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // إلغاء تنشيط جميع التبويبات
-            document.querySelectorAll('.tab').forEach(tab => {
+            // إلغاء تنشيط جميع التبويبات الرئيسية
+            document.querySelectorAll('.main-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // تفعيل التبويب المحدد
+            // تفعيل التبويب الرئيسي المحدد
             document.getElementById(tabName + '-tab').classList.add('active');
-            document.querySelector('.tab[onclick="switchTab(\'' + tabName + '\')"]').classList.add('active');
+            document.querySelector('.main-tab[onclick="switchMainTab(\'' + tabName + '\')"]').classList.add('active');
             
-            // إذا كان التبويب هو عرض المنتجات، نقوم بتحميلها
-            if (tabName === 'view') {
-                loadUserProducts();
+            // إعادة تعيين التبويبات الفرعية للتبويب الرئيسي الجديد
+            resetSubTabs(tabName);
+            
+            // إذا كان التبويب هو الحراج وعرض المنتجات، نقوم بتحميلها
+            if (tabName === 'haraj') {
+                // تحميل المنتجات عند فتح تبويب العرض
+                document.querySelector('.sub-tab[onclick="switchSubTab(\'haraj\', \'view\')"]').addEventListener('click', function() {
+                    loadUserProducts();
+                });
             }
             
-            // إذا كان التبويب هو عرض بياناتي، نقوم بتحميل بيانات المستخدم
+            // إذا كان التبويب هو بياناتي، نقوم بتحميل بيانات المستخدم
             if (tabName === 'profile') {
                 loadUserProfileData();
+            }
+        }
+        
+        // التبديل بين التبويبات الفرعية
+        function switchSubTab(mainTab, subTab) {
+            // إخفاء جميع محتويات التبويبات الفرعية للتبويب الرئيسي الحالي
+            const mainTabElement = document.getElementById(mainTab + '-tab');
+            mainTabElement.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // إلغاء تنشيط جميع التبويبات الفرعية للتبويب الرئيسي الحالي
+            mainTabElement.querySelectorAll('.sub-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // تفعيل التبويب الفرعي المحدد
+            document.getElementById(mainTab + '-' + subTab + '-tab').classList.add('active');
+            document.querySelector('.sub-tab[onclick="switchSubTab(\'' + mainTab + '\', \'' + subTab + '\')"]').classList.add('active');
+            
+            // إذا كان التبويب هو عرض المنتجات في الحراج، نقوم بتحميلها
+            if (mainTab === 'haraj' && subTab === 'view') {
+                loadUserProducts();
+            }
+        }
+        
+        // إعادة تعيين التبويبات الفرعية للتبويب الرئيسي
+        function resetSubTabs(mainTab) {
+            const mainTabElement = document.getElementById(mainTab + '-tab');
+            
+            // إخفاء جميع محتويات التبويبات الفرعية
+            mainTabElement.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // إلغاء تنشيط جميع التبويبات الفرعية
+            mainTabElement.querySelectorAll('.sub-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // تفعيل أول تبويب فرعي
+            const firstSubTab = mainTabElement.querySelector('.sub-tab');
+            if (firstSubTab) {
+                firstSubTab.classList.add('active');
+                const subTabId = firstSubTab.getAttribute('onclick').match(/'([^']+)'/)[1];
+                document.getElementById(mainTab + '-' + subTabId + '-tab').classList.add('active');
             }
         }
         
@@ -845,7 +989,7 @@
                     
                     // إذا كنا في وضع التعديل، نعود إلى تبويب العرض
                     if (currentEditingProduct) {
-                        switchTab('view');
+                        switchSubTab('haraj', 'view');
                         loadUserProducts();
                         currentEditingProduct = null;
                     }
@@ -959,7 +1103,7 @@
                         document.getElementById('status').value = product.status || '';
                         
                         // الانتقال إلى تبويب الإضافة
-                        switchTab('add');
+                        switchSubTab('haraj', 'add');
                     }
                 })
                 .catch(error => {
