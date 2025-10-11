@@ -124,6 +124,10 @@
             font-weight: bold;
         }
 
+        .status-inactive {
+            background: #e74c3c;
+        }
+
         /* ===== حقل nam_usr على اليسار ===== */
         .nam-usr-container {
             position: fixed;
@@ -328,15 +332,6 @@
             width: 100%;
         }
 
-        /* ===== حقل الإدخال - مخفي الآن ===== */
-        .input-container {
-            display: none;
-        }
-
-        .transfer-btn {
-            display: none;
-        }
-
         /* ===== استجابة الهواتف ===== */
         @media (max-width: 768px) {
             .container {
@@ -435,34 +430,23 @@
     <div class="user-info">
         <div class="info-item">
             <i class="fas fa-user"></i>
-            <span id="info-username">المستخدم: أحمد محمد</span>
+            <span id="info-username">جاري التحميل...</span>
         </div>
         <div class="info-item">
             <i class="fas fa-phone"></i>
-            <span id="info-phone">772299420</span>
+            <span id="info-phone">جاري التحميل...</span>
         </div>
         <div class="info-item">
             <i class="fas fa-map-marker-alt"></i>
-            <span id="info-location">صنعاء - اليمن</span>
+            <span id="info-location">جاري التحميل...</span>
         </div>
     </div>
-    <div class="status-badge" id="info-status">نشط</div>
+    <div class="status-badge" id="info-status">جاري التحميل...</div>
 </div>
 
-<!-- حقل nam_usr على اليسار (أسفل فوق التذييل) -->
+<!-- حقل nam_usr على اليسار -->
 <div class="nam-usr-container">
-    <input type="text" id="nam_usr" class="nam-usr-field" placeholder="أدخل بيانات nam_usr هنا">
-</div>
-
-<!-- حقل الإدخال الأصلي (مخفي) -->
-<div class="input-container">
-    <div class="input-group">
-        <label class="input-label" for="nam_usr_original">حقل nam_usr:</label>
-        <input type="text" id="nam_usr_original" class="input-field" placeholder="أدخل البيانات هنا">
-    </div>
-    <button class="transfer-btn" onclick="transferData()">
-        <i class="fas fa-exchange-alt"></i> نقل البيانات إلى globaluser
-    </button>
+    <input type="text" id="nam_usr" class="nam-usr-field" placeholder="أدخل اسم المستخدم هنا">
 </div>
 
 <!-- الحاوية الرئيسية للبطاقات -->
@@ -529,64 +513,159 @@
 </footer>
 
 <script>
-// ===== نظام إدارة المستخدم المحسن =====
+// ===== نظام إدارة المستخدم المحسن مع بيانات حقيقية =====
 const userManager = {
     data: null,
     
-    // تهيئة بيانات المستخدم
+    // تهيئة بيانات المستخدم من مصادر متعددة
     init: function() {
-        // محاولة تحميل البيانات من localStorage
-        const storedData = localStorage.getItem('userData');
-        if (storedData) {
-            this.data = JSON.parse(storedData);
-        } else {
-            // إنشاء بيانات افتراضية
-            this.data = {
-                id: 'user_001',
-                username: 'أحمد محمد',
-                name: 'أحمد محمد',
-                email: 'ahmed@example.com',
-                mobile: '772299420',
-                phone: '772299420',
-                governorate: 'صنعاء',
-                area: 'اليمن',
-                job: 'مستخدم',
-                type: 'user',
-                status: 'نشط',
-                loginTime: new Date().toISOString(),
-                createdAt: new Date().toISOString()
-            };
-            this.saveData();
+        console.log('🔄 جاري تحميل بيانات المستخدم...');
+        
+        // المحاولة الأولى: من localStorage (بيانات المستخدم المسجلة)
+        const storedUserData = localStorage.getItem('currentUser');
+        if (storedUserData) {
+            try {
+                this.data = JSON.parse(storedUserData);
+                console.log('✅ تم تحميل بيانات المستخدم من localStorage:', this.data);
+                this.updateUI();
+                return;
+            } catch (error) {
+                console.error('❌ خطأ في تحليل بيانات localStorage:', error);
+            }
         }
         
-        this.updateUI();
-    },
-    
-    // حفظ البيانات
-    saveData: function() {
-        localStorage.setItem('userData', JSON.stringify(this.data));
-    },
-    
-    // تحديث واجهة المستخدم
-    updateUI: function() {
-        // تحديث الشريط العلوي
-        document.getElementById('user-display-name').textContent = `المستخدم: ${this.data.name}`;
+        // المحاولة الثانية: من sessionStorage (بيانات الجلسة)
+        const sessionUserData = sessionStorage.getItem('userSessionData');
+        if (sessionUserData) {
+            try {
+                this.data = JSON.parse(sessionUserData);
+                console.log('✅ تم تحميل بيانات المستخدم من sessionStorage:', this.data);
+                this.updateUI();
+                return;
+            } catch (error) {
+                console.error('❌ خطأ في تحليل بيانات sessionStorage:', error);
+            }
+        }
         
-        // تحديث شريط المعلومات
-        document.getElementById('info-username').textContent = `المستخدم: ${this.data.name}`;
-        document.getElementById('info-phone').textContent = this.data.mobile;
-        document.getElementById('info-location').textContent = `${this.data.governorate} - ${this.data.area}`;
-        document.getElementById('info-status').textContent = this.data.status;
+        // المحاولة الثالثة: من بيانات الصفحة السابقة (URL parameters)
+        this.loadFromURLParams();
+        
+        // إذا لم توجد بيانات، نعرض رسالة للمستخدم
+        if (!this.data) {
+            this.showDataNotFound();
+        }
+    },
+    
+    // تحميل البيانات من معلمات URL
+    loadFromURLParams: function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userName = urlParams.get('user') || urlParams.get('username') || urlParams.get('name');
+        
+        if (userName) {
+            this.data = {
+                id: 'temp_' + Date.now(),
+                username: userName,
+                name: userName,
+                mobile: urlParams.get('phone') || urlParams.get('mobile') || 'غير متوفر',
+                governorate: urlParams.get('gov') || urlParams.get('governorate') || 'غير محدد',
+                area: urlParams.get('area') || 'غير محدد',
+                status: 'نشط',
+                type: 'user',
+                loginTime: new Date().toISOString()
+            };
+            console.log('✅ تم تحميل البيانات من URL:', this.data);
+            this.updateUI();
+        }
+    },
+    
+    // عرض واجهة عندما لا توجد بيانات
+    showDataNotFound: function() {
+        console.log('⚠️ لم يتم العثور على بيانات المستخدم');
+        
+        // استخدام بيانات افتراضية مع رسالة توضيحية
+        this.data = {
+            id: 'unknown_user',
+            username: 'زائر',
+            name: 'زائر',
+            mobile: 'غير متوفر',
+            governorate: 'غير محدد',
+            area: 'غير محدد',
+            status: 'غير معروف',
+            type: 'guest',
+            loginTime: new Date().toISOString()
+        };
+        
+        this.updateUI();
+        
+        // عرض رسالة للمستخدم
+        setTimeout(() => {
+            alert('⚠️ لم يتم العثور على بيانات المستخدم. يرجى تسجيل الدخول أو إدخال البيانات يدوياً.');
+        }, 1000);
+    },
+    
+    // تحديث واجهة المستخدم بالبيانات الفعلية
+    updateUI: function() {
+        if (!this.data) return;
+        
+        console.log('🎨 تحديث واجهة المستخدم بالبيانات:', this.data);
+        
+        // تحديث الشريط العلوي
+        const displayName = this.data.displayName || this.data.name || this.data.username || 'زائر';
+        document.getElementById('user-display-name').textContent = `المستخدم: ${displayName}`;
+        
+        // تحديث شريط المعلومات بالبيانات الفعلية
+        document.getElementById('info-username').textContent = `المستخدم: ${displayName}`;
+        document.getElementById('info-phone').textContent = this.data.phone || this.data.mobile || this.data.tel || 'غير متوفر';
+        
+        // تحديث الموقع
+        const location = this.formatLocation(this.data);
+        document.getElementById('info-location').textContent = location;
+        
+        // تحديث الحالة مع تلوين مناسب
+        const statusElement = document.getElementById('info-status');
+        const status = this.data.status || 'غير معروف';
+        statusElement.textContent = status;
+        statusElement.className = 'status-badge ' + (status === 'نشط' ? '' : 'status-inactive');
         
         // تحديث حقل nam_usr
-        document.getElementById('nam_usr').value = this.data.name;
+        document.getElementById('nam_usr').value = displayName;
+        
+        // حفظ البيانات للاستخدام المستقبلي
+        this.saveToStorage();
     },
     
-    // تحديث بيانات المستخدم
+    // تنسيق بيانات الموقع
+    formatLocation: function(userData) {
+        const governorate = userData.governorate || userData.gov || userData.city || '';
+        const area = userData.area || userData.region || userData.district || '';
+        
+        if (governorate && area) {
+            return `${governorate} - ${area}`;
+        } else if (governorate) {
+            return governorate;
+        } else if (area) {
+            return area;
+        } else {
+            return 'غير محدد';
+        }
+    },
+    
+    // حفظ البيانات في التخزين المحلي
+    saveToStorage: function() {
+        try {
+            localStorage.setItem('currentUser', JSON.stringify(this.data));
+            sessionStorage.setItem('userSessionData', JSON.stringify(this.data));
+            console.log('💾 تم حفظ بيانات المستخدم في التخزين المحلي');
+        } catch (error) {
+            console.error('❌ خطأ في حفظ البيانات:', error);
+        }
+    },
+    
+    // تحديث بيانات المستخدم يدوياً
     updateUserData: function(newData) {
         this.data = { ...this.data, ...newData };
-        this.saveData();
         this.updateUI();
+        console.log('✏️ تم تحديث بيانات المستخدم:', this.data);
     },
     
     // الحصول على بيانات المستخدم
@@ -595,44 +674,57 @@ const userManager = {
     }
 };
 
-// ===== دوال التنقل =====
-
-// دالة للانتقال إلى صفحة تعديل بيانات المستخدم
-function navigateToEditMerchant() {
-    // تخزين بيانات المستخدم الحالية قبل الانتقال
-    const userData = userManager.getUserData();
-    sessionStorage.setItem('currentUserData', JSON.stringify(userData));
-    
-    // الانتقال إلى صفحة تعديل بيانات المستخدم
-    window.location.href = 'ub_tager.html';
-}
-
-// دالة للانتقال إلى قسم المباني والعقارات
-function navigateToRealEstate() {
-    const userData = userManager.getUserData();
-    sessionStorage.setItem('currentUserData', JSON.stringify(userData));
-    
-    alert('سيتم الانتقال إلى قسم المباني والعقارات');
-    // window.location.href = 'real_estate.html';
-}
-
-// دالة للانتقال إلى قسم الوظائف الشاغرة
-function navigateToJobs() {
-    const userData = userManager.getUserData();
-    sessionStorage.setItem('currentUserData', JSON.stringify(userData));
-    
-    alert('سيتم الانتقال إلى قسم الوظائف الشاغرة');
-    // window.location.href = 'jobs.html';
-}
-
 // ===== معالجة حقل nam_usr =====
 document.getElementById('nam_usr').addEventListener('change', function() {
     const newName = this.value.trim();
     if (newName) {
-        userManager.updateUserData({ name: newName, username: newName });
-        alert('تم تحديث اسم المستخدم بنجاح');
+        userManager.updateUserData({ 
+            name: newName, 
+            username: newName,
+            displayName: newName 
+        });
+        
+        // تحديث عنوان الصفحة ليعكس التغيير
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('user', newName);
+        window.history.replaceState({}, '', newUrl);
+        
+        alert('✅ تم تحديث اسم المستخدم بنجاح');
     }
 });
+
+// ===== دوال التنقل =====
+function navigateToEditMerchant() {
+    const userData = userManager.getUserData();
+    if (userData && userData.id !== 'unknown_user') {
+        sessionStorage.setItem('currentUserData', JSON.stringify(userData));
+        window.location.href = 'ub_tager.html';
+    } else {
+        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً في الحقل الموجود على اليسار');
+        document.querySelector('.nam-usr-container').style.width = '300px';
+        document.querySelector('.nam-usr-container').style.height = 'auto';
+        document.querySelector('.nam-usr-field').style.opacity = '1';
+        document.getElementById('nam_usr').focus();
+    }
+}
+
+function navigateToRealEstate() {
+    const userData = userManager.getUserData();
+    if (userData) {
+        sessionStorage.setItem('currentUserData', JSON.stringify(userData));
+        alert('سيتم الانتقال إلى قسم المباني والعقارات');
+        // window.location.href = 'real_estate.html';
+    }
+}
+
+function navigateToJobs() {
+    const userData = userManager.getUserData();
+    if (userData) {
+        sessionStorage.setItem('currentUserData', JSON.stringify(userData));
+        alert('سيتم الانتقال إلى قسم الوظائف الشاغرة');
+        // window.location.href = 'jobs.html';
+    }
+}
 
 // ===== تهيئة الصفحة =====
 document.addEventListener('DOMContentLoaded', function() {
