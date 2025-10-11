@@ -3,3074 +3,994 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AZ السوق الشامل</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>نظام إدارة الطلبات والمتاجرة</title>
+    <!-- ربط Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <style>
-        /* جميع الأنماط تبقى كما هي */
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary-color: #3498db;
-            --secondary-color: #2980b9;
-            --danger-color: #e74c3c;
-            --success-color: #2ecc71;
-            --warning-color: #f39c12;
-            --dark-color: #2c3e50;
-            --light-color: #ecf0f1;
-            --background-color: #ffffff;
-            --text-color: #333;
-            --border-radius: 8px;
-            --box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            --transition: all 0.25s ease;
-        }
-
-        [data-theme="dark"] {
-            --primary-color: #3498db;
-            --secondary-color: #2980b9;
-            --background-color: #121212;
-            --text-color: #ecf0f1;
-            --light-color: #2c3e50;
-            --box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-
-        body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--background-color);
-            color: var(--text-color);
-            margin: 0;
-            padding-top: 140px;
-            padding-bottom: 60px;
-            transition: var(--transition);
-            width: 100%;
-            overflow-x: hidden;
         }
-
-        /* الهيدر */
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: var(--primary-color);
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* الشريط العلوي */
+        header {
+            background: linear-gradient(135deg, #2c3e50, #4a6580);
             color: white;
-            padding: 1px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 1000;
-            box-shadow: var(--box-shadow);
+            padding: 15px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-
+        
         .header-content {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 15px;
-            width: 100%;
-            max-width: 100%;
-            margin: 0 auto;
         }
-
-        .brand {
+        
+        .logo-container {
             display: flex;
             align-items: center;
-            gap: 10px;
-            flex-direction: column;
-            align-items: flex-start;
         }
-
-        .brand-logo {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: white;
-            padding: 2px;
-        }
-
-        .brand-text {
-            font-size: 14px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .brand-subtitle {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.9);
-            margin-top: -5px;
-        }
-
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-right: auto;
-        }
-
-        .theme-toggle, .favorites-toggle {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 8px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            font-size: 16px;
-            transition: var(--transition);
-        }
-
-        .theme-toggle:hover, .favorites-toggle:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .favorites-toggle.active {
-            background: rgba(231, 76, 60, 0.3);
-            color: #ff6b6b;
-        }
-
-        /* شريط الفلترة */
-        .filter-bar {
-            position: fixed;
-            top: 70px;
-            left: 0;
-            width: 100%;
-            background: var(--light-color);
-            padding: 10px 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            z-index: 999;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            align-items: center;
-            transition: var(--transition);
-        }
-
-        .filter-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .filter-item label {
-            font-weight: bold;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-
-        .filter-item select, .filter-item input {
-            padding: 6px 10px;
-            border-radius: var(--border-radius);
-            border: 1px solid #ccc;
-            font-size: 14px;
-            background: var(--background-color);
-            color: var(--text-color);
-            transition: var(--transition);
-        }
-
-        .filter-item input {
-            width: 200px;
-        }
-
-        .reset-btn, .filter-toggle-btn {
-            padding: 8px 12px;
-            border: none;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            font-size: 14px;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .reset-btn {
-            background: var(--primary-color);
-            color: white;
-            position: relative;
-        }
-
-        .reset-btn:hover {
-            background: var(--secondary-color);
-        }
-
-        .reset-btn .tooltip {
-            visibility: hidden;
-            width: 120px;
-            background-color: var(--dark-color);
-            color: white;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -60px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 12px;
-        }
-
-        .reset-btn .tooltip::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: var(--dark-color) transparent transparent transparent;
-        }
-
-        .reset-btn:hover .tooltip {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        .filter-toggle-btn {
-            background: var(--success-color);
-            color: white;
-        }
-
-        .filter-toggle-btn:hover {
-            background: #27ae60;
-        }
-
-        /* الفوتر */
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: var(--primary-color);
-            color: white;
-            text-align: center;
-            padding: 15px;
-            z-index: 1000;
-            font-size: 14px;
-        }
-
-        /* زر العودة للأعلى */
-        .scroll-to-top {
-            position: fixed;
-            bottom: 80px;
-            right: 20px;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
+        
+        .logo {
             width: 50px;
             height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 999;
-            transition: var(--transition);
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-            opacity: 0;
-            visibility: hidden;
-        }
-
-        .scroll-to-top.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .scroll-to-top:hover {
-            background: var(--secondary-color);
-            transform: translateY(-3px);
-        }
-
-        /* زر تحكم الشريط */
-        .filter-control {
-            position: fixed;
-            bottom: 140px;
-            right: 20px;
-            background: var(--success-color);
-            color: white;
-            border: none;
+            background-color: #fff;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            margin-left: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            z-index: 999;
-            transition: var(--transition);
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .filter-control:hover {
-            background: #27ae60;
-            transform: translateY(-3px);
-        }
-
-        /* محتوى الصفحة - تم تعديل العرض ليملأ الشاشة بالكامل */
-        .page-content {
-            width: 100%;
-            max-width: 100%;
-            margin: 0;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-
-        /* شبكة المنتجات - تم تعديل العرض ليملأ الشاشة بالكامل */
-        .products {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
-            gap: 20px;
-            padding: 10px;
-            justify-content: center;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        /* البطاقة - تم تعديل العرض ليملأ الشاشة بالكامل وإضافة إطار ثابت */
-        .card {
-            background: linear-gradient(145deg, var(--background-color), #f0f0f1);
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            overflow: hidden;
-            padding: 15px;
-            transition: var(--transition);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: fit-content;
-            width: 100%;
-            box-sizing: border-box;
-            border: 3px solid #3498db; /* لون ثابت #3498db */
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-            border-color: #2980b9; /* تغيير لون الإطار عند التمرير */
-        }
-
-        .card.highlighted {
-            border: 3px solid var(--warning-color);
-            box-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
-            animation: pulse 2s ease-in-out 3;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-
-        /* حاوية الصنف - تم تعديل اللون إلى الأحمر */
-        .category-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 45px;
-            padding: 12px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: #ff0000 !important; /* اللون الأحمر */
-            border-radius: var(--border-radius);
-            margin: 10px 0;
             font-weight: bold;
-            text-align: center;
-            width: 100%;
-            transition: var(--transition);
-            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.3);
-            font-size: 16px;
+            color: #2c3e50;
         }
-
-        .category-container:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.5);
+        
+        .site-name {
+            font-size: 1.8rem;
+            font-weight: bold;
         }
-
-        /* صور المنتجات - تم تعديل الحجم ليملأ العرض بالكامل */
-        .images-preview {
+        
+        /* التبويبات */
+        .tabs {
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-            justify-content: center;
-            width: 100%;
-            position: relative;
-            box-sizing: border-box;
+            margin: 20px 0;
+            border-bottom: 2px solid #ddd;
         }
-
-        .images-preview img {
-            width: 100%;
-            height: 300px; /* ارتفاع 300px مع الحفاظ على النسبة */
-            object-fit: cover;
-            border-radius: 10px;
+        
+        .tab {
+            padding: 12px 24px;
             cursor: pointer;
-            transition: var(--transition);
-            border: 3px solid var(--primary-color);
-            position: relative;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-left: 5px;
+            transition: all 0.3s;
         }
-
-        .images-preview img:hover {
-            transform: scale(1.03);
-            border-color: var(--secondary-color);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        
+        .tab.active {
+            background-color: #fff;
+            border-bottom: 2px solid #fff;
+            margin-bottom: -2px;
+            font-weight: bold;
+            color: #2c3e50;
         }
-
-        /* شريط تمرير الصور - تم تعديل ليملأ الشاشة */
-        .image-slider {
-            position: relative;
-            width: 100%;
-            height: 300px; /* ارتفاع 300px مع الحفاظ على النسبة */
-            overflow: hidden;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            box-sizing: border-box;
-        }
-
-        .slider-container {
-            display: flex;
-            height: 100%;
-            scroll-behavior: smooth;
-            width: 100%;
-        }
-
-        .slider-image {
-            min-width: 100%;
-            height: 100%;
-            object-fit: cover;
-            cursor: pointer;
-            border: 3px solid var(--primary-color);
-            border-radius: 10px;
-        }
-
-        .slider-nav {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 5px;
-            z-index: 5;
-        }
-
-        .slider-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .slider-dot.active {
-            background: var(--primary-color);
-            transform: scale(1.2);
-        }
-
-        .slider-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 5;
-            transition: var(--transition);
-        }
-
-        .slider-arrow:hover {
-            background: rgba(0, 0, 0, 0.7);
-        }
-
-        .slider-arrow.prev {
-            left: 10px;
-        }
-
-        .slider-arrow.next {
-            right: 10px;
-        }
-
-        /* معرض الصور المحسن - تم تعديل ليملأ الشاشة */
-        .image-gallery {
+        
+        .tab-content {
             display: none;
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(10px);
-            animation: fadeIn 0.25s ease;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-
-        .image-gallery.active {
-            display: flex;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .gallery-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: linear-gradient(145deg, #1a1a2e, #16213e);
-            border-radius: 0;
-            padding: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-            animation: slideUp 0.3s ease-out;
-            min-width: 100%;
-            min-height: 100%;
-            box-sizing: border-box;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(40px) scale(0.96);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .gallery-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid var(--primary-color);
-            flex-shrink: 0;
-        }
-
-        .gallery-title {
-            color: white;
-            font-size: 22px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .gallery-close {
-            background: linear-gradient(135deg, var(--danger-color), #c0392b);
-            color: white;
-            border: none;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: var(--transition);
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
-        }
-
-        .gallery-close:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.6);
-        }
-
-        .gallery-main-content {
-            display: flex;
-            gap: 16px;
-            flex: 1;
-            min-height: 0;
-            width: 100%;
-            height: calc(100% - 120px);
-        }
-
-        .gallery-main-image-container {
-            flex: 4;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(45deg, #0f0f23, #1a1a2e);
-            border-radius: 15px;
-            overflow: hidden;
-            border: 2px solid var(--primary-color);
-            min-height: 60vh;
-            width: 100%;
-            height: 100%;
-        }
-
-        .gallery-main-image {
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            border-radius: 10px;
-            transition: transform 0.25s ease;
-            cursor: zoom-in;
-            will-change: transform;
-            image-rendering: auto;
-        }
-
-        .gallery-main-image.zoomed {
-            transform: scale(1.85);
-            cursor: zoom-out;
-        }
-
-        .gallery-thumbnails {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 100%;
-            overflow-y: auto;
-            padding: 10px;
-            background: linear-gradient(145deg, #0f0f23, #16213e);
-            border-radius: 15px;
-            border: 1px solid var(--primary-color);
-        }
-
-        .gallery-thumbnails::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .gallery-thumbnails::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-
-        .gallery-thumbnails::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 4px;
-        }
-
-        .gallery-thumbnail {
-            width: 100%;
-            height: 90px;
-            object-fit: cover;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: var(--transition);
-            border: 2px solid transparent;
-            opacity: 0.85;
-            background: #0f0f23;
-        }
-
-        .gallery-thumbnail:hover {
-            opacity: 1;
-            border-color: var(--primary-color);
-            transform: scale(1.03);
-        }
-
-        .gallery-thumbnail.active {
-            opacity: 1;
-            border-color: var(--warning-color);
-            box-shadow: 0 0 15px rgba(243, 156, 18, 0.6);
-        }
-
-        .gallery-bottom-navigation {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            margin-top: 16px;
-            padding: 16px 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            flex-shrink: 0;
-        }
-
-        .gallery-nav-btn {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            border: none;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: var(--transition);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
-        }
-
-        .gallery-nav-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.6);
-        }
-
-        .gallery-nav-btn:active {
-            transform: scale(0.95);
-        }
-
-        .gallery-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 12px;
-            flex-shrink: 0;
-        }
-
-        .gallery-counter {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 8px 14px;
-            border-radius: 18px;
-            font-weight: bold;
-            font-size: 14px;
-            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.3);
-        }
-
-        .gallery-zoom-btn {
-            background: linear-gradient(135deg, var(--success-color), #27ae60);
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 18px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 3px 10px rgba(46, 204, 113, 0.3);
-        }
-
-        .gallery-zoom-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.5);
-        }
-
-        /* باقي العناصر */
-        .icons {
-            display: flex;
-            justify-content: space-around;
-            margin: 15px 0;
-            width: 100%;
-            position: relative;
-        }
-
-        .icon {
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: var(--primary-color);
-            transition: var(--transition);
-            padding: 8px 12px;
-            border-radius: 20px;
-            background: rgba(52, 152, 219, 0.1);
-        }
-
-        .icon:hover {
-            color: white;
-            background: var(--primary-color);
-        }
-
-        .info {
-            width: 100%;
-            text-align: center;
-        }
-
-        .info h3 {
-            margin: 5px 0;
-            font-size: 20px;
-            color: #ff0000 !important; /* اللون الأحمر لاسم المنتج */
-            font-weight: bold;
-        }
-
-        .product-price {
-            text-align: center;
-            font-size: 22px;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin: 10px 0;
-            padding: 8px;
-            background-color: rgba(52, 152, 219, 0.1);
-            border-radius: 8px;
-            width: 100%;
-        }
-
-        .product-details {
-            margin: 10px 0;
-            font-size: 14px;
-            color: #666;
-            text-align: right;
-            width: 100%;
-            direction: rtl;
-            position: relative;
-            max-height: 100px;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .product-details.expanded {
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        .product-details .read-more {
-            color: var(--primary-color);
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 5px;
-            display: block;
-            text-align: center;
-        }
-
-        .product-detail-item {
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px dashed #eee;
-            padding-bottom: 5px;
-        }
-
-        .product-detail-item .label {
-            font-weight: bold;
-            color: var(--primary-color);
-            margin-left: 10px;
-        }
-
-        /* تحسينات لعرض بيانات التاجر */
-        .merchant-info {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin: 10px 0;
-            padding: 12px;
-            background: linear-gradient(135deg, var(--light-color), #d5dbdb);
-            border-radius: 10px;
-            width: 100%;
-            transition: var(--transition);
-            border: 1px solid rgba(52, 152, 219, 0.2);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .merchant-info:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(-1px);
-        }
-
-        .merchant-name {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            cursor: pointer;
-            color: var(--primary-color);
-            font-weight: bold;
-            transition: var(--transition);
-            text-align: center;
-            font-size: 16px;
-            padding: 5px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.5);
-        }
-
-        .merchant-name:hover {
-            color: var(--secondary-color);
-            text-decoration: underline;
-            background: rgba(255, 255, 255, 0.8);
-        }
-
-        .product-date {
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-            padding: 5px;
-            background-color: rgba(0, 0, 0, 0.05);
-            border-radius: 4px;
-            width: 100%;
-        }
-
-        /* قسم التعليقات */
-        .comments-section {
-            width: 100%;
-            margin-top: 15px;
-            display: none;
-            background: var(--light-color);
-            border-radius: 10px;
-            padding: 15px;
-            border: 2px solid var(--primary-color);
-            animation: slideDown 0.25s ease-out;
-        }
-
-        .comments-section.active {
+        
+        .tab-content.active {
             display: block;
         }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                max-height: 0;
-                padding: 0 15px;
-            }
-            to {
-                opacity: 1;
-                max-height: 500px;
-                padding: 15px;
-            }
+        
+        /* بطاقة بيانات المستخدم */
+        .user-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin: 20px 0;
         }
-
-        .comments-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
+        
+        .user-card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid var(--primary-color);
+            border-bottom: 2px solid #f0f0f0;
         }
-
-        .comments-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--primary-color);
+        
+        .user-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
-
-        .close-comments {
-            background: none;
-            border: none;
-            color: var(--danger-color);
-            font-size: 20px;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .close-comments:hover {
-            color: #c0392b;
-            transform: scale(1.1);
-        }
-
-        .comments-list {
-            max-height: 250px;
-            overflow-y: auto;
+        
+        .info-item {
             margin-bottom: 15px;
-            padding: 10px;
-            background: var(--background-color);
-            border-radius: 8px;
         }
-
-        .comment-item {
-            padding: 10px;
-            margin-bottom: 10px;
-            background: var(--light-color);
-            border-radius: 8px;
-            border-right: 4px solid var(--primary-color);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: var(--transition);
+        
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
         }
-
-        .comment-item:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        
+        .info-value {
+            padding: 8px 12px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            border: 1px solid #eee;
         }
-
-        .comment-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
+        
+        .status-active {
+            color: #27ae60;
             font-weight: bold;
         }
-
-        .comment-date {
-            color: #666;
-            font-size: 12px;
+        
+        .status-suspended {
+            color: #e74c3c;
+            font-weight: bold;
         }
-
-        .comment-text {
-            line-height: 1.6;
-            font-size: 14px;
-            color: var(--text-color);
-            text-align: right;
-            direction: rtl;
+        
+        /* عناوين الصفحة */
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
         }
-
-        .add-comment {
-            border-top: 1px solid #eee;
-            padding-top: 15px;
+        
+        /* نماذج الإدخال */
+        .form-group {
+            margin-bottom: 20px;
         }
-
-        .comment-form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
         }
-
-        .comment-form textarea {
+        
+        input, select, textarea {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            resize: vertical;
-            min-height: 80px;
-            font-family: inherit;
-            font-size: 14px;
-            background: var(--background-color);
-            color: var(--text-color);
-            transition: var(--transition);
-            text-align: right;
-            direction: rtl;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border 0.3s;
         }
-
-        .comment-form textarea:focus {
-            border-color: var(--primary-color);
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #4a6580;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            box-shadow: 0 0 0 2px rgba(74, 101, 128, 0.2);
         }
-
-        .comment-form button {
-            padding: 10px 20px;
-            background: var(--primary-color);
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            background-color: #2c3e50;
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
-            align-self: flex-end;
-            transition: var(--transition);
-            font-size: 14px;
-            font-weight: bold;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s;
         }
-
-        .comment-form button:hover {
-            background: var(--secondary-color);
-            transform: translateY(-1px);
+        
+        .btn:hover {
+            background-color: #4a6580;
         }
-
+        
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .btn-delete {
+            background-color: #e74c3c;
+        }
+        
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-edit {
+            background-color: #f39c12;
+        }
+        
+        .btn-edit:hover {
+            background-color: #d35400;
+        }
+        
+        .btn-logout {
+            background-color: #7f8c8d;
+        }
+        
+        .btn-logout:hover {
+            background-color: #636e72;
+        }
+        
+        /* جدول المنتجات */
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .products-table th, .products-table td {
+            padding: 12px 15px;
+            text-align: right;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .products-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .products-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* حالة التحميل والرسائل */
         .loading {
             text-align: center;
             padding: 20px;
-            color: var(--primary-color);
-        }
-
-        .error {
-            text-align: center;
-            padding: 20px;
-            color: var(--danger-color);
-            background-color: #f8d7da;
-            border-radius: 5px;
-            margin: 20px;
-        }
-
-        .no-products {
-            text-align: center;
-            padding: 20px;
             color: #666;
-            font-size: 16px;
-            grid-column: 1 / -1;
         }
-
-        .no-comments {
-            text-align: center;
+        
+        .message {
             padding: 15px;
-            color: #666;
-            font-style: italic;
+            margin: 20px 0;
+            border-radius: 4px;
+            text-align: center;
         }
-
-        .category-value-display {
-            background: #e9ecef;
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .user-info-bar {
+            background-color: #e8f4fd;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .user-status {
+            display: inline-block;
             padding: 4px 8px;
             border-radius: 4px;
-            font-size: 14px;
-            margin-left: 10px;
-            font-weight: normal;
-        }
-
-        /* إشعارات */
-        .notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--success-color);
-            color: white;
-            padding: 12px 20px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            z-index: 3000;
-            animation: slideInDown 0.3s ease;
-        }
-
-        @keyframes slideInDown {
-            from {
-                opacity: 0;
-                transform: translateX(-50%) translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
-        }
-
-        /* إحصائيات المنتج - تم تعديل الألوان والمواقع */
-        .product-stats {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            margin: 10px 0;
-            position: relative;
-        }
-
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-        }
-
-        .stat-circle {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--success-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
             font-weight: bold;
-            font-size: 14px;
-            box-shadow: 0 3px 10px rgba(46, 204, 113, 0.3);
-            margin-bottom: 5px;
+            margin-right: 10px;
         }
-
-        .stat-label {
-            font-size: 12px;
-            color: var(--text-color);
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
         }
-
-        .like .stat-circle {
-            background: var(--danger-color);
-            box-shadow: 0 3px 10px rgba(231, 76, 60, 0.3);
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
         }
-
-        /* زر المفضلة - تم تعديل الموقع والألوان */
-        .favorite-btn {
-            background: rgba(255, 255, 255, 0.9);
-            border: none;
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            transition: var(--transition);
-            color: #f39c12; /* اللون الأصفر الافتراضي */
-            font-size: 18px;
-            position: absolute;
-            top: 10px;
-            right: 10px;
-        }
-
-        .favorite-btn.active {
-            color: var(--danger-color); /* اللون الأحمر عند الإضافة للمفضلة */
-            background: rgba(255, 255, 255, 1);
-        }
-
-        .favorite-btn:hover {
-            background: rgba(255, 255, 255, 1);
-            transform: scale(1.1);
-        }
-
-        /* تحسينات للأجهزة المحمولة */
-        @media (max-width: 1024px) {
-            .gallery-main-image-container {
-                min-height: 50vh;
-            }
-        }
-
+        
+        /* التكيف مع الشاشات الصغيرة */
         @media (max-width: 768px) {
-            body { padding-top: 180px; }
-            .filter-bar { top: 100px; padding: 8px 10px; }
-            .filter-item { flex: 1 0 100%; }
-            .filter-item input { width: 100%; }
-            .products { grid-template-columns: 1fr; }
-            .images-preview img, .slider-image { height: 250px; }
-            .image-slider { height: 250px; }
-            .product-price { font-size: 18px; }
-            .comments-list { max-height: 200px; }
-
-            .gallery-container {
-                width: 100%;
-                height: 100%;
-                padding: 15px;
-            }
-
-            .gallery-main-content {
+            .header-content {
                 flex-direction: column;
-                gap: 12px;
-            }
-
-            .gallery-thumbnails {
-                flex-direction: row;
-                overflow-x: auto;
-                overflow-y: hidden;
-                max-height: 100px;
-            }
-
-            .gallery-thumbnail {
-                min-width: 90px;
-                height: 70px;
-            }
-
-            .gallery-title {
-                font-size: 18px;
-            }
-
-            .gallery-nav-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-            }
-
-            .gallery-main-image-container {
-                min-height: 50vh;
-            }
-
-            .brand {
-                align-items: center;
+                text-align: center;
             }
             
-            .brand-text {
-                font-size: 16px;
+            .logo-container {
+                margin-bottom: 10px;
             }
             
-            .brand-subtitle {
-                font-size: 11px;
+            .tabs {
+                flex-direction: column;
             }
-
-            .scroll-to-top, .filter-control {
-                bottom: 70px;
-                right: 15px;
-                width: 45px;
-                height: 45px;
+            
+            .tab {
+                margin: 5px 0;
+                border-radius: 5px;
             }
-
-            .filter-control {
-                bottom: 130px;
+            
+            .action-buttons {
+                flex-direction: column;
             }
-        }
-
-        @media (max-width: 480px) {
-            .images-preview img, .slider-image { 
-                width: 100%;
-                height: 250px; 
-            }
-            .image-slider { 
-                width: 100%;
-                height: 250px; 
-            }
-
-            .gallery-nav-btn {
-                width: 45px;
-                height: 45px;
-                font-size: 18px;
-            }
-
-            .gallery-main-image {
-                max-width: 100%;
-                max-height: 100%;
+            
+            .user-info {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <!-- الهيدر -->
-    <header class="header">
-        <div class="header-content">
-            <div class="brand">
-                <img src="https://raw.githubusercontent.com/e772299420-hue/Call/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png" alt="شعار AZ" class="brand-logo">
-                <div>
-                    <div class="brand-text">AZ السوق الشامل</div>
-                   </div>
+    <!-- الشريط العلوي -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <div class="logo">ش</div>
+                <h1 class="site-name">موقع المتاجرة</h1>
             </div>
-            <div class="header-controls">
-                <button class="favorites-toggle" id="favorites-toggle" title="عرض المفضلة">
-                    <i class="fas fa-heart"></i>
-                </button>
-                <button class="theme-toggle" id="theme-toggle" title="تبديل الوضع الليلي">🌙</button>
-            </div>
+            <nav>
+                <button id="logout-btn" class="btn btn-logout">تسجيل الخروج</button>
+            </nav>
         </div>
     </header>
 
-    <!-- شريط الفلاتر -->
-    <div class="filter-bar" id="filter-bar">
-        <div class="filter-item">
-            <label for="governorate">المحافظة:</label>
-            <select id="governorate"><option value="">جميع المحافظات</option></select>
+    <div class="container" id="main-content">
+        <h2>الطلبات والمتاجرة الجديدة والمستعملة</h2>
+        
+        <!-- معلومات المستخدم -->
+        <div class="user-info-bar" id="user-info">
+            جاري تحميل معلومات المستخدم...
         </div>
-        <div class="filter-item">
-            <label for="region">المنطقة:</label>
-            <select id="region"><option value="">جميع المناطق</option></select>
+        
+        <!-- رسالة حالة المستخدم -->
+        <div id="user-status-message" class="message warning" style="display: none;">
+            لقد تم توقيف المستخدم الحالي، يرجى التواصل مع إدارة المميز سوفت لتزويدكم بالمعلومات
         </div>
-        <div class="filter-item">
-            <label for="merchant">التاجر:</label>
-            <select id="merchant"><option value="">جميع التجار</option></select>
+        
+        <!-- التبويبات -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('add')">إضافة منتج</div>
+            <div class="tab" onclick="switchTab('view')">عرض المنتجات</div>
+            <div class="tab" onclick="switchTab('profile')">عرض بياناتي</div>
         </div>
-        <div class="filter-item">
-            <label for="category">القسم:</label>
-            <select id="category"><option value="">جميع الأقسام</option></select>
-            <span class="category-value-display" id="category-value-display"></span>
-        </div>
-        <div class="filter-item">
-            <label for="search">بحث:</label>
-            <input type="text" id="search" placeholder="ابحث عن منتج...">
-        </div>
-        <div class="filter-item">
-            <label for="sort-by">ترتيب:</label>
-            <select id="sort-by">
-                <option value="date">التاريخ (الأحدث أولاً)</option>
-                <option value="name">الاسم</option>
-                <option value="category">القسم</option>
-                <option value="price">السعر</option>
-                <option value="merchant">التاجر</option>
-            </select>
-        </div>
-        <button class="reset-btn" id="reset-filters" title="إعادة تعيين جميع الفلاتر">
-            <i class="fas fa-redo"></i>
-            <span class="tooltip">إعادة تعيين جميع الفلاتر</span>
-        </button>
-        <button class="filter-toggle-btn" id="filter-toggle-btn" title="إظهار/إخفاء شريط الفلاتر">
-            <i class="fas fa-sliders-h"></i>
-        </button>
-    </div>
-
-    <!-- زر العودة للأعلى -->
-    <button class="scroll-to-top" id="scroll-to-top" title="العودة للأعلى">
-        <i class="fas fa-chevron-up"></i>
-    </button>
-
-    <!-- زر تحكم الشريط -->
-    <button class="filter-control" id="filter-control" title="إظهار/إخفاء شريط الفلاتر">
-        <i class="fas fa-sliders-h"></i>
-    </button>
-
-    <!-- المحتوى -->
-    <div class="page-content">
-        <div id="products-container">
-            <div class="loading">جاري تحميل البيانات...</div>
-        </div>
-    </div>
-
-    <!-- معرض الصور المحسن -->
-    <div class="image-gallery" id="image-gallery">
-        <div class="gallery-container">
-            <div class="gallery-header">
-                <div class="gallery-title">
-                    <i class="fas fa-images"></i>
-                    <span id="gallery-product-name">معرض الصور</span>
+        
+        <!-- تبويب الإضافة -->
+        <div id="add-tab" class="tab-content active">
+            <form id="product-form">
+                <div class="form-group">
+                    <label for="governorate" class="required">المحافظة</label>
+                    <select id="governorate" required onchange="loadRegions(this.value)">
+                        <option value="">اختر المحافظة</option>
+                    </select>
                 </div>
-                <button class="gallery-close" onclick="closeImageGallery()">×</button>
-            </div>
-
-            <div class="gallery-main-content">
-                <div class="gallery-main-image-container">
-                    <img id="gallery-main-image" class="gallery-main-image" alt="صورة المنتج" decoding="async" fetchpriority="high">
+                
+                <div class="form-group">
+                    <label for="region" class="required">المنطقة</label>
+                    <select id="region" required disabled>
+                        <option value="">اختر المنطقة</option>
+                    </select>
                 </div>
-
-                <div class="gallery-thumbnails" id="gallery-thumbnails">
-                    <!-- الصور المصغرة ستُدرج هنا -->
+                
+                <div class="form-group">
+                    <label for="category" class="required">الفئة</label>
+                    <select id="category" required>
+                        <option value="">اختر الفئة</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="requestType" class="required">نوع الطلب</label>
+                    <select id="requestType" required>
+                        <option value="بيع">بيع</option>
+                        <option value="شراء">شراء</option>
+                        <option value="ايجار">إيجار</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="condition" class="required">بيان الحالة</label>
+                    <select id="condition" required>
+                        <option value="جديد">جديد</option>
+                        <option value="مستخدم">مستخدم</option>
+                        <option value="تالف">تالف</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="productName" class="required">اسم المنتج</label>
+                    <input type="text" id="productName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="specifications">مواصفات المنتج (اختياري)</label>
+                    <textarea id="specifications"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address">عنوان المنتج (اختياري)</label>
+                    <input type="text" id="address">
+                </div>
+                
+                <div class="form-group">
+                    <label for="price" class="required">السعر</label>
+                    <input type="number" id="price" required min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="status" class="required">حالة المنتج</label>
+                    <select id="status" required>
+                        <option value="نشط">نشط</option>
+                        <option value="موقف">موقف</option>
+                    </select>
+                </div>
+                
+                <input type="hidden" id="productId">
+                <input type="hidden" id="orderDate">
+                <input type="hidden" id="userId">
+                
+                <button type="submit" class="btn" id="save-product-btn">حفظ المنتج</button>
+                <button type="button" class="btn" onclick="resetForm()" style="background-color: #95a5a6;">إلغاء</button>
+            </form>
+        </div>
+        
+        <!-- تبويب العرض -->
+        <div id="view-tab" class="tab-content">
+            <div id="loading" class="loading">جاري تحميل البيانات...</div>
+            <div id="no-products" class="message" style="display: none;">لا توجد منتجات لعرضها</div>
+            <table class="products-table" id="products-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>اسم المنتج</th>
+                        <th>السعر</th>
+                        <th>الحالة</th>
+                        <th>نوع الطلب</th>
+                        <th>تاريخ الطلب</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="products-list">
+                    <!-- سيتم ملء هذا القسم بالبيانات من قاعدة البيانات -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- تبويب عرض بياناتي -->
+        <div id="profile-tab" class="tab-content">
+            <div class="user-card">
+                <h2>معلومات المستخدم</h2>
+                <div class="user-info">
+                    <div class="info-item">
+                        <div class="info-label">الاسم الكامل</div>
+                        <div class="info-value" id="profile-name">جاري التحميل...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">البريد الإلكتروني</div>
+                        <div class="info-value" id="profile-email">جاري التحميل...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">رقم الجوال</div>
+                        <div class="info-value" id="profile-phone">جاري التحميل...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">حالة الحساب</div>
+                        <div class="info-value" id="profile-status">جاري التحميل...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">معرف المستخدم</div>
+                        <div class="info-value" id="profile-uid">جاري التحميل...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">تاريخ التسجيل</div>
+                        <div class="info-value" id="profile-created">جاري التحميل...</div>
+                    </div>
                 </div>
             </div>
-
-            <!-- أزرار التنقل في الأسفل كما طلب المستخدم -->
-            <div class="gallery-bottom-navigation">
-                <button class="gallery-nav-btn" onclick="navigateGallery(-1)" title="الصورة السابقة">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-                <div class="gallery-counter" id="gallery-counter">1 من 1</div>
-                <button class="gallery-nav-btn" onclick="navigateGallery(1)" title="الصورة التالية">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-            </div>
-
-            <div class="gallery-info">
-                <button class="gallery-zoom-btn" onclick="toggleImageZoom()">
-                    <i class="fas fa-search-plus"></i>
-                    تكبير/تصغير
-                </button>
+            
+            <!-- رسالة عدم وجود بيانات -->
+            <div id="no-user-data" class="message error" style="display: none;">
+                لا توجد بيانات مستخدم مسجل.
             </div>
         </div>
     </div>
-
-    <!-- الفوتر -->
-    <footer class="footer">
-        جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة
-    </footer>
 
     <script>
-        // ==========================================
-        // 🔥 إصلاح مشكلة عرض الصور من جوجل درايف
-        // ==========================================
-        
         // تهيئة Firebase
-        const firebaseConfig = { 
-            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/" 
+        const firebaseConfig = {
+            apiKey: "AIzaSyAub8yG87hhzVoZxflqpB_smvTFNpRY-Xw",
+            authDomain: "chat-fat-free.firebaseapp.com",
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/",
+            projectId: "chat-fat-free",
+            storageBucket: "chat-fat-free.appspot.com",
+            messagingSenderId: "888827487238",
+            appId: "1:888827238:web:6660cd0e8b7831dff40f87"
         };
         
-        // تهيئة Firebase أولاً قبل أي شيء آخر
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-                console.log('✅ Firebase initialized successfully');
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+        
+        // عناصر DOM
+        let currentUser = null;
+        let currentEditingProduct = null;
+        let governoratesData = {}; // لتخزين بيانات المحافظات والمناطق
+        let userStatus = "نشط"; // حالة المستخدم الافتراضية
+        
+        // عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // إعداد مستمعي النماذج
+            document.getElementById('product-form').addEventListener('submit', handleFormSubmit);
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            
+            // تحميل المنتجات عند فتح تبويب العرض
+            document.querySelector('.tab[onclick="switchTab(\'view\')"]').addEventListener('click', function() {
+                loadUserProducts();
+            });
+            
+            // تحميل بيانات المستخدم عند فتح تبويب الملف الشخصي
+            document.querySelector('.tab[onclick="switchTab(\'profile\')"]').addEventListener('click', function() {
+                loadUserProfileData();
+            });
+            
+            // تحميل بيانات المستخدم من localStorage
+            loadUserData();
+        });
+        
+        // تحميل وعرض بيانات المستخدم من localStorage
+        function loadUserData() {
+            const userData = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!userData) {
+                // لا توجد بيانات مستخدم
+                document.getElementById('no-user-data').style.display = 'block';
+                document.getElementById('logout-btn').style.display = 'none';
+                alert('لا توجد بيانات مستخدم مسجل. يرجى تسجيل الدخول أولاً.');
+                return;
             }
-        } catch (error) {
-            console.error("❌ خطأ في تهيئة Firebase:", error);
+            
+            // عرض بيانات المستخدم
+            document.getElementById('user-info').innerHTML = 
+                `مرحباً ${userData.displayName || userData.email} - رقم الجوال: ${userData.phone} 
+                <span class="user-status ${userData.status === 'نشط' ? 'status-active' : 'status-inactive'}">الحالة: ${userData.status}</span>`;
+            
+            document.getElementById('userId').value = userData.uid;
+            document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+            
+            // تحديث واجهة المستخدم بناءً على حالته
+            updateUIBasedOnUserStatus(userData.status);
+            
+            // تحميل البيانات الأخرى
+            loadGovernorates();
+            loadCategories();
+            
+            // تحميل بيانات الملف الشخصي
+            loadUserProfileData();
         }
         
-        const db = firebase.database();
-
-        // متغيرات التطبيق
-        let allProducts = [];
-        let allMerchants = [];
-        let allGovernorates = [];
-        let allRegions = [];
-        let allCategories = [];
-        let favoriteProducts = JSON.parse(localStorage.getItem('favoriteProducts')) || {};
-        let userInterests = JSON.parse(localStorage.getItem('userInterests')) || {};
-        let showFavoritesOnly = false;
-
-        // متغيرات معرض الصور
-        let galleryImages = [];
-        let currentGalleryIndex = 0;
-        let isImageZoomed = false;
-
-        // عناصر الواجهة
-        const productsContainer = document.getElementById('products-container');
-        const governorateSelect = document.getElementById('governorate');
-        const regionSelect = document.getElementById('region');
-        const categorySelect = document.getElementById('category');
-        const merchantSelect = document.getElementById('merchant');
-        const searchInput = document.getElementById('search');
-        const resetButton = document.getElementById('reset-filters');
-        const sortSelect = document.getElementById('sort-by');
-        const themeToggle = document.getElementById('theme-toggle');
-        const favoritesToggle = document.getElementById('favorites-toggle');
-        const filterBar = document.getElementById('filter-bar');
-        const scrollToTopBtn = document.getElementById('scroll-to-top');
-        const filterControlBtn = document.getElementById('filter-control');
-        const categoryValueDisplay = document.getElementById('category-value-display');
-        const filterToggleBtn = document.getElementById('filter-toggle-btn');
-
-        // ==========================================
-        // 🎯 بدء التطبيق - الترتيب الصحيح
-        // ==========================================
-
-        // بدء التطبيق فور تحميل الصفحة
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('🏁 بدء تحميل التطبيق...');
+        // تحميل وعرض بيانات المستخدم من localStorage
+        function loadUserProfileData() {
+            const userData = JSON.parse(localStorage.getItem('currentUser'));
             
-            // 1. تهيئة التطبيق
-            initializeApp();
-            
-            // 2. إعداد مستمعي الأحداث
-            setupEventListeners();
-            
-            // 3. تحميل البيانات
-            loadAllData().then(() => {
-                checkUrlForProduct();
-                displayPersonalizedProducts();
-                console.log('🎉 تم تحميل التطبيق بالكامل بنجاح');
-            });
-        });
-
-        function initializeApp() {
-            // تطبيق السمة المحفوظة
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                themeToggle.textContent = '☀️';
-            }
-
-            // حالة شريط الفلاتر
-            const isFilterBarHidden = localStorage.getItem('filterBarHidden');
-            if (isFilterBarHidden === 'true') {
-                hideFilterBar();
-            } else {
-                showFilterBar();
-            }
-        }
-
-        function setupEventListeners() {
-            // مستمعي الأحداث للفلاتر
-            searchInput.addEventListener('input', filterProducts);
-            governorateSelect.addEventListener('change', handleGovernorateChange);
-            regionSelect.addEventListener('change', handleRegionChange);
-            categorySelect.addEventListener('change', handleCategoryChange);
-            merchantSelect.addEventListener('change', handleMerchantChange);
-            sortSelect.addEventListener('change', filterProducts);
-            resetButton.addEventListener('click', resetFilters);
-            themeToggle.addEventListener('click', toggleTheme);
-            favoritesToggle.addEventListener('click', toggleFavoritesView);
-            filterToggleBtn.addEventListener('click', toggleFilterBar);
-            filterControlBtn.addEventListener('click', toggleFilterBar);
-
-            // إغلاق التعليقات عند النقر خارج البطاقة
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.comments-section') && !e.target.closest('.comment')) {
-                    document.querySelectorAll('.comments-section.active').forEach(section => {
-                        section.classList.remove('active');
-                    });
-                }
-                
-                // إغلاق تفاصيل المنتج الموسعة عند النقر خارجها
-                if (!e.target.closest('.product-details') && !e.target.classList.contains('read-more')) {
-                    document.querySelectorAll('.product-details.expanded').forEach(details => {
-                        details.classList.remove('expanded');
-                        const readMore = details.querySelector('.read-more');
-                        if (readMore) readMore.textContent = '...اقرأ المزيد';
-                    });
-                }
-            });
-
-            // مستمعي الأحداث لمعرض الصور
-            document.addEventListener('keydown', (e) => {
-                const gallery = document.getElementById('image-gallery');
-                if (!gallery.classList.contains('active')) return;
-                
-                switch(e.key) {
-                    case 'Escape':
-                        closeImageGallery();
-                        break;
-                    case 'ArrowLeft':
-                        navigateGallery(1);
-                        break;
-                    case 'ArrowRight':
-                        navigateGallery(-1);
-                        break;
-                    case ' ':
-                        e.preventDefault();
-                        toggleImageZoom();
-                        break;
-                }
-            });
-
-            // إغلاق المعرض عند النقر خارج المحتوى
-            document.getElementById('image-gallery').addEventListener('click', (e) => {
-                if (e.target.id === 'image-gallery') {
-                    closeImageGallery();
-                }
-            });
-
-            // النقر على الصورة الرئيسية للتكبير/التصغير
-            const mainImage = document.getElementById('gallery-main-image');
-            mainImage.addEventListener('click', toggleImageZoom);
-
-            // حدث التمرير لزر العودة للأعلى
-            window.addEventListener('scroll', handleScroll);
-            scrollToTopBtn.addEventListener('click', scrollToTop);
-        }
-
-        function handleScroll() {
-            if (window.pageYOffset > 300) {
-                scrollToTopBtn.classList.add('visible');
-            } else {
-                scrollToTopBtn.classList.remove('visible');
-            }
-        }
-
-        function scrollToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }
-
-        function toggleFavoritesView() {
-            showFavoritesOnly = !showFavoritesOnly;
-            favoritesToggle.classList.toggle('active', showFavoritesOnly);
-            
-            if (showFavoritesOnly) {
-                displayFavoriteProducts();
-                showNotification('عرض المنتجات المفضلة فقط', 'info');
-            } else {
-                filterProducts();
-                showNotification('عرض جميع المنتجات', 'info');
-            }
-        }
-
-        function toggleFilterBar() {
-            const isFilterBarHidden = localStorage.getItem('filterBarHidden');
-            if (isFilterBarHidden === 'true') {
-                showFilterBar();
-                showNotification('تم إظهار شريط الفلاتر', 'success');
-            } else {
-                hideFilterBar();
-                showNotification('تم إخفاء شريط الفلاتر', 'info');
-            }
-        }
-
-        // فحص الرابط للمنتج المحدد
-        function checkUrlForProduct() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const productId = urlParams.get('productId');
-            if (productId) {
-                setTimeout(() => {
-                    highlightProduct(productId);
-                }, 800);
-            }
-        }
-
-        function highlightProduct(productId) {
-            const productCard = document.getElementById(`product-${productId}`);
-            if (!productCard) return;
-            productCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            productCard.classList.add('highlighted');
-            setTimeout(() => productCard.classList.remove('highlighted'), 6000);
-        }
-
-        // تحميل البيانات من Firebase
-        async function loadAllData() {
-            try {
-                const [productsSnap, merchantsSnap, governoratesSnap, regionsSnap, categoriesSnap] = await Promise.all([
-                    db.ref("products").once("value"),
-                    db.ref("merchants").once("value"),
-                    db.ref("governorates").once("value"),
-                    db.ref("regions").once("value"),
-                    db.ref("categories").once("value")
-                ]);
-
-                allProducts = convertFirebaseData(productsSnap.val()) || [];
-                allMerchants = convertFirebaseData(merchantsSnap.val()) || [];
-                allGovernorates = convertFirebaseData(governoratesSnap.val()) || [];
-                allRegions = convertFirebaseData(regionsSnap.val()) || [];
-                allCategories = convertFirebaseData(categoriesSnap.val()) || [];
-
-                saveDataToCache();
-                populateFilterOptions();
-                displayProducts(allProducts);
-                
-            } catch (error) {
-                console.error("خطأ في تحميل البيانات:", error);
-                productsContainer.innerHTML = `
-                    <div class="error">
-                        <h3>حدث خطأ في تحميل البيانات</h3>
-                        <p>${error.message || 'تعذر التحميل'}</p>
-                        <p>يرجاء التحقق من اتصال الإنترنت وإعادة تحميل الصفحة</p>
-                        <button onclick="location.reload()">إعادة تحميل</button>
-                    </div>
-                `;
-            }
-        }
-
-        function convertFirebaseData(firebaseData) {
-            if (!firebaseData) return [];
-            try {
-                return Object.entries(firebaseData).map(([id, data]) => 
-                    data && data.id ? ({ ...data }) : ({ id, ...data }));
-            } catch (e) {
-                console.error("خطأ في تحويل البيانات:", e);
-                return [];
-            }
-        }
-
-        function saveDataToCache() {
-            try {
-                localStorage.setItem('cachedProducts', JSON.stringify(allProducts));
-                localStorage.setItem('cachedMerchants', JSON.stringify(allMerchants));
-                localStorage.setItem('cachedGovernorates', JSON.stringify(allGovernorates));
-                localStorage.setItem('cachedRegions', JSON.stringify(allRegions));
-                localStorage.setItem('cachedCategories', JSON.stringify(allCategories));
-            } catch (e) { 
-                console.warn('تعذر حفظ التخزين المحلي', e); 
-            }
-        }
-
-        function populateFilterOptions() {
-            // المحافظات
-            governorateSelect.innerHTML = '<option value="">جميع المحافظات</option>';
-            allGovernorates.forEach(g => {
-                const opt = document.createElement('option');
-                opt.value = g.id || g.name;
-                opt.textContent = g.name || g.id;
-                governorateSelect.appendChild(opt);
-            });
-
-            // التجار النشطون مع شرط الوظيفة "تاجر"
-            merchantSelect.innerHTML = '<option value="">جميع التجار</option>';
-            allMerchants.forEach(m => {
-                // التحقق من أن التاجر نشط ووظيفته "تاجر"
-                const isActive = m.status === "active" || m.status === "نشط";
-                const isMerchant = m.job === "تاجر" || m.type === "تاجر";
-                
-                if (isActive && isMerchant) {
-                    const opt = document.createElement('option');
-                    opt.value = m.id || m.name;
-                    opt.textContent = m.name || m.username || m.id;
-                    merchantSelect.appendChild(opt);
-                }
-            });
-
-            // الأقسام (الفئات)
-            updateCategoryOptions();
-
-            updateRegionOptions();
-        }
-
-        function updateRegionOptions() {
-            const selectedGovernorate = governorateSelect.value;
-            regionSelect.innerHTML = '<option value="">جميع المناطق</option>';
-
-            if (selectedGovernorate) {
-                const gov = allGovernorates.find(g => 
-                    (g.id === selectedGovernorate) || (g.name === selectedGovernorate));
-                if (gov && gov.areas) {
-                    Object.entries(gov.areas).forEach(([areaId, areaName]) => {
-                        const opt = document.createElement('option');
-                        opt.value = areaId;
-                        opt.textContent = areaName;
-                        regionSelect.appendChild(opt);
-                    });
-                }
-            } else {
-                allRegions.forEach(r => {
-                    const opt = document.createElement('option');
-                    opt.value = r.id || r.name;
-                    opt.textContent = r.name || r.id;
-                    regionSelect.appendChild(opt);
+            if (!userData) {
+                // لا توجد بيانات مستخدم
+                document.getElementById('no-user-data').style.display = 'block';
+                document.querySelectorAll('#profile-tab .info-value').forEach(el => {
+                    el.textContent = 'غير متوفر';
                 });
-            }
-            
-            // تحديث قائمة التجار بناءً على المحافظة والمنطقة المحددة
-            updateMerchantOptions();
-        }
-
-        function updateMerchantOptions() {
-            const selectedGovernorate = governorateSelect.value;
-            const selectedRegion = regionSelect.value;
-            
-            merchantSelect.innerHTML = '<option value="">جميع التجار</option>';
-            
-            allMerchants.forEach(m => {
-                // التحقق من أن التاجر نشط ووظيفته "تاجر"
-                const isActive = m.status === "active" || m.status === "نشط";
-                const isMerchant = m.job === "تاجر" || m.type === "تاجر";
-                
-                if (!isActive || !isMerchant) return;
-                
-                // إذا تم تحديد محافظة ومنطقة، فلنعرض فقط التجار المطابقين
-                if (selectedGovernorate && selectedRegion) {
-                    const merchantGovernorate = m.governorate || m.region;
-                    const merchantArea = m.area || m.city;
-                    
-                    if (merchantGovernorate === selectedGovernorate && merchantArea === selectedRegion) {
-                        const opt = document.createElement('option');
-                        opt.value = m.id || m.name;
-                        opt.textContent = m.name || m.username || m.id;
-                        merchantSelect.appendChild(opt);
-                    }
-                } 
-                // إذا تم تحديد محافظة فقط
-                else if (selectedGovernorate && !selectedRegion) {
-                    const merchantGovernorate = m.governorate || m.region;
-                    
-                    if (merchantGovernorate === selectedGovernorate) {
-                        const opt = document.createElement('option');
-                        opt.value = m.id || m.name;
-                        opt.textContent = m.name || m.username || m.id;
-                        merchantSelect.appendChild(opt);
-                    }
-                }
-                // إذا لم يتم تحديد محافظة أو منطقة
-                else {
-                    const opt = document.createElement('option');
-                    opt.value = m.id || m.name;
-                    opt.textContent = m.name || m.username || m.id;
-                    merchantSelect.appendChild(opt);
-                }
-            });
-            
-            // تحديث قائمة الأقسام بناءً على التاجر المحدد
-            updateCategoryOptions();
-        }
-
-        function updateCategoryOptions() {
-            const selectedMerchant = merchantSelect.value;
-            
-            categorySelect.innerHTML = '<option value="">جميع الأقسام</option>';
-            
-            // إذا تم تحديد تاجر، فلنعرض فقط الأقسام المرتبطة به
-            if (selectedMerchant) {
-                const merchantProducts = allProducts.filter(p => p.userId === selectedMerchant);
-                const categoryCounts = {};
-                
-                merchantProducts.forEach(p => {
-                    if (p.categoryId) {
-                        categoryCounts[p.categoryId] = (categoryCounts[p.categoryId] || 0) + 1;
-                    }
-                });
-                
-                // إضافة الأقسام المرتبطة بالتاجر مع عدد المنتجات
-                Object.keys(categoryCounts).forEach(catId => {
-                    const category = allCategories.find(c => c.id === catId);
-                    if (category) {
-                        const opt = document.createElement('option');
-                        opt.value = catId;
-                        opt.textContent = `${category.name} (${categoryCounts[catId]})`;
-                        categorySelect.appendChild(opt);
-                    }
-                });
-            } 
-            // إذا لم يتم تحديد تاجر، فلنعرض جميع الأقسام مع عدد المنتجات
-            else {
-                const categoryCounts = {};
-                
-                allProducts.forEach(p => {
-                    if (p.categoryId) {
-                        categoryCounts[p.categoryId] = (categoryCounts[p.categoryId] || 0) + 1;
-                    }
-                });
-                
-                // إضافة جميع الأقسام مع عدد المنتجات
-                allCategories.forEach(c => {
-                    const count = categoryCounts[c.id] || 0;
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = `${c.name} (${count})`;
-                    categorySelect.appendChild(opt);
-                });
-            }
-        }
-
-        function handleGovernorateChange() { 
-            updateRegionOptions(); 
-            filterProducts(); 
-        }
-
-        function handleRegionChange() { 
-            updateMerchantOptions(); 
-            filterProducts(); 
-        }
-
-        function handleMerchantChange() { 
-            updateCategoryOptions(); 
-            filterProducts(); 
-        }
-
-        function handleCategoryChange() { 
-            const id = categorySelect.value; 
-            categoryValueDisplay.textContent = id ? `ID: ${id}` : ''; 
-            filterProducts(); 
-        }
-
-        function displayProducts(products) {
-            if (showFavoritesOnly) {
-                displayFavoriteProducts();
                 return;
             }
             
-            productsContainer.innerHTML = '';
+            // عرض بيانات المستخدم
+            document.getElementById('profile-name').textContent = userData.displayName || 'غير محدد';
+            document.getElementById('profile-email').textContent = userData.email || 'غير محدد';
+            document.getElementById('profile-phone').textContent = userData.phone || 'غير محدد';
+            document.getElementById('profile-uid').textContent = userData.uid || 'غير محدد';
             
-            if (!products || products.length === 0) {
-                productsContainer.innerHTML = `
-                    <div class="no-products">
-                        <p>لا توجد منتجات متاحة حالياً</p>
-                        <p>المنتجات الإجمالية: ${allProducts.length}</p>
-                        <p>التجار النشطين: ${allMerchants.filter(m => (m.status === "active" || m.status === "نشط") && (m.job === "تاجر" || m.type === "تاجر")).length}</p>
-                        <button onclick="resetFilters()" style="margin-top:10px;padding:10px 20px;background:var(--primary-color);color:#fff;border:none;border-radius:5px;cursor:pointer">إعادة تعيين الفلاتر</button>
-                    </div>
-                `;
-                return;
-            }
-
-            // ترتيب المنتجات حسب الأولوية الجديدة
-            const sorted = sortProductsByPriority(products);
-
-            const grid = document.createElement('div');
-            grid.className = 'products';
-
-            sorted.forEach(p => {
-                const merchant = allMerchants.find(m => m.id === p.userId);
-                if (!merchant) return;
-                
-                // التحقق من أن التاجر نشط ووظيفته "تاجر"
-                const isActive = merchant.status === "active" || merchant.status === "نشط";
-                const isMerchant = merchant.job === "تاجر" || merchant.type === "تاجر";
-                
-                if (!isActive || !isMerchant) return;
-                
-                const card = createProductCard(p, merchant);
-                grid.appendChild(card);
-            });
-
-            if (grid.children.length === 0) {
-                productsContainer.innerHTML = `
-                    <div class="no-products">
-                        <p>لا توجد منتجات تطابق معايير البحث</p>
-                        <button onclick="resetFilters()" style="margin-top:10px;padding:10px 20px;background:var(--primary-color);color:#fff;border:none;border-radius:5px;cursor:pointer">عرض جميع المنتجات</button>
-                    </div>
-                `;
+            // عرض حالة المستخدم مع تنسيق مناسب
+            const userStatusElement = document.getElementById('profile-status');
+            userStatusElement.textContent = userData.status || 'غير محدد';
+            
+            if (userData.status === 'نشط') {
+                userStatusElement.className = 'info-value status-active';
             } else {
-                productsContainer.appendChild(grid);
-            }
-        }
-
-        // ==========================================
-        // 🚀 نظام ترتيب المنتجات الجديد مع دعم خيارات الترتيب
-        // ==========================================
-        function sortProductsByPriority(products) {
-            const sortBy = sortSelect.value;
-            
-            // إذا كان هناك خيار ترتيب محدد من المستخدم، نستخدمه
-            if (sortBy && sortBy !== 'date') {
-                return sortProductsByOption(products, sortBy);
+                userStatusElement.className = 'info-value status-suspended';
             }
             
-            // وإلا نستخدم نظام الأولويات الذكي
-            return [...products].sort((a, b) => {
-                // 1. المنتجات الجديدة التي تتطابق مع اهتمامات المستخدم تأتي أولاً
-                const aIsNewAndInterested = isNewProduct(a) && hasUserInterest(a);
-                const bIsNewAndInterested = isNewProduct(b) && hasUserInterest(b);
-                
-                if (aIsNewAndInterested && !bIsNewAndInterested) return -1;
-                if (!aIsNewAndInterested && bIsNewAndInterested) return 1;
-
-                // 2. المنتجات الجديدة التي تتطابق مع مصطلحات البحث السابقة
-                const aIsNewAndMatchesSearch = isNewProduct(a) && matchesSearchHistory(a);
-                const bIsNewAndMatchesSearch = isNewProduct(b) && matchesSearchHistory(b);
-                
-                if (aIsNewAndMatchesSearch && !bIsNewAndMatchesSearch) return -1;
-                if (!aIsNewAndMatchesSearch && bIsNewAndMatchesSearch) return 1;
-
-                // 3. المنتجات الجديدة العادية
-                const aIsNew = isNewProduct(a);
-                const bIsNew = isNewProduct(b);
-                
-                if (aIsNew && !bIsNew) return -1;
-                if (!aIsNew && bIsNew) return 1;
-
-                // 4. المنتجات التي تتطابق مع اهتمامات المستخدم (حتى لو ليست جديدة)
-                const aInterestScore = calculateInterestScore(a);
-                const bInterestScore = calculateInterestScore(b);
-                if (aInterestScore !== bInterestScore) {
-                    return bInterestScore - aInterestScore;
-                }
-
-                // 5. المنتجات الأحدث تأتي أولاً
-                const aDate = new Date(a.publishDate || a.createdAt || 0);
-                const bDate = new Date(b.publishDate || b.createdAt || 0);
-                return bDate - aDate;
-            });
+            // عرض تاريخ التسجيل
+            const createdAt = userData.createdAt ? new Date(userData.createdAt).toLocaleDateString('ar-SA') : 'غير محدد';
+            document.getElementById('profile-created').textContent = createdAt;
+            
+            // إخفاء رسالة عدم وجود بيانات
+            document.getElementById('no-user-data').style.display = 'none';
         }
-
-        // دالة الترتيب حسب خيارات المستخدم
-        function sortProductsByOption(products, sortBy) {
-            return [...products].sort((a, b) => {
-                switch(sortBy) {
-                    case 'name':
-                        const nameA = (a.name || '').toLowerCase();
-                        const nameB = (b.name || '').toLowerCase();
-                        return nameA.localeCompare(nameB);
+        
+        // تحديث واجهة المستخدم بناءً على حالته
+        function updateUIBasedOnUserStatus(status) {
+            if (status !== "نشط") {
+                document.getElementById('save-product-btn').disabled = true;
+                document.getElementById('user-status-message').style.display = 'block';
+            } else {
+                document.getElementById('save-product-btn').disabled = false;
+                document.getElementById('user-status-message').style.display = 'none';
+            }
+        }
+        
+        // معالجة تسجيل الخروج
+        function handleLogout() {
+            // مسح بيانات المستخدم من localStorage
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('rememberMe');
+            
+            // إعادة التوجيه إلى صفحة تسجيل الدخول
+            window.location.href = 'index.html';
+        }
+        
+        // تحميل المحافظات
+        function loadGovernorates() {
+            const governoratesRef = database.ref('governorates');
+            
+            governoratesRef.once('value')
+                .then(snapshot => {
+                    const governoratesSelect = document.getElementById('governorate');
+                    governoratesSelect.innerHTML = '<option value="">اختر المحافظة</option>';
                     
-                    case 'category':
-                        const categoryA = getCategoryName(a.categoryId) || '';
-                        const categoryB = getCategoryName(b.categoryId) || '';
-                        return categoryA.localeCompare(categoryB);
-                    
-                    case 'price':
-                        const priceA = parseFloat(a.price) || 0;
-                        const priceB = parseFloat(b.price) || 0;
-                        return priceA - priceB;
-                    
-                    case 'merchant':
-                        const merchantA = getMerchantName(a.userId) || '';
-                        const merchantB = getMerchantName(b.userId) || '';
-                        return merchantA.localeCompare(merchantB);
-                    
-                    case 'date':
-                    default:
-                        const dateA = new Date(a.publishDate || a.createdAt || 0);
-                        const dateB = new Date(b.publishDate || b.createdAt || 0);
-                        return dateB - dateA;
-                }
-            });
-        }
-
-        function getCategoryName(categoryId) {
-            const category = allCategories.find(c => c.id === categoryId);
-            return category ? category.name : '';
-        }
-
-        function getMerchantName(merchantId) {
-            const merchant = allMerchants.find(m => m.id === merchantId);
-            return merchant ? (merchant.name || merchant.username) : '';
-        }
-
-        // التحقق إذا كان المنتج جديد (منشور خلال آخر 7 أيام)
-        function isNewProduct(product) {
-            const productDate = new Date(product.publishDate || product.createdAt || 0);
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            return productDate >= sevenDaysAgo;
-        }
-
-        // التحقق إذا كان المنتج يتطابق مع اهتمامات المستخدم
-        function hasUserInterest(product) {
-            return product.categoryId && userInterests[product.categoryId];
-        }
-
-        // التحقق إذا كان المنتج يتطابق مع مصطلحات البحث السابقة
-        function matchesSearchHistory(product) {
-            const searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-            if (searchHistory.length === 0) return false;
-
-            const productName = (product.name || '').toLowerCase();
-            const productDesc = (product.description || '').toLowerCase();
-            
-            return searchHistory.some(term => 
-                productName.includes(term.toLowerCase()) || 
-                productDesc.includes(term.toLowerCase())
-            );
-        }
-
-        function calculateInterestScore(product) {
-            let score = 0;
-            
-            // إذا كانت الفئة من اهتمامات المستخدم
-            if (product.categoryId && userInterests[product.categoryId]) {
-                score += userInterests[product.categoryId] * 10;
-            }
-            
-            // إذا كان اسم المنتج يتطابق مع مصطلحات البحث السابقة
-            const searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-            const productName = (product.name || '').toLowerCase();
-            const productDesc = (product.description || '').toLowerCase();
-            
-            searchHistory.forEach(term => {
-                if (productName.includes(term.toLowerCase()) || productDesc.includes(term.toLowerCase())) {
-                    score += 5;
-                }
-            });
-            
-            return score;
-        }
-
-        function displayFavoriteProducts() {
-            productsContainer.innerHTML = '';
-            
-            const favoriteProductIds = Object.keys(favoriteProducts);
-            const favoriteProductsList = allProducts.filter(p => favoriteProductIds.includes(p.id));
-            
-            if (favoriteProductsList.length === 0) {
-                productsContainer.innerHTML = `
-                    <div class="no-products">
-                        <p>لا توجد منتجات في المفضلة</p>
-                        <p>يمكنك إضافة منتجات إلى المفضلة بالنقر على أيقونة القلب في البطاقات</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // عرض المنتجات المفضلة
-            const favoritesTitle = document.createElement('h2');
-            favoritesTitle.style.textAlign = 'center';
-            favoritesTitle.style.margin = '20px 0';
-            favoritesTitle.style.color = 'var(--primary-color)';
-            favoritesTitle.textContent = 'المنتجات المفضلة';
-            productsContainer.appendChild(favoritesTitle);
-
-            const favoritesGrid = document.createElement('div');
-            favoritesGrid.className = 'products';
-            
-            // ترتيب المنتجات المفضلة حسب الأولوية الجديدة
-            const sortedFavorites = sortProductsByPriority(favoriteProductsList);
-            
-            sortedFavorites.forEach(p => {
-                const merchant = allMerchants.find(m => m.id === p.userId);
-                if (merchant) {
-                    const card = createProductCard(p, merchant);
-                    favoritesGrid.appendChild(card);
-                }
-            });
-            
-            productsContainer.appendChild(favoritesGrid);
-
-            // عرض المنتجات المشابهة
-            const similarProducts = getSimilarProducts(favoriteProductsList);
-            if (similarProducts.length > 0) {
-                const similarTitle = document.createElement('h2');
-                similarTitle.style.textAlign = 'center';
-                similarTitle.style.margin = '40px 0 20px 0';
-                similarTitle.style.color = 'var(--primary-color)';
-                similarTitle.textContent = 'منتجات مشابهة';
-                productsContainer.appendChild(similarTitle);
-
-                const similarGrid = document.createElement('div');
-                similarGrid.className = 'products';
-                
-                // ترتيب المنتجات المشابهة حسب الأولوية الجديدة
-                const sortedSimilar = sortProductsByPriority(similarProducts);
-                
-                sortedSimilar.forEach(p => {
-                    const merchant = allMerchants.find(m => m.id === p.userId);
-                    if (merchant) {
-                        const card = createProductCard(p, merchant);
-                        similarGrid.appendChild(card);
-                    }
-                });
-                
-                productsContainer.appendChild(similarGrid);
-            }
-        }
-
-        function getSimilarProducts(favoriteProducts) {
-            // جمع الفئات المفضلة
-            const favoriteCategories = {};
-            favoriteProducts.forEach(p => {
-                if (p.categoryId) {
-                    favoriteCategories[p.categoryId] = (favoriteCategories[p.categoryId] || 0) + 1;
-                }
-            });
-
-            // جمع اهتمامات المستخدم
-            const userCategories = { ...userInterests };
-            Object.keys(favoriteCategories).forEach(catId => {
-                userCategories[catId] = (userCategories[catId] || 0) + favoriteCategories[catId];
-            });
-
-            // ترتيب الفئات حسب الأهمية
-            const sortedCategories = Object.keys(userCategories)
-                .sort((a, b) => userCategories[b] - userCategories[a])
-                .slice(0, 3);
-
-            // الحصول على المنتجات المشابهة
-            const similarProducts = allProducts.filter(p => {
-                // استبعاد المنتجات المفضلة
-                if (favoriteProducts.some(fp => fp.id === p.id)) return false;
-                
-                // التحقق من أن التاجر نشط ووظيفته "تاجر"
-                const merchant = allMerchants.find(m => m.id === p.userId);
-                if (!merchant) return false;
-                const isActive = merchant.status === "active" || merchant.status === "نشط";
-                const isMerchant = merchant.job === "تاجر" || merchant.type === "تاجر";
-                if (!isActive || !isMerchant) return false;
-
-                // إذا كانت الفئة من الفئات المفضلة
-                return sortedCategories.includes(p.categoryId);
-            });
-
-            return similarProducts;
-        }
-
-        function displayPersonalizedProducts() {
-            // إذا كان هناك اهتمامات مسجلة، عرض منتجات مخصصة
-            if (Object.keys(userInterests).length > 0) {
-                const personalizedProducts = getPersonalizedProducts();
-                if (personalizedProducts.length > 0 && !showFavoritesOnly) {
-                    // يمكن إضافة عرض للمنتجات المخصصة هنا إذا أردت
-                    console.log('منتجات مخصصة متاحة:', personalizedProducts.length);
-                }
-            }
-        }
-
-        function getPersonalizedProducts() {
-            const favoriteCategories = Object.keys(userInterests)
-                .sort((a, b) => userInterests[b] - userInterests[a])
-                .slice(0, 3);
-
-            return allProducts.filter(p => {
-                const merchant = allMerchants.find(m => m.id === p.userId);
-                if (!merchant) return false;
-                const isActive = merchant.status === "active" || merchant.status === "نشط";
-                const isMerchant = merchant.job === "تاجر" || merchant.type === "تاجر";
-                if (!isActive || !isMerchant) return false;
-
-                return favoriteCategories.includes(p.categoryId);
-            });
-        }
-
-        function createProductCard(product, merchant) {
-            const merchantName = merchant.name || merchant.username || "تاجر";
-            const productName = product.name || 'منتج بدون اسم';
-            const categoryName = product.categoryId ? 
-                (allCategories.find(c => c.id === product.categoryId)?.name || '') : '';
-
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.id = `product-${product.id}`;
-
-            // زر المفضلة - تم تعديل الموقع والألوان
-            const favoriteBtn = document.createElement('button');
-            favoriteBtn.className = 'favorite-btn';
-            if (favoriteProducts[product.id]) favoriteBtn.classList.add('active');
-            favoriteBtn.innerHTML = '❤️';
-            favoriteBtn.title = favoriteProducts[product.id] ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة';
-            favoriteBtn.addEventListener('click', (e) => { 
-                e.stopPropagation(); 
-                toggleFavorite(product.id, favoriteBtn, productName); 
-            });
-            card.appendChild(favoriteBtn);
-
-            // حاوية الصنف - تم تعديل اللون إلى الأحمر
-            if (categoryName) {
-                const categoryContainer = document.createElement('div');
-                categoryContainer.className = 'category-container';
-                categoryContainer.innerHTML = `
-                    <i class="fas fa-tag"></i>
-                    <span>${escapeHtml(categoryName)}</span>
-                `;
-                card.appendChild(categoryContainer);
-            }
-
-            const imageUrls = extractImageUrls(product);
-
-            if (imageUrls.length > 1) {
-                // سلايدر للصور المتعددة
-                const sliderDiv = document.createElement('div');
-                sliderDiv.className = 'image-slider';
-                sliderDiv.id = `slider-${product.id}`;
-
-                const sliderContainer = document.createElement('div');
-                sliderContainer.className = 'slider-container';
-
-                imageUrls.forEach((url, index) => {
-                    const img = document.createElement('img');
-                    img.className = 'slider-image';
-                    img.loading = 'lazy';
-                    img.decoding = 'async';
-                    img.src = formatDriveUrl(url, 'thumb');
-                    img.alt = `${productName} - صورة ${index + 1}`;
-                    img.addEventListener('click', () => {
-                        incrementViewCount(product.id); // زيادة المشاهدات عند النقر على الصورة
-                        openImageGallery(imageUrls, productName, index, product.id);
-                    });
-                    sliderContainer.appendChild(img);
-                });
-                sliderDiv.appendChild(sliderContainer);
-
-                if (imageUrls.length > 1) {
-                    const prevBtn = document.createElement('button');
-                    prevBtn.className = 'slider-arrow prev';
-                    prevBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
-                    prevBtn.addEventListener('click', (e) => { 
-                        e.stopPropagation(); 
-                        navigateSlider(product.id, -1); 
-                    });
-
-                    const nextBtn = document.createElement('button');
-                    nextBtn.className = 'slider-arrow next';
-                    nextBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
-                    nextBtn.addEventListener('click', (e) => { 
-                        e.stopPropagation(); 
-                        navigateSlider(product.id, 1); 
-                    });
-
-                    const navDiv = document.createElement('div');
-                    navDiv.className = 'slider-nav';
-                    imageUrls.forEach((_, i) => {
-                        const dot = document.createElement('div');
-                        dot.className = 'slider-dot';
-                        if (i === 0) dot.classList.add('active');
-                        dot.addEventListener('click', (e) => { 
-                            e.stopPropagation(); 
-                            goToSlide(product.id, i); 
+                    if (snapshot.exists()) {
+                        // تخزين بيانات المحافظات للاستخدام لاحقاً
+                        governoratesData = snapshot.val();
+                        
+                        // ملء قائمة المحافظات
+                        Object.keys(governoratesData).forEach(key => {
+                            const governorate = governoratesData[key];
+                            const option = document.createElement('option');
+                            option.value = key;
+                            option.textContent = governorate.name || 'غير معروف';
+                            governoratesSelect.appendChild(option);
                         });
-                        navDiv.appendChild(dot);
-                    });
-
-                    sliderDiv.appendChild(prevBtn);
-                    sliderDiv.appendChild(nextBtn);
-                    sliderDiv.appendChild(navDiv);
-                }
-                card.appendChild(sliderDiv);
-            } else {
-                // صورة واحدة - فتح المعرض عند النقر
-                const imageDiv = document.createElement('div');
-                imageDiv.className = 'images-preview';
-                const img = document.createElement('img');
-                img.loading = 'lazy'; 
-                img.decoding = 'async';
-
-                const imageUrl = imageUrls[0] || '';
-                if (imageUrl) {
-                    img.src = formatDriveUrl(imageUrl, 'thumb');
-                    img.alt = productName;
-                    img.addEventListener('click', () => {
-                        incrementViewCount(product.id); // زيادة المشاهدات عند النقر على الصورة
-                        openImageGallery([imageUrl], productName, 0, product.id);
-                    });
-                } else {
-                    img.src = 'https://via.placeholder.com/300x200?text=لا+توجد+صورة';
-                    img.alt = 'صورة افتراضية';
-                    img.style.border = '1px dashed #ccc';
-                    img.addEventListener('click', () => {
-                        incrementViewCount(product.id); // زيادة المشاهدات عند النقر على الصورة
-                        openImageGallery([], productName, 0, product.id);
-                    });
-                }
-                imageDiv.appendChild(img);
-                card.appendChild(imageDiv);
-            }
-
-            // معلومات المنتج
-            const infoDiv = document.createElement('div');
-            infoDiv.className = 'info';
-
-            const title = document.createElement('h3'); 
-            title.textContent = productName; 
-            infoDiv.appendChild(title);
-
-            if (product.price) {
-                const priceDiv = document.createElement('div'); 
-                priceDiv.className = 'product-price';
-                priceDiv.textContent = `${product.price} ريال`; 
-                infoDiv.appendChild(priceDiv);
-            }
-
-            // إحصائيات المنتج - تم تعديل الألوان والمواقع
-            const statsDiv = document.createElement('div');
-            statsDiv.className = 'product-stats';
-            statsDiv.innerHTML = `
-                <div class="stat-item like">
-                    <div class="stat-circle"><i class="fas fa-thumbs-up"></i> <span class="like-count">0</span></div>
-                    <div class="stat-label">الإعجابات</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-circle"><i class="fas fa-eye"></i> <span class="view-count">150</span></div>
-                    <div class="stat-label">المشاهدات</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-circle"><i class="fas fa-comment"></i> <span class="comment-count">0</span></div>
-                    <div class="stat-label">التعليقات</div>
-                </div>
-            `;
-            infoDiv.appendChild(statsDiv);
-
-            const detailsDiv = document.createElement('div'); 
-            detailsDiv.className = 'product-details';
-            
-            if (product.description) {
-                const descItem = document.createElement('div'); 
-                descItem.className = 'product-detail-item';
-                const shortDesc = product.description.length > 100 ? 
-                    product.description.substring(0, 100) + '...' : product.description;
-                descItem.innerHTML = `<span class="label">الوصف:</span> <span style="text-align:right;direction:rtl;display:block;width:100%;">${escapeHtml(shortDesc)}</span>`;
-                detailsDiv.appendChild(descItem);
-                
-                // إضافة زر "اقرأ المزيد" إذا كان النص طويلاً
-                if (product.description.length > 100) {
-                    const readMore = document.createElement('span');
-                    readMore.className = 'read-more';
-                    readMore.textContent = '...اقرأ المزيد';
-                    readMore.style.color = 'var(--primary-color)';
-                    readMore.style.cursor = 'pointer';
-                    readMore.style.fontWeight = 'bold';
-                    readMore.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        detailsDiv.classList.toggle('expanded');
-                        readMore.textContent = detailsDiv.classList.contains('expanded') ? '...اقرأ أقل' : '...اقرأ المزيد';
-                    });
-                    detailsDiv.appendChild(readMore);
-                }
-            }
-            
-            infoDiv.appendChild(detailsDiv);
-
-            // تاريخ الإضافة
-            if (product.publishDate) {
-                const dateDiv = document.createElement('div'); 
-                dateDiv.className = 'product-date';
-                dateDiv.textContent = `تاريخ الإضافة: ${formatDate(product.publishDate)}`; 
-                infoDiv.appendChild(dateDiv);
-            }
-
-            // بيانات التاجر المبسطة
-            const merchantDiv = document.createElement('div'); 
-            merchantDiv.className = 'merchant-info';
-            
-            const merchantNameEl = document.createElement('div'); 
-            merchantNameEl.className = 'merchant-name';
-            merchantNameEl.innerHTML = `📍 ${escapeHtml(merchantName)}`; // تغيير الأيقونة إلى موقع
-            merchantNameEl.title = 'عرض صفحة التاجر';
-            merchantNameEl.addEventListener('click', () => { 
-                // ==========================================
-                // 🎯 حفظ البيانات في localStorage
-                // ==========================================
-                
-                // اسم التاجر من merchant.name أو merchant.username
-                const merchantName = merchant.name || merchant.username || "تاجر";
-                
-                // معرف التاجر من product.userId
-                const merchantId = product.userId;
-                
-                // اسم المنتج من product.name
-                const productName = product.name || 'منتج بدون اسم';
-                
-                // حفظ البيانات في localStorage
-                localStorage.setItem('selectedMerchantName', merchantName);
-                localStorage.setItem('selectedMerchantId', merchantId);
-                localStorage.setItem('selectedProductName', productName);
-                
-                // ==========================================
-                // 🔔 تم حذف الإشعار هنا
-                // ==========================================
-                
-                // فقط طباعة في الكونسول للتأكد
-                console.log('تم حفظ بيانات التاجر:', {
-                    merchantName: merchantName,
-                    merchantId: merchantId,
-                    productName: productName
+                    } else {
+                        console.error('لا توجد محافظات في قاعدة البيانات');
+                        // إضافة بعض المحافظات الافتراضية للاختبار
+                        governoratesSelect.innerHTML += '<option value="صنعاء">صنعاء</option>';
+                        governoratesSelect.innerHTML += '<option value="عدن">عدن</option>';
+                        governoratesSelect.innerHTML += '<option value="تعز">تعز</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading governorates:', error);
+                    alert('حدث خطأ في تحميل قائمة المحافظات');
                 });
-                
-                incrementViewCount(product.id);
-                openMerchantPage(); 
-            });
-            merchantDiv.appendChild(merchantNameEl);
+        }
+        
+        // تحميل المناطق بناءً على المحافظة المحددة
+        function loadRegions(governorateId) {
+            const regionsSelect = document.getElementById('region');
             
-            infoDiv.appendChild(merchantDiv);
-
-            // تعليقات
-            const commentsSection = document.createElement('div');
-            commentsSection.className = 'comments-section'; 
-            commentsSection.id = `comments-${product.id}`;
-            commentsSection.innerHTML = `
-                <div class="comments-header">
-                    <div class="comments-title">التعليقات (<span class="comments-count">0</span>)</div>
-                    <button class="close-comments" onclick="closeComments('${product.id}')">×</button>
-                </div>
-                <div class="comments-list" id="comments-list-${product.id}">
-                    <div class="loading">جاري تحميل التعليقات...</div>
-                </div>
-                <div class="add-comment">
-                    <div class="comment-form">
-                        <textarea id="comment-text-${product.id}" placeholder="اكتب تعليقك هنا..."></textarea>
-                        <button onclick="addComment('${product.id}')">إرسال التعليق</button>
-                    </div>
-                </div>
-            `;
-            infoDiv.appendChild(commentsSection);
-
-            card.appendChild(infoDiv);
-
-            // تفاعل
-            const iconsDiv = document.createElement('div'); 
-            iconsDiv.className = 'icons';
-            iconsDiv.innerHTML = `
-                <div class="icon like" onclick="handleLike('${product.id}', '${escapeHtml(productName)}')" title="إعجاب"><i class="fas fa-thumbs-up"></i></div>
-                <div class="icon comment" onclick="toggleComments('${product.id}')" title="التعليقات"><i class="fas fa-comment"></i></div>
-                <div class="icon share-btn" onclick="shareProduct('${escapeHtml(productName)}', '${product.id}')" title="مشاركة"><i class="fas fa-share"></i></div>
-            `;
-            card.appendChild(iconsDiv);
-
-            loadProductStats(product.id, card);
-            return card;
-        }
-
-        // استخراج الصور
-        function extractImageUrls(product) {
-            let imageUrls = [];
-            if (product.imageUrls) {
-                if (Array.isArray(product.imageUrls)) 
-                    imageUrls = product.imageUrls.filter(u => u && u.trim() !== '');
-                else if (typeof product.imageUrls === 'string') 
-                    imageUrls = product.imageUrls.split(',').map(u => u.trim()).filter(Boolean);
-            }
-            if (imageUrls.length === 0 && product.imageUrl && typeof product.imageUrl === 'string') {
-                imageUrls = product.imageUrl.split(/[,\n]/).map(u => u.trim()).filter(Boolean);
-            }
-            return imageUrls;
-        }
-
-        // ==========================================
-        // 🔍 إصلاح مشكلة عرض الصور من جوجل درايف
-        // ==========================================
-        function formatDriveUrl(url, mode = 'thumb') {
-            if (!url) return '';
+            regionsSelect.innerHTML = '<option value="">اختر المنطقة</option>';
             
-            // استخراج معرف الملف من رابط جوجل درايف
-            let id = '';
-            
-            // رابط مباشر للملف
-            if (url.includes('/d/')) {
-                id = url.split('/d/')[1].split('/')[0];
-            } 
-            // رابط مشاركة
-            else if (url.includes('id=')) {
-                try { 
-                    id = new URLSearchParams(url.split('?')[1]).get('id') || ''; 
-                } catch { 
-                    return url; 
-                }
-            }
-            // رابط عرض
-            else if (url.includes('/file/d/')) {
-                id = url.split('/file/d/')[1].split('/')[0];
-            }
-            // رابط مسبق التنسيق
-            else if (url.includes('drive.google.com/uc?id=')) {
-                id = url.split('drive.google.com/uc?id=')[1].split('&')[0];
-            }
-            
-            if (!id) return url;
-
-            // إصلاح مشكلة عرض الصور من جوجل درايف
-            // استخدام رابط العرض المباشر بدلاً من رابط التحميل
-            if (mode === 'thumb') {
-                // صورة مصغرة سريعة التحميل للسلايدر والمصغرات
-                return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
-            } else if (mode === 'main') {
-                // صورة كبيرة للمعرض
-                return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
-            } else if (mode === 'raw') {
-                // العرض المباشر
-                return `https://drive.google.com/uc?export=view&id=${id}`;
-            }
-            return url;
-        }
-
-        // ==========================================
-        // 🖼️ وظائف معرض الصور المحسن
-        // ==========================================
-        function openImageGallery(images, productName, startIndex = 0, productId = null) {
-            galleryImages = images;
-            currentGalleryIndex = startIndex;
-            isImageZoomed = false;
-
-            if (productId) {
-                // تسجيل اهتمام المستخدم بالفئة
-                const product = allProducts.find(p => p.id === productId);
-                if (product && product.categoryId) {
-                    userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
-                    localStorage.setItem('userInterests', JSON.stringify(userInterests));
-                }
-            }
-
-            document.getElementById('gallery-product-name').textContent = productName;
-            createGalleryThumbnails();
-            showGalleryImage(startIndex);
-
-            const gallery = document.getElementById('image-gallery');
-            gallery.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeImageGallery() {
-            document.getElementById('image-gallery').classList.remove('active');
-            document.body.style.overflow = '';
-            isImageZoomed = false;
-
-            const mainImage = document.getElementById('gallery-main-image');
-            mainImage.classList.remove('zoomed');
-        }
-
-        function createGalleryThumbnails() {
-            const container = document.getElementById('gallery-thumbnails');
-            container.innerHTML = '';
-            
-            galleryImages.forEach((u, i) => {
-                const thumb = document.createElement('img');
-                thumb.className = 'gallery-thumbnail';
-                thumb.loading = 'lazy'; 
-                thumb.decoding = 'async';
-                thumb.src = formatDriveUrl(u, 'thumb');
-                thumb.alt = `صورة ${i + 1}`;
-                thumb.addEventListener('click', () => showGalleryImage(i));
-                if (i === currentGalleryIndex) thumb.classList.add('active');
-                container.appendChild(thumb);
-            });
-        }
-
-        function showGalleryImage(index) {
-            if (galleryImages.length === 0) {
-                const mainImage = document.getElementById('gallery-main-image');
-                mainImage.src = 'https://via.placeholder.com/600x400?text=لا+توجد+صورة';
-                mainImage.alt = 'لا توجد صورة';
-                document.getElementById('gallery-counter').textContent = '0 من 0';
+            if (!governorateId) {
+                regionsSelect.disabled = true;
                 return;
             }
-
-            if (index < 0) currentGalleryIndex = galleryImages.length - 1;
-            else if (index >= galleryImages.length) currentGalleryIndex = 0;
-            else currentGalleryIndex = index;
-
-            const mainImage = document.getElementById('gallery-main-image');
-            // تحميل الصورة الكبيرة
-            mainImage.src = formatDriveUrl(galleryImages[currentGalleryIndex], 'main');
-            mainImage.alt = `صورة ${currentGalleryIndex + 1}`;
-            mainImage.classList.remove('zoomed');
-            isImageZoomed = false;
-
-            document.getElementById('gallery-counter').textContent = 
-                `${currentGalleryIndex + 1} من ${galleryImages.length}`;
-
-            // تحديث المصغرات
-            const thumbs = document.querySelectorAll('.gallery-thumbnail');
-            thumbs.forEach((t, i) => t.classList.toggle('active', i === currentGalleryIndex));
-
-            // تحميل مسبق للصور المجاورة لتحسين الأداء
-            preloadAdjacentImages();
-        }
-
-        function navigateGallery(direction) {
-            showGalleryImage(currentGalleryIndex + direction);
-        }
-
-        // ==========================================
-        // 🔍 وظيفة التحكم في تكبير الصورة
-        // ==========================================
-        function toggleImageZoom() {
-            const mainImage = document.getElementById('gallery-main-image');
-            isImageZoomed = !isImageZoomed;
-            mainImage.classList.toggle('zoomed', isImageZoomed);
-
-            // تحديث أيقونة زر التكبير
-            const zoomBtn = document.querySelector('.gallery-zoom-btn i');
-            if (isImageZoomed) {
-                zoomBtn.className = 'fas fa-search-minus';
-            } else {
-                zoomBtn.className = 'fas fa-search-plus';
-            }
-        }
-
-        function preloadAdjacentImages() {
-            const prevIndex = (currentGalleryIndex - 1 + galleryImages.length) % galleryImages.length;
-            const nextIndex = (currentGalleryIndex + 1) % galleryImages.length;
-
-            [prevIndex, nextIndex].forEach(i => {
-                const img = new Image();
-                img.decoding = 'async';
-                img.referrerPolicy = 'no-referrer';
-                img.src = formatDriveUrl(galleryImages[i], 'main');
-            });
-        }
-
-        // سلايدر البطاقات
-        function navigateSlider(productId, direction) {
-            const slider = document.getElementById(`slider-${productId}`);
-            const container = slider.querySelector('.slider-container');
-            const slides = container.querySelectorAll('.slider-image');
-
-            const currentIndex = Math.round(container.scrollLeft / container.clientWidth);
-            let newIndex = currentIndex + direction;
-            if (newIndex < 0) newIndex = slides.length - 1;
-            if (newIndex >= slides.length) newIndex = 0;
-            goToSlide(productId, newIndex);
-        }
-
-        function goToSlide(productId, index) {
-            const slider = document.getElementById(`slider-${productId}`);
-            const container = slider.querySelector('.slider-container');
-            const dots = slider.querySelectorAll('.slider-dot');
-
-            container.scrollTo({ left: index * container.clientWidth, behavior: 'smooth' });
-            dots.forEach((d, i) => d.classList.toggle('active', i === index));
-        }
-
-        function filterProducts() {
-            const filters = {
-                governorate: governorateSelect.value,
-                region: regionSelect.value,
-                category: categorySelect.value,
-                merchant: merchantSelect.value,
-                search: (searchInput.value || '').toLowerCase().trim(),
-                sortBy: sortSelect.value
-            };
-
-            // حفظ مصطلح البحث في السجل
-            if (filters.search) {
-                saveSearchTerm(filters.search);
-            }
-
-            const result = allProducts.filter(product => {
-                if (!product) return false;
-                const merchant = allMerchants.find(m => m.id === product.userId);
-                if (!merchant) return false;
-
-                // التحقق من أن التاجر نشط ووظيفته "تاجر"
-                const isActive = merchant.status === "active" || merchant.status === "نشط";
-                const isMerchant = merchant.job === "تاجر" || merchant.type === "تاجر";
-                if (!isActive || !isMerchant) return false;
-
-                if (filters.search) {
-                    const text = `${product.name || ''} ${product.description || ''}`.toLowerCase();
-                    if (!text.includes(filters.search)) return false;
-                }
-
-                if (filters.category) {
-                    if (product.categoryId !== filters.category && product.category !== filters.category) return false;
-                }
-
-                if (filters.merchant && product.userId !== filters.merchant) return false;
-
-                if (filters.governorate) {
-                    const merchantGovernorate = merchant.governorate || merchant.region;
-                    if (merchantGovernorate !== filters.governorate) return false;
-                }
-                if (filters.region) {
-                    const merchantArea = merchant.area || merchant.city;
-                    if (merchantArea !== filters.region) return false;
-                }
-
-                return true;
-            });
-
-            displayProducts(result);
-        }
-
-        function saveSearchTerm(term) {
-            let searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
             
-            // إضافة المصطلح الجديد وإزالة التكرارات
-            searchHistory = searchHistory.filter(t => t !== term);
-            searchHistory.unshift(term);
-            
-            // الحفاظ على آخر 10 مصطلحات بحث فقط
-            searchHistory = searchHistory.slice(0, 10);
-            
-            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
-        }
-
-        function resetFilters() {
-            governorateSelect.value = '';
-            regionSelect.value = '';
-            categorySelect.value = '';
-            merchantSelect.value = '';
-            searchInput.value = '';
-            sortSelect.value = 'date';
-            categoryValueDisplay.textContent = '';
-            updateRegionOptions();
-            displayProducts(allProducts);
-            showNotification('تم إعادة تعيين جميع الفلاتر', 'success');
-        }
-
-        function toggleTheme() {
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            if (isDark) {
-                document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('theme', 'light');
-                themeToggle.textContent = '🌙';
-                showNotification('تم تفعيل الوضع النهاري', 'info');
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark');
-                themeToggle.textContent = '☀️';
-                showNotification('تم تفعيل الوضع الليلي', 'info');
-            }
-        }
-
-        function hideFilterBar() {
-            filterBar.style.display = 'none';
-            document.body.style.paddingTop = '70px';
-            localStorage.setItem('filterBarHidden', 'true');
-            filterControlBtn.innerHTML = '<i class="fas fa-sliders-h"></i>';
-            filterControlBtn.title = 'إظهار شريط الفلاتر';
-            filterToggleBtn.innerHTML = '<i class="fas fa-sliders-h"></i>';
-            filterToggleBtn.title = 'إظهار شريط الفلاتر';
-        }
-
-        function showFilterBar() {
-            filterBar.style.display = 'flex';
-            document.body.style.paddingTop = '140px';
-            localStorage.setItem('filterBarHidden', 'false');
-            filterControlBtn.innerHTML = '<i class="fas fa-times"></i>';
-            filterControlBtn.title = 'إخفاء شريط الفلاتر';
-            filterToggleBtn.innerHTML = '<i class="fas fa-times"></i>';
-            filterToggleBtn.title = 'إخفاء شريط الفلاتر';
-        }
-
-        // ==========================================
-        // ❤️ تعديل وظيفة المفضلة مع الإشعارات
-        // ==========================================
-        function toggleFavorite(productId, button, productName = '') {
-            if (favoriteProducts[productId]) { 
-                delete favoriteProducts[productId]; 
-                button.classList.remove('active'); 
-                showNotification('تم إزالة المنتج من المفضلة', 'info');
-            } else { 
-                favoriteProducts[productId] = true; 
-                button.classList.add('active'); 
-                showNotification('تم إضافة المنتج إلى المفضلة', 'success');
+            // التحقق من وجود بيانات المحافظة
+            if (governoratesData[governorateId] && governoratesData[governorateId].regions) {
+                const regions = governoratesData[governorateId].regions;
                 
-                // تسجيل اهتمام المستخدم بالفئة
-                const product = allProducts.find(p => p.id === productId);
-                if (product && product.categoryId) {
-                    userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
-                    localStorage.setItem('userInterests', JSON.stringify(userInterests));
-                }
-            }
-            localStorage.setItem('favoriteProducts', JSON.stringify(favoriteProducts));
-            
-            // إذا كنا في وضع عرض المفضلة، قم بتحديث العرض
-            if (showFavoritesOnly) {
-                displayFavoriteProducts();
-            }
-        }
-
-        // ==========================================
-        // 🔔 وظيفة عرض الإشعارات
-        // ==========================================
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            notification.textContent = message;
-            
-            // تلوين الإشعار حسب النوع
-            if (type === 'success') {
-                notification.style.background = 'var(--success-color)';
-            } else if (type === 'info') {
-                notification.style.background = 'var(--primary-color)';
-            } else if (type === 'error') {
-                notification.style.background = 'var(--danger-color)';
-            }
-            
-            document.body.appendChild(notification);
-            
-            // إزالة الإشعار بعد 3 ثواني
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        // ==========================================
-        // 👁️ تعديل وظيفة زيادة المشاهدات
-        // ==========================================
-        function incrementViewCount(productId) {
-            const userId = getUserId();
-            const viewKey = `${productId}_${userId}`;
-
-            if (!sessionStorage.getItem(viewKey)) {
-                sessionStorage.setItem(viewKey, 'true');
+                regionsSelect.disabled = false;
                 
-                // زيادة العداد في Firebase
-                db.ref(`products_stats/${productId}/views`).transaction(current => (current || 0) + 1);
-
-                // تحديث العداد في الواجهة (بدءاً من 150)
-                const viewEl = document.querySelector(`#product-${productId} .view-count`);
-                if (viewEl) { 
-                    const currentViews = parseInt(viewEl.textContent) || 150; // القيمة الابتدائية 150
-                    viewEl.textContent = currentViews + 1; 
-                }
-
-                // تسجيل اهتمام المستخدم بالفئة
-                const product = allProducts.find(p => p.id === productId);
-                if (product && product.categoryId) {
-                    userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
-                    localStorage.setItem('userInterests', JSON.stringify(userInterests));
-                }
-            }
-        }
-
-        async function loadProductStats(productId, card) {
-            try {
-                const [statsSnap, commentsSnap] = await Promise.all([
-                    db.ref(`products_stats/${productId}`).once('value'),
-                    db.ref(`comments/${productId}`).once('value')
-                ]);
-
-                const stats = statsSnap.val() || {};
-                const comments = commentsSnap.val() || {};
-
-                const likeCount = Array.isArray(stats.likes) ? stats.likes.length : 0;
-                const viewCount = (stats.views || 0) + 150; // إضافة القيمة الابتدائية 150
-                const commentCount = Object.keys(comments).length;
-
-                const likeEl = card.querySelector('.like-count');
-                const viewEl = card.querySelector('.view-count');
-                const commentEl = card.querySelector('.comment-count');
-                const commentsCountEl = card.querySelector('.comments-count');
-
-                if (likeEl) likeEl.textContent = likeCount;
-                if (viewEl) viewEl.textContent = viewCount;
-                if (commentEl) commentEl.textContent = commentCount;
-                if (commentsCountEl) commentsCountEl.textContent = commentCount;
-            } catch (e) { 
-                console.error('خطأ في تحميل الإحصائيات:', e); 
-            }
-        }
-
-        async function handleLike(productId, productName = '') {
-            const userId = getUserId();
-            try {
-                const likesRef = db.ref(`products_stats/${productId}/likes`);
-                const snapshot = await likesRef.once('value');
-                let likes = snapshot.val() || [];
-                if (!Array.isArray(likes)) likes = [];
-                const idx = likes.indexOf(userId);
-                if (idx === -1) {
-                    likes.push(userId);
-                    showNotification('تم الإعجاب بالمنتج', 'success');
-                } else {
-                    likes.splice(idx, 1);
-                    showNotification('تم إلغاء الإعجاب بالمنتج', 'info');
-                }
-                await likesRef.set(likes);
-                const likeEl = document.querySelector(`#product-${productId} .like-count`);
-                if (likeEl) likeEl.textContent = likes.length;
-            } catch (e) { 
-                console.error('خطأ في معالجة الإعجاب:', e); 
-            }
-        }
-
-        function toggleComments(productId) {
-            const el = document.getElementById(`comments-${productId}`);
-            if (el.classList.contains('active')) closeComments(productId);
-            else openComments(productId);
-        }
-
-        function openComments(productId) { 
-            const el = document.getElementById(`comments-${productId}`); 
-            el.classList.add('active'); 
-            loadComments(productId); 
-        }
-
-        function closeComments(productId) { 
-            const el = document.getElementById(`comments-${productId}`); 
-            el.classList.remove('active'); 
-            const t = document.getElementById(`comment-text-${productId}`); 
-            if (t) t.value=''; 
-        }
-
-        async function loadComments(productId) {
-            const list = document.getElementById(`comments-list-${productId}`);
-            list.innerHTML = '<div class="loading">جاري تحميل التعليقات...</div>';
-            try {
-                const snapshot = await db.ref(`comments/${productId}`).once('value');
-                const data = snapshot.val() || {};
-                const comments = Object.entries(data).map(([id, c]) => ({ id, ...c }));
-                displayComments(comments, productId);
-            } catch (e) {
-                console.error('خطأ في تحميل التعليقات:', e);
-                list.innerHTML = '<div class="error">حدث خطأ في تحميل التعليقات</div>';
-            }
-        }
-
-        function displayComments(comments, productId) {
-            const list = document.getElementById(`comments-list-${productId}`);
-            const countEl = document.querySelector(`#comments-${productId} .comments-count`);
-            list.innerHTML = '';
-            countEl.textContent = comments.length;
-
-            if (comments.length === 0) { 
-                list.innerHTML = '<div class="no-comments">لا توجد تعليقات بعد</div>'; 
-                return; 
-            }
-
-            comments.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-            comments.forEach(c => {
-                const div = document.createElement('div'); 
-                div.className = 'comment-item';
-                div.innerHTML = `
-                    <div class="comment-header">
-                        <span>${escapeHtml(c.author || 'مستخدم')}</span>
-                        <span class="comment-date">${formatDate(c.date)}</span>
-                    </div>
-                    <div class="comment-text">${escapeHtml(c.text || '')}</div>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        async function addComment(productId) {
-            const textarea = document.getElementById(`comment-text-${productId}`);
-            const text = (textarea.value || '').trim();
-            if (!text) { 
-                alert('يرجى كتابة تعليق قبل الإرسال'); 
-                return; 
-            }
-
-            try {
-                const commentId = Date.now().toString();
-                const comment = { text, author: 'مستخدم', date: new Date().toISOString() };
-                await db.ref(`comments/${productId}/${commentId}`).set(comment);
-                textarea.value = '';
-                loadComments(productId);
-                showNotification('تم إضافة التعليق بنجاح', 'success');
-
-                const commentEl = document.querySelector(`#product-${productId} .comment-count`);
-                if (commentEl) commentEl.textContent = (parseInt(commentEl.textContent) || 0) + 1;
-            } catch (e) {
-                console.error('خطأ في إضافة التعليق:', e);
-                alert('حدث خطأ في إضافة التعليق');
-            }
-        }
-
-        function shareProduct(productName, productId) {
-            const productUrl = `${window.location.origin}${window.location.pathname}?productId=${productId}`;
-            const shareText = `متجر AZ السوق الشامل لتلبية احتياجك بالكامل\n\nتفضل بتصفح ${productName}\n\n${productUrl}`;
-            if (navigator.share) {
-                navigator.share({ title: `متجر AZ - ${productName}`, text: shareText, url: productUrl })
-                    .then(() => showNotification('تمت المشاركة بنجاح', 'success'))
-                    .catch(err => console.log('خطأ في المشاركة:', err));
+                // ملء قائمة المناطق
+                Object.keys(regions).forEach(key => {
+                    const region = regions[key];
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = region.name || 'غير معروف';
+                    regionsSelect.appendChild(option);
+                });
             } else {
-                navigator.clipboard.writeText(shareText)
-                    .then(() => {
-                        showNotification('تم نسخ رابط المنتج إلى الحافظة', 'success');
-                    })
-                    .catch(() => prompt('يرجى نسخ النص التالي:', shareText));
+                console.error('لا توجد مناطق لهذه المحافظة');
+                regionsSelect.innerHTML = '<option value="">لا توجد مناطق متاحة</option>';
+                regionsSelect.disabled = false;
             }
         }
-
-        // ==========================================
-        // 🎯 تعديل دالة فتح صفحة التاجر
-        // ==========================================
-        function openMerchantPage() {
-            // البيانات محفوظة مسبقاً في localStorage
-            window.open('ard_tagr.html', '_blank');
-        }
-
-        function getUserId() {
-            let userId = localStorage.getItem('userId');
-            if (!userId) { 
-                userId = 'user_' + Math.random().toString(36).substr(2, 9); 
-                localStorage.setItem('userId', userId); 
-            }
-            return userId;
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return 'غير محدد';
-            try { 
-                return new Date(dateString).toLocaleDateString('ar-EG'); 
-            } catch { 
-                return dateString; 
-            }
-        }
-
-        function escapeHtml(text) { 
-            const div = document.createElement('div'); 
-            div.textContent = text; 
-            return div.innerHTML; 
-        }
-
-        // اتصال الشبكة
-        window.addEventListener('online', () => { 
-            console.log('الاتصال متوفر - تحديث البيانات'); 
-            loadAllData(); 
-        });
         
-        window.addEventListener('offline', () => { 
-            console.log('لا يوجد اتصال - استخدام البيانات المحلية'); 
-        });
+        // تحميل الفئات
+        function loadCategories() {
+            const categoriesRef = database.ref('categories');
+            
+            categoriesRef.once('value')
+                .then(snapshot => {
+                    const categoriesSelect = document.getElementById('category');
+                    categoriesSelect.innerHTML = '<option value="">اختر الفئة</option>';
+                    
+                    if (snapshot.exists()) {
+                        snapshot.forEach(childSnapshot => {
+                            const category = childSnapshot.val();
+                            const option = document.createElement('option');
+                            option.value = childSnapshot.key; // استخدام المفتاح كقيمة
+                            option.textContent = category.name || 'غير معروف';
+                            categoriesSelect.appendChild(option);
+                        });
+                    } else {
+                        console.error('لا توجد فئات في قاعدة البيانات');
+                        // إضافة بعض الفئات الافتراضية للاختبار
+                        categoriesSelect.innerHTML += '<option value="الكترونيات">الكترونيات</option>';
+                        categoriesSelect.innerHTML += '<option value="ملابس">ملابس</option>';
+                        categoriesSelect.innerHTML += '<option value="أثاث">أثاث</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading categories:', error);
+                    alert('حدث خطأ في تحميل قائمة الفئات');
+                });
+        }
+        
+        // التبديل بين التبويبات
+        function switchTab(tabName) {
+            // إخفاء جميع محتويات التبويبات
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // إلغاء تنشيط جميع التبويبات
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // تفعيل التبويب المحدد
+            document.getElementById(tabName + '-tab').classList.add('active');
+            document.querySelector('.tab[onclick="switchTab(\'' + tabName + '\')"]').classList.add('active');
+            
+            // إذا كان التبويب هو عرض المنتجات، نقوم بتحميلها
+            if (tabName === 'view') {
+                loadUserProducts();
+            }
+            
+            // إذا كان التبويب هو عرض بياناتي، نقوم بتحميل بيانات المستخدم
+            if (tabName === 'profile') {
+                loadUserProfileData();
+            }
+        }
+        
+        // توليد UUID
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        
+        // معالجة إرسال النموذج
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const userData = JSON.parse(localStorage.getItem('currentUser'));
+            
+            // التحقق من حالة المستخدم قبل الإضافة أو التعديل
+            if (userData.status !== "نشط") {
+                alert("لا يمكنك إضافة أو تعديل المنتجات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
+                return;
+            }
+            
+            const productId = document.getElementById('productId').value || generateUUID();
+            const productData = {
+                id: productId,
+                governorate: document.getElementById('governorate').value,
+                region: document.getElementById('region').value,
+                category: document.getElementById('category').value,
+                requestType: document.getElementById('requestType').value,
+                condition: document.getElementById('condition').value,
+                productName: document.getElementById('productName').value,
+                specifications: document.getElementById('specifications').value,
+                address: document.getElementById('address').value,
+                price: document.getElementById('price').value,
+                status: document.getElementById('status').value,
+                orderDate: document.getElementById('orderDate').value,
+                userId: document.getElementById('userId').value
+            };
+            
+            // حفظ المنتج في مسار asnaf بدلاً من products
+            const productRef = database.ref('asnaf/' + productId);
+            productRef.set(productData)
+                .then(() => {
+                    alert('تم حفظ المنتج بنجاح!');
+                    resetForm();
+                    
+                    // إذا كنا في وضع التعديل، نعود إلى تبويب العرض
+                    if (currentEditingProduct) {
+                        switchTab('view');
+                        loadUserProducts();
+                        currentEditingProduct = null;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving product:', error);
+                    alert('حدث خطأ أثناء حفظ المنتج');
+                });
+        }
+        
+        // إعادة تعيين النموذج
+        function resetForm() {
+            document.getElementById('product-form').reset();
+            document.getElementById('productId').value = '';
+            document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('region').disabled = true;
+            document.getElementById('region').innerHTML = '<option value="">اختر المنطقة</option>';
+            currentEditingProduct = null;
+        }
+        
+        // تحميل منتجات المستخدم من مسار asnaf
+        function loadUserProducts() {
+            const productsRef = database.ref('asnaf');
+            const userId = document.getElementById('userId').value;
+            const userData = JSON.parse(localStorage.getItem('currentUser'));
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('no-products').style.display = 'none';
+            document.getElementById('products-table').style.display = 'none';
+            
+            productsRef.orderByChild('userId').equalTo(userId).once('value')
+                .then(snapshot => {
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    const productsList = document.getElementById('products-list');
+                    productsList.innerHTML = '';
+                    
+                    if (snapshot.exists()) {
+                        document.getElementById('products-table').style.display = 'table';
+                        
+                        snapshot.forEach(childSnapshot => {
+                            const product = childSnapshot.val();
+                            const row = document.createElement('tr');
+                            
+                            // تعطيل أزرار التعديل إذا كان المستخدم غير نشط
+                            const editDisabled = userData.status !== "نشط" ? "disabled" : "";
+                            
+                            row.innerHTML = `
+                                <td>${product.productName}</td>
+                                <td>${product.price}</td>
+                                <td>${product.status}</td>
+                                <td>${product.requestType}</td>
+                                <td>${product.orderDate}</td>
+                                <td class="action-buttons">
+                                    <button class="btn btn-edit" onclick="editProduct('${product.id}')" ${editDisabled}>تعديل</button>
+                                    <button class="btn btn-delete" onclick="deleteProduct('${product.id}')" ${editDisabled}>حذف</button>
+                                </td>
+                            `;
+                            
+                            productsList.appendChild(row);
+                        });
+                    } else {
+                        document.getElementById('no-products').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    console.error('Error loading products:', error);
+                });
+        }
+        
+        // تعديل المنتج من مسار asnaf
+        function editProduct(productId) {
+            const userData = JSON.parse(localStorage.getItem('currentUser'));
+            
+            // التحقق من حالة المستخدم قبل التعديل
+            if (userData.status !== "نشط") {
+                alert("لا يمكنك تعديل المنتجات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
+                return;
+            }
+            
+            const productRef = database.ref('asnaf/' + productId);
+            
+            productRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const product = snapshot.val();
+                        currentEditingProduct = productId;
+                        
+                        // تعبئة النموذج ببيانات المنتج
+                        document.getElementById('productId').value = product.id;
+                        document.getElementById('governorate').value = product.governorate || '';
+                        
+                        // تحميل المناطق للمحافظة المحددة
+                        if (product.governorate) {
+                            loadRegions(product.governorate);
+                            
+                            // استخدام setTimeout لضمان تحميل المناطق أولاً
+                            setTimeout(() => {
+                                document.getElementById('region').value = product.region || '';
+                            }, 300);
+                        }
+                        
+                        document.getElementById('category').value = product.category || '';
+                        document.getElementById('requestType').value = product.requestType || '';
+                        document.getElementById('condition').value = product.condition || '';
+                        document.getElementById('productName').value = product.productName || '';
+                        document.getElementById('specifications').value = product.specifications || '';
+                        document.getElementById('address').value = product.address || '';
+                        document.getElementById('price').value = product.price || '';
+                        document.getElementById('status').value = product.status || '';
+                        
+                        // الانتقال إلى تبويب الإضافة
+                        switchTab('add');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading product for edit:', error);
+                });
+        }
+        
+        // حذف المنتج من مسار asnaf
+        function deleteProduct(productId) {
+            const userData = JSON.parse(localStorage.getItem('currentUser'));
+            
+            // التحقق من حالة المستخدم قبل الحذف
+            if (userData.status !== "نشط") {
+                alert("لا يمكنك حذف المنتجات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
+                return;
+            }
+            
+            if (confirm('هل أنت متأكد من رغبتك في حذف هذا المنتج؟')) {
+                const productRef = database.ref('asnaf/' + productId);
+                
+                productRef.remove()
+                    .then(() => {
+                        alert('تم حذف المنتج بنجاح');
+                        loadUserProducts();
+                    })
+                    .catch(error => {
+                        console.error('Error deleting product:', error);
+                        alert('حدث خطأ أثناء حذف المنتج');
+                    });
+            }
+        }
     </script>
 </body>
 </html>
