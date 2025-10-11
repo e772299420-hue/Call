@@ -43,7 +43,7 @@
             background: var(--background-color);
             color: var(--text-color);
             margin: 0;
-            padding-top: 84px;
+            padding-top: 140px;
             padding-bottom: 60px;
             transition: var(--transition);
             width: 100%;
@@ -125,7 +125,7 @@
             width: 100%;
             background: var(--light-color);
             padding: 10px 20px;
-            display: none; /* إخفاء شريط الفلاتر افتراضياً */
+            display: flex;
             flex-wrap: wrap;
             gap: 10px;
             z-index: 999;
@@ -224,7 +224,7 @@
             background: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 50%;
+            border-radius: 500%;
             width: 50px;
             height: 50px;
             display: flex;
@@ -876,15 +876,17 @@
             background: rgba(255, 255, 255, 0.8);
         }
 
+        /* تم تعديل لون خلفية تاريخ الإضافة إلى الأبيض */
         .product-date {
             text-align: center;
             font-size: 14px;
             color: #666;
             margin-top: 5px;
             padding: 5px;
-            background-color: rgba(0, 0, 0, 0.05);
+            background-color: #ffffff; /* تغيير إلى الأبيض */
             border-radius: 4px;
             width: 100%;
+            border: 1px solid #eee;
         }
 
         /* قسم التعليقات */
@@ -1245,12 +1247,12 @@
             padding: 12px;
             background: var(--light-color);
             border-radius: 12px;
-            gap: 12px; /* المسافة بين الأزرار */
+            gap: 20px; /* تقليل المسافة بين الأزرار */
         }
 
         .stats-buttons {
             display: flex;
-            gap: 12px; /* المسافة بين الأزرار */
+            gap: 30px; /* تقليل المسافة بين الأزرار */
             align-items: center;
             flex-wrap: wrap;
             justify-content: center;
@@ -1285,7 +1287,7 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
-        /* التنسيقات الجديدة للإحصائيات - مخفية */
+        /* التنسيقات الجديدة للإحصائيات فوق الأزرار */
         .stat-with-button {
             display: flex;
             flex-direction: column;
@@ -1294,7 +1296,15 @@
         }
 
         .stat-number {
-            display: none; /* إخفاء الإحصائيات */
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            min-width: 40px;
+            text-align: center;
         }
 
         .like-stat {
@@ -1317,8 +1327,8 @@
         }
 
         @media (max-width: 768px) {
-            body { padding-top: 84px; }
-            .filter-bar { top: 84px; padding: 8px 10px; }
+            body { padding-top: 180px; }
+            .filter-bar { top: 100px; padding: 8px 10px; }
             .filter-item { flex: 1 0 100%; }
             .filter-item input { width: 100%; }
             .products { grid-template-columns: 1fr; }
@@ -1376,9 +1386,11 @@
                 font-size: 11px;
             }
 
+            /* تعديل موقع أزرار التحكم لتكون في وسط الشاشة */
             .scroll-to-top, .filter-control, .floating-favorites {
                 bottom: 70px;
-                right: 15px;
+                left: 50%;
+                transform: translateX(-50%);
                 width: 45px;
                 height: 45px;
             }
@@ -1389,17 +1401,17 @@
 
             .floating-favorites {
                 bottom: 190px;
-                right: 15px;
             }
 
             .action-buttons {
                 flex-direction: column;
-                gap: 12px;
+                gap: 20px;
             }
 
             .stats-buttons {
                 justify-content: space-around;
                 width: 100%;
+                gap: 20px; /* تقليل المسافة في الجوال */
             }
             
             .share-section {
@@ -1436,16 +1448,22 @@
             
             .action-buttons {
                 padding: 8px;
+                gap: 15px;
             }
             
             .stats-buttons {
-                gap: 8px;
+                gap: 15px; /* تقليل المسافة أكثر في الشاشات الصغيرة */
             }
             
             .action-button, .share-button, .favorite-btn {
                 width: 40px;
                 height: 40px;
                 font-size: 16px;
+            }
+
+            .stat-number {
+                font-size: 14px;
+                min-width: 35px;
             }
         }
     </style>
@@ -1507,7 +1525,7 @@
         </button>
     </div>
 
-    <!-- زر العودة للأعلى -->
+    <!-- زر العودة للأعلى - تم تعديل الموقع -->
     <button class="scroll-to-top" id="scroll-to-top" title="العودة للأعلى">
         <i class="fas fa-chevron-up"></i>
     </button>
@@ -1649,6 +1667,9 @@
                 updateFloatingFavoritesButton();
                 console.log('🎉 تم تحميل التطبيق بالكامل بنجاح');
             });
+            
+            // 4. بدء تحديث المنتجات الجديدة تلقائياً
+            startAutoUpdate();
         });
 
         function initializeApp() {
@@ -1658,8 +1679,23 @@
                 document.documentElement.setAttribute('data-theme', 'dark');
             }
             
-            // إخفاء شريط الفلاتر افتراضياً عند فتح الصفحة
-            hideFilterBar();
+            // تعديل موقع أزرار التحكم لتكون في وسط الشاشة
+            adjustControlButtonsPosition();
+        }
+
+        function adjustControlButtonsPosition() {
+            // جعل أزرار التحكم في وسط الشاشة
+            scrollToTopBtn.style.left = '50%';
+            scrollToTopBtn.style.right = 'auto';
+            scrollToTopBtn.style.transform = 'translateX(-50%)';
+            
+            filterControlBtn.style.left = '50%';
+            filterControlBtn.style.right = 'auto';
+            filterControlBtn.style.transform = 'translateX(-50%)';
+            
+            floatingFavoritesBtn.style.left = '50%';
+            floatingFavoritesBtn.style.right = 'auto';
+            floatingFavoritesBtn.style.transform = 'translateX(-50%)';
         }
 
         function setupEventListeners() {
@@ -2179,7 +2215,6 @@
                     <div class="no-products">
                         <p>لا توجد منتجات في المفضلة</p>
                         <p>يمكنك إضافة منتجات إلى المفضلة بالنقر على أيقونة القلب في البطاقات</p>
-                        <button onclick="closeFavoritesView()" style="margin-top:10px;padding:10px 20px;background:var(--primary-color);color:#fff;border:none;border-radius:5px;cursor:pointer">العودة إلى جميع المنتجات</button>
                     </div>
                 `;
                 return;
@@ -2235,13 +2270,6 @@
                 
                 productsContainer.appendChild(similarGrid);
             }
-        }
-
-        // دالة لإغلاق عرض المفضلة
-        function closeFavoritesView() {
-            showFavoritesOnly = false;
-            filterProducts();
-            showNotification('تم العودة إلى عرض جميع المنتجات', 'info');
         }
 
         function getSimilarProducts(favoriteProducts) {
@@ -2436,23 +2464,8 @@
                 infoDiv.appendChild(priceDiv);
             }
 
-            // إحصائيات المنتج - التنسيقات الجديدة
-            const statsDiv = document.createElement('div');
-            statsDiv.className = 'likes-section';
-            statsDiv.innerHTML = `
-                <button class="action-button btn-like" onclick="handleLike('${product.id}', '${escapeHtml(productName)}')">
-                    <i class="fas fa-heart"></i>
-                </button>
-                <button class="action-button btn-comment" onclick="toggleComments('${product.id}')">
-                    <i class="fas fa-comments"></i>
-                </button>
-                <div class="stat-item">
-                    <button class="action-button btn-view">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-            `;
-            infoDiv.appendChild(statsDiv);
+            // إزالة قسم الإحصائيات المكرر
+            // statsDiv تم إزالته لأنه مكرر مع action-buttons
 
             const detailsDiv = document.createElement('div'); 
             detailsDiv.className = 'product-details';
@@ -2466,7 +2479,7 @@
             
             infoDiv.appendChild(detailsDiv);
 
-            // تاريخ الإضافة
+            // تاريخ الإضافة - تم تعديل لون الخلفية إلى الأبيض
             if (product.date) {
                 const dateDiv = document.createElement('div'); 
                 dateDiv.className = 'product-date';
@@ -2510,7 +2523,7 @@
             commentsSection.id = `comments-${product.id}`;
             commentsSection.innerHTML = `
                 <div class="comments-header">
-                    <div class="comments-title">التعليقات</div>
+                    <div class="comments-title">التعليقات (<span class="comments-count">0</span>)</div>
                     <button class="close-comments" onclick="closeComments('${product.id}')">×</button>
                 </div>
                 <div class="comments-list" id="comments-list-${product.id}">
@@ -2528,21 +2541,30 @@
             card.appendChild(infoDiv);
 
             /* ==========================================
-               🎯 شريط الأزرار الجديد - تم تعديله حسب الطلب
+               🎯 شريط الأزرار الجديد - تم إصلاح التكرار
                ========================================== */
             const actionButtonsDiv = document.createElement('div');
             actionButtonsDiv.className = 'action-buttons';
             actionButtonsDiv.innerHTML = `
                 <div class="stats-buttons">
-                    <button class="action-button btn-like" onclick="handleLike('${product.id}', '${escapeHtml(productName)}')">
-                        <i class="fas fa-heart"></i>
-                    </button>
-                    <button class="action-button btn-view">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="action-button btn-comment" onclick="toggleComments('${product.id}')">
-                        <i class="fas fa-comments"></i>
-                    </button>
+                    <div class="stat-with-button">
+                        <div class="stat-number like-stat" id="like-stat-${product.id}">0</div>
+                        <button class="action-button btn-like" onclick="handleLike('${product.id}', '${escapeHtml(productName)}')">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                    </div>
+                    <div class="stat-with-button">
+                        <div class="stat-number view-stat" id="view-stat-${product.id}">150</div>
+                        <button class="action-button btn-view">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="stat-with-button">
+                        <div class="stat-number comment-stat" id="comment-stat-${product.id}">0</div>
+                        <button class="action-button btn-comment" onclick="toggleComments('${product.id}')">
+                            <i class="fas fa-comments"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="share-section">
                     <button class="favorite-btn ${favoriteProducts[product.id] ? 'active' : ''}" onclick="toggleFavorite('${product.id}', this, '${escapeHtml(productName)}')" title="${favoriteProducts[product.id] ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}">
@@ -2555,6 +2577,7 @@
             `;
             card.appendChild(actionButtonsDiv);
 
+            loadProductStats(product.id, card);
             return card;
         }
 
@@ -2920,12 +2943,48 @@
                 // زيادة العداد في Firebase
                 db.ref(`products_stats/${productId}/views`).transaction(current => (current || 0) + 1);
 
+                // تحديث العداد في الواجهة
+                const viewEl = document.getElementById(`view-stat-${productId}`);
+                if (viewEl) { 
+                    const currentViews = parseInt(viewEl.textContent) || 150;
+                    viewEl.textContent = currentViews + 1; 
+                }
+
                 // تسجيل اهتمام المستخدم بالفئة
                 const product = allProducts.find(p => p.id === productId);
                 if (product && product.categoryId) {
                     userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
                     localStorage.setItem('userInterests', JSON.stringify(userInterests));
                 }
+            }
+        }
+
+        async function loadProductStats(productId, card) {
+            try {
+                const [statsSnap, commentsSnap] = await Promise.all([
+                    db.ref(`products_stats/${productId}`).once('value'),
+                    db.ref(`comments/${productId}`).once('value')
+                ]);
+
+                const stats = statsSnap.val() || {};
+                const comments = commentsSnap.val() || {};
+
+                const likeCount = Array.isArray(stats.likes) ? stats.likes.length : 0;
+                const viewCount = (stats.views || 0) + 150;
+                const commentCount = Object.keys(comments).length;
+
+                // تحديث الإحصائيات فوق الأزرار
+                const likeStatEl = document.getElementById(`like-stat-${productId}`);
+                const viewStatEl = document.getElementById(`view-stat-${productId}`);
+                const commentStatEl = document.getElementById(`comment-stat-${productId}`);
+                const commentsCountEl = card.querySelector('.comments-count');
+
+                if (likeStatEl) likeStatEl.textContent = likeCount;
+                if (viewStatEl) viewStatEl.textContent = viewCount;
+                if (commentStatEl) commentStatEl.textContent = commentCount;
+                if (commentsCountEl) commentsCountEl.textContent = commentCount;
+            } catch (e) { 
+                console.error('خطأ في تحميل الإحصائيات:', e); 
             }
         }
 
@@ -2945,6 +3004,10 @@
                     showNotification('تم إلغاء الإعجاب بالمنتج', 'info');
                 }
                 await likesRef.set(likes);
+                
+                // تحديث العداد فوق زر الإعجاب
+                const likeStatEl = document.getElementById(`like-stat-${productId}`);
+                if (likeStatEl) likeStatEl.textContent = likes.length;
             } catch (e) { 
                 console.error('خطأ في معالجة الإعجاب:', e); 
             }
@@ -3000,7 +3063,9 @@
 
         function displayComments(comments, productId) {
             const list = document.getElementById(`comments-list-${productId}`);
+            const countEl = document.querySelector(`#comments-${productId} .comments-count`);
             list.innerHTML = '';
+            countEl.textContent = comments.length;
 
             if (comments.length === 0) { 
                 list.innerHTML = '<div class="no-comments">لا توجد تعليقات بعد</div>'; 
@@ -3037,6 +3102,10 @@
                 textarea.value = '';
                 loadComments(productId);
                 showNotification('تم إضافة التعليق بنجاح', 'success');
+
+                // تحديث عداد التعليقات فوق الزر
+                const commentStatEl = document.getElementById(`comment-stat-${productId}`);
+                if (commentStatEl) commentStatEl.textContent = (parseInt(commentStatEl.textContent) || 0) + 1;
             } catch (e) {
                 console.error('خطأ في إضافة التعليق:', e);
                 alert('حدث خطأ في إضافة التعليق');
@@ -3089,6 +3158,42 @@
             const div = document.createElement('div'); 
             div.textContent = text; 
             return div.innerHTML; 
+        }
+
+        // ==========================================
+        // 🔄 نظام التحديث التلقائي للمنتجات الجديدة
+        // ==========================================
+        function startAutoUpdate() {
+            // تحديث المنتجات كل 30 ثانية
+            setInterval(() => {
+                checkForNewProducts();
+            }, 30000);
+        }
+
+        async function checkForNewProducts() {
+            try {
+                const productsSnap = await db.ref("products").once("value");
+                const newProducts = convertFirebaseData(productsSnap.val()) || [];
+                
+                // التحقق من وجود منتجات جديدة
+                if (newProducts.length > allProducts.length) {
+                    console.log('تم اكتشاف منتجات جديدة!');
+                    
+                    // تحديث قائمة المنتجات
+                    allProducts = newProducts;
+                    
+                    // حفظ البيانات في التخزين المحلي
+                    saveDataToCache();
+                    
+                    // إعادة عرض المنتجات مع المنتجات الجديدة
+                    if (!showFavoritesOnly) {
+                        displayProducts(allProducts);
+                        showNotification('تم تحديث المنتجات الجديدة', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('خطأ في التحقق من المنتجات الجديدة:', error);
+            }
         }
 
         // اتصال الشبكة
