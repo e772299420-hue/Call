@@ -353,9 +353,10 @@
         const database = firebase.database();
         const auth = firebase.auth();
         
-        // عناصر DOM
+        // عناصر DOM والمتغيرات العامة
         let currentUser = null;
         let userStatus = "نشط"; // حالة المستخدم الافتراضية
+        let globalUserData = null; // المتغير العام لحفظ بيانات المستخدم
         
         // عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', function() {
@@ -400,6 +401,17 @@
                         userStatus = userData.status || "نشط";
                         
                         if (userStatus === "نشط") {
+                            // حفظ بيانات المستخدم في المتغير العام
+                            globalUserData = {
+                                uid: userId,
+                                displayName: currentUser.displayName,
+                                email: currentUser.email,
+                                phone: userData.phone,
+                                status: userStatus,
+                                ...userData
+                            };
+                            
+                            console.log("بيانات المستخدم المحفوظة:", globalUserData);
                             showMainContent();
                         } else {
                             showUserSuspendedMessage();
@@ -407,9 +419,21 @@
                     } else {
                         // إذا لم يكن هناك سجل للمستخدم، ننشئه بحالة "نشط"
                         userStatus = "نشط";
+                        
+                        // حفظ بيانات المستخدم في المتغير العام
+                        globalUserData = {
+                            uid: userId,
+                            displayName: currentUser.displayName,
+                            email: currentUser.email,
+                            phone: "",
+                            status: userStatus
+                        };
+                        
                         database.ref('snf_tgara/' + userId).update({
                             status: "نشط"
                         });
+                        
+                        console.log("بيانات المستخدم المحفوظة:", globalUserData);
                         showMainContent();
                     }
                 })
@@ -417,6 +441,17 @@
                     console.error('Error checking user status:', error);
                     // في حالة الخطأ، نعرض المحتوى الرئيسي مع افتراض أن المستخدم نشط
                     userStatus = "نشط";
+                    
+                    // حفظ بيانات المستخدم في المتغير العام
+                    globalUserData = {
+                        uid: userId,
+                        displayName: currentUser.displayName,
+                        email: currentUser.email,
+                        phone: "",
+                        status: userStatus
+                    };
+                    
+                    console.log("بيانات المستخدم المحفوظة:", globalUserData);
                     showMainContent();
                 });
         }
@@ -537,6 +572,17 @@
                     currentUser = auth.currentUser;
                     userStatus = "نشط";
                     
+                    // حفظ بيانات المستخدم في المتغير العام
+                    globalUserData = {
+                        uid: currentUser.uid,
+                        displayName: name,
+                        email: email,
+                        phone: phone,
+                        status: "نشط"
+                    };
+                    
+                    console.log("بيانات المستخدم المحفوظة:", globalUserData);
+                    
                     // حفظ بيانات تذكرني إذا تم اختيارها
                     if (rememberMe) {
                         localStorage.setItem('rememberMe', JSON.stringify({
@@ -559,6 +605,7 @@
         function handleLogout() {
             auth.signOut().then(() => {
                 currentUser = null;
+                globalUserData = null; // مسح بيانات المستخدم من المتغير العام
                 hideMainContent();
                 
                 // مسح بيانات تذكرني عند تسجيل الخروج
@@ -596,27 +643,8 @@
         
         // حفظ بيانات المستخدم في localStorage
         function saveUserDataToLocalStorage() {
-            if (currentUser) {
-                const userRef = database.ref('snf_tgara/' + currentUser.uid);
-                
-                userRef.once('value')
-                    .then(snapshot => {
-                        if (snapshot.exists()) {
-                            const userData = snapshot.val();
-                            
-                            // حفظ بيانات المستخدم في localStorage
-                            localStorage.setItem('currentUser', JSON.stringify({
-                                uid: currentUser.uid,
-                                displayName: currentUser.displayName,
-                                email: currentUser.email,
-                                phone: userData.phone,
-                                status: userData.status
-                            }));
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error loading user data:', error);
-                    });
+            if (currentUser && globalUserData) {
+                localStorage.setItem('currentUser', JSON.stringify(globalUserData));
             }
         }
         
