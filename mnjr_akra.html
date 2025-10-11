@@ -3,1138 +3,656 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AZ السوق الشامل - نظام إدارة الطلبات والمتاجرة</title>
-    <!-- ربط Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <title>إدارة المنتجات والأقسام - السوق الشامل</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
-        body {
-            background-color: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
-        }
-        
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        /* الشريط العلوي */
-        header {
-            background-color: #3498db;
-            color: white;
-            padding: 15px 0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            position: sticky;
+
+        /* ===== الشريط العلوي ===== */
+        .top-header {
+            position: fixed;
             top: 0;
-            z-index: 100;
-        }
-        
-        .header-content {
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: #3498db;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0 25px;
+            z-index: 1000;
+            flex-direction: row-reverse;
         }
-        
-        .logo-container {
+
+        .app-info {
             display: flex;
             align-items: center;
+            gap: 15px;
         }
-        
-        .logo {
+
+        .app-logo {
             width: 50px;
             height: 50px;
-            margin-left: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            padding: 5px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
         }
-        
-        .logo img {
+
+        .app-logo img {
             width: 100%;
             height: 100%;
             object-fit: contain;
         }
-        
-        .site-name {
-            font-size: 1.8rem;
+
+        .app-name {
+            font-size: 22px;
             font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
         }
-        
-        .site-subtitle {
-            text-align: center;
-            margin-top: 5px;
-            font-size: 1.2rem;
-        }
-        
-        /* التبويبات الرئيسية */
-        .main-tabs {
+
+        .merchant-section {
             display: flex;
-            margin: 20px 0;
-            border-bottom: 2px solid #ddd;
+            flex-direction: column;
+            align-items: flex-end;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .management-name {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 3px;
+        }
+
+        .merchant-name {
+            font-size: 16px;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* ===== شريط المعلومات ===== */
+        .info-bar {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            width: 100%;
+            background: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            z-index: 999;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             flex-wrap: wrap;
         }
-        
-        .main-tab {
-            padding: 12px 24px;
-            cursor: pointer;
-            background-color: #f1f1f1;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            border-radius: 5px 5px 0 0;
-            margin-left: 5px;
-            transition: all 0.3s;
-            font-weight: bold;
-        }
-        
-        .main-tab.active {
-            background-color: #fff;
-            border-bottom: 2px solid #fff;
-            margin-bottom: -2px;
-            color: #3498db;
-        }
-        
-        /* التبويبات الفرعية */
-        .sub-tabs {
-            display: flex;
-            margin: 15px 0;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .sub-tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            border-radius: 5px 5px 0 0;
-            margin-left: 5px;
-            transition: all 0.3s;
-        }
-        
-        .sub-tab.active {
-            background-color: #fff;
-            border-bottom: 2px solid #fff;
-            margin-bottom: -2px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        .tab-content {
-            display: none;
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 0 0 5px 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        /* بطاقة بيانات المستخدم */
-        .user-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            padding: 25px;
-            margin: 20px 0;
-        }
-        
-        .user-card h2 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        
+
         .user-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            display: flex;
+            align-items: center;
             gap: 15px;
         }
-        
+
         .info-item {
-            margin-bottom: 15px;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 5px;
-        }
-        
-        .info-value {
-            padding: 8px 12px;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-            border: 1px solid #eee;
-        }
-        
-        .status-active {
-            color: #27ae60;
-            font-weight: bold;
-        }
-        
-        .status-suspended {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-        
-        /* عناوين الصفحة */
-        h2 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
-        }
-        
-        /* نماذج الإدخال */
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #444;
-        }
-        
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-            transition: border 0.3s;
-        }
-        
-        input:focus, select:focus, textarea:focus {
-            border-color: #4a6580;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(74, 101, 128, 0.2);
-        }
-        
-        textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-        
-        .required::after {
-            content: " *";
-            color: #e74c3c;
-        }
-        
-        .btn {
-            padding: 12px 25px;
-            background-color: #2c3e50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: background-color 0.3s;
-        }
-        
-        .btn:hover {
-            background-color: #4a6580;
-        }
-        
-        .btn:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
-        
-        .btn-delete {
-            background-color: #e74c3c;
-        }
-        
-        .btn-delete:hover {
-            background-color: #c0392b;
-        }
-        
-        .btn-edit {
-            background-color: #f39c12;
-        }
-        
-        .btn-edit:hover {
-            background-color: #d35400;
-        }
-        
-        .btn-logout {
-            background-color: #7f8c8d;
-        }
-        
-        .btn-logout:hover {
-            background-color: #636e72;
-        }
-        
-        /* جدول المنتجات */
-        .products-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        .products-table th, .products-table td {
-            padding: 12px 15px;
-            text-align: right;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .products-table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        
-        .products-table tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .action-buttons {
             display: flex;
-            gap: 10px;
-        }
-        
-        /* حالة التحميل والرسائل */
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        
-        .message {
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-            text-align: center;
-        }
-        
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .warning {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-        }
-        
-        .info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        
-        .user-info-bar {
-            background-color: #e8f4fd;
-            color: #0c5460;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
+            align-items: center;
+            gap: 5px;
             font-size: 14px;
         }
-        
-        .user-status {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
+
+        .info-item i {
+            color: #3498db;
+        }
+
+        .status-badge {
+            background: #27ae60;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
             font-weight: bold;
-            margin-right: 10px;
         }
-        
-        .status-active {
-            background-color: #d4edda;
-            color: #155724;
+
+        /* ===== حقل nam_usr على اليسار ===== */
+        .nam-usr-container {
+            position: fixed;
+            bottom: 70px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 12px;
+            width: 50px;
+            height: 50px;
+            z-index: 997;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 2px solid #3498db;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
         }
-        
-        .status-inactive {
-            background-color: #f8d7da;
-            color: #721c24;
+
+        .nam-usr-container:hover {
+            width: 300px;
+            height: auto;
+            padding: 20px;
         }
-        
-        /* التكيف مع الشاشات الصغيرة */
+
+        .nam-usr-field {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            color: #333;
+            text-align: center;
+            transition: all 0.4s ease;
+            opacity: 0;
+            font-weight: 500;
+        }
+
+        .nam-usr-container:hover .nam-usr-field {
+            opacity: 1;
+        }
+
+        .nam-usr-field::placeholder {
+            color: #999;
+        }
+
+        .nam-usr-field:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background: white;
+        }
+
+        /* ===== التذييل ===== */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: #2c3e50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            font-size: 16px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* ===== محتوى الصفحة ===== */
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 150px 20px 80px 20px;
+            position: relative;
+        }
+
+        /* ===== البطاقات ===== */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 25px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            width: 320px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            position: relative;
+            border: none;
+        }
+
+        .card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: #3498db;
+            color: white;
+            padding: 25px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255,255,255,0.1);
+            transform: rotate(45deg);
+        }
+
+        .card-header i {
+            font-size: 50px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-header h2 {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+            font-weight: 700;
+        }
+
+        .card-body {
+            padding: 25px;
+            background: white;
+        }
+
+        .card-body p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+        }
+
+        /* ===== الأزرار ===== */
+        .btn, .home-btn {
+            display: inline-block;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1.05rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn {
+            background: #3498db;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
+            background: #2980b9;
+        }
+
+        .home-btn {
+            background: #2ecc71;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+            margin-top: 20px;
+        }
+
+        .home-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.4);
+            background: #27ae60;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        /* ===== حقل الإدخال - مخفي الآن ===== */
+        .input-container {
+            display: none;
+        }
+
+        .transfer-btn {
+            display: none;
+        }
+
+        /* ===== استجابة الهواتف ===== */
         @media (max-width: 768px) {
-            .header-content {
+            .container {
                 flex-direction: column;
-                text-align: center;
+                align-items: center;
+                gap: 20px;
             }
             
-            .logo-container {
-                margin-bottom: 10px;
+            .card {
+                width: 95%;
             }
             
-            .main-tabs, .sub-tabs {
+            .nam-usr-container {
+                bottom: 70px;
+                left: 15px;
+                width: 45px;
+                height: 45px;
+                border-radius: 50%;
+            }
+            
+            .nam-usr-container:hover {
+                width: 90%;
+                height: auto;
+                border-radius: 12px;
+                left: 5%;
+            }
+            
+            .merchant-section {
+                padding: 6px 12px;
+            }
+            
+            .app-name {
+                font-size: 18px;
+            }
+            
+            body {
+                padding-top: 140px;
+            }
+            
+            .top-header {
+                padding: 0 15px;
+            }
+            
+            .info-bar {
+                padding: 8px 15px;
+            }
+            
+            .info-item {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-name {
+                font-size: 16px;
+            }
+            
+            .merchant-section {
+                display: none;
+            }
+            
+            .card-header h2 {
+                font-size: 1.4rem;
+            }
+            
+            .card-body p {
+                font-size: 1rem;
+            }
+            
+            .info-bar {
                 flex-direction: column;
-            }
-            
-            .main-tab, .sub-tab {
-                margin: 5px 0;
-                border-radius: 5px;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-            
-            .user-info {
-                grid-template-columns: 1fr;
+                gap: 5px;
+                padding: 10px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- الشريط العلوي -->
-    <header>
-        <div class="container header-content">
-            <div class="logo-container">
-                <div class="logo">
-                    <img src="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true" alt="شعار AZ السوق الشامل">
-                </div>
-                <h1 class="site-name">AZ السوق الشامل</h1>
-            </div>
-            <nav>
-                <button id="logout-btn" class="btn btn-logout">تسجيل الخروج</button>
-            </nav>
-        </div>
-        <div class="container site-subtitle">
-            <h2>شاشة إدارة المتاجرة</h2>
-        </div>
-    </header>
 
-    <div class="container" id="main-content">
-        <!-- معلومات المستخدم -->
-        <div class="user-info-bar" id="user-info">
-            جاري تحميل معلومات المستخدم...
+<!-- الشريط العلوي -->
+<header class="top-header">
+    <div class="app-info">
+        <div class="app-logo">
+            <img src="https://github.com/T772299420/Call/raw/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png" alt="شعار Az التسوق الشامل">
         </div>
-        
-        <!-- رسالة حالة المستخدم -->
-        <div id="user-status-message" class="message warning" style="display: none;">
-            لقد تم توقيف المستخدم الحالي، يرجى التواصل مع إدارة المميز سوفت لتزويدكم بالمعلومات
+        <div class="app-name">Az التسوق الشامل</div>
+    </div>
+    <div class="merchant-section">
+        <div class="management-name">الأقسام والخدمات</div>
+        <div class="merchant-name" id="user-display-name">المستخدم: جاري التحميل...</div>
+    </div>
+</header>
+
+<!-- شريط المعلومات -->
+<div class="info-bar">
+    <div class="user-info">
+        <div class="info-item">
+            <i class="fas fa-user"></i>
+            <span id="info-username">المستخدم: أحمد محمد</span>
         </div>
-        
-        <!-- التبويبات الرئيسية -->
-        <div class="main-tabs">
-            <div class="main-tab active" onclick="switchMainTab('haraj')">الحراج</div>
-            <div class="main-tab" onclick="switchMainTab('realestate')">العقارات</div>
-            <div class="main-tab" onclick="switchMainTab('jobs')">الوظائف</div>
-            <div class="main-tab" onclick="switchMainTab('profile')">بياناتي</div>
+        <div class="info-item">
+            <i class="fas fa-phone"></i>
+            <span id="info-phone">772299420</span>
         </div>
-        
-        <!-- تبويب الحراج -->
-        <div id="haraj-tab" class="tab-content active">
-            <!-- التبويبات الفرعية للحراج -->
-            <div class="sub-tabs">
-                <div class="sub-tab active" onclick="switchSubTab('haraj', 'add')">إضافة منتج</div>
-                <div class="sub-tab" onclick="switchSubTab('haraj', 'view')">عرض المنتجات</div>
-            </div>
-            
-            <!-- تبويب إضافة منتج في الحراج -->
-            <div id="haraj-add-tab" class="tab-content active">
-                <form id="product-form">
-                    <div class="form-group">
-                        <label for="governorate" class="required">المحافظة</label>
-                        <select id="governorate" required onchange="loadRegions(this.value)">
-                            <option value="">اختر المحافظة</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="region" class="required">المنطقة</label>
-                        <select id="region" required disabled>
-                            <option value="">اختر المنطقة</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="category" class="required">الفئة</label>
-                        <select id="category" required>
-                            <option value="">اختر الفئة</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="requestType" class="required">نوع الطلب</label>
-                        <select id="requestType" required>
-                            <option value="بيع">بيع</option>
-                            <option value="شراء">شراء</option>
-                            <option value="ايجار">إيجار</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="condition" class="required">بيان الحالة</label>
-                        <select id="condition" required>
-                            <option value="جديد">جديد</option>
-                            <option value="مستخدم">مستخدم</option>
-                            <option value="تالف">تالف</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="productName" class="required">اسم المنتج</label>
-                        <input type="text" id="productName" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="specifications">مواصفات المنتج (اختياري)</label>
-                        <textarea id="specifications"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="address">عنوان المنتج (اختياري)</label>
-                        <input type="text" id="address">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="price" class="required">السعر</label>
-                        <input type="number" id="price" required min="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="status" class="required">حالة المنتج</label>
-                        <select id="status" required>
-                            <option value="نشط">نشط</option>
-                            <option value="موقف">موقف</option>
-                        </select>
-                    </div>
-                    
-                    <input type="hidden" id="productId">
-                    <input type="hidden" id="orderDate">
-                    <input type="hidden" id="userId">
-                    
-                    <button type="submit" class="btn" id="save-product-btn">حفظ المنتج</button>
-                    <button type="button" class="btn" onclick="resetForm()" style="background-color: #95a5a6;">إلغاء</button>
-                </form>
-            </div>
-            
-            <!-- تبويب عرض المنتجات في الحراج -->
-            <div id="haraj-view-tab" class="tab-content">
-                <div id="loading" class="loading">جاري تحميل البيانات...</div>
-                <div id="no-products" class="message" style="display: none;">لا توجد منتجات لعرضها</div>
-                <table class="products-table" id="products-table" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th>اسم المنتج</th>
-                            <th>السعر</th>
-                            <th>الحالة</th>
-                            <th>نوع الطلب</th>
-                            <th>تاريخ الطلب</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody id="products-list">
-                        <!-- سيتم ملء هذا القسم بالبيانات من قاعدة البيانات -->
-                    </tbody>
-                </table>
-            </div>
+        <div class="info-item">
+            <i class="fas fa-map-marker-alt"></i>
+            <span id="info-location">صنعاء - اليمن</span>
         </div>
-        
-        <!-- تبويب العقارات -->
-        <div id="realestate-tab" class="tab-content">
-            <!-- التبويبات الفرعية للعقارات -->
-            <div class="sub-tabs">
-                <div class="sub-tab active" onclick="switchSubTab('realestate', 'add')">إضافة عقار</div>
-                <div class="sub-tab" onclick="switchSubTab('realestate', 'view')">عرض العقارات</div>
-            </div>
-            
-            <!-- تبويب إضافة عقار -->
-            <div id="realestate-add-tab" class="tab-content active">
-                <h2>إضافة عقار جديد</h2>
-                <p>سيتم إضافة نموذج إضافة العقارات هنا...</p>
-                <!-- يمكنك إضافة نموذج إضافة العقارات هنا -->
-            </div>
-            
-            <!-- تبويب عرض العقارات -->
-            <div id="realestate-view-tab" class="tab-content">
-                <h2>عرض العقارات</h2>
-                <p>سيتم عرض العقارات هنا...</p>
-                <!-- يمكنك إضافة جدول عرض العقارات هنا -->
-            </div>
+    </div>
+    <div class="status-badge" id="info-status">نشط</div>
+</div>
+
+<!-- حقل nam_usr على اليسار (أسفل فوق التذييل) -->
+<div class="nam-usr-container">
+    <input type="text" id="nam_usr" class="nam-usr-field" placeholder="أدخل بيانات nam_usr هنا">
+</div>
+
+<!-- حقل الإدخال الأصلي (مخفي) -->
+<div class="input-container">
+    <div class="input-group">
+        <label class="input-label" for="nam_usr_original">حقل nam_usr:</label>
+        <input type="text" id="nam_usr_original" class="input-field" placeholder="أدخل البيانات هنا">
+    </div>
+    <button class="transfer-btn" onclick="transferData()">
+        <i class="fas fa-exchange-alt"></i> نقل البيانات إلى globaluser
+    </button>
+</div>
+
+<!-- الحاوية الرئيسية للبطاقات -->
+<div class="container">
+    <!-- تعديل بيانات المستخدم -->
+    <div class="card" onclick="navigateToEditMerchant()">
+        <div class="card-header">
+            <i class="fas fa-user-edit"></i>
+            <h2>تعديل بياناتك المستخدم</h2>
         </div>
-        
-        <!-- تبويب الوظائف -->
-        <div id="jobs-tab" class="tab-content">
-            <!-- التبويبات الفرعية للوظائف -->
-            <div class="sub-tabs">
-                <div class="sub-tab active" onclick="switchSubTab('jobs', 'add')">إضافة وظيفة</div>
-                <div class="sub-tab" onclick="switchSubTab('jobs', 'view')">عرض الوظائف</div>
-            </div>
-            
-            <!-- تبويب إضافة وظيفة -->
-            <div id="jobs-add-tab" class="tab-content active">
-                <h2>إضافة وظيفة جديدة</h2>
-                <p>سيتم إضافة نموذج إضافة الوظائف هنا...</p>
-                <!-- يمكنك إضافة نموذج إضافة الوظائف هنا -->
-            </div>
-            
-            <!-- تبويب عرض الوظائف -->
-            <div id="jobs-view-tab" class="tab-content">
-                <h2>عرض الوظائف</h2>
-                <p>سيتم عرض الوظائف هنا...</p>
-                <!-- يمكنك إضافة جدول عرض الوظائف هنا -->
-            </div>
-        </div>
-        
-        <!-- تبويب بياناتي -->
-        <div id="profile-tab" class="tab-content">
-            <!-- التبويبات الفرعية لبياناتي -->
-            <div class="sub-tabs">
-                <div class="sub-tab active" onclick="switchSubTab('profile', 'view')">عرض بياناتي</div>
-            </div>
-            
-            <!-- تبويب عرض بياناتي -->
-            <div id="profile-view-tab" class="tab-content active">
-                <div class="user-card">
-                    <h2>معلومات المستخدم</h2>
-                    <div class="user-info">
-                        <div class="info-item">
-                            <div class="info-label">الاسم الكامل</div>
-                            <div class="info-value" id="profile-name">جاري التحميل...</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">البريد الإلكتروني</div>
-                            <div class="info-value" id="profile-email">جاري التحميل...</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">رقم الجوال</div>
-                            <div class="info-value" id="profile-phone">جاري التحميل...</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">حالة الحساب</div>
-                            <div class="info-value" id="profile-status">جاري التحميل...</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">معرف المستخدم</div>
-                            <div class="info-value" id="profile-uid">جاري التحميل...</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">تاريخ التسجيل</div>
-                            <div class="info-value" id="profile-created">جاري التحميل...</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- رسالة عدم وجود بيانات -->
-                <div id="no-user-data" class="message error" style="display: none;">
-                    لا توجد بيانات مستخدم مسجل.
-                </div>
-            </div>
+        <div class="card-body">
+            <p>تعديل معلومات المستخدم والبيانات الشخصية</p>
+            <button class="btn">فتح الصفحة</button>
         </div>
     </div>
 
-    <script>
-        // تهيئة Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyAub8yG87hhzVoZxflqpB_smvTFNpRY-Xw",
-            authDomain: "chat-fat-free.firebaseapp.com",
-            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/",
-            projectId: "chat-fat-free",
-            storageBucket: "chat-fat-free.appspot.com",
-            messagingSenderId: "888827487238",
-            appId: "1:888827238:web:6660cd0e8b7831dff40f87"
-        };
-        
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const auth = firebase.auth();
-        
-        // عناصر DOM
-        let currentUser = null;
-        let currentEditingProduct = null;
-        let governoratesData = {}; // لتخزين بيانات المحافظات والمناطق
-        let userStatus = "نشط"; // حالة المستخدم الافتراضية
-        
-        // عند تحميل الصفحة
-        document.addEventListener('DOMContentLoaded', function() {
-            // إعداد مستمعي النماذج
-            document.getElementById('product-form').addEventListener('submit', handleFormSubmit);
-            document.getElementById('logout-btn').addEventListener('click', handleLogout);
-            
-            // تحميل بيانات المستخدم من localStorage
-            loadUserData();
-        });
-        
-        // تحميل وعرض بيانات المستخدم من localStorage
-        function loadUserData() {
-            const userData = JSON.parse(localStorage.getItem('currentUser'));
-            
-            if (!userData) {
-                // لا توجد بيانات مستخدم
-                document.getElementById('no-user-data').style.display = 'block';
-                document.getElementById('logout-btn').style.display = 'none';
-                alert('لا توجد بيانات مستخدم مسجل. يرجى تسجيل الدخول أولاً.');
-                return;
-            }
-            
-            // عرض بيانات المستخدم
-            document.getElementById('user-info').innerHTML = 
-                `مرحباً ${userData.displayName || userData.email} - رقم الجوال: ${userData.phone} 
-                <span class="user-status ${userData.status === 'نشط' ? 'status-active' : 'status-inactive'}">الحالة: ${userData.status}</span>`;
-            
-            document.getElementById('userId').value = userData.uid;
-            document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
-            
-            // تحديث واجهة المستخدم بناءً على حالته
-            updateUIBasedOnUserStatus(userData.status);
-            
-            // تحميل البيانات الأخرى
-            loadGovernorates();
-            loadCategories();
-            
-            // تحميل بيانات الملف الشخصي
-            loadUserProfileData();
-        }
-        
-        // تحميل وعرض بيانات المستخدم من localStorage
-        function loadUserProfileData() {
-            const userData = JSON.parse(localStorage.getItem('currentUser'));
-            
-            if (!userData) {
-                // لا توجد بيانات مستخدم
-                document.getElementById('no-user-data').style.display = 'block';
-                document.querySelectorAll('#profile-tab .info-value').forEach(el => {
-                    el.textContent = 'غير متوفر';
-                });
-                return;
-            }
-            
-            // عرض بيانات المستخدم
-            document.getElementById('profile-name').textContent = userData.displayName || 'غير محدد';
-            document.getElementById('profile-email').textContent = userData.email || 'غير محدد';
-            document.getElementById('profile-phone').textContent = userData.phone || 'غير محدد';
-            document.getElementById('profile-uid').textContent = userData.uid || 'غير محدد';
-            
-            // عرض حالة المستخدم مع تنسيق مناسب
-            const userStatusElement = document.getElementById('profile-status');
-            userStatusElement.textContent = userData.status || 'غير محدد';
-            
-            if (userData.status === 'نشط') {
-                userStatusElement.className = 'info-value status-active';
-            } else {
-                userStatusElement.className = 'info-value status-suspended';
-            }
-            
-            // عرض تاريخ التسجيل
-            const createdAt = userData.createdAt ? new Date(userData.createdAt).toLocaleDateString('ar-SA') : 'غير محدد';
-            document.getElementById('profile-created').textContent = createdAt;
-            
-            // إخفاء رسالة عدم وجود بيانات
-            document.getElementById('no-user-data').style.display = 'none';
-        }
-        
-        // تحديث واجهة المستخدم بناءً على حالته
-        function updateUIBasedOnUserStatus(status) {
-            if (status !== "نشط") {
-                document.getElementById('save-product-btn').disabled = true;
-                document.getElementById('user-status-message').style.display = 'block';
-            } else {
-                document.getElementById('save-product-btn').disabled = false;
-                document.getElementById('user-status-message').style.display = 'none';
-            }
-        }
-        
-        // معالجة تسجيل الخروج
-        function handleLogout() {
-            // مسح بيانات المستخدم من localStorage
-            localStorage.removeItem('currentUser');
-            localStorage.removeItem('rememberMe');
-            
-            // إعادة التوجيه إلى صفحة تسجيل الدخول
-            window.location.href = 'index.html';
-        }
-        
-        // تحميل المحافظات
-        function loadGovernorates() {
-            const governoratesRef = database.ref('governorates');
-            
-            governoratesRef.once('value')
-                .then(snapshot => {
-                    const governoratesSelect = document.getElementById('governorate');
-                    governoratesSelect.innerHTML = '<option value="">اختر المحافظة</option>';
-                    
-                    if (snapshot.exists()) {
-                        // تخزين بيانات المحافظات للاستخدام لاحقاً
-                        governoratesData = snapshot.val();
-                        
-                        // ملء قائمة المحافظات
-                        Object.keys(governoratesData).forEach(key => {
-                            const governorate = governoratesData[key];
-                            const option = document.createElement('option');
-                            option.value = key;
-                            option.textContent = governorate.name || 'غير معروف';
-                            governoratesSelect.appendChild(option);
-                        });
-                    } else {
-                        console.error('لا توجد محافظات في قاعدة البيانات');
-                        // إضافة بعض المحافظات الافتراضية للاختبار
-                        governoratesSelect.innerHTML += '<option value="صنعاء">صنعاء</option>';
-                        governoratesSelect.innerHTML += '<option value="عدن">عدن</option>';
-                        governoratesSelect.innerHTML += '<option value="تعز">تعز</option>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading governorates:', error);
-                    alert('حدث خطأ في تحميل قائمة المحافظات');
-                });
-        }
-        
-        // تحميل المناطق بناءً على المحافظة المحددة
-        function loadRegions(governorateId) {
-            const regionsSelect = document.getElementById('region');
-            
-            regionsSelect.innerHTML = '<option value="">اختر المنطقة</option>';
-            
-            if (!governorateId) {
-                regionsSelect.disabled = true;
-                return;
-            }
-            
-            // التحقق من وجود بيانات المحافظة
-            if (governoratesData[governorateId] && governoratesData[governorateId].regions) {
-                const regions = governoratesData[governorateId].regions;
-                
-                regionsSelect.disabled = false;
-                
-                // ملء قائمة المناطق
-                Object.keys(regions).forEach(key => {
-                    const region = regions[key];
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = region.name || 'غير معروف';
-                    regionsSelect.appendChild(option);
-                });
-            } else {
-                console.error('لا توجد مناطق لهذه المحافظة');
-                regionsSelect.innerHTML = '<option value="">لا توجد مناطق متاحة</option>';
-                regionsSelect.disabled = false;
-            }
-        }
-        
-        // تحميل الفئات
-        function loadCategories() {
-            const categoriesRef = database.ref('categories');
-            
-            categoriesRef.once('value')
-                .then(snapshot => {
-                    const categoriesSelect = document.getElementById('category');
-                    categoriesSelect.innerHTML = '<option value="">اختر الفئة</option>';
-                    
-                    if (snapshot.exists()) {
-                        snapshot.forEach(childSnapshot => {
-                            const category = childSnapshot.val();
-                            const option = document.createElement('option');
-                            option.value = childSnapshot.key; // استخدام المفتاح كقيمة
-                            option.textContent = category.name || 'غير معروف';
-                            categoriesSelect.appendChild(option);
-                        });
-                    } else {
-                        console.error('لا توجد فئات في قاعدة البيانات');
-                        // إضافة بعض الفئات الافتراضية للاختبار
-                        categoriesSelect.innerHTML += '<option value="الكترونيات">الكترونيات</option>';
-                        categoriesSelect.innerHTML += '<option value="ملابس">ملابس</option>';
-                        categoriesSelect.innerHTML += '<option value="أثاث">أثاث</option>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading categories:', error);
-                    alert('حدث خطأ في تحميل قائمة الفئات');
-                });
-        }
-        
-        // التبديل بين التبويبات الرئيسية
-        function switchMainTab(tabName) {
-            // إخفاء جميع محتويات التبويبات الرئيسية
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // إلغاء تنشيط جميع التبويبات الرئيسية
-            document.querySelectorAll('.main-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // تفعيل التبويب الرئيسي المحدد
-            document.getElementById(tabName + '-tab').classList.add('active');
-            document.querySelector('.main-tab[onclick="switchMainTab(\'' + tabName + '\')"]').classList.add('active');
-            
-            // إعادة تعيين التبويبات الفرعية للتبويب الرئيسي الجديد
-            resetSubTabs(tabName);
-            
-            // إذا كان التبويب هو الحراج وعرض المنتجات، نقوم بتحميلها
-            if (tabName === 'haraj') {
-                // تحميل المنتجات عند فتح تبويب العرض
-                document.querySelector('.sub-tab[onclick="switchSubTab(\'haraj\', \'view\')"]').addEventListener('click', function() {
-                    loadUserProducts();
-                });
-            }
-            
-            // إذا كان التبويب هو بياناتي، نقوم بتحميل بيانات المستخدم
-            if (tabName === 'profile') {
-                loadUserProfileData();
-            }
-        }
-        
-        // التبديل بين التبويبات الفرعية
-        function switchSubTab(mainTab, subTab) {
-            // إخفاء جميع محتويات التبويبات الفرعية للتبويب الرئيسي الحالي
-            const mainTabElement = document.getElementById(mainTab + '-tab');
-            mainTabElement.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // إلغاء تنشيط جميع التبويبات الفرعية للتبويب الرئيسي الحالي
-            mainTabElement.querySelectorAll('.sub-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // تفعيل التبويب الفرعي المحدد
-            document.getElementById(mainTab + '-' + subTab + '-tab').classList.add('active');
-            document.querySelector('.sub-tab[onclick="switchSubTab(\'' + mainTab + '\', \'' + subTab + '\')"]').classList.add('active');
-            
-            // إذا كان التبويب هو عرض المنتجات في الحراج، نقوم بتحميلها
-            if (mainTab === 'haraj' && subTab === 'view') {
-                loadUserProducts();
-            }
-        }
-        
-        // إعادة تعيين التبويبات الفرعية للتبويب الرئيسي
-        function resetSubTabs(mainTab) {
-            const mainTabElement = document.getElementById(mainTab + '-tab');
-            
-            // إخفاء جميع محتويات التبويبات الفرعية
-            mainTabElement.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // إلغاء تنشيط جميع التبويبات الفرعية
-            mainTabElement.querySelectorAll('.sub-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // تفعيل أول تبويب فرعي
-            const firstSubTab = mainTabElement.querySelector('.sub-tab');
-            if (firstSubTab) {
-                firstSubTab.classList.add('active');
-                const subTabId = firstSubTab.getAttribute('onclick').match(/'([^']+)'/)[1];
-                document.getElementById(mainTab + '-' + subTabId + '-tab').classList.add('active');
-            }
-        }
-        
-        // توليد UUID
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-        
-        // معالجة إرسال النموذج
-        function handleFormSubmit(e) {
-            e.preventDefault();
-            
-            const userData = JSON.parse(localStorage.getItem('currentUser'));
-            
-            // التحقق من حالة المستخدم قبل الإضافة أو التعديل
-            if (userData.status !== "نشط") {
-                alert("لا يمكنك إضافة أو تعديل المنتجات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
-                return;
-            }
-            
-            const productId = document.getElementById('productId').value || generateUUID();
-            const productData = {
-                id: productId,
-                governorate: document.getElementById('governorate').value,
-                region: document.getElementById('region').value,
-                category: document.getElementById('category').value,
-                requestType: document.getElementById('requestType').value,
-                condition: document.getElementById('condition').value,
-                productName: document.getElementById('productName').value,
-                specifications: document.getElementById('specifications').value,
-                address: document.getElementById('address').value,
-                price: document.getElementById('price').value,
-                status: document.getElementById('status').value,
-                orderDate: document.getElementById('orderDate').value,
-                userId: document.getElementById('userId').value
+    <!-- قسم الحراج -->
+    <div class="card" onclick="window.location.href='snf.html'">
+        <div class="card-header">
+            <i class="fas fa-boxes"></i>
+            <h2>قسم الحراج</h2>
+        </div>
+        <div class="card-body">
+            <p>إدارة الأصناف والمنتجات في قسم الحراج</p>
+            <button class="btn">فتح الصفحة</button>
+        </div>
+    </div>
+
+    <!-- قسم المباني والعقارات -->
+    <div class="card" onclick="navigateToRealEstate()">
+        <div class="card-header">
+            <i class="fas fa-building"></i>
+            <h2>قسم المباني والعقارات</h2>
+        </div>
+        <div class="card-body">
+            <p>إدارة العقارات والمباني المعروضة للبيع أو الإيجار</p>
+            <button class="btn">فتح الصفحة</button>
+        </div>
+    </div>
+
+    <!-- قسم الوظائف الشاغرة -->
+    <div class="card" onclick="navigateToJobs()">
+        <div class="card-header">
+            <i class="fas fa-briefcase"></i>
+            <h2>قسم الوظائف الشاغرة</h2>
+        </div>
+        <div class="card-body">
+            <p>إدارة الوظائف الشاغرة وعروض العمل المتاحة</p>
+            <button class="btn">فتح الصفحة</button>
+        </div>
+    </div>
+</div>
+
+<!-- زر العودة إلى الصفحة الرئيسية -->
+<div class="button-container">
+    <a href="index.html" class="home-btn">
+        <i class="fas fa-home"></i> الرجوع إلى الرئيسية
+    </a>
+</div>
+
+<!-- التذييل -->
+<footer class="footer">
+    جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة 
+</footer>
+
+<script>
+// ===== نظام إدارة المستخدم المحسن =====
+const userManager = {
+    data: null,
+    
+    // تهيئة بيانات المستخدم
+    init: function() {
+        // محاولة تحميل البيانات من localStorage
+        const storedData = localStorage.getItem('userData');
+        if (storedData) {
+            this.data = JSON.parse(storedData);
+        } else {
+            // إنشاء بيانات افتراضية
+            this.data = {
+                id: 'user_001',
+                username: 'أحمد محمد',
+                name: 'أحمد محمد',
+                email: 'ahmed@example.com',
+                mobile: '772299420',
+                phone: '772299420',
+                governorate: 'صنعاء',
+                area: 'اليمن',
+                job: 'مستخدم',
+                type: 'user',
+                status: 'نشط',
+                loginTime: new Date().toISOString(),
+                createdAt: new Date().toISOString()
             };
-            
-            // حفظ المنتج في مسار asnaf بدلاً من products
-            const productRef = database.ref('asnaf/' + productId);
-            productRef.set(productData)
-                .then(() => {
-                    alert('تم حفظ المنتج بنجاح!');
-                    resetForm();
-                    
-                    // إذا كنا في وضع التعديل، نعود إلى تبويب العرض
-                    if (currentEditingProduct) {
-                        switchSubTab('haraj', 'view');
-                        loadUserProducts();
-                        currentEditingProduct = null;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error saving product:', error);
-                    alert('حدث خطأ أثناء حفظ المنتج');
-                });
+            this.saveData();
         }
         
-        // إعادة تعيين النموذج
-        function resetForm() {
-            document.getElementById('product-form').reset();
-            document.getElementById('productId').value = '';
-            document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('region').disabled = true;
-            document.getElementById('region').innerHTML = '<option value="">اختر المنطقة</option>';
-            currentEditingProduct = null;
-        }
+        this.updateUI();
+    },
+    
+    // حفظ البيانات
+    saveData: function() {
+        localStorage.setItem('userData', JSON.stringify(this.data));
+    },
+    
+    // تحديث واجهة المستخدم
+    updateUI: function() {
+        // تحديث الشريط العلوي
+        document.getElementById('user-display-name').textContent = `المستخدم: ${this.data.name}`;
         
-        // تحميل منتجات المستخدم من مسار asnaf
-        function loadUserProducts() {
-            const productsRef = database.ref('asnaf');
-            const userId = document.getElementById('userId').value;
-            const userData = JSON.parse(localStorage.getItem('currentUser'));
-            
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('no-products').style.display = 'none';
-            document.getElementById('products-table').style.display = 'none';
-            
-            productsRef.orderByChild('userId').equalTo(userId).once('value')
-                .then(snapshot => {
-                    document.getElementById('loading').style.display = 'none';
-                    
-                    const productsList = document.getElementById('products-list');
-                    productsList.innerHTML = '';
-                    
-                    if (snapshot.exists()) {
-                        document.getElementById('products-table').style.display = 'table';
-                        
-                        snapshot.forEach(childSnapshot => {
-                            const product = childSnapshot.val();
-                            const row = document.createElement('tr');
-                            
-                            // تعطيل أزرار التعديل إذا كان المستخدم غير نشط
-                            const editDisabled = userData.status !== "نشط" ? "disabled" : "";
-                            
-                            row.innerHTML = `
-                                <td>${product.productName}</td>
-                                <td>${product.price}</td>
-                                <td>${product.status}</td>
-                                <td>${product.requestType}</td>
-                                <td>${product.orderDate}</td>
-                                <td class="action-buttons">
-                                    <button class="btn btn-edit" onclick="editProduct('${product.id}')" ${editDisabled}>تعديل</button>
-                                    <button class="btn btn-delete" onclick="deleteProduct('${product.id}')" ${editDisabled}>حذف</button>
-                                </td>
-                            `;
-                            
-                            productsList.appendChild(row);
-                        });
-                    } else {
-                        document.getElementById('no-products').style.display = 'block';
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('loading').style.display = 'none';
-                    console.error('Error loading products:', error);
-                });
-        }
+        // تحديث شريط المعلومات
+        document.getElementById('info-username').textContent = `المستخدم: ${this.data.name}`;
+        document.getElementById('info-phone').textContent = this.data.mobile;
+        document.getElementById('info-location').textContent = `${this.data.governorate} - ${this.data.area}`;
+        document.getElementById('info-status').textContent = this.data.status;
         
-        // تعديل المنتج من مسار asnaf
-        function editProduct(productId) {
-            const userData = JSON.parse(localStorage.getItem('currentUser'));
-            
-            // التحقق من حالة المستخدم قبل التعديل
-            if (userData.status !== "نشط") {
-                alert("لا يمكنك تعديل المنتجات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
-                return;
-            }
-            
-            const productRef = database.ref('asnaf/' + productId);
-            
-            productRef.once('value')
-                .then(snapshot => {
-                    if (snapshot.exists()) {
-                        const product = snapshot.val();
-                        currentEditingProduct = productId;
-                        
-                        // تعبئة النموذج ببيانات المنتج
-                        document.getElementById('productId').value = product.id;
-                        document.getElementById('governorate').value = product.governorate || '';
-                        
-                        // تحميل المناطق للمحافظة المحددة
-                        if (product.governorate) {
-                            loadRegions(product.governorate);
-                            
-                            // استخدام setTimeout لضمان تحميل المناطق أولاً
-                            setTimeout(() => {
-                                document.getElementById('region').value = product.region || '';
-                            }, 300);
-                        }
-                        
-                        document.getElementById('category').value = product.category || '';
-                        document.getElementById('requestType').value = product.requestType || '';
-                        document.getElementById('condition').value = product.condition || '';
-                        document.getElementById('productName').value = product.productName || '';
-                        document.getElementById('specifications').value = product.specifications || '';
-                        document.getElementById('address').value = product.address || '';
-                        document.getElementById('price').value = product.price || '';
-                        document.getElementById('status').value = product.status || '';
-                        
-                        // الانتقال إلى تبويب الإضافة
-                        switchSubTab('haraj', 'add');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading product for edit:', error);
-                });
-        }
-        
-        // حذف المنتج من مسار asnaf
-        function deleteProduct(productId) {
-            const userData = JSON.parse(localStorage.getItem('currentUser'));
-            
-            // التحقق من حالة المستخدم قبل الحذف
-            if (userData.status !== "نشط") {
-                alert("لا يمكنك حذف المنتجات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
-                return;
-            }
-            
-            if (confirm('هل أنت متأكد من رغبتك في حذف هذا المنتج؟')) {
-                const productRef = database.ref('asnaf/' + productId);
-                
-                productRef.remove()
-                    .then(() => {
-                        alert('تم حذف المنتج بنجاح');
-                        loadUserProducts();
-                    })
-                    .catch(error => {
-                        console.error('Error deleting product:', error);
-                        alert('حدث خطأ أثناء حذف المنتج');
-                    });
-            }
-        }
-    </script>
+        // تحديث حقل nam_usr
+        document.getElementById('nam_usr').value = this.data.name;
+    },
+    
+    // تحديث بيانات المستخدم
+    updateUserData: function(newData) {
+        this.data = { ...this.data, ...newData };
+        this.saveData();
+        this.updateUI();
+    },
+    
+    // الحصول على بيانات المستخدم
+    getUserData: function() {
+        return this.data;
+    }
+};
+
+// ===== دوال التنقل =====
+
+// دالة للانتقال إلى صفحة تعديل بيانات المستخدم
+function navigateToEditMerchant() {
+    // تخزين بيانات المستخدم الحالية قبل الانتقال
+    const userData = userManager.getUserData();
+    sessionStorage.setItem('currentUserData', JSON.stringify(userData));
+    
+    // الانتقال إلى صفحة تعديل بيانات المستخدم
+    window.location.href = 'ub_tager.html';
+}
+
+// دالة للانتقال إلى قسم المباني والعقارات
+function navigateToRealEstate() {
+    const userData = userManager.getUserData();
+    sessionStorage.setItem('currentUserData', JSON.stringify(userData));
+    
+    alert('سيتم الانتقال إلى قسم المباني والعقارات');
+    // window.location.href = 'real_estate.html';
+}
+
+// دالة للانتقال إلى قسم الوظائف الشاغرة
+function navigateToJobs() {
+    const userData = userManager.getUserData();
+    sessionStorage.setItem('currentUserData', JSON.stringify(userData));
+    
+    alert('سيتم الانتقال إلى قسم الوظائف الشاغرة');
+    // window.location.href = 'jobs.html';
+}
+
+// ===== معالجة حقل nam_usr =====
+document.getElementById('nam_usr').addEventListener('change', function() {
+    const newName = this.value.trim();
+    if (newName) {
+        userManager.updateUserData({ name: newName, username: newName });
+        alert('تم تحديث اسم المستخدم بنجاح');
+    }
+});
+
+// ===== تهيئة الصفحة =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 بدء تحميل الصفحة...');
+    
+    // تهيئة نظام إدارة المستخدم
+    userManager.init();
+    
+    console.log('✅ تم تحميل الصفحة بنجاح');
+});
+
+// ===== معالجة الأخطاء =====
+window.addEventListener('error', (event) => {
+    console.error('❌ خطأ في الصفحة:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('❌ وعد مرفوض:', event.reason);
+});
+</script>
+
 </body>
 </html>
