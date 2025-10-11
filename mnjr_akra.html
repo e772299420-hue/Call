@@ -436,10 +436,6 @@
             <i class="fas fa-phone"></i>
             <span id="info-phone">جاري التحميل...</span>
         </div>
-        <div class="info-item">
-            <i class="fas fa-map-marker-alt"></i>
-            <span id="info-location">جاري التحميل...</span>
-        </div>
     </div>
     <div class="status-badge" id="info-status">جاري التحميل...</div>
 </div>
@@ -464,7 +460,7 @@
     </div>
 
     <!-- قسم الحراج -->
-    <div class="card" onclick="window.location.href='snf.html'">
+    <div class="card" onclick="navigateToHaraj()">
         <div class="card-header">
             <i class="fas fa-boxes"></i>
             <h2>قسم الحراج</h2>
@@ -567,8 +563,6 @@ const userManager = {
                 username: userName,
                 name: userName,
                 mobile: urlParams.get('phone') || urlParams.get('mobile') || 'غير متوفر',
-                governorate: urlParams.get('gov') || urlParams.get('governorate') || 'غير محدد',
-                area: urlParams.get('area') || 'غير محدد',
                 status: 'نشط',
                 type: 'user',
                 loginTime: new Date().toISOString()
@@ -588,8 +582,6 @@ const userManager = {
             username: 'زائر',
             name: 'زائر',
             mobile: 'غير متوفر',
-            governorate: 'غير محدد',
-            area: 'غير محدد',
             status: 'غير معروف',
             type: 'guest',
             loginTime: new Date().toISOString()
@@ -617,10 +609,6 @@ const userManager = {
         document.getElementById('info-username').textContent = `المستخدم: ${displayName}`;
         document.getElementById('info-phone').textContent = this.data.phone || this.data.mobile || this.data.tel || 'غير متوفر';
         
-        // تحديث الموقع
-        const location = this.formatLocation(this.data);
-        document.getElementById('info-location').textContent = location;
-        
         // تحديث الحالة مع تلوين مناسب
         const statusElement = document.getElementById('info-status');
         const status = this.data.status || 'غير معروف';
@@ -632,22 +620,6 @@ const userManager = {
         
         // حفظ البيانات للاستخدام المستقبلي
         this.saveToStorage();
-    },
-    
-    // تنسيق بيانات الموقع
-    formatLocation: function(userData) {
-        const governorate = userData.governorate || userData.gov || userData.city || '';
-        const area = userData.area || userData.region || userData.district || '';
-        
-        if (governorate && area) {
-            return `${governorate} - ${area}`;
-        } else if (governorate) {
-            return governorate;
-        } else if (area) {
-            return area;
-        } else {
-            return 'غير محدد';
-        }
     },
     
     // حفظ البيانات في التخزين المحلي
@@ -674,6 +646,55 @@ const userManager = {
     }
 };
 
+// ===== دوال التنقل =====
+function navigateToEditMerchant() {
+    const userData = userManager.getUserData();
+    if (userData && userData.id !== 'unknown_user') {
+        // حفظ بيانات شريط المعلومات قبل الانتقال
+        userManager.saveToStorage();
+        window.location.href = 'user_profile.html';
+    } else {
+        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً في الحقل الموجود على اليسار');
+        document.querySelector('.nam-usr-container').style.width = '300px';
+        document.querySelector('.nam-usr-container').style.height = 'auto';
+        document.querySelector('.nam-usr-field').style.opacity = '1';
+        document.getElementById('nam_usr').focus();
+    }
+}
+
+function navigateToHaraj() {
+    const userData = userManager.getUserData();
+    if (userData) {
+        // حفظ بيانات شريط المعلومات قبل الانتقال
+        userManager.saveToStorage();
+        window.location.href = '1_41.html';
+    } else {
+        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً');
+    }
+}
+
+function navigateToRealEstate() {
+    const userData = userManager.getUserData();
+    if (userData) {
+        // حفظ بيانات شريط المعلومات قبل الانتقال
+        userManager.saveToStorage();
+        window.location.href = 'mbna.html';
+    } else {
+        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً');
+    }
+}
+
+function navigateToJobs() {
+    const userData = userManager.getUserData();
+    if (userData) {
+        // حفظ بيانات شريط المعلومات قبل الانتقال
+        userManager.saveToStorage();
+        window.location.href = 'mnjar_wd.html';
+    } else {
+        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً');
+    }
+}
+
 // ===== معالجة حقل nam_usr =====
 document.getElementById('nam_usr').addEventListener('change', function() {
     const newName = this.value.trim();
@@ -692,39 +713,6 @@ document.getElementById('nam_usr').addEventListener('change', function() {
         alert('✅ تم تحديث اسم المستخدم بنجاح');
     }
 });
-
-// ===== دوال التنقل =====
-function navigateToEditMerchant() {
-    const userData = userManager.getUserData();
-    if (userData && userData.id !== 'unknown_user') {
-        sessionStorage.setItem('currentUserData', JSON.stringify(userData));
-        window.location.href = 'ub_tager.html';
-    } else {
-        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً في الحقل الموجود على اليسار');
-        document.querySelector('.nam-usr-container').style.width = '300px';
-        document.querySelector('.nam-usr-container').style.height = 'auto';
-        document.querySelector('.nam-usr-field').style.opacity = '1';
-        document.getElementById('nam_usr').focus();
-    }
-}
-
-function navigateToRealEstate() {
-    const userData = userManager.getUserData();
-    if (userData) {
-        sessionStorage.setItem('currentUserData', JSON.stringify(userData));
-        alert('سيتم الانتقال إلى قسم المباني والعقارات');
-        // window.location.href = 'real_estate.html';
-    }
-}
-
-function navigateToJobs() {
-    const userData = userManager.getUserData();
-    if (userData) {
-        sessionStorage.setItem('currentUserData', JSON.stringify(userData));
-        alert('سيتم الانتقال إلى قسم الوظائف الشاغرة');
-        // window.location.href = 'jobs.html';
-    }
-}
 
 // ===== تهيئة الصفحة =====
 document.addEventListener('DOMContentLoaded', function() {
