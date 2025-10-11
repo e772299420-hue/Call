@@ -379,13 +379,27 @@
                 if (user) {
                     // المستخدم مسجل الدخول
                     currentUser = user;
-                    checkUserStatus(user.uid);
+                    
+                    // التحقق مما إذا كان هناك بيانات تذكرني محفوظة
+                    const rememberMeData = localStorage.getItem('rememberMe');
+                    if (rememberMeData) {
+                        // إذا كانت بيانات تذكرني محفوظة، نسمح بالدخول التلقائي
+                        checkUserStatus(user.uid);
+                    } else {
+                        // إذا لم تكن بيانات تذكرني محفوظة، نسجل خروج المستخدم
+                        auth.signOut().then(() => {
+                            currentUser = null;
+                            globalUserData = null;
+                            hideMainContent();
+                            console.log("تم تسجيل الخروج تلقائياً لأن حقل تذكرني غير مفعل");
+                        });
+                    }
                 } else {
                     // لا يوجد مستخدم مسجل الدخول
                     hideMainContent();
                     
-                    // التحقق مما إذا كان هناك بيانات تذكرني محفوظة
-                    checkRememberMe();
+                    // التحقق مما إذا كان هناك بيانات تذكرني محفوظة لملء الحقول فقط
+                    checkRememberMeForFields();
                 }
             });
         });
@@ -456,8 +470,8 @@
                 });
         }
         
-        // التحقق من بيانات تذكرني
-        function checkRememberMe() {
+        // التحقق من بيانات تذكرني لملء الحقول فقط (بدون تسجيل دخول تلقائي)
+        function checkRememberMeForFields() {
             const rememberMeData = localStorage.getItem('rememberMe');
             if (rememberMeData) {
                 const data = JSON.parse(rememberMeData);
@@ -506,6 +520,7 @@
                             password: password
                         }));
                     } else {
+                        // إذا لم يتم اختيار تذكرني، نقوم بمسح أي بيانات محفوظة مسبقاً
                         localStorage.removeItem('rememberMe');
                     }
                     
@@ -589,6 +604,9 @@
                             email: email,
                             password: password
                         }));
+                    } else {
+                        // إذا لم يتم اختيار تذكرني، نقوم بمسح أي بيانات محفوظة مسبقاً
+                        localStorage.removeItem('rememberMe');
                     }
                     
                     showMainContent();
@@ -606,10 +624,11 @@
             auth.signOut().then(() => {
                 currentUser = null;
                 globalUserData = null; // مسح بيانات المستخدم من المتغير العام
-                hideMainContent();
                 
                 // مسح بيانات تذكرني عند تسجيل الخروج
                 localStorage.removeItem('rememberMe');
+                
+                hideMainContent();
             }).catch((error) => {
                 console.error('Error signing out:', error);
             });
