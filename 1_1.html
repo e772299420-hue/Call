@@ -43,7 +43,7 @@
             background: var(--background-color);
             color: var(--text-color);
             margin: 0;
-            padding-top: 140px;
+            padding-top: 84px;
             padding-bottom: 60px;
             transition: var(--transition);
             width: 100%;
@@ -125,7 +125,7 @@
             width: 100%;
             background: var(--light-color);
             padding: 10px 20px;
-            display: flex;
+            display: none; /* إخفاء شريط الفلاتر افتراضياً */
             flex-wrap: wrap;
             gap: 10px;
             z-index: 999;
@@ -1245,12 +1245,12 @@
             padding: 12px;
             background: var(--light-color);
             border-radius: 12px;
-            gap: 100px; /* المسافة بين الأزرار */
+            gap: 12px; /* المسافة بين الأزرار */
         }
 
         .stats-buttons {
             display: flex;
-            gap: 100px; /* المسافة بين الأزرار */
+            gap: 12px; /* المسافة بين الأزرار */
             align-items: center;
             flex-wrap: wrap;
             justify-content: center;
@@ -1285,7 +1285,7 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
-        /* التنسيقات الجديدة للإحصائيات فوق الأزرار */
+        /* التنسيقات الجديدة للإحصائيات - مخفية */
         .stat-with-button {
             display: flex;
             flex-direction: column;
@@ -1294,15 +1294,7 @@
         }
 
         .stat-number {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--primary-color);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 4px 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            min-width: 40px;
-            text-align: center;
+            display: none; /* إخفاء الإحصائيات */
         }
 
         .like-stat {
@@ -1325,8 +1317,8 @@
         }
 
         @media (max-width: 768px) {
-            body { padding-top: 180px; }
-            .filter-bar { top: 100px; padding: 8px 10px; }
+            body { padding-top: 84px; }
+            .filter-bar { top: 84px; padding: 8px 10px; }
             .filter-item { flex: 1 0 100%; }
             .filter-item input { width: 100%; }
             .products { grid-template-columns: 1fr; }
@@ -1402,13 +1394,12 @@
 
             .action-buttons {
                 flex-direction: column;
-                gap: 20px;
+                gap: 12px;
             }
 
             .stats-buttons {
                 justify-content: space-around;
                 width: 100%;
-                gap: 50px; /* تقليل المسافة في الجوال */
             }
             
             .share-section {
@@ -1445,22 +1436,16 @@
             
             .action-buttons {
                 padding: 8px;
-                gap: 15px;
             }
             
             .stats-buttons {
-                gap: 30px; /* تقليل المسافة أكثر في الشاشات الصغيرة */
+                gap: 8px;
             }
             
             .action-button, .share-button, .favorite-btn {
                 width: 40px;
                 height: 40px;
                 font-size: 16px;
-            }
-
-            .stat-number {
-                font-size: 14px;
-                min-width: 35px;
             }
         }
     </style>
@@ -1672,6 +1657,9 @@
             if (savedTheme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
             }
+            
+            // إخفاء شريط الفلاتر افتراضياً عند فتح الصفحة
+            hideFilterBar();
         }
 
         function setupEventListeners() {
@@ -2191,6 +2179,7 @@
                     <div class="no-products">
                         <p>لا توجد منتجات في المفضلة</p>
                         <p>يمكنك إضافة منتجات إلى المفضلة بالنقر على أيقونة القلب في البطاقات</p>
+                        <button onclick="closeFavoritesView()" style="margin-top:10px;padding:10px 20px;background:var(--primary-color);color:#fff;border:none;border-radius:5px;cursor:pointer">العودة إلى جميع المنتجات</button>
                     </div>
                 `;
                 return;
@@ -2246,6 +2235,13 @@
                 
                 productsContainer.appendChild(similarGrid);
             }
+        }
+
+        // دالة لإغلاق عرض المفضلة
+        function closeFavoritesView() {
+            showFavoritesOnly = false;
+            filterProducts();
+            showNotification('تم العودة إلى عرض جميع المنتجات', 'info');
         }
 
         function getSimilarProducts(favoriteProducts) {
@@ -2445,16 +2441,13 @@
             statsDiv.className = 'likes-section';
             statsDiv.innerHTML = `
                 <button class="action-button btn-like" onclick="handleLike('${product.id}', '${escapeHtml(productName)}')">
-                    <span class="action-count like-count-badge" id="like-count-badge-${product.id}">0</span>
                     <i class="fas fa-heart"></i>
                 </button>
                 <button class="action-button btn-comment" onclick="toggleComments('${product.id}')">
-                    <span class="action-count comment-count-badge" id="comment-count-badge-${product.id}">0</span>
                     <i class="fas fa-comments"></i>
                 </button>
                 <div class="stat-item">
                     <button class="action-button btn-view">
-                        <span class="action-count view-count-badge" id="view-count-badge-${product.id}">150</span>
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
@@ -2517,7 +2510,7 @@
             commentsSection.id = `comments-${product.id}`;
             commentsSection.innerHTML = `
                 <div class="comments-header">
-                    <div class="comments-title">التعليقات (<span class="comments-count">0</span>)</div>
+                    <div class="comments-title">التعليقات</div>
                     <button class="close-comments" onclick="closeComments('${product.id}')">×</button>
                 </div>
                 <div class="comments-list" id="comments-list-${product.id}">
@@ -2541,24 +2534,15 @@
             actionButtonsDiv.className = 'action-buttons';
             actionButtonsDiv.innerHTML = `
                 <div class="stats-buttons">
-                    <div class="stat-with-button">
-                        <div class="stat-number like-stat" id="like-stat-${product.id}">0</div>
-                        <button class="action-button btn-like" onclick="handleLike('${product.id}', '${escapeHtml(productName)}')">
-                            <i class="fas fa-heart"></i>
-                        </button>
-                    </div>
-                    <div class="stat-with-button">
-                        <div class="stat-number view-stat" id="view-stat-${product.id}">150</div>
-                        <button class="action-button btn-view">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                    <div class="stat-with-button">
-                        <div class="stat-number comment-stat" id="comment-stat-${product.id}">0</div>
-                        <button class="action-button btn-comment" onclick="toggleComments('${product.id}')">
-                            <i class="fas fa-comments"></i>
-                        </button>
-                    </div>
+                    <button class="action-button btn-like" onclick="handleLike('${product.id}', '${escapeHtml(productName)}')">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    <button class="action-button btn-view">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="action-button btn-comment" onclick="toggleComments('${product.id}')">
+                        <i class="fas fa-comments"></i>
+                    </button>
                 </div>
                 <div class="share-section">
                     <button class="favorite-btn ${favoriteProducts[product.id] ? 'active' : ''}" onclick="toggleFavorite('${product.id}', this, '${escapeHtml(productName)}')" title="${favoriteProducts[product.id] ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}">
@@ -2571,7 +2555,6 @@
             `;
             card.appendChild(actionButtonsDiv);
 
-            loadProductStats(product.id, card);
             return card;
         }
 
@@ -2937,48 +2920,12 @@
                 // زيادة العداد في Firebase
                 db.ref(`products_stats/${productId}/views`).transaction(current => (current || 0) + 1);
 
-                // تحديث العداد في الواجهة
-                const viewEl = document.getElementById(`view-stat-${productId}`);
-                if (viewEl) { 
-                    const currentViews = parseInt(viewEl.textContent) || 150;
-                    viewEl.textContent = currentViews + 1; 
-                }
-
                 // تسجيل اهتمام المستخدم بالفئة
                 const product = allProducts.find(p => p.id === productId);
                 if (product && product.categoryId) {
                     userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
                     localStorage.setItem('userInterests', JSON.stringify(userInterests));
                 }
-            }
-        }
-
-        async function loadProductStats(productId, card) {
-            try {
-                const [statsSnap, commentsSnap] = await Promise.all([
-                    db.ref(`products_stats/${productId}`).once('value'),
-                    db.ref(`comments/${productId}`).once('value')
-                ]);
-
-                const stats = statsSnap.val() || {};
-                const comments = commentsSnap.val() || {};
-
-                const likeCount = Array.isArray(stats.likes) ? stats.likes.length : 0;
-                const viewCount = (stats.views || 0) + 150;
-                const commentCount = Object.keys(comments).length;
-
-                // تحديث الإحصائيات فوق الأزرار
-                const likeStatEl = document.getElementById(`like-stat-${productId}`);
-                const viewStatEl = document.getElementById(`view-stat-${productId}`);
-                const commentStatEl = document.getElementById(`comment-stat-${productId}`);
-                const commentsCountEl = card.querySelector('.comments-count');
-
-                if (likeStatEl) likeStatEl.textContent = likeCount;
-                if (viewStatEl) viewStatEl.textContent = viewCount;
-                if (commentStatEl) commentStatEl.textContent = commentCount;
-                if (commentsCountEl) commentsCountEl.textContent = commentCount;
-            } catch (e) { 
-                console.error('خطأ في تحميل الإحصائيات:', e); 
             }
         }
 
@@ -2998,10 +2945,6 @@
                     showNotification('تم إلغاء الإعجاب بالمنتج', 'info');
                 }
                 await likesRef.set(likes);
-                
-                // تحديث العداد فوق زر الإعجاب
-                const likeStatEl = document.getElementById(`like-stat-${productId}`);
-                if (likeStatEl) likeStatEl.textContent = likes.length;
             } catch (e) { 
                 console.error('خطأ في معالجة الإعجاب:', e); 
             }
@@ -3057,9 +3000,7 @@
 
         function displayComments(comments, productId) {
             const list = document.getElementById(`comments-list-${productId}`);
-            const countEl = document.querySelector(`#comments-${productId} .comments-count`);
             list.innerHTML = '';
-            countEl.textContent = comments.length;
 
             if (comments.length === 0) { 
                 list.innerHTML = '<div class="no-comments">لا توجد تعليقات بعد</div>'; 
@@ -3096,10 +3037,6 @@
                 textarea.value = '';
                 loadComments(productId);
                 showNotification('تم إضافة التعليق بنجاح', 'success');
-
-                // تحديث عداد التعليقات فوق الزر
-                const commentStatEl = document.getElementById(`comment-stat-${productId}`);
-                if (commentStatEl) commentStatEl.textContent = (parseInt(commentStatEl.textContent) || 0) + 1;
             } catch (e) {
                 console.error('خطأ في إضافة التعليق:', e);
                 alert('حدث خطأ في إضافة التعليق');
