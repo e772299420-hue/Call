@@ -83,13 +83,6 @@
             opacity: 0.9;
         }
         
-        .site-subtitle {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-top: 5px;
-            color: #fff;
-        }
-        
         /* عنوان الصفحة مع زر التعليمات */
         .page-header {
             display: flex;
@@ -227,16 +220,6 @@
             font-size: 14px;
         }
         
-        .btn-icon {
-            padding: 10px;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
-        
         .btn-like {
             background-color: var(--accent-color);
         }
@@ -341,7 +324,6 @@
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: transform 0.3s;
-            cursor: pointer;
         }
         
         .product-image:hover {
@@ -603,7 +585,6 @@
         .likes-section {
             display: flex;
             align-items: center;
-            justify-content: space-around;
             margin-top: 15px;
             padding: 12px;
             background-color: #f8f9fa;
@@ -611,97 +592,13 @@
             gap: 10px;
         }
         
-        .action-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .action-count {
+        .like-count {
             font-weight: bold;
             color: #555;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 3px;
-        }
-        
-        /* معرض الصور */
-        .image-gallery-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-        
-        .gallery-container {
-            position: relative;
-            max-width: 90%;
-            max-height: 80%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .gallery-image {
-            max-width: 100%;
-            max-height: 80vh;
-            object-fit: contain;
-        }
-        
-        .gallery-nav {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .gallery-nav:hover {
-            background-color: rgba(255, 255, 255, 0.4);
-        }
-        
-        .gallery-prev {
-            right: 20px;
-        }
-        
-        .gallery-next {
-            left: 20px;
-        }
-        
-        .gallery-close {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 30px;
-            cursor: pointer;
-        }
-        
-        .gallery-counter {
-            color: white;
-            margin-top: 15px;
             font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         
         /* فلترة البحث */
@@ -801,10 +698,6 @@
             .search-input {
                 grid-column: 1;
             }
-            
-            .likes-section {
-                justify-content: space-between;
-            }
         }
     </style>
 </head>
@@ -817,7 +710,6 @@
                 <div>
                     <h1 class="site-name">AZ التسوق الشامل</h1>
                     <div class="site-tagline">لتلبية احتياجك بالكامل</div>
-                    <div class="site-subtitle">سوق الحراج المفتوح</div>
                 </div>
             </div>
         </div>
@@ -845,23 +737,6 @@
                 <p>مع تحياتنا لكم</p>
                 <button class="close-btn" onclick="hideInstructions()">موافق</button>
             </div>
-        </div>
-        
-        <!-- معرض الصور -->
-        <div id="image-gallery-modal" class="image-gallery-modal">
-            <button class="gallery-close" onclick="closeGallery()">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="gallery-container">
-                <button class="gallery-nav gallery-prev" onclick="prevImage()">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-                <img id="gallery-image" class="gallery-image" src="" alt="صورة المنتج">
-                <button class="gallery-nav gallery-next" onclick="nextImage()">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-            </div>
-            <div id="gallery-counter" class="gallery-counter"></div>
         </div>
         
         <!-- بحث وتصفية -->
@@ -918,10 +793,6 @@
         let commentModalOpen = false;
         let currentCommentProductId = null;
         
-        // متغيرات معرض الصور
-        let currentGalleryImages = [];
-        let currentGalleryIndex = 0;
-        
         // الكلمات المسيئة التي سيتم منعها مع الاختصارات
         const badWords = [
             'سيء', 'قبيح', 'مقزز', 'مزعج', 'مخزي', 'مقرف', 'مستفز', 'محرج', 
@@ -948,6 +819,8 @@
             loadCategories();
             loadActiveProducts();
             
+            // تم إزالة الكود الذي يعرض نافذة التعليمات تلقائياً
+            
             // جلب معرف المستخدم الحالي من localStorage
             currentUserId = localStorage.getItem('currentUserId');
             if (!currentUserId) {
@@ -961,19 +834,6 @@
                 if (commentModalOpen && !event.target.closest('.comments-section') && 
                     !event.target.closest('.btn-comment-toggle')) {
                     hideCommentsModal();
-                }
-            });
-            
-            // إضافة مستمعات لأزرار لوحة المفاتيح في معرض الصور
-            document.addEventListener('keydown', function(event) {
-                if (document.getElementById('image-gallery-modal').style.display === 'flex') {
-                    if (event.key === 'Escape') {
-                        closeGallery();
-                    } else if (event.key === 'ArrowRight') {
-                        prevImage();
-                    } else if (event.key === 'ArrowLeft') {
-                        nextImage();
-                    }
                 }
             });
         });
@@ -1047,45 +907,15 @@
                         
                         snapshot.forEach(childSnapshot => {
                             const product = childSnapshot.val();
-                            product.id = childSnapshot.key; // إضافة معرف المنتج
+                            product.id = childSnapshot.key;
                             activeProducts.push(product);
                             
-                            // جلب بيانات المستخدم من جدول snf_tgara
-                            if (!usersCache[product.userId]) {
-                                usersCache[product.userId] = { name: 'جاري التحميل...' };
-                                
-                                database.ref('snf_tgara/' + product.userId).once('value')
-                                    .then(userSnapshot => {
-                                        if (userSnapshot.exists()) {
-                                            const userData = userSnapshot.val();
-                                            usersCache[product.userId] = userData;
-                                            
-                                            // تحديث اسم المستخدم في البطاقة
-                                            const userElement = document.getElementById(`user-${product.id}`);
-                                            if (userElement) {
-                                                userElement.textContent = userData.name || 'مستخدم غير معروف';
-                                            }
-                                        } else {
-                                            // إذا لم توجد بيانات المستخدم
-                                            const userElement = document.getElementById(`user-${product.id}`);
-                                            if (userElement) {
-                                                userElement.textContent = 'مستخدم غير معروف';
-                                            }
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error loading user data:', error);
-                                        // في حالة الخطأ، عرض رسالة بديلة
-                                        const userElement = document.getElementById(`user-${product.id}`);
-                                        if (userElement) {
-                                            userElement.textContent = 'مستخدم غير معروف';
-                                        }
-                                    });
-                            }
-                            
-                            // إنشاء بطاقة المنتج
-                            const productCard = createProductCard(product, usersCache[product.userId]);
+                            // إنشاء بطاقة المنتج مع تحميل بيانات المستخدم
+                            const productCard = createProductCard(product);
                             document.getElementById('products-container').appendChild(productCard);
+                            
+                            // تحميل بيانات المستخدم من جدول snf_tgara
+                            loadUserData(product.userId, product.id);
                         });
                     } else {
                         document.getElementById('no-active-products').style.display = 'block';
@@ -1094,6 +924,36 @@
                 .catch(error => {
                     document.getElementById('browse-loading').style.display = 'none';
                     console.error('Error loading active products:', error);
+                });
+        }
+        
+        // تحميل بيانات المستخدم من جدول snf_tgara
+        function loadUserData(userId, productId) {
+            if (!userId) return;
+            
+            const userRef = database.ref('snf_tgara/' + userId);
+            
+            userRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        usersCache[userId] = userData;
+                        
+                        // تحديث اسم المستخدم في البطاقة
+                        const userElement = document.getElementById(`user-${productId}`);
+                        if (userElement) {
+                            userElement.textContent = userData.name || 'مستخدم غير معروف';
+                        }
+                    } else {
+                        // إذا لم توجد بيانات المستخدم، عرض معرف افتراضي
+                        const userElement = document.getElementById(`user-${productId}`);
+                        if (userElement) {
+                            userElement.textContent = 'مستخدم غير معروف';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading user data:', error);
                 });
         }
         
@@ -1109,16 +969,19 @@
                     if (snapshot.exists()) {
                         const images = [];
                         snapshot.forEach(childSnapshot => {
-                            images.push(childSnapshot.val());
+                            const imageUrl = childSnapshot.val();
+                            if (imageUrl && imageUrl.trim() !== '') {
+                                images.push(imageUrl);
+                            }
                         });
                         
                         // عرض الصورة الأولى كصورة رئيسية
                         if (images.length > 0) {
                             const mainImage = document.createElement('img');
                             mainImage.className = 'product-image';
-                            mainImage.src = images[0];
+                            mainImage.src = formatDriveUrl(images[0], 'thumb');
                             mainImage.alt = 'صورة المنتج';
-                            mainImage.onclick = () => openImageGallery(images, 0);
+                            mainImage.onclick = () => openImageModal(images, 0);
                             
                             // استبدال العنصر النائب بالصورة الرئيسية
                             const placeholder = imageContainer.querySelector('.no-image');
@@ -1134,11 +997,11 @@
                                 images.forEach((imageUrl, index) => {
                                     const thumb = document.createElement('img');
                                     thumb.className = 'gallery-thumb';
-                                    thumb.src = imageUrl;
+                                    thumb.src = formatDriveUrl(imageUrl, 'thumb');
                                     thumb.alt = `صورة ${index + 1}`;
                                     thumb.onclick = () => {
                                         // تحديث الصورة الرئيسية عند النقر على الصورة المصغرة
-                                        mainImage.src = imageUrl;
+                                        mainImage.src = formatDriveUrl(imageUrl, 'thumb');
                                         
                                         // إزالة النشاط من جميع الصور المصغرة وإضافته للصورة المحددة
                                         galleryContainer.querySelectorAll('.gallery-thumb').forEach(t => {
@@ -1155,62 +1018,88 @@
                                     galleryContainer.appendChild(thumb);
                                 });
                             }
+                        } else {
+                            showNoImagePlaceholder(imageContainer);
                         }
                     } else {
-                        // إذا لم توجد صور، عرض رسالة بديلة
-                        const placeholder = document.createElement('div');
-                        placeholder.className = 'no-image';
-                        placeholder.innerHTML = `
-                            <i class="fas fa-image" style="font-size: 40px; color: #ccc;"></i>
-                            <span>لا توجد صور للمنتج</span>
-                        `;
-                        imageContainer.appendChild(placeholder);
+                        showNoImagePlaceholder(imageContainer);
                     }
                 })
                 .catch(error => {
                     console.error('Error loading product images:', error);
+                    showNoImagePlaceholder(imageContainer);
                 });
         }
         
-        // فتح معرض الصور
-        function openImageGallery(images, startIndex) {
-            currentGalleryImages = images;
-            currentGalleryIndex = startIndex;
-            
-            const galleryModal = document.getElementById('image-gallery-modal');
-            const galleryImage = document.getElementById('gallery-image');
-            const galleryCounter = document.getElementById('gallery-counter');
-            
-            galleryImage.src = images[startIndex];
-            galleryCounter.textContent = `${startIndex + 1} / ${images.length}`;
-            galleryModal.style.display = 'flex';
+        // عرض رسالة عدم وجود صور
+        function showNoImagePlaceholder(container) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'no-image';
+            placeholder.innerHTML = `
+                <i class="fas fa-image" style="font-size: 40px; color: #ccc;"></i>
+                <span>لا توجد صور للمنتج</span>
+            `;
+            container.appendChild(placeholder);
         }
         
-        // إغلاق معرض الصور
-        function closeGallery() {
-            document.getElementById('image-gallery-modal').style.display = 'none';
-        }
-        
-        // الصورة التالية في المعرض
-        function nextImage() {
-            if (currentGalleryImages.length > 0) {
-                currentGalleryIndex = (currentGalleryIndex + 1) % currentGalleryImages.length;
-                document.getElementById('gallery-image').src = currentGalleryImages[currentGalleryIndex];
-                document.getElementById('gallery-counter').textContent = `${currentGalleryIndex + 1} / ${currentGalleryImages.length}`;
+        // ==========================================
+        // 🔧 دالة تنسيق روابط جوجل درايف - الإصدار المحسن
+        // ==========================================
+        function formatDriveUrl(url, mode = 'thumb') {
+            if (!url) return '';
+            
+            // استخراج معرف الملف من رابط جوجل درايف
+            let id = '';
+            
+            // رابط مباشر للملف
+            if (url.includes('/d/')) {
+                id = url.split('/d/')[1].split('/')[0];
+            } 
+            // رابط مشاركة
+            else if (url.includes('id=')) {
+                try { 
+                    id = new URLSearchParams(url.split('?')[1]).get('id') || ''; 
+                } catch { 
+                    return url; 
+                }
             }
+            // رابط عرض
+            else if (url.includes('/file/d/')) {
+                id = url.split('/file/d/')[1].split('/')[0];
+            }
+            // رابط مسبق التنسيق
+            else if (url.includes('drive.google.com/uc?id=')) {
+                id = url.split('drive.google.com/uc?id=')[1].split('&')[0];
+            }
+            
+            if (!id) return url;
+
+            // إصلاح مشكلة عرض الصور من جوجل درايف
+            // استخدام رابط العرض المباشر بدلاً من رابط التحميل
+            if (mode === 'thumb') {
+                // صورة مصغرة سريعة التحميل للسلايدر والمصغرات
+                return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
+            } else if (mode === 'main') {
+                // صورة كبيرة للمعرض
+                return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+            } else if (mode === 'raw') {
+                // العرض المباشر
+                return `https://drive.google.com/uc?export=view&id=${id}`;
+            }
+            return url;
         }
         
-        // الصورة السابقة في المعرض
-        function prevImage() {
-            if (currentGalleryImages.length > 0) {
-                currentGalleryIndex = (currentGalleryIndex - 1 + currentGalleryImages.length) % currentGalleryImages.length;
-                document.getElementById('gallery-image').src = currentGalleryImages[currentGalleryIndex];
-                document.getElementById('gallery-counter').textContent = `${currentGalleryIndex + 1} / ${currentGalleryImages.length}`;
+        // فتح نافذة عرض الصورة
+        function openImageModal(images, startIndex) {
+            // يمكن إضافة نافذة عرض الصور هنا إذا لزم الأمر
+            // للتبسيط، سنفتح الصورة في نافذة جديدة
+            if (images && images.length > startIndex) {
+                window.open(formatDriveUrl(images[startIndex], 'main'), '_blank');
             }
         }
         
         // إنشاء بطاقة منتج
-        function createProductCard(product, userData) {
+        function createProductCard(product) {
             const card = document.createElement('div');
             card.className = 'product-card';
             card.id = `product-${product.id}`;
@@ -1245,9 +1134,9 @@
                         <i class="fas fa-user"></i> منشوري
                     </div>
                     ` : ''}
-                    <div class="product-title">${product.productName}</div>
+                    <div class="product-title">${product.productName || 'منتج بدون اسم'}</div>
                     <div class="product-price">
-                        <i class="fas fa-coins"></i> ${product.price} ريال
+                        <i class="fas fa-coins"></i> ${product.price || '0'} ريال
                     </div>
                 </div>
                 <div class="product-body">
@@ -1260,7 +1149,7 @@
                     
                     <div class="product-detail">
                         <span class="detail-label"><i class="fas fa-user"></i> الناشر:</span>
-                        <span class="detail-value" id="user-${product.id}">${userData?.name || 'جاري التحميل...'}</span>
+                        <span class="detail-value" id="user-${product.id}">جاري التحميل...</span>
                     </div>
                     <div class="product-detail" style="display: none;">
                         <span class="detail-label"><i class="fas fa-shopping-cart"></i> نوع الطلب:</span>
@@ -1292,30 +1181,27 @@
                 </div>
                 <div class="product-footer">
                     <div class="likes-section">
-                        <div class="action-item">
-                            <span class="action-count" id="like-count-${product.id}">
-                                <i class="fas fa-heart"></i> 70
-                            </span>
-                            <button class="btn btn-like btn-icon" onclick="likeProduct('${product.id}')">
-                                <i class="fas fa-thumbs-up"></i>
-                            </button>
-                        </div>
-                        <div class="action-item">
-                            <span class="action-count" id="comments-count-${product.id}">
-                                <i class="fas fa-comments"></i> 0
-                            </span>
-                            <button class="btn btn-comment btn-icon btn-comment-toggle" onclick="toggleCommentsModal('${product.id}')">
-                                <i class="fas fa-comments"></i>
-                            </button>
-                        </div>
-                        <div class="action-item">
-                            <button class="btn btn-share btn-icon" onclick="shareProduct('${product.id}')">
-                                <i class="fas fa-share"></i>
-                            </button>
-                        </div>
+                        <span class="like-count" id="like-count-${product.id}">
+                            <i class="fas fa-heart"></i> 70
+                        </span>
+                        <button class="btn btn-like btn-sm" onclick="likeProduct('${product.id}')">
+                            <i class="fas fa-thumbs-up"></i> إعجاب
+                        </button>
+                        <button class="btn btn-comment btn-sm btn-comment-toggle" onclick="toggleCommentsModal('${product.id}')">
+                            <i class="fas fa-comments"></i> تعليقات
+                        </button>
+                        <button class="btn btn-share btn-sm" onclick="shareProduct('${product.id}')">
+                            <i class="fas fa-share"></i> مشاركة
+                        </button>
                     </div>
                     
                     <div class="comments-section" id="comments-section-${product.id}">
+                        <div class="comments-header">
+                            <span class="comments-count" id="comments-count-${product.id}">
+                                <i class="fas fa-comments"></i> التعليقات (0)
+                            </span>
+                        </div>
+                        
                         <div class="comment-form">
                             <input type="text" class="comment-input" id="comment-input-${product.id}" placeholder="أضف تعليقاً...">
                             <button class="btn btn-comment btn-sm" onclick="addComment('${product.id}')">
@@ -1426,7 +1312,7 @@
                     });
                     
                     // تحديث عدد التعليقات
-                    commentsCount.innerHTML = `<i class="fas fa-comments"></i> ${totalComments}`;
+                    commentsCount.innerHTML = `<i class="fas fa-comments"></i> التعليقات (${totalComments})`;
                     
                     // ترتيب التعليقات من الأحدث إلى الأقدم
                     comments.sort((a, b) => b.timestamp - a.timestamp);
@@ -1484,7 +1370,7 @@
                     });
                 } else {
                     commentsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #888;">لا توجد تعليقات بعد</div>';
-                    commentsCount.innerHTML = '<i class="fas fa-comments"></i> 0';
+                    commentsCount.innerHTML = '<i class="fas fa-comments"></i> التعليقات (0)';
                 }
             });
         }
@@ -1783,7 +1669,7 @@
         // توليد UUID
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0.3 | 0.8);
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
         }
