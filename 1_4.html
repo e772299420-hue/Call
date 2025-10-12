@@ -156,6 +156,16 @@
             color: #444;
         }
         
+        .email-label {
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .email-label:hover {
+            color: #3498db;
+            text-decoration: underline;
+        }
+        
         input, select, textarea {
             width: 100%;
             padding: 12px;
@@ -264,6 +274,80 @@
             color: #666;
         }
         
+        /* نافذة عرض البيانات المحفوظة */
+        .data-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .data-modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .data-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .data-modal-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .data-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        
+        .data-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .data-value {
+            color: #666;
+            word-break: break-all;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+        
         /* التكيف مع الشاشات الصغيرة */
         @media (max-width: 768px) {
             .header-content {
@@ -277,6 +361,10 @@
             
             .site-name {
                 font-size: 1.5rem;
+            }
+            
+            .data-modal-content {
+                padding: 15px;
             }
         }
     </style>
@@ -293,7 +381,7 @@
             
             <form id="login-form" class="login-form active">
                 <div class="form-group">
-                    <label for="login-email" class="required">البريد الإلكتروني</label>
+                    <label for="login-email" class="required email-label" onclick="showStoredData()">البريد الإلكتروني</label>
                     <input type="email" id="login-email" required>
                 </div>
                 
@@ -324,7 +412,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="register-email" class="required">البريد الإلكتروني</label>
+                    <label for="register-email" class="required email-label" onclick="showStoredData()">البريد الإلكتروني</label>
                     <input type="email" id="register-email" required>
                 </div>
                 
@@ -348,6 +436,19 @@
                 <button type="submit" class="btn">إنشاء حساب</button>
                 <div id="register-message" class="message" style="display: none;"></div>
             </form>
+        </div>
+    </div>
+
+    <!-- نافذة عرض البيانات المحفوظة -->
+    <div id="data-modal" class="data-modal" style="display: none;">
+        <div class="data-modal-content">
+            <div class="data-modal-header">
+                <h3 class="data-modal-title">البيانات المحفوظة في localStorage</h3>
+                <button class="close-modal" onclick="closeDataModal()">×</button>
+            </div>
+            <div id="data-content">
+                <!-- سيتم ملء المحتوى هنا ديناميكياً -->
+            </div>
         </div>
     </div>
 
@@ -743,6 +844,65 @@
                 toggleIcon.textContent = '👁️';
             }
         }
+        
+        // عرض البيانات المحفوظة في localStorage
+        function showStoredData() {
+            const dataContent = document.getElementById('data-content');
+            dataContent.innerHTML = '';
+            
+            // جمع جميع البيانات من localStorage
+            const rememberMeData = localStorage.getItem('rememberMe');
+            const currentUserData = localStorage.getItem('currentUser');
+            
+            let hasData = false;
+            
+            // عرض بيانات تذكرني
+            if (rememberMeData) {
+                hasData = true;
+                const rememberMeDiv = document.createElement('div');
+                rememberMeDiv.className = 'data-item';
+                rememberMeDiv.innerHTML = `
+                    <div class="data-label">بيانات تذكرني (rememberMe):</div>
+                    <div class="data-value">${rememberMeData}</div>
+                `;
+                dataContent.appendChild(rememberMeDiv);
+            }
+            
+            // عرض بيانات المستخدم الحالي
+            if (currentUserData) {
+                hasData = true;
+                const currentUserDiv = document.createElement('div');
+                currentUserDiv.className = 'data-item';
+                currentUserDiv.innerHTML = `
+                    <div class="data-label">بيانات المستخدم الحالي (currentUser):</div>
+                    <div class="data-value">${currentUserData}</div>
+                `;
+                dataContent.appendChild(currentUserDiv);
+            }
+            
+            // عرض رسالة إذا لم توجد بيانات
+            if (!hasData) {
+                const noDataDiv = document.createElement('div');
+                noDataDiv.className = 'no-data';
+                noDataDiv.textContent = 'لا توجد بيانات محفوظة في localStorage';
+                dataContent.appendChild(noDataDiv);
+            }
+            
+            // إظهار النافذة
+            document.getElementById('data-modal').style.display = 'flex';
+        }
+        
+        // إغلاق نافذة عرض البيانات
+        function closeDataModal() {
+            document.getElementById('data-modal').style.display = 'none';
+        }
+        
+        // إغلاق النافذة عند النقر خارجها
+        document.getElementById('data-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDataModal();
+            }
+        });
     </script>
 </body>
 </html>
