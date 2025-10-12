@@ -27,7 +27,6 @@
             align-items: center;
             padding: 0 25px;
             z-index: 1000;
-            flex-direction: row-reverse;
         }
 
         .app-info {
@@ -126,60 +125,6 @@
 
         .status-inactive {
             background: #e74c3c;
-        }
-
-        /* ===== حقل nam_usr على اليسار ===== */
-        .nam-usr-container {
-            position: fixed;
-            bottom: 70px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 12px;
-            width: 50px;
-            height: 50px;
-            z-index: 997;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            border: 2px solid #3498db;
-            overflow: hidden;
-            transition: all 0.4s ease;
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
-        }
-
-        .nam-usr-container:hover {
-            width: 300px;
-            height: auto;
-            padding: 20px;
-        }
-
-        .nam-usr-field {
-            width: 100%;
-            padding: 14px 18px;
-            border: 2px solid #3498db;
-            border-radius: 10px;
-            font-size: 16px;
-            background: white;
-            color: #333;
-            text-align: center;
-            transition: all 0.4s ease;
-            opacity: 0;
-            font-weight: 500;
-        }
-
-        .nam-usr-container:hover .nam-usr-field {
-            opacity: 1;
-        }
-
-        .nam-usr-field::placeholder {
-            color: #999;
-        }
-
-        .nam-usr-field:focus {
-            outline: none;
-            border-color: #2980b9;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-            background: white;
         }
 
         /* ===== التذييل ===== */
@@ -344,21 +289,6 @@
                 width: 95%;
             }
             
-            .nam-usr-container {
-                bottom: 70px;
-                left: 15px;
-                width: 45px;
-                height: 45px;
-                border-radius: 50%;
-            }
-            
-            .nam-usr-container:hover {
-                width: 90%;
-                height: auto;
-                border-radius: 12px;
-                left: 5%;
-            }
-            
             .merchant-section {
                 padding: 6px 12px;
             }
@@ -421,7 +351,7 @@
     </div>
     <div class="merchant-section">
         <div class="management-name">الأقسام والخدمات</div>
-        <div class="merchant-name" id="user-display-name">المستخدم: جاري التحميل...</div>
+        <div class="merchant-name" id="user-display-name">المستخدم: زائر</div>
     </div>
 </header>
 
@@ -430,35 +360,18 @@
     <div class="user-info">
         <div class="info-item">
             <i class="fas fa-user"></i>
-            <span id="info-username">جاري التحميل...</span>
+            <span id="info-username">المستخدم: زائر</span>
         </div>
         <div class="info-item">
             <i class="fas fa-phone"></i>
-            <span id="info-phone">جاري التحميل...</span>
+            <span id="info-phone">غير متوفر</span>
         </div>
     </div>
-    <div class="status-badge" id="info-status">جاري التحميل...</div>
-</div>
-
-<!-- حقل nam_usr على اليسار -->
-<div class="nam-usr-container">
-    <input type="text" id="nam_usr" class="nam-usr-field" placeholder="أدخل اسم المستخدم هنا">
+    <div class="status-badge" id="info-status">نشط</div>
 </div>
 
 <!-- الحاوية الرئيسية للبطاقات -->
 <div class="container">
-    <!-- تعديل بيانات المستخدم -->
-    <div class="card" onclick="navigateToEditMerchant()">
-        <div class="card-header">
-            <i class="fas fa-user-edit"></i>
-            <h2>تعديل بياناتك المستخدم</h2>
-        </div>
-        <div class="card-body">
-            <p>تعديل معلومات المستخدم والبيانات الشخصية</p>
-            <button class="btn">فتح الصفحة</button>
-        </div>
-    </div>
-
     <!-- قسم الحراج -->
     <div class="card" onclick="navigateToHaraj()">
         <div class="card-header">
@@ -509,219 +422,22 @@
 </footer>
 
 <script>
-// ===== نظام إدارة المستخدم المحسن مع بيانات حقيقية =====
-const userManager = {
-    data: null,
-    
-    // تهيئة بيانات المستخدم من مصادر متعددة
-    init: function() {
-        console.log('🔄 جاري تحميل بيانات المستخدم...');
-        
-        // المحاولة الأولى: من localStorage (بيانات المستخدم المسجلة)
-        const storedUserData = localStorage.getItem('currentUser');
-        if (storedUserData) {
-            try {
-                this.data = JSON.parse(storedUserData);
-                console.log('✅ تم تحميل بيانات المستخدم من localStorage:', this.data);
-                this.updateUI();
-                return;
-            } catch (error) {
-                console.error('❌ خطأ في تحليل بيانات localStorage:', error);
-            }
-        }
-        
-        // المحاولة الثانية: من sessionStorage (بيانات الجلسة)
-        const sessionUserData = sessionStorage.getItem('userSessionData');
-        if (sessionUserData) {
-            try {
-                this.data = JSON.parse(sessionUserData);
-                console.log('✅ تم تحميل بيانات المستخدم من sessionStorage:', this.data);
-                this.updateUI();
-                return;
-            } catch (error) {
-                console.error('❌ خطأ في تحليل بيانات sessionStorage:', error);
-            }
-        }
-        
-        // المحاولة الثالثة: من بيانات الصفحة السابقة (URL parameters)
-        this.loadFromURLParams();
-        
-        // إذا لم توجد بيانات، نعرض رسالة للمستخدم
-        if (!this.data) {
-            this.showDataNotFound();
-        }
-    },
-    
-    // تحميل البيانات من معلمات URL
-    loadFromURLParams: function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userName = urlParams.get('user') || urlParams.get('username') || urlParams.get('name');
-        
-        if (userName) {
-            this.data = {
-                id: 'temp_' + Date.now(),
-                username: userName,
-                name: userName,
-                mobile: urlParams.get('phone') || urlParams.get('mobile') || 'غير متوفر',
-                status: 'نشط',
-                type: 'user',
-                loginTime: new Date().toISOString()
-            };
-            console.log('✅ تم تحميل البيانات من URL:', this.data);
-            this.updateUI();
-        }
-    },
-    
-    // عرض واجهة عندما لا توجد بيانات
-    showDataNotFound: function() {
-        console.log('⚠️ لم يتم العثور على بيانات المستخدم');
-        
-        // استخدام بيانات افتراضية مع رسالة توضيحية
-        this.data = {
-            id: 'unknown_user',
-            username: 'زائر',
-            name: 'زائر',
-            mobile: 'غير متوفر',
-            status: 'غير معروف',
-            type: 'guest',
-            loginTime: new Date().toISOString()
-        };
-        
-        this.updateUI();
-        
-        // عرض رسالة للمستخدم
-        setTimeout(() => {
-            alert('⚠️ لم يتم العثور على بيانات المستخدم. يرجى تسجيل الدخول أو إدخال البيانات يدوياً.');
-        }, 1000);
-    },
-    
-    // تحديث واجهة المستخدم بالبيانات الفعلية
-    updateUI: function() {
-        if (!this.data) return;
-        
-        console.log('🎨 تحديث واجهة المستخدم بالبيانات:', this.data);
-        
-        // تحديث الشريط العلوي
-        const displayName = this.data.displayName || this.data.name || this.data.username || 'زائر';
-        document.getElementById('user-display-name').textContent = `المستخدم: ${displayName}`;
-        
-        // تحديث شريط المعلومات بالبيانات الفعلية
-        document.getElementById('info-username').textContent = `المستخدم: ${displayName}`;
-        document.getElementById('info-phone').textContent = this.data.phone || this.data.mobile || this.data.tel || 'غير متوفر';
-        
-        // تحديث الحالة مع تلوين مناسب
-        const statusElement = document.getElementById('info-status');
-        const status = this.data.status || 'غير معروف';
-        statusElement.textContent = status;
-        statusElement.className = 'status-badge ' + (status === 'نشط' ? '' : 'status-inactive');
-        
-        // تحديث حقل nam_usr
-        document.getElementById('nam_usr').value = displayName;
-        
-        // حفظ البيانات للاستخدام المستقبلي
-        this.saveToStorage();
-    },
-    
-    // حفظ البيانات في التخزين المحلي
-    saveToStorage: function() {
-        try {
-            localStorage.setItem('currentUser', JSON.stringify(this.data));
-            sessionStorage.setItem('userSessionData', JSON.stringify(this.data));
-            console.log('💾 تم حفظ بيانات المستخدم في التخزين المحلي');
-        } catch (error) {
-            console.error('❌ خطأ في حفظ البيانات:', error);
-        }
-    },
-    
-    // تحديث بيانات المستخدم يدوياً
-    updateUserData: function(newData) {
-        this.data = { ...this.data, ...newData };
-        this.updateUI();
-        console.log('✏️ تم تحديث بيانات المستخدم:', this.data);
-    },
-    
-    // الحصول على بيانات المستخدم
-    getUserData: function() {
-        return this.data;
-    }
-};
-
 // ===== دوال التنقل =====
-function navigateToEditMerchant() {
-    const userData = userManager.getUserData();
-    if (userData && userData.id !== 'unknown_user') {
-        // حفظ بيانات شريط المعلومات قبل الانتقال
-        userManager.saveToStorage();
-        window.location.href = 'user_profile.html';
-    } else {
-        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً في الحقل الموجود على اليسار');
-        document.querySelector('.nam-usr-container').style.width = '300px';
-        document.querySelector('.nam-usr-container').style.height = 'auto';
-        document.querySelector('.nam-usr-field').style.opacity = '1';
-        document.getElementById('nam_usr').focus();
-    }
-}
-
 function navigateToHaraj() {
-    const userData = userManager.getUserData();
-    if (userData) {
-        // حفظ بيانات شريط المعلومات قبل الانتقال
-        userManager.saveToStorage();
-        window.location.href = '1_411.html';
-    } else {
-        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً');
-    }
+    window.location.href = '1_411.html';
 }
 
 function navigateToRealEstate() {
-    const userData = userManager.getUserData();
-    if (userData) {
-        // حفظ بيانات شريط المعلومات قبل الانتقال
-        userManager.saveToStorage();
-        window.location.href = 'mbna.html';
-    } else {
-        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً');
-    }
+    window.location.href = 'mbna.html';
 }
 
 function navigateToJobs() {
-    const userData = userManager.getUserData();
-    if (userData) {
-        // حفظ بيانات شريط المعلومات قبل الانتقال
-        userManager.saveToStorage();
-        window.location.href = 'mnjar_wd.html';
-    } else {
-        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً');
-    }
+    window.location.href = 'mnjar_wd.html';
 }
-
-// ===== معالجة حقل nam_usr =====
-document.getElementById('nam_usr').addEventListener('change', function() {
-    const newName = this.value.trim();
-    if (newName) {
-        userManager.updateUserData({ 
-            name: newName, 
-            username: newName,
-            displayName: newName 
-        });
-        
-        // تحديث عنوان الصفحة ليعكس التغيير
-        const newUrl = new URL(window.location);
-        newUrl.searchParams.set('user', newName);
-        window.history.replaceState({}, '', newUrl);
-        
-        alert('✅ تم تحديث اسم المستخدم بنجاح');
-    }
-});
 
 // ===== تهيئة الصفحة =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 بدء تحميل الصفحة...');
-    
-    // تهيئة نظام إدارة المستخدم
-    userManager.init();
-    
-    console.log('✅ تم تحميل الصفحة بنجاح');
+    console.log('🚀 تم تحميل الصفحة بنجاح');
 });
 
 // ===== معالجة الأخطاء =====
