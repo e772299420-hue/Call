@@ -169,6 +169,7 @@
         /* نماذج الإدخال */
         .form-group {
             margin-bottom: 20px;
+            position: relative;
         }
         
         label {
@@ -246,6 +247,17 @@
         
         .btn-logout:hover {
             background-color: #636e72;
+        }
+        
+        .btn-show-password {
+            position: absolute;
+            left: 10px;
+            top: 38px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 14px;
         }
         
         /* جدول المنتجات */
@@ -341,6 +353,17 @@
             color: #721c24;
         }
         
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        
         /* التكيف مع الشاشات الصغيرة */
         @media (max-width: 768px) {
             .header-content {
@@ -385,6 +408,12 @@
                 <div class="form-group">
                     <label for="login-password" class="required">كلمة المرور</label>
                     <input type="password" id="login-password" required>
+                    <button type="button" class="btn-show-password" onclick="togglePassword('login-password')">إظهار</button>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember-me">
+                    <label for="remember-me" style="margin-bottom: 0;">تذكر بيانات تسجيل الدخول</label>
                 </div>
                 
                 <button type="submit" class="btn">تسجيل الدخول</button>
@@ -410,11 +439,13 @@
                 <div class="form-group">
                     <label for="register-password" class="required">كلمة المرور</label>
                     <input type="password" id="register-password" required minlength="6">
+                    <button type="button" class="btn-show-password" onclick="togglePassword('register-password')">إظهار</button>
                 </div>
                 
                 <div class="form-group">
                     <label for="register-confirm-password" class="required">تأكيد كلمة المرور</label>
                     <input type="password" id="register-confirm-password" required minlength="6">
+                    <button type="button" class="btn-show-password" onclick="togglePassword('register-confirm-password')">إظهار</button>
                 </div>
                 
                 <button type="submit" class="btn">إنشاء حساب</button>
@@ -476,7 +507,7 @@
                     <label for="category" class="required">الفئة</label>
                     <select id="category" required>
                         <option value="">اختر الفئة</option>
-                    </select>
+                        </select>
                 </div>
                 
                 <div class="form-group">
@@ -571,13 +602,13 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        const auth = firebase.auth();
         
         // عناصر DOM
         let currentUser = null;
         let currentEditingProduct = null;
         let governoratesData = {}; // لتخزين بيانات المحافظات والمناطق
         let userStatus = "نشط"; // حالة المستخدم الافتراضية
+        let currentUserId = null; // معرف المستخدم الحالي
         
         // عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', function() {
@@ -601,48 +632,111 @@
                 loadUserProducts();
             });
             
-            // التحقق من حالة المصادقة
-            auth.onAuthStateChanged(function(user) {
-                if (user) {
-                    // المستخدم مسجل الدخول
-                    currentUser = user;
-                    checkUserStatus(user.uid);
-                } else {
-                    // لا يوجد مستخدم مسجل الدخول
-                    hideMainContent();
-                }
-            });
+            // تحميل بيانات تسجيل الدخول المحفوظة
+            loadSavedLoginData();
         });
+        
+        // تحميل بيانات تسجيل الدخول المحفوظة
+        function loadSavedLoginData() {
+            const savedLoginData = localStorage.getItem('savedLoginData');
+            if (savedLoginData) {
+                const data = JSON.parse(savedLoginData);
+                if (data.rememberMe) {
+                    document.getElementById('login-email').value = data.email || '';
+                    document.getElementById('login-password').value = data.password || '';
+                    document.getElementById('remember-me').checked = true;
+                }
+            }
+        }
+        
+        // حفظ بيانات تسجيل الدخول
+        function saveLoginData(email, password, rememberMe) {
+            if (rememberMe) {
+                localStorage.setItem('savedLoginData', JSON.stringify({
+                    email: email,
+                    password: password,
+                    rememberMe: true
+                }));
+            } else {
+                localStorage.removeItem('savedLoginData');
+            }
+        }
+        
+        // تبديل عرض/إخفاء كلمة المرور
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.nextElementSibling;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = 'إخفاء';
+            } else {
+                input.type = 'password';
+                button.textContent = 'إظهار';
+            }
+        }
+        
+        // الحصول على IP المستخدم
+        async function getUserIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.error('Error getting IP:', error);
+                return 'غير معروف';
+            }
+        }
+        
+        // الحصول على آخر معرف مستخدم
+        async function getLastUserId() {
+            const usersRef = database.ref('usr_hrg');
+            
+            return usersRef.orderByChild('userId').limitToLast(1).once('value')
+                .then(snapshot => {
+                    let lastId = 0;
+                    snapshot.forEach(childSnapshot => {
+                        const user = childSnapshot.val();
+                        lastId = Math.max(lastId, user.userId || 0);
+                    });
+                    return lastId;
+                })
+                .catch(error => {
+                    console.error('Error getting last user ID:', error);
+                    return 0;
+                });
+        }
         
         // التحقق من حالة المستخدم
         function checkUserStatus(userId) {
-            const userRef = database.ref('snf_tgara/' + userId);
+            const userRef = database.ref('usr_hrg').orderByChild('userId').equalTo(parseInt(userId));
             
             userRef.once('value')
                 .then(snapshot => {
                     if (snapshot.exists()) {
-                        const userData = snapshot.val();
-                        userStatus = userData.status || "نشط";
+                        let userData = null;
+                        snapshot.forEach(childSnapshot => {
+                            userData = childSnapshot.val();
+                        });
                         
-                        if (userStatus === "نشط") {
-                            showMainContent();
+                        if (userData && userData.status === 1) {
+                            userStatus = "نشط";
+                            currentUserId = userData.userId;
+                            showMainContent(userData);
                         } else {
                             showUserSuspendedMessage();
+                            // إفراغ بيانات تسجيل الدخول
+                            document.getElementById('login-form').reset();
+                            document.getElementById('remember-me').checked = false;
+                            localStorage.removeItem('savedLoginData');
                         }
                     } else {
-                        // إذا لم يكن هناك سجل للمستخدم، ننشئه بحالة "نشط"
-                        userStatus = "نشط";
-                        database.ref('snf_tgara/' + userId).update({
-                            status: "نشط"
-                        });
-                        showMainContent();
+                        showLoginError("المستخدم غير موجود");
                     }
                 })
                 .catch(error => {
                     console.error('Error checking user status:', error);
-                    // في حالة الخطأ، نعرض المحتوى الرئيسي مع افتراض أن المستخدم نشط
-                    userStatus = "نشط";
-                    showMainContent();
+                    showLoginError("حدث خطأ في التحقق من حالة المستخدم");
                 });
         }
         
@@ -664,30 +758,48 @@
         }
         
         // معالجة تسجيل الدخول
-        function handleLogin(e) {
+        async function handleLogin(e) {
             e.preventDefault();
             
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
             const messageElement = document.getElementById('login-message');
             
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // تم تسجيل الدخول بنجاح
-                    messageElement.style.display = 'none';
-                    currentUser = userCredential.user;
-                    checkUserStatus(currentUser.uid);
+            // حفظ بيانات تسجيل الدخول إذا طلب المستخدم ذلك
+            saveLoginData(email, password, rememberMe);
+            
+            // البحث عن المستخدم في قاعدة البيانات
+            const usersRef = database.ref('usr_hrg');
+            
+            usersRef.orderByChild('email').equalTo(email).once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        let userFound = false;
+                        snapshot.forEach(childSnapshot => {
+                            const user = childSnapshot.val();
+                            if (user.password === password) {
+                                userFound = true;
+                                checkUserStatus(user.userId);
+                                return true;
+                            }
+                        });
+                        
+                        if (!userFound) {
+                            showLoginError("كلمة المرور غير صحيحة");
+                        }
+                    } else {
+                        showLoginError("البريد الإلكتروني غير مسجل");
+                    }
                 })
-                .catch((error) => {
-                    // حدث خطأ في تسجيل الدخول
-                    messageElement.textContent = getAuthErrorMessage(error.code);
-                    messageElement.className = 'message error';
-                    messageElement.style.display = 'block';
+                .catch(error => {
+                    console.error('Error during login:', error);
+                    showLoginError("حدث خطأ أثناء تسجيل الدخول");
                 });
         }
         
         // معالجة التسجيل
-        function handleRegister(e) {
+        async function handleRegister(e) {
             e.preventDefault();
             
             const name = document.getElementById('register-name').value;
@@ -699,119 +811,87 @@
             
             // التحقق من تطابق كلمتي المرور
             if (password !== confirmPassword) {
-                messageElement.textContent = 'كلمتا المرور غير متطابقتين';
-                messageElement.className = 'message error';
-                messageElement.style.display = 'block';
+                showRegisterError('كلمتا المرور غير متطابقتين');
                 return;
             }
             
             // التحقق من صحة رقم الهاتف (يجب أن يكون 9 أرقام)
             const phoneRegex = /^[0-9]{9}$/;
             if (!phoneRegex.test(phone)) {
-                messageElement.textContent = 'رقم الجوال يجب أن يتكون من 9 أرقام فقط';
-                messageElement.className = 'message error';
-                messageElement.style.display = 'block';
+                showRegisterError('رقم الجوال يجب أن يتكون من 9 أرقام فقط');
                 return;
             }
             
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // تم إنشاء الحساب بنجاح
-                    const user = userCredential.user;
-                    
-                    // تحديث ملف تعريف المستخدم
-                    return user.updateProfile({
-                        displayName: name
-                    }).then(() => {
-                        // حفظ بيانات المستخدم الإضافية في جدول snf_tgara بدلاً من users
-                        return database.ref('snf_tgara/' + user.uid).set({
-                            name: name,
-                            phone: phone,
-                            email: email,
-                            status: "نشط", // حالة المستخدم الافتراضية
-                            createdAt: new Date().toISOString()
-                        });
-                    });
-                })
-                .then(() => {
-                    messageElement.style.display = 'none';
-                    currentUser = auth.currentUser;
-                    userStatus = "نشط";
-                    showMainContent();
-                })
-                .catch((error) => {
-                    // حدث خطأ في التسجيل
-                    messageElement.textContent = getAuthErrorMessage(error.code);
-                    messageElement.className = 'message error';
-                    messageElement.style.display = 'block';
-                });
-        }
-        
-        // تحميل رقم هاتف المستخدم من جدول snf_tgara
-        function loadUserPhone() {
-            if (!currentUser) return;
-            
-            const userRef = database.ref('snf_tgara/' + currentUser.uid);
-            
-            userRef.once('value')
-                .then(snapshot => {
-                    if (snapshot.exists()) {
-                        const userData = snapshot.val();
-                        // تحديث معلومات المستخدم لتعرض رقم الهاتف
-                        const statusClass = userData.status === "نشط" ? "status-active" : "status-inactive";
-                        document.getElementById('user-info').innerHTML = 
-                            `مرحباً ${currentUser.displayName || currentUser.email} - رقم الجوال: ${userData.phone} 
-                            <span class="user-status ${statusClass}">الحالة: ${userData.status}</span>`;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading user phone:', error);
-                });
+            try {
+                // التحقق من عدم تكرار البريد الإلكتروني
+                const emailCheck = await database.ref('usr_hrg').orderByChild('email').equalTo(email).once('value');
+                if (emailCheck.exists()) {
+                    showRegisterError('البريد الإلكتروني مستخدم بالفعل');
+                    return;
+                }
+                
+                // التحقق من عدم تكرار رقم الجوال
+                const phoneCheck = await database.ref('usr_hrg').orderByChild('phone').equalTo(phone).once('value');
+                if (phoneCheck.exists()) {
+                    showRegisterError('رقم الجوال مستخدم بالفعل');
+                    return;
+                }
+                
+                // الحصول على آخر معرف مستخدم وإنشاء معرف جديد
+                const lastUserId = await getLastUserId();
+                const newUserId = lastUserId + 1;
+                
+                // الحصول على IP المستخدم
+                const userIP = await getUserIP();
+                
+                // حفظ بيانات المستخدم الجديد
+                const userData = {
+                    userId: newUserId,
+                    name: name,
+                    phone: phone,
+                    email: email,
+                    password: password,
+                    ip: userIP,
+                    status: 1, // 1 = نشط, 0 = موقف
+                    createdAt: new Date().toISOString()
+                };
+                
+                await database.ref('usr_hrg/' + newUserId).set(userData);
+                
+                showRegisterSuccess('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول');
+                switchLoginTab('login');
+                
+            } catch (error) {
+                console.error('Error during registration:', error);
+                showRegisterError('حدث خطأ أثناء إنشاء الحساب');
+            }
         }
         
         // معالجة تسجيل الخروج
         function handleLogout() {
-            auth.signOut().then(() => {
-                currentUser = null;
-                hideMainContent();
-                resetForm();
-            }).catch((error) => {
-                console.error('Error signing out:', error);
-            });
-        }
-        
-        // تحويل أكواد أخطاء المصادقة إلى رسائل مفهومة
-        function getAuthErrorMessage(errorCode) {
-            const errorMessages = {
-                'auth/invalid-email': 'البريد الإلكتروني غير صحيح',
-                'auth/user-disabled': 'هذا الحساب معطل',
-                'auth/user-not-found': 'لا يوجد حساب مرتبط بهذا البريد الإلكتروني',
-                'auth/wrong-password': 'كلمة المرور غير صحيحة',
-                'auth/email-already-in-use': 'هذا البريد الإلكتروني مستخدم بالفعل',
-                'auth/weak-password': 'كلمة المرور ضعيفة، يجب أن تكون至少 6 أحرف'
-            };
-            
-            return errorMessages[errorCode] || 'حدث خطأ غير متوقع';
+            currentUser = null;
+            currentUserId = null;
+            hideMainContent();
+            resetForm();
         }
         
         // إظهار المحتوى الرئيسي
-        function showMainContent() {
+        function showMainContent(userData) {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
             document.getElementById('logout-btn').style.display = 'block';
             document.getElementById('user-status-message').style.display = 'none';
             
             // تحديث معلومات المستخدم
-            document.getElementById('user-info').textContent = 
-                `مرحباً ${currentUser.displayName || currentUser.email}`;
-            document.getElementById('userId').value = currentUser.uid;
+            document.getElementById('user-info').innerHTML = 
+                `مرحباً ${userData.name} - رقم الجوال: ${userData.phone} 
+                <span class="user-status status-active">الحالة: نشط</span>`;
+            
+            document.getElementById('userId').value = userData.userId;
             document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
             
             // تحديث واجهة المستخدم بناءً على حالته
             updateUIBasedOnUserStatus();
-            
-            // تحميل رقم الهاتف إذا كان متوفراً
-            loadUserPhone();
             
             // تحميل البيانات الأخرى
             loadGovernorates();
@@ -820,27 +900,16 @@
         
         // إظهار رسالة تعليق المستخدم
         function showUserSuspendedMessage() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
-            document.getElementById('logout-btn').style.display = 'block';
-            document.getElementById('user-status-message').style.display = 'block';
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'none';
             
-            // تعطيل جميع أزرار الإضافة والتعديل
-            document.getElementById('save-product-btn').disabled = true;
-            document.querySelectorAll('.btn-edit').forEach(btn => {
-                btn.disabled = true;
-            });
+            alert('عفواً، أنت لا تستطيع الدخول. لقد تم توقيفك من قبل مسؤول النظام. يرجى التواصل مع المميز سوفت للأنظمة المحاسبية المتكاملة');
             
-            // إخفاء أقسام المحتوى التي لا يمكن للمستخدم الوصول إليها
-            document.querySelector('.tabs').style.display = 'none';
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.style.display = 'none';
-            });
-            
-            // عرض رسالة للمستخدم
-            document.getElementById('user-info').innerHTML = 
-                `مرحباً ${currentUser.displayName || currentUser.email} 
-                <span class="user-status status-inactive">الحالة: غير نشط</span>`;
+            // إفراغ بيانات تسجيل الدخول
+            document.getElementById('login-form').reset();
+            document.getElementById('remember-me').checked = false;
+            localStorage.removeItem('savedLoginData');
         }
         
         // تحديث واجهة المستخدم بناءً على حالته
@@ -868,6 +937,30 @@
             
             // التأكد من أن تبويب تسجيل الدخول هو النشط
             switchLoginTab('login');
+        }
+        
+        // إظهار خطأ في تسجيل الدخول
+        function showLoginError(message) {
+            const messageElement = document.getElementById('login-message');
+            messageElement.textContent = message;
+            messageElement.className = 'message error';
+            messageElement.style.display = 'block';
+        }
+        
+        // إظهار خطأ في التسجيل
+        function showRegisterError(message) {
+            const messageElement = document.getElementById('register-message');
+            messageElement.textContent = message;
+            messageElement.className = 'message error';
+            messageElement.style.display = 'block';
+        }
+        
+        // إظهار نجاح في التسجيل
+        function showRegisterSuccess(message) {
+            const messageElement = document.getElementById('register-message');
+            messageElement.textContent = message;
+            messageElement.className = 'message success';
+            messageElement.style.display = 'block';
         }
         
         // تحميل المحافظات
