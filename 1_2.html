@@ -1386,7 +1386,7 @@
                 });
         }
         
-        // تحميل المنتجات النشطة
+        // تحميل المنتجات النشطة مع فلتر status = 1 وترتيب حسب التاريخ
         function loadActiveProducts() {
             const productsRef = database.ref('asnaf');
             
@@ -1394,7 +1394,7 @@
             document.getElementById('no-active-products').style.display = 'none';
             document.getElementById('products-container').innerHTML = '';
             
-            productsRef.orderByChild('status').equalTo('نشط').once('value')
+            productsRef.orderByChild('orderDate').once('value')
                 .then(snapshot => {
                     document.getElementById('browse-loading').style.display = 'none';
                     
@@ -1405,15 +1405,32 @@
                         snapshot.forEach(childSnapshot => {
                             const product = childSnapshot.val();
                             product.id = childSnapshot.key;
-                            activeProducts.push(product);
                             
-                            // إنشاء بطاقة المنتج مع تحميل بيانات المستخدم
-                            const productCard = createProductCard(product);
-                            document.getElementById('products-container').appendChild(productCard);
-                            
-                            // تحميل بيانات المستخدم من جدول snf_tgara
-                            loadUserData(product.userId, product.id);
+                            // تصفية المنتجات: status = 1 ونشط
+                            if (product.status === 1 || product.status === '1' || product.status === 'نشط') {
+                                activeProducts.push(product);
+                            }
                         });
+                        
+                        // ترتيب المنتجات من الأحدث إلى الأقدم
+                        activeProducts.sort((a, b) => {
+                            const dateA = new Date(a.orderDate || 0);
+                            const dateB = new Date(b.orderDate || 0);
+                            return dateB - dateA;
+                        });
+                        
+                        if (activeProducts.length > 0) {
+                            activeProducts.forEach(product => {
+                                // إنشاء بطاقة المنتج مع تحميل بيانات المستخدم
+                                const productCard = createProductCard(product);
+                                document.getElementById('products-container').appendChild(productCard);
+                                
+                                // تحميل بيانات المستخدم من جدول usr_hrg
+                                loadUserData(product.userId, product.id);
+                            });
+                        } else {
+                            document.getElementById('no-active-products').style.display = 'block';
+                        }
                     } else {
                         document.getElementById('no-active-products').style.display = 'block';
                     }
@@ -1424,10 +1441,11 @@
                 });
         }
         
-        // تحميل بيانات المستخدم من جدول snf_tgara
+        // تحميل بيانات المستخدم من جدول usr_hrg
         function loadUserData(userId, productId) {
             if (!userId) {
                 console.log('No user ID provided for product:', productId);
+                updateUserInfo(userId, productId, { name: 'مستخدم غير معروف' });
                 return;
             }
             
@@ -1437,25 +1455,37 @@
                 return;
             }
             
-            const userRef = database.ref('snf_tgara/' + userId);
+            const userRef = database.ref('usr_hrg');
             
-            userRef.once('value')
+            userRef.orderByChild('userId').equalTo(userId).once('value')
                 .then(snapshot => {
                     if (snapshot.exists()) {
-                        const userData = snapshot.val();
-                        usersCache[userId] = userData;
+                        let userData = null;
                         
-                        // تحديث معلومات المستخدم في البطاقة
-                        updateUserInfo(userId, productId, userData);
+                        // البحث عن المستخدم المناسب
+                        snapshot.forEach(childSnapshot => {
+                            const user = childSnapshot.val();
+                            if (user.userId === userId) {
+                                userData = user;
+                            }
+                        });
+                        
+                        if (userData) {
+                            usersCache[userId] = userData;
+                            
+                            // تحديث معلومات المستخدم في البطاقة
+                            updateUserInfo(userId, productId, userData);
+                        } else {
+                            console.log('No matching user data found for ID:', userId);
+                            updateUserInfo(userId, productId, { name: 'مستخدم غير معروف' });
+                        }
                     } else {
                         console.log('No user data found for ID:', userId);
-                        // إذا لم توجد بيانات المستخدم، عرض رسالة افتراضية
                         updateUserInfo(userId, productId, { name: 'مستخدم غير معروف' });
                     }
                 })
                 .catch(error => {
                     console.error('Error loading user data for ID:', userId, error);
-                    // في حالة الخطأ، عرض رسالة افتراضية
                     updateUserInfo(userId, productId, { name: 'مستخدم غير معروف' });
                 });
         }
@@ -1469,16 +1499,16 @@
             const merchantAddressElement = document.getElementById(`merchant-address-${productId}`);
             
             if (userElement) {
-                userElement.textContent = userData.name || 'مستخدم غير معروف';
+                userElement.textContent = userData.name || userData.username || 'مستخدم غير معروف';
             }
             
             if (merchantNameElement) {
-                merchantNameElement.textContent = userData.name || 'مستخدم غير معروف';
+                merchantNameElement.textContent = userData.name || userData.username || 'مستخدم غير معروف';
             }
             
             if (merchantPhoneElement) {
-                merchantPhoneElement.textContent = userData.phone || 'غير متوفر';
-                merchantPhoneElement.style.display = userData.phone ? 'flex' : 'none';
+                merchantPhoneElement.textContent = userData.phone || userData.mobile || 'غير متوفر';
+                merchantPhoneElement.style.display = (userData.phone || userData.mobile) ? 'flex' : 'none';
             }
             
             if (merchantEmailElement) {
