@@ -423,6 +423,63 @@
             margin-top: 10px;
         }
         
+        /* معلومات التاجر المحسنة */
+        .merchant-info {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid #e3e6e8;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .merchant-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .merchant-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .merchant-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--dark-color);
+        }
+        
+        .merchant-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .merchant-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 0;
+        }
+        
+        .merchant-detail-item i {
+            color: var(--primary-color);
+            width: 16px;
+        }
+        
         /* نظام التعليقات */
         .comments-section {
             margin-top: 20px;
@@ -1061,6 +1118,10 @@
                 font-size: 10px;
                 min-width: 20px;
             }
+            
+            .merchant-details {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -1365,7 +1426,16 @@
         
         // تحميل بيانات المستخدم من جدول snf_tgara
         function loadUserData(userId, productId) {
-            if (!userId) return;
+            if (!userId) {
+                console.log('No user ID provided for product:', productId);
+                return;
+            }
+            
+            // إذا كانت البيانات موجودة في الكاش، استخدمها مباشرة
+            if (usersCache[userId]) {
+                updateUserInfo(userId, productId, usersCache[userId]);
+                return;
+            }
             
             const userRef = database.ref('snf_tgara/' + userId);
             
@@ -1375,22 +1445,51 @@
                         const userData = snapshot.val();
                         usersCache[userId] = userData;
                         
-                        // تحديث اسم المستخدم في البطاقة
-                        const userElement = document.getElementById(`user-${productId}`);
-                        if (userElement) {
-                            userElement.textContent = userData.name || 'مستخدم غير معروف';
-                        }
+                        // تحديث معلومات المستخدم في البطاقة
+                        updateUserInfo(userId, productId, userData);
                     } else {
-                        // إذا لم توجد بيانات المستخدم، عرض معرف افتراضي
-                        const userElement = document.getElementById(`user-${productId}`);
-                        if (userElement) {
-                            userElement.textContent = 'مستخدم غير معروف';
-                        }
+                        console.log('No user data found for ID:', userId);
+                        // إذا لم توجد بيانات المستخدم، عرض رسالة افتراضية
+                        updateUserInfo(userId, productId, { name: 'مستخدم غير معروف' });
                     }
                 })
                 .catch(error => {
-                    console.error('Error loading user data:', error);
+                    console.error('Error loading user data for ID:', userId, error);
+                    // في حالة الخطأ، عرض رسالة افتراضية
+                    updateUserInfo(userId, productId, { name: 'مستخدم غير معروف' });
                 });
+        }
+        
+        // تحديث معلومات المستخدم في البطاقة
+        function updateUserInfo(userId, productId, userData) {
+            const userElement = document.getElementById(`user-${productId}`);
+            const merchantNameElement = document.getElementById(`merchant-name-${productId}`);
+            const merchantPhoneElement = document.getElementById(`merchant-phone-${productId}`);
+            const merchantEmailElement = document.getElementById(`merchant-email-${productId}`);
+            const merchantAddressElement = document.getElementById(`merchant-address-${productId}`);
+            
+            if (userElement) {
+                userElement.textContent = userData.name || 'مستخدم غير معروف';
+            }
+            
+            if (merchantNameElement) {
+                merchantNameElement.textContent = userData.name || 'مستخدم غير معروف';
+            }
+            
+            if (merchantPhoneElement) {
+                merchantPhoneElement.textContent = userData.phone || 'غير متوفر';
+                merchantPhoneElement.style.display = userData.phone ? 'flex' : 'none';
+            }
+            
+            if (merchantEmailElement) {
+                merchantEmailElement.textContent = userData.email || 'غير متوفر';
+                merchantEmailElement.style.display = userData.email ? 'flex' : 'none';
+            }
+            
+            if (merchantAddressElement) {
+                merchantAddressElement.textContent = userData.address || 'غير متوفر';
+                merchantAddressElement.style.display = userData.address ? 'flex' : 'none';
+            }
         }
         
         // تحميل صور المنتج
@@ -1676,6 +1775,30 @@
                     </div>
                     <div class="image-gallery">
                         <!-- سيتم تحميل معرض الصور هنا -->
+                    </div>
+                    
+                    <!-- معلومات التاجر المحسنة -->
+                    <div class="merchant-info">
+                        <div class="merchant-header">
+                            <div class="merchant-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="merchant-name" id="merchant-name-${product.id}">جاري التحميل...</div>
+                        </div>
+                        <div class="merchant-details">
+                            <div class="merchant-detail-item" id="merchant-phone-${product.id}" style="display: none;">
+                                <i class="fas fa-phone"></i>
+                                <span>هاتف: <span class="detail-value">جاري التحميل...</span></span>
+                            </div>
+                            <div class="merchant-detail-item" id="merchant-email-${product.id}" style="display: none;">
+                                <i class="fas fa-envelope"></i>
+                                <span>بريد إلكتروني: <span class="detail-value">جاري التحميل...</span></span>
+                            </div>
+                            <div class="merchant-detail-item" id="merchant-address-${product.id}" style="display: none;">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>عنوان: <span class="detail-value">جاري التحميل...</span></span>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="product-detail">
