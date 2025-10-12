@@ -313,6 +313,7 @@
             display: flex;
             justify-content: center;
             margin-bottom: 15px;
+            position: relative;
         }
         
         .product-image {
@@ -322,6 +323,53 @@
             object-fit: cover;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .product-image:hover {
+            transform: scale(1.05);
+        }
+        
+        .image-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            justify-content: center;
+        }
+        
+        .gallery-thumb {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .gallery-thumb:hover {
+            border-color: var(--primary-color);
+            transform: scale(1.1);
+        }
+        
+        .gallery-thumb.active {
+            border-color: var(--primary-color);
+        }
+        
+        .no-image {
+            width: 100%;
+            max-width: 250px;
+            height: 180px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 14px;
+            flex-direction: column;
+            gap: 10px;
         }
         
         .product-footer {
@@ -771,10 +819,7 @@
             loadCategories();
             loadActiveProducts();
             
-            // عرض نافذة التعليمات عند فتح الصفحة لأول مرة
-            setTimeout(() => {
-                showInstructions();
-            }, 1000);
+            // تم إزالة الكود الذي يعرض نافذة التعليمات تلقائياً
             
             // جلب معرف المستخدم الحالي من localStorage
             currentUserId = localStorage.getItem('currentUserId');
@@ -900,6 +945,88 @@
                 });
         }
         
+        // تحميل صور المنتج
+        function loadProductImages(productId, productCard) {
+            const imagesRef = database.ref(`asnaf/${productId}/imageUrls`);
+            
+            imagesRef.once('value')
+                .then(snapshot => {
+                    const imageContainer = productCard.querySelector('.product-image-container');
+                    const galleryContainer = productCard.querySelector('.image-gallery');
+                    
+                    if (snapshot.exists()) {
+                        const images = [];
+                        snapshot.forEach(childSnapshot => {
+                            images.push(childSnapshot.val());
+                        });
+                        
+                        // عرض الصورة الأولى كصورة رئيسية
+                        if (images.length > 0) {
+                            const mainImage = document.createElement('img');
+                            mainImage.className = 'product-image';
+                            mainImage.src = images[0];
+                            mainImage.alt = 'صورة المنتج';
+                            mainImage.onclick = () => openImageModal(images, 0);
+                            
+                            // استبدال العنصر النائب بالصورة الرئيسية
+                            const placeholder = imageContainer.querySelector('.no-image');
+                            if (placeholder) {
+                                placeholder.remove();
+                            }
+                            imageContainer.appendChild(mainImage);
+                            
+                            // إنشاء معرض الصور المصغرة إذا كان هناك أكثر من صورة
+                            if (images.length > 1) {
+                                galleryContainer.innerHTML = '';
+                                
+                                images.forEach((imageUrl, index) => {
+                                    const thumb = document.createElement('img');
+                                    thumb.className = 'gallery-thumb';
+                                    thumb.src = imageUrl;
+                                    thumb.alt = `صورة ${index + 1}`;
+                                    thumb.onclick = () => {
+                                        // تحديث الصورة الرئيسية عند النقر على الصورة المصغرة
+                                        mainImage.src = imageUrl;
+                                        
+                                        // إزالة النشاط من جميع الصور المصغرة وإضافته للصورة المحددة
+                                        galleryContainer.querySelectorAll('.gallery-thumb').forEach(t => {
+                                            t.classList.remove('active');
+                                        });
+                                        thumb.classList.add('active');
+                                    };
+                                    
+                                    // تعيين الصورة الأولى كنشطة
+                                    if (index === 0) {
+                                        thumb.classList.add('active');
+                                    }
+                                    
+                                    galleryContainer.appendChild(thumb);
+                                });
+                            }
+                        }
+                    } else {
+                        // إذا لم توجد صور، عرض رسالة بديلة
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'no-image';
+                        placeholder.innerHTML = `
+                            <i class="fas fa-image" style="font-size: 40px; color: #ccc;"></i>
+                            <span>لا توجد صور للمنتج</span>
+                        `;
+                        imageContainer.appendChild(placeholder);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading product images:', error);
+                });
+        }
+        
+        // فتح نافذة عرض الصورة
+        function openImageModal(images, startIndex) {
+            // يمكن إضافة نافذة عرض الصور هنا إذا لزم الأمر
+            // للتبسيط، سنفتح الصورة في نافذة جديدة
+            window.open(images[startIndex], '_blank');
+        }
+        
         // إنشاء بطاقة منتج
         function createProductCard(product, userData) {
             const card = document.createElement('div');
@@ -942,6 +1069,13 @@
                     </div>
                 </div>
                 <div class="product-body">
+                    <div class="product-image-container">
+                        <!-- سيتم تحميل الصور هنا -->
+                    </div>
+                    <div class="image-gallery">
+                        <!-- سيتم تحميل معرض الصور هنا -->
+                    </div>
+                    
                     <div class="product-detail">
                         <span class="detail-label"><i class="fas fa-user"></i> الناشر:</span>
                         <span class="detail-value" id="user-${product.id}">${userData?.name || 'جاري التحميل...'}</span>
@@ -1016,6 +1150,9 @@
                 card.style.border = '2px solid var(--warning-color)';
                 card.style.boxShadow = '0 4px 15px rgba(243, 156, 18, 0.3)';
             }
+            
+            // تحميل صور المنتج
+            loadProductImages(product.id, card);
             
             // تحميل التعليقات والإعجابات
             loadComments(product.id);
