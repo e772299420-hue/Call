@@ -265,6 +265,25 @@
             background-color: #2980b9;
         }
         
+        .btn-sold {
+            background-color: #27ae60;
+        }
+        
+        .btn-sold:hover {
+            background-color: #219653;
+        }
+        
+        .btn-reply {
+            background-color: #9b59b6;
+            padding: 6px 12px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .btn-reply:hover {
+            background-color: #8e44ad;
+        }
+        
         /* عرض المنتجات الجديد */
         .products-container {
             display: grid;
@@ -307,6 +326,100 @@
         .product-actions .btn {
             padding: 8px 15px;
             font-size: 14px;
+        }
+        
+        /* رفع الصور */
+        .image-upload-section {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background-color: #f9f9f9;
+            margin-bottom: 15px;
+        }
+        
+        .upload-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .upload-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .uploaded-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .uploaded-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 2px solid #ddd;
+        }
+        
+        .upload-progress {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f4fd;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #3498db;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        /* نافذة تأكيد البيع */
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .confirm-container {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .confirm-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
         }
         
         /* حالة التحميل والرسائل */
@@ -436,6 +549,21 @@
             border-right: 3px solid #95a5a6;
         }
         
+        .reply-form {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 6px;
+        }
+        
+        .reply-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        
         /* التكيف مع الشاشات الصغيرة */
         @media (max-width: 768px) {
             .header-content {
@@ -473,6 +601,10 @@
             
             .products-container {
                 grid-template-columns: 1fr;
+            }
+            
+            .confirm-buttons {
+                flex-direction: column;
             }
         }
     </style>
@@ -584,6 +716,25 @@
                     <input type="number" id="price" required min="0">
                 </div>
                 
+                <!-- قسم رفع الصور -->
+                <div class="form-group">
+                    <label for="product-images">صور المنتج (اختياري)</label>
+                    <div class="image-upload-section">
+                        <p>اسحب الصور هنا أو انقر لاختيارها</p>
+                        <input type="file" id="product-images" accept="image/*" multiple style="display: none;">
+                        <button type="button" class="upload-btn" onclick="document.getElementById('product-images').click()">
+                            <i class="fas fa-upload"></i> رفع الصور
+                        </button>
+                        <div class="upload-progress" id="upload-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <span class="progress-text" id="progress-text">جاري رفع الصور...</span>
+                        </div>
+                        <div class="uploaded-images" id="uploaded-images"></div>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label for="status" class="required">حالة المنتج</label>
                     <select id="status" required>
@@ -595,6 +746,7 @@
                 <input type="hidden" id="productId">
                 <input type="hidden" id="orderDate">
                 <input type="hidden" id="userId">
+                <input type="hidden" id="imageUrls">
                 
                 <button type="submit" class="btn" id="save-product-btn">حفظ المنتج</button>
                 <button type="button" class="btn" onclick="resetForm()" style="background-color: #95a5a6;">إلغاء</button>
@@ -607,6 +759,18 @@
             <div id="no-products" class="message" style="display: none;">لا توجد منتجات لعرضها</div>
             <div class="products-container" id="products-container" style="display: none;">
                 <!-- سيتم ملء هذا القسم بالمنتجات -->
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تأكيد البيع -->
+    <div class="confirm-modal" id="confirm-sold-modal">
+        <div class="confirm-container">
+            <h3>تأكيد عملية البيع</h3>
+            <p id="confirm-message">هل تمت عملية المتاجرة بالمحتوى <strong id="product-name-confirm"></strong>؟</p>
+            <div class="confirm-buttons">
+                <button class="btn btn-sold" id="confirm-sold-btn">نعم، تم البيع</button>
+                <button class="btn" onclick="closeSoldModal()" style="background-color: #95a5a6;">إلغاء</button>
             </div>
         </div>
     </div>
@@ -643,12 +807,18 @@
         const database = firebase.database();
         const auth = firebase.auth();
         
+        // إعدادات Google Drive
+        const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms';
+        const DRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbwk7cLtyeG1lC--OUvfHJB8VQHccabTjPxbWbEmFjqQPbRxOrOGvMpjncFk2R9r8RNL/exec';
+        
         // عناصر DOM
         let currentUser = null;
         let currentEditingProduct = null;
         let governoratesData = {}; // لتخزين بيانات المحافظات والمناطق
         let userStatus = "نشط"; // حالة المستخدم الافتراضية
         let currentProductComments = null; // المنتج الحالي لعرض التعليقات
+        let uploadedImageUrls = []; // روابط الصور المرفوعة
+        let productToMarkAsSold = null; // المنتج المراد تعليمه كمباع
         
         // نظام إدارة المستخدم المحسن
         const userManager = {
@@ -779,11 +949,15 @@
             // إعداد مستمعي النماذج
             document.getElementById('product-form').addEventListener('submit', handleFormSubmit);
             document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            document.getElementById('confirm-sold-btn').addEventListener('click', confirmProductSold);
             
             // تحميل المنتجات عند فتح تبويب العرض
             document.querySelector('.tab[onclick="switchTab(\'view\')"]').addEventListener('click', function() {
                 loadUserProducts();
             });
+            
+            // إعداد مستمع لرفع الصور
+            document.getElementById('product-images').addEventListener('change', handleImageSelection);
             
             // تهيئة نظام إدارة المستخدم
             userManager.init();
@@ -801,6 +975,176 @@
             
             // إعادة تحميل الصفحة
             location.reload();
+        }
+        
+        // ===== دوال رفع الصور إلى جوجل درايف =====
+        
+        // ضغط الصور
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                if (file.size < 1024 * 1024) {
+                    resolve(file);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        const maxWidth = 1000;
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob((blob) => {
+                            resolve(new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            }));
+                        }, 'image/jpeg', 0.85);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // تحويل الملف إلى Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // رفع الصور إلى جوجل درايف
+        async function uploadImagesToDrive(files) {
+            const uploadedImageUrls = [];
+            const progressElement = document.getElementById('upload-progress');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            
+            progressElement.style.display = 'block';
+            
+            const totalFiles = files.length;
+            
+            for (let i = 0; i < totalFiles; i++) {
+                const file = files[i];
+                
+                try {
+                    const progressPercent = ((i + 1) / totalFiles) * 100;
+                    progressFill.style.width = `${progressPercent}%`;
+                    progressText.textContent = `جاري رفع الصورة ${i + 1} من ${totalFiles}: ${file.name}`;
+                    
+                    const compressedFile = await compressImage(file);
+                    
+                    const base64Data = await fileToBase64(compressedFile);
+                    
+                    const formData = new FormData();
+                    formData.append('fileData', base64Data);
+                    formData.append('fileName', compressedFile.name);
+                    formData.append('mimeType', compressedFile.type);
+                    formData.append('folderId', DRIVE_FOLDER_ID);
+                    
+                    const response = await fetch(DRIVE_API_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`خطأ HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.success && data.fileId) {
+                        const imageUrl = `https://drive.usercontent.google.com/download?id=${data.fileId}&authuser=0`;
+                        uploadedImageUrls.push(imageUrl);
+                        console.log(`تم رفع الصورة بنجاح: ${file.name} - URL: ${imageUrl}`);
+                    } else {
+                        console.error('فشل رفع الصورة:', file.name, data);
+                        throw new Error(data.error || 'فشل رفع الصورة: استجابة غير صالحة');
+                    }
+                    
+                } catch (error) {
+                    console.error('خطأ في رفع الصورة:', file.name, error);
+                    throw new Error(`فشل رفع الصورة ${file.name}: ${error.message}`);
+                }
+            }
+            
+            progressText.textContent = `تم رفع ${uploadedImageUrls.length} صورة بنجاح`;
+            progressText.style.color = '#27ae60';
+            
+            setTimeout(() => {
+                progressElement.style.display = 'none';
+            }, 3000);
+            
+            return uploadedImageUrls;
+        }
+
+        // معالجة اختيار الصور
+        async function handleImageSelection(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            const invalidFiles = files.filter(file => !validTypes.includes(file.type));
+            
+            if (invalidFiles.length > 0) {
+                alert('يرجى اختيار ملفات صور صالحة فقط (JPEG, PNG, GIF, WebP)');
+                return;
+            }
+            
+            const maxSize = 5 * 1024 * 1024;
+            const oversizedFiles = files.filter(file => file.size > maxSize);
+            
+            if (oversizedFiles.length > 0) {
+                alert('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
+                return;
+            }
+            
+            const uploadedImagesElement = document.getElementById('uploaded-images');
+            
+            uploadedImagesElement.innerHTML = '';
+            
+            try {
+                const imageUrls = await uploadImagesToDrive(files);
+                
+                imageUrls.forEach((url, index) => {
+                    const img = document.createElement('img');
+                    img.className = 'uploaded-image';
+                    img.src = url;
+                    img.alt = files[index].name;
+                    img.title = 'صورة المنتج';
+                    
+                    uploadedImagesElement.appendChild(img);
+                });
+                
+                uploadedImageUrls = imageUrls;
+                document.getElementById('imageUrls').value = imageUrls.join(',');
+                
+            } catch (error) {
+                console.error('حدث خطأ في رفع الصور:', error);
+                const progressText = document.getElementById('progress-text');
+                progressText.textContent = 'حدث خطأ في رفع الصور';
+                progressText.style.color = '#e74c3c';
+            }
         }
         
         // تحميل المحافظات
@@ -826,6 +1170,9 @@
                         });
                     } else {
                         console.error('لا توجد محافظات في قاعدة البيانات');
+                    governoratesSelect.innerHTML = '<option value="">لا توجد محافظات</option>';
+                    governoratesSelect.disabled = true;
+                    alert('لا توجد محافظات في قاعدة البيانات. يرجى التواصل مع الدعم الفني.');
                     }
                 })
                 .catch(error => {
@@ -885,6 +1232,9 @@
                         });
                     } else {
                         console.error('لا توجد فئات في قاعدة البيانات');
+                        categoriesSelect.innerHTML = '<option value="">لا توجد فئات</option>';
+                        categoriesSelect.disabled = true;
+                        alert('لا توجد فئات في قاعدة البيانات. يرجى التواصل مع الدعم الفني.');
                     }
                 })
                 .catch(error => {
@@ -949,7 +1299,8 @@
                 price: document.getElementById('price').value,
                 status: document.getElementById('status').value,
                 orderDate: document.getElementById('orderDate').value,
-                userId: document.getElementById('userId').value
+                userId: document.getElementById('userId').value,
+                imageUrls: uploadedImageUrls.length > 0 ? uploadedImageUrls : []
             };
             
             // حفظ المنتج في مسار asnaf بدلاً من products
@@ -979,6 +1330,9 @@
             document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('region').disabled = true;
             document.getElementById('region').innerHTML = '<option value="">اختر المنطقة</option>';
+            document.getElementById('uploaded-images').innerHTML = '';
+            document.getElementById('imageUrls').value = '';
+            uploadedImageUrls = [];
             currentEditingProduct = null;
         }
         
@@ -1010,11 +1364,25 @@
                             // تعطيل أزرار التعديل إذا كان المستخدم غير نشط
                             const editDisabled = userData.status !== "نشط" ? "disabled" : "";
                             
+                            // عرض الصور إذا كانت موجودة
+                            let imagesHTML = '';
+                            if (product.imageUrls && product.imageUrls.length > 0) {
+                                imagesHTML = `
+                                    <div class="product-field">
+                                        <div class="field-label">صور المنتج</div>
+                                        <div class="uploaded-images">
+                                            ${product.imageUrls.map(url => `<img src="${url}" class="uploaded-image" alt="صورة المنتج">`).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                            
                             productCard.innerHTML = `
                                 <div class="product-field">
                                     <div class="field-label">اسم المنتج</div>
                                     <div class="field-value">${product.productName}</div>
                                 </div>
+                                ${imagesHTML}
                                 <div class="product-field">
                                     <div class="field-label">السعر</div>
                                     <div class="field-value">${product.price} ريال</div>
@@ -1034,6 +1402,7 @@
                                 <div class="product-actions">
                                     <button class="btn btn-edit" onclick="editProduct('${product.id}')" ${editDisabled}>تعديل</button>
                                     <button class="btn btn-delete" onclick="deleteProduct('${product.id}')" ${editDisabled}>حذف</button>
+                                    <button class="btn btn-sold" onclick="markAsSold('${product.id}', '${product.productName}')" ${editDisabled}>تم البيع</button>
                                     <button class="btn btn-comments" onclick="showComments('${product.id}')">عرض التعليقات</button>
                                 </div>
                             `;
@@ -1091,6 +1460,23 @@
                         document.getElementById('price').value = product.price || '';
                         document.getElementById('status').value = product.status || '';
                         
+                        // تعبئة الصور إذا كانت موجودة
+                        if (product.imageUrls && product.imageUrls.length > 0) {
+                            uploadedImageUrls = product.imageUrls;
+                            const uploadedImagesElement = document.getElementById('uploaded-images');
+                            uploadedImagesElement.innerHTML = '';
+                            
+                            product.imageUrls.forEach(url => {
+                                const img = document.createElement('img');
+                                img.className = 'uploaded-image';
+                                img.src = url;
+                                img.alt = 'صورة المنتج';
+                                uploadedImagesElement.appendChild(img);
+                            });
+                            
+                            document.getElementById('imageUrls').value = uploadedImageUrls.join(',');
+                        }
+                        
                         // الانتقال إلى تبويب الإضافة
                         switchTab('add');
                     }
@@ -1125,6 +1511,40 @@
             }
         }
         
+        // تعليم المنتج كمباع
+        function markAsSold(productId, productName) {
+            productToMarkAsSold = productId;
+            document.getElementById('product-name-confirm').textContent = productName;
+            document.getElementById('confirm-sold-modal').style.display = 'flex';
+        }
+        
+        // تأكيد عملية البيع
+        function confirmProductSold() {
+            if (!productToMarkAsSold) return;
+            
+            const productRef = database.ref('asnaf/' + productToMarkAsSold);
+            
+            productRef.update({
+                status: 'موقف',
+                soldDate: new Date().toISOString().split('T')[0]
+            })
+            .then(() => {
+                alert('تم تحديث حالة المنتج إلى "تم البيع" بنجاح');
+                closeSoldModal();
+                loadUserProducts();
+            })
+            .catch(error => {
+                console.error('Error updating product status:', error);
+                alert('حدث خطأ أثناء تحديث حالة المنتج');
+            });
+        }
+        
+        // إغلاق نافذة تأكيد البيع
+        function closeSoldModal() {
+            document.getElementById('confirm-sold-modal').style.display = 'none';
+            productToMarkAsSold = null;
+        }
+        
         // عرض التعليقات للمنتج
         function showComments(productId) {
             currentProductComments = productId;
@@ -1151,7 +1571,7 @@
                                     const reply = comment.replies[replyId];
                                     repliesHTML += `
                                         <div class="reply-item">
-                                            <div class="comment-author">${reply.author || 'مستخدم'}</div>
+                                            <div class="comment-author">${reply.author || 'صانع المحتوى'}</div>
                                             <div class="comment-text">${reply.text}</div>
                                         </div>
                                     `;
@@ -1159,10 +1579,21 @@
                                 repliesHTML += '</div>';
                             }
                             
+                            // إضافة زر الرد
+                            const replyForm = `
+                                <div class="reply-form">
+                                    <textarea class="reply-input" placeholder="اكتب ردك هنا..." id="reply-${commentSnapshot.key}"></textarea>
+                                    <button class="btn btn-reply" onclick="addReply('${productId}', '${commentSnapshot.key}')">
+                                        <i class="fas fa-reply"></i> إضافة رد
+                                    </button>
+                                </div>
+                            `;
+                            
                             commentItem.innerHTML = `
                                 <div class="comment-author">${comment.author || 'مستخدم'}</div>
                                 <div class="comment-text">${comment.text}</div>
                                 ${repliesHTML}
+                                ${replyForm}
                             `;
                             
                             commentsList.appendChild(commentItem);
@@ -1174,6 +1605,38 @@
                 .catch(error => {
                     console.error('Error loading comments:', error);
                     document.getElementById('comments-list').innerHTML = '<div class="message error">حدث خطأ في تحميل التعليقات</div>';
+                });
+        }
+        
+        // إضافة رد على التعليق
+        function addReply(productId, commentId) {
+            const replyInput = document.getElementById(`reply-${commentId}`);
+            const replyText = replyInput.value.trim();
+            
+            if (!replyText) {
+                alert('يرجى كتابة نص الرد');
+                return;
+            }
+            
+            const userData = userManager.getUserData();
+            const replyId = generateUUID();
+            const replyData = {
+                text: replyText,
+                author: userData.name || userData.username || 'صانع المحتوى',
+                timestamp: new Date().toISOString()
+            };
+            
+            const replyRef = database.ref(`comments/${productId}/${commentId}/replies/${replyId}`);
+            
+            replyRef.set(replyData)
+                .then(() => {
+                    alert('تم إضافة الرد بنجاح');
+                    replyInput.value = '';
+                    showComments(productId); // إعادة تحميل التعليقات
+                })
+                .catch(error => {
+                    console.error('Error adding reply:', error);
+                    alert('حدث خطأ أثناء إضافة الرد');
                 });
         }
         
