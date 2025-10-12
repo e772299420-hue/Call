@@ -1642,6 +1642,17 @@
             });
         }
         
+        // الحصول على التاريخ والوقت الحاليين
+        function getCurrentDateTime() {
+            const now = new Date();
+            const date = now.toISOString().split('T')[0];
+            const time = now.toLocaleTimeString('ar-SA', { hour12: true });
+            return {
+                date: date,
+                time: time
+            };
+        }
+        
         // معالجة إرسال النموذج
         async function handleFormSubmit(e) {
             e.preventDefault();
@@ -1655,6 +1666,10 @@
             const imageUrls = uploadedImageUrls;
             
             const productId = document.getElementById('productId').value || generateUUID();
+            
+            // الحصول على التاريخ والوقت الحاليين
+            const currentDateTime = getCurrentDateTime();
+            
             const productData = {
                 id: productId,
                 governorate: document.getElementById('governorate').value,
@@ -1667,9 +1682,10 @@
                 address: document.getElementById('address').value,
                 price: document.getElementById('price').value,
                 status: document.getElementById('status').value,
-                orderDate: document.getElementById('orderDate').value,
+                orderDate: currentDateTime.date, // استخدام التاريخ الحالي
+                orderTime: currentDateTime.time, // إضافة الوقت الحالي
                 userId: document.getElementById('userId').value,
-                images: imageUrls
+                imageUrls: imageUrls  // تغيير اسم الحقل إلى imageUrls
             };
             
             const productRef = database.ref('asnaf/' + productId);
@@ -1779,6 +1795,7 @@
                 return;
             }
             
+            // تم تعديل هذا الجزء للتعامل مع هيكل البيانات بشكل صحيح
             if (governoratesData[governorateId] && governoratesData[governorateId].regions) {
                 const regions = governoratesData[governorateId].regions;
                 
@@ -1864,18 +1881,24 @@
                             productCard.className = 'product-card';
                             
                             let imagesHTML = '';
-                            if (product.images && product.images.length > 0) {
+                            // استخدام imageUrls بدلاً من images
+                            if (product.imageUrls && product.imageUrls.length > 0) {
                                 imagesHTML = `
                                     <div class="product-field">
                                         <div class="field-label">الصور</div>
                                         <div class="product-images">
-                                            ${product.images.map(img => `
+                                            ${product.imageUrls.map(img => `
                                                 <img src="${img}" class="product-image" onclick="showImageModal(['${img}'])">
                                             `).join('')}
                                         </div>
                                     </div>
                                 `;
                             }
+                            
+                            // عرض التاريخ والوقت معاً
+                            const displayDateTime = product.orderTime ? 
+                                `${product.orderDate} - ${product.orderTime}` : 
+                                product.orderDate;
                             
                             productCard.innerHTML = `
                                 ${imagesHTML}
@@ -1892,8 +1915,16 @@
                                     <div class="field-value">${product.requestType}</div>
                                 </div>
                                 <div class="product-field">
-                                    <div class="field-label">تاريخ الطلب</div>
-                                    <div class="field-value">${product.orderDate}</div>
+                                    <div class="field-label">المحافظة</div>
+                                    <div class="field-value">${product.governorate}</div>
+                                </div>
+                                <div class="product-field">
+                                    <div class="field-label">المنطقة</div>
+                                    <div class="field-value">${product.region}</div>
+                                </div>
+                                <div class="product-field">
+                                    <div class="field-label">تاريخ ووقت النشر</div>
+                                    <div class="field-value">${displayDateTime}</div>
                                 </div>
                                 <div class="product-field">
                                     <div class="field-label">الحالة</div>
@@ -1948,8 +1979,8 @@
                         document.getElementById('price').value = product.price || '';
                         document.getElementById('status').value = product.status || '';
                         
-                        // إعادة تعيين وعرض الصور
-                        uploadedImageUrls = product.images || [];
+                        // إعادة تعيين وعرض الصور - استخدام imageUrls بدلاً من images
+                        uploadedImageUrls = product.imageUrls || [];
                         const uploadedImagesElement = document.getElementById('uploaded-images');
                         uploadedImagesElement.innerHTML = '';
                         
