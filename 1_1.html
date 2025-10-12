@@ -160,6 +160,47 @@
             width: 200px;
         }
 
+        /* حاوية البحث مع الميكروفون */
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .search-container input {
+            flex: 1;
+        }
+
+        .voice-search-btn {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .voice-search-btn:hover {
+            background: #27ae60;
+        }
+
+        .voice-search-btn.listening {
+            background: var(--danger-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
         .reset-btn {
             padding: 8px 12px;
             border: none;
@@ -313,7 +354,7 @@
         /* زر المفضلة العائم - تم تعديل الموقع */
         .floating-favorites {
             position: fixed;
-            bottom: 200px;
+            bottom: 20px; /* تم التعديل ليظهر أسفل زر العودة للأعلى */
             right: 20px;
             background: var(--danger-color);
             color: white;
@@ -911,17 +952,17 @@
             background: rgba(255, 255, 255, 0.8);
         }
 
-        /* تم تعديل لون خلفية تاريخ الإضافة إلى #ddd */
+        /* تم تعديل لون خلفية تاريخ الإضافة إلى شفاف */
         .product-date {
             text-align: center;
             font-size: 14px;
             color: #666;
             margin-top: 5px;
             padding: 5px;
-            background-color: #ddd; /* تغيير إلى #ddd */
+            background-color: transparent; /* تغيير إلى شفاف */
             border-radius: 4px;
             width: 100%;
-            border: 1px solid #ccc;
+            border: none; /* إزالة الحدود */
         }
 
         /* قسم التعليقات */
@@ -1372,7 +1413,7 @@
             }
 
             .floating-favorites {
-                bottom: 200px;
+                bottom: 20px;
             }
 
             .action-buttons {
@@ -1494,7 +1535,12 @@
         </div>
         <div class="filter-item">
             <label for="search">بحث:</label>
-            <input type="text" id="search" placeholder="ابحث عن منتج...">
+            <div class="search-container">
+                <input type="text" id="search" placeholder="ابحث عن منتج...">
+                <button class="voice-search-btn" id="voice-search-btn" title="البحث الصوتي">
+                    <i class="fas fa-microphone"></i>
+                </button>
+            </div>
         </div>
         <div class="filter-item">
             <label for="sort-by">ترتيب:</label>
@@ -1628,6 +1674,10 @@
         let currentGalleryIndex = 0;
         let isImageZoomed = false;
 
+        // متغيرات التعرف الصوتي
+        let recognition = null;
+        let isListening = false;
+
         // عناصر الواجهة
         const productsContainer = document.getElementById('products-container');
         const governorateSelect = document.getElementById('governorate');
@@ -1643,6 +1693,7 @@
         const floatingFavoritesBtn = document.getElementById('floating-favorites');
         const categoryValueDisplay = document.getElementById('category-value-display');
         const usersCountEl = document.getElementById('users-count');
+        const voiceSearchBtn = document.getElementById('voice-search-btn');
 
         // ==========================================
         // 🎯 بدء التطبيق - الترتيب الصحيح
@@ -1652,13 +1703,16 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🏁 بدء تحميل التطبيق...');
             
-            // 1. تهيئة التطبيق
+            // 1. تهيئة التعرف الصوتي
+            initializeSpeechRecognition();
+            
+            // 2. تهيئة التطبيق
             initializeApp();
             
-            // 2. إعداد مستمعي الأحداث
+            // 3. إعداد مستمعي الأحداث
             setupEventListeners();
             
-            // 3. تحميل البيانات
+            // 4. تحميل البيانات
             loadAllData().then(() => {
                 checkUrlForProduct();
                 displayPersonalizedProducts();
@@ -1666,12 +1720,97 @@
                 console.log('🎉 تم تحميل التطبيق بالكامل بنجاح');
             });
             
-            // 4. بدء تحديث المنتجات الجديدة تلقائياً
+            // 5. بدء تحديث المنتجات الجديدة تلقائياً
             startAutoUpdate();
             
-            // 5. بدء تحديث عدد المستخدمين المتصلين
+            // 6. بدء تحديث عدد المستخدمين المتصلين
             startOnlineUsersUpdate();
         });
+
+        // ==========================================
+        // 🎤 تهيئة نظام التعرف الصوتي - تم الإصلاح
+        // ==========================================
+        function initializeSpeechRecognition() {
+            // التحقق من دعم المتصفح للتعرف الصوتي
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                console.warn('المتصفح لا يدعم التعرف الصوتي');
+                voiceSearchBtn.style.display = 'none';
+                return;
+            }
+            
+            recognition = new SpeechRecognition();
+            
+            // إعدادات التعرف الصوتي
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'ar-SA'; // اللغة العربية للمملكة العربية السعودية
+            
+            // معالجة النتائج
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                searchInput.value = transcript;
+                filterProducts();
+                showNotification('تم تحويل الكلام إلى نص: ' + transcript, 'success');
+            };
+            
+            // معالجة الأخطاء
+            recognition.onerror = function(event) {
+                console.error('خطأ في التعرف الصوتي:', event.error);
+                if (event.error === 'not-allowed') {
+                    showNotification('يرجى السماح للموقع باستخدام الميكروفون', 'error');
+                } else if (event.error === 'audio-capture') {
+                    showNotification('لم يتم العثور على ميكروفون', 'error');
+                } else {
+                    showNotification('حدث خطأ في التعرف الصوتي، يرجى المحاولة مرة أخرى', 'error');
+                }
+                stopListening();
+            };
+            
+            // عند انتهاء التعرف
+            recognition.onend = function() {
+                stopListening();
+            };
+        }
+
+        // ==========================================
+        // 🎤 بدء/إيقاف التعرف الصوتي - تم الإصلاح
+        // ==========================================
+        function toggleVoiceSearch() {
+            if (!recognition) {
+                showNotification('المتصفح لا يدعم التعرف الصوتي', 'error');
+                return;
+            }
+            
+            if (isListening) {
+                recognition.stop();
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            try {
+                recognition.start();
+                isListening = true;
+                voiceSearchBtn.classList.add('listening');
+                voiceSearchBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                voiceSearchBtn.title = 'إيقاف التعرف الصوتي';
+                showNotification('جاري الاستماع... تحدث الآن', 'info');
+            } catch (error) {
+                console.error('خطأ في بدء التعرف الصوتي:', error);
+                showNotification('خطأ في بدء التعرف الصوتي. تأكد من السماح باستخدام الميكروفون', 'error');
+                stopListening();
+            }
+        }
+
+        function stopListening() {
+            isListening = false;
+            voiceSearchBtn.classList.remove('listening');
+            voiceSearchBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            voiceSearchBtn.title = 'البحث الصوتي';
+        }
 
         function initializeApp() {
             // تطبيق السمة المحفوظة
@@ -1713,6 +1852,9 @@
             resetButton.addEventListener('click', resetFilters);
             filterControlBtn.addEventListener('click', toggleFilterBar);
             floatingFavoritesBtn.addEventListener('click', toggleFavoritesView);
+            
+            // حدث البحث الصوتي
+            voiceSearchBtn.addEventListener('click', toggleVoiceSearch);
 
             // إغلاق التعليقات عند النقر خارج البطاقة
             document.addEventListener('click', (e) => {
@@ -2479,7 +2621,7 @@
             
             infoDiv.appendChild(detailsDiv);
 
-            // تاريخ الإضافة - تم تعديل لون الخلفية إلى #ddd
+            // تاريخ الإضافة - تم تعديل لون الخلفية إلى شفاف
             if (product.date) {
                 const dateDiv = document.createElement('div'); 
                 dateDiv.className = 'product-date';
@@ -2541,13 +2683,13 @@
             card.appendChild(infoDiv);
 
             /* ==========================================
-               🎯 شريط الأزرار الجديد - تم إصلاح المحاذاة والمقاسات
+               🎯 شريط الأزرار الجديد - تم إعادة ترتيب الأزرار حسب الطلب
                ========================================== */
             const actionButtonsDiv = document.createElement('div');
             actionButtonsDiv.className = 'action-buttons';
             actionButtonsDiv.innerHTML = `
                 <div class="stats-buttons">
-                    <!-- زر الإعجاب -->
+                    <!-- زر الإعجاب (بأيقونة الإبهام للأعلى) -->
                     <div class="stat-with-button">
                         <div class="stat-number like-stat" id="like-stat-${product.id}">0</div>
                         <button class="action-button btn-like" onclick="handleLike('${product.id}', '${escapeHtml(productName)}')">
@@ -2555,7 +2697,7 @@
                         </button>
                     </div>
 
-                    <!-- زر التعليقات -->
+                    <!-- زر التعليقات (بأيقونة التعليقات) -->
                     <div class="stat-with-button">
                         <div class="stat-number comment-stat" id="comment-stat-${product.id}">0</div>
                         <button class="action-button btn-comment" onclick="toggleComments('${product.id}')">
@@ -2563,15 +2705,7 @@
                         </button>
                     </div>
 
-                    <!-- زر المفضلة -->
-                    <div class="stat-with-button">
-                        <div class="stat-number" style="visibility: hidden;">0</div>
-                        <button class="favorite-btn ${favoriteProducts[product.id] ? 'active' : ''}" onclick="toggleFavorite('${product.id}', this, '${escapeHtml(productName)}')" title="${favoriteProducts[product.id] ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}">
-                            <i class="fas fa-heart"></i>
-                        </button>
-                    </div>
-
-                    <!-- زر المشاهدات -->
+                    <!-- زر المشاهدات (بأيقونة العين) -->
                     <div class="stat-with-button">
                         <div class="stat-number view-stat" id="view-stat-${product.id}">150</div>
                         <button class="action-button btn-view">
@@ -2579,7 +2713,15 @@
                         </button>
                     </div>
 
-                    <!-- زر المشاركة -->
+                    <!-- زر المفضلة (بأيقونة القلب) -->
+                    <div class="stat-with-button">
+                        <div class="stat-number" style="visibility: hidden;">0</div>
+                        <button class="favorite-btn ${favoriteProducts[product.id] ? 'active' : ''}" onclick="toggleFavorite('${product.id}', this, '${escapeHtml(productName)}')" title="${favoriteProducts[product.id] ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                    </div>
+
+                    <!-- زر المشاركة (بأيقونة المشاركة) -->
                     <div class="stat-with-button">
                         <div class="stat-number" style="visibility: hidden;">0</div>
                         <button class="share-button" onclick="shareProduct('${escapeHtml(productName)}', '${product.id}')">
@@ -3230,23 +3372,6 @@
             
             onlineUsersCount = randomUsers;
             usersCountEl.textContent = onlineUsersCount;
-            
-            // يمكن إضافة اتصال حقيقي بـ Firebase هنا لتتبع المستخدمين المتصلين
-            /*
-            const userRef = db.ref('onlineUsers/' + getUserId());
-            userRef.set({
-                lastSeen: Date.now(),
-                userAgent: navigator.userAgent
-            });
-            
-            userRef.onDisconnect().remove();
-            
-            db.ref('onlineUsers').once('value').then(snapshot => {
-                const users = snapshot.val() || {};
-                onlineUsersCount = Object.keys(users).length;
-                usersCountEl.textContent = onlineUsersCount;
-            });
-            */
         }
 
         // اتصال الشبكة
