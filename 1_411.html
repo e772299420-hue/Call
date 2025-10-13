@@ -176,6 +176,7 @@
             display: flex;
             margin: 20px 0;
             border-bottom: 2px solid #ddd;
+            flex-wrap: wrap;
         }
         
         .tab {
@@ -720,6 +721,156 @@
             font-size: 1rem;
         }
         
+        /* تبويب بياناتي */
+        .profile-card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .profile-field {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .profile-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .profile-value {
+            color: #333;
+        }
+        
+        .phone-visibility {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .phone-visibility input {
+            width: auto;
+        }
+        
+        /* نافذة التعليقات */
+        .comments-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .comments-container {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .comments-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .comments-list {
+            margin-bottom: 20px;
+        }
+        
+        .comment-item {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+        }
+        
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .comment-author {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .comment-date {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .comment-text {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .comment-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .comment-actions .btn {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .reply-form {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ddd;
+        }
+        
+        .reply-item {
+            background: #f0f0f0;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            margin-right: 20px;
+        }
+        
+        .reply-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .reply-author {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+        
+        .reply-date {
+            color: #7f8c8d;
+            font-size: 0.8rem;
+        }
+        
+        .reply-text {
+            color: #333;
+            font-size: 0.9rem;
+        }
+        
         /* التكيف مع الشاشات الصغيرة */
         @media (max-width: 768px) {
             .header-content {
@@ -763,6 +914,20 @@
                 width: 40px;
                 height: 40px;
                 font-size: 1.2rem;
+            }
+            
+            .comments-container {
+                width: 95%;
+                padding: 15px;
+            }
+            
+            .comment-header {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .comment-actions {
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -878,6 +1043,7 @@
         <div class="tabs">
             <div class="tab active" onclick="switchTab('add')">إضافة منتج</div>
             <div class="tab" onclick="switchTab('view')">عرض المنتجات</div>
+            <div class="tab" onclick="switchTab('profile')">بياناتي</div>
         </div>
         
         <!-- تبويب الإضافة -->
@@ -901,7 +1067,7 @@
                     <label for="category" class="required">الفئة</label>
                     <select id="category" required>
                         <option value="">اختر الفئة</option>
-                    </select>
+                        </select>
                 </div>
                 
                 <div class="form-group">
@@ -986,6 +1152,83 @@
                 <!-- سيتم ملء هذا القسم بالمنتجات -->
             </div>
         </div>
+        
+        <!-- تبويب بياناتي -->
+        <div id="profile-tab" class="tab-content">
+            <div class="profile-card">
+                <div class="profile-field">
+                    <div class="profile-label">الاسم الكامل</div>
+                    <div class="profile-value" id="profile-name"></div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">البريد الإلكتروني</div>
+                    <div class="profile-value" id="profile-email"></div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">رقم الجوال</div>
+                    <div class="profile-value" id="profile-phone"></div>
+                    <div class="phone-visibility">
+                        <input type="checkbox" id="profile-phone-visibility" value="1">
+                        <label for="profile-phone-visibility" id="phone-visibility-label">عرض رقم الجوال للآخرين</label>
+                    </div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">تاريخ التسجيل</div>
+                    <div class="profile-value" id="profile-created"></div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">حالة الحساب</div>
+                    <div class="profile-value" id="profile-status"></div>
+                </div>
+                
+                <button class="btn btn-edit" onclick="editProfile()">تعديل البيانات</button>
+            </div>
+            
+            <!-- نموذج تعديل البيانات -->
+            <div class="profile-card" id="profile-edit-form" style="display: none; margin-top: 20px;">
+                <h3 style="margin-bottom: 20px;">تعديل البيانات الشخصية</h3>
+                <form id="update-profile-form">
+                    <div class="form-group">
+                        <label for="edit-name" class="required">الاسم الكامل</label>
+                        <input type="text" id="edit-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-email" class="required">البريد الإلكتروني</label>
+                        <input type="email" id="edit-email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-phone" class="required">رقم الجوال</label>
+                        <input type="tel" id="edit-phone" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="phone-visibility">
+                            <input type="checkbox" id="edit-phone-visibility" value="1">
+                            <label for="edit-phone-visibility">عرض رقم الجوال للآخرين</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-password">كلمة المرور الجديدة (اتركها فارغة إذا لم ترد التغيير)</label>
+                        <div class="password-container">
+                            <input type="password" id="edit-password">
+                            <button type="button" class="toggle-password" onclick="togglePassword('edit-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn">حفظ التعديلات</button>
+                    <button type="button" class="btn" onclick="cancelEditProfile()" style="background-color: #95a5a6;">إلغاء</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- نافذة تأكيد البيع -->
@@ -996,6 +1239,26 @@
             <div class="confirm-buttons">
                 <button class="btn btn-sold" onclick="confirmSold()">نعم</button>
                 <button class="btn" style="background-color: #95a5a6;" onclick="closeConfirmSold()">لا</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة التعليقات -->
+    <div class="comments-modal" id="comments-modal">
+        <div class="comments-container">
+            <div class="comments-header">
+                <h3 id="comments-title">التعليقات والردود</h3>
+                <button class="btn" onclick="closeCommentsModal()">إغلاق</button>
+            </div>
+            
+            <div id="comments-list" class="comments-list">
+                <!-- سيتم ملء هذا القسم بالتعليقات -->
+            </div>
+            
+            <div class="form-group">
+                <label for="new-comment">إضافة تعليق جديد</label>
+                <textarea id="new-comment" placeholder="اكتب تعليقك هنا..."></textarea>
+                <button class="btn" onclick="addComment()" style="margin-top: 10px;">إضافة تعليق</button>
             </div>
         </div>
     </div>
@@ -1048,6 +1311,7 @@
         let userStatus = "نشط";
         let selectedImages = [];
         let currentProductToMarkAsSold = null;
+        let currentProductForComments = null;
 
         // إعدادات Google Drive API
         const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms';
@@ -1077,6 +1341,7 @@
             document.getElementById('register-form').addEventListener('submit', handleRegister);
             document.getElementById('product-form').addEventListener('submit', handleFormSubmit);
             document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            document.getElementById('update-profile-form').addEventListener('submit', handleProfileUpdate);
             
             // إعداد مستمع لرفع الصور
             document.getElementById('productImages').addEventListener('change', handleImageSelection);
@@ -1095,6 +1360,13 @@
             document.getElementById('image-modal').addEventListener('click', function(e) {
                 if (e.target === this) {
                     this.style.display = 'none';
+                }
+            });
+            
+            // إغلاق نافذة التعليقات عند النقر خارجها
+            document.getElementById('comments-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeCommentsModal();
                 }
             });
             
@@ -1288,6 +1560,7 @@
                     password: password,
                     ip: userIP,
                     status: 1,
+                    phoneVisibility: 1, // إضافة حقل عرض رقم الجوال
                     createdAt: new Date().toISOString()
                 };
                 
@@ -1734,6 +2007,103 @@
             
             loadGovernorates();
             loadCategories();
+            loadProfileData();
+        }
+        
+        // تحميل بيانات المستخدم لتبويب "بياناتي"
+        function loadProfileData() {
+            document.getElementById('profile-name').textContent = currentUser.name;
+            document.getElementById('profile-email').textContent = currentUser.email;
+            document.getElementById('profile-phone').textContent = currentUser.phone;
+            
+            // تحويل تاريخ الإنشاء إلى تنسيق مقروء
+            const createdDate = currentUser.createdAt ? new Date(currentUser.createdAt) : new Date();
+            document.getElementById('profile-created').textContent = createdDate.toLocaleDateString('ar-SA');
+            
+            document.getElementById('profile-status').textContent = currentUser.status === 1 ? 'نشط' : 'موقف';
+            
+            // إعداد حقل عرض رقم الجوال
+            const phoneVisibility = currentUser.phoneVisibility || 1;
+            document.getElementById('profile-phone-visibility').checked = phoneVisibility == 1;
+            document.getElementById('phone-visibility-label').textContent = 
+                phoneVisibility == 1 ? 'عرض رقم الجوال للآخرين' : 'لم يتم عرض رقم الجوال للآخرين';
+        }
+        
+        // فتح نموذج تعديل البيانات
+        function editProfile() {
+            document.getElementById('edit-name').value = currentUser.name;
+            document.getElementById('edit-email').value = currentUser.email;
+            document.getElementById('edit-phone').value = currentUser.phone;
+            document.getElementById('edit-phone-visibility').checked = currentUser.phoneVisibility == 1;
+            document.getElementById('profile-edit-form').style.display = 'block';
+        }
+        
+        // إلغاء تعديل البيانات
+        function cancelEditProfile() {
+            document.getElementById('profile-edit-form').style.display = 'none';
+        }
+        
+        // معالجة تحديث بيانات المستخدم
+        function handleProfileUpdate(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('edit-name').value;
+            const email = document.getElementById('edit-email').value;
+            const phone = document.getElementById('edit-phone').value;
+            const password = document.getElementById('edit-password').value;
+            const phoneVisibility = document.getElementById('edit-phone-visibility').checked ? 1 : 0;
+            
+            // التحقق من صحة رقم الهاتف
+            const phoneRegex = /^[0-9]{9}$/;
+            if (!phoneRegex.test(phone)) {
+                showToast('رقم الجوال يجب أن يتكون من 9 أرقام فقط', 'error');
+                return;
+            }
+            
+            // تحديث بيانات المستخدم
+            const userRef = database.ref('usr_hrg/' + currentUser.id);
+            
+            const updateData = {
+                name: name,
+                email: email,
+                phone: phone,
+                phoneVisibility: phoneVisibility
+            };
+            
+            // إذا تم إدخال كلمة مرور جديدة، أضفها للبيانات
+            if (password) {
+                updateData.password = password;
+            }
+            
+            userRef.update(updateData)
+                .then(() => {
+                    // تحديث بيانات المستخدم المحلية
+                    currentUser.name = name;
+                    currentUser.email = email;
+                    currentUser.phone = phone;
+                    currentUser.phoneVisibility = phoneVisibility;
+                    
+                    if (password) {
+                        currentUser.password = password;
+                    }
+                    
+                    // تحديث localStorage
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    // تحديث واجهة المستخدم
+                    loadProfileData();
+                    document.getElementById('user-info').innerHTML = 
+                        `مرحباً ${currentUser.name} - رقم الجوال: ${currentUser.phone} 
+                        <span class="user-status status-active">الحالة: نشط</span>`;
+                    
+                    document.getElementById('profile-edit-form').style.display = 'none';
+                    
+                    showToast('تم تحديث بياناتك بنجاح!', 'success');
+                })
+                .catch(error => {
+                    console.error('Error updating profile:', error);
+                    showToast('حدث خطأ أثناء تحديث البيانات', 'error');
+                });
         }
         
         // معالجة تسجيل الخروج
@@ -1853,6 +2223,8 @@
             
             if (tabName === 'view') {
                 loadUserProducts();
+            } else if (tabName === 'profile') {
+                loadProfileData();
             }
         }
         
@@ -1933,7 +2305,7 @@
                                 <div class="product-actions">
                                     <button class="btn btn-edit" onclick="editProduct('${product.id}')">تعديل</button>
                                     <button class="btn btn-delete" onclick="deleteProduct('${product.id}')">حذف</button>
-                                    <button class="btn btn-comments" onclick="showComments('${product.id}')">عرض التعليقات</button>
+                                    <button class="btn btn-comments" onclick="showComments('${product.id}', '${product.productName}')">عرض التعليقات</button>
                                     <button class="btn btn-sold" onclick="markAsSold('${product.id}', '${product.productName}')">تم البيع</button>
                                 </div>
                             `;
@@ -2062,9 +2434,207 @@
             });
         }
         
-        // دالة عرض التعليقات (للاستخدام المستقبلي)
-        function showComments(productId) {
-            alert('ميزة التعليقات قيد التطوير');
+        // ===== نظام التعليقات والردود =====
+        
+        // عرض نافذة التعليقات
+        function showComments(productId, productName) {
+            currentProductForComments = productId;
+            document.getElementById('comments-title').textContent = `التعليقات والردود - ${productName}`;
+            document.getElementById('comments-modal').style.display = 'flex';
+            loadComments(productId);
+        }
+        
+        // إغلاق نافذة التعليقات
+        function closeCommentsModal() {
+            document.getElementById('comments-modal').style.display = 'none';
+            currentProductForComments = null;
+            document.getElementById('new-comment').value = '';
+        }
+        
+        // تحميل التعليقات والردود
+        function loadComments(productId) {
+            const commentsRef = database.ref(`comments/${productId}`);
+            const commentsList = document.getElementById('comments-list');
+            
+            commentsList.innerHTML = '<div class="loading">جاري تحميل التعليقات...</div>';
+            
+            commentsRef.once('value')
+                .then(snapshot => {
+                    commentsList.innerHTML = '';
+                    
+                    if (snapshot.exists()) {
+                        snapshot.forEach(childSnapshot => {
+                            const comment = childSnapshot.val();
+                            const commentId = childSnapshot.key;
+                            
+                            const commentItem = document.createElement('div');
+                            commentItem.className = 'comment-item';
+                            
+                            // تحميل الردود لهذا التعليق
+                            loadReplies(productId, commentId, commentItem);
+                            
+                            commentItem.innerHTML = `
+                                <div class="comment-header">
+                                    <div class="comment-author">${comment.authorName || 'مستخدم'}</div>
+                                    <div class="comment-date">${formatDate(comment.timestamp)}</div>
+                                </div>
+                                <div class="comment-text">${comment.text}</div>
+                                <div class="comment-actions">
+                                    <button class="btn" onclick="showReplyForm('${productId}', '${commentId}')">رد</button>
+                                </div>
+                                <div class="replies-container" id="replies-${productId}-${commentId}"></div>
+                            `;
+                            
+                            commentsList.appendChild(commentItem);
+                        });
+                    } else {
+                        commentsList.innerHTML = '<div class="message info">لا توجد تعليقات بعد</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading comments:', error);
+                    commentsList.innerHTML = '<div class="message error">حدث خطأ في تحميل التعليقات</div>';
+                });
+        }
+        
+        // تحميل الردود
+        function loadReplies(productId, commentId, commentItem) {
+            const repliesRef = database.ref(`comments/${productId}/${commentId}/replies`);
+            
+            repliesRef.once('value')
+                .then(snapshot => {
+                    const repliesContainer = commentItem.querySelector(`#replies-${productId}-${commentId}`);
+                    
+                    if (snapshot.exists()) {
+                        snapshot.forEach(childSnapshot => {
+                            const reply = childSnapshot.val();
+                            
+                            const replyItem = document.createElement('div');
+                            replyItem.className = 'reply-item';
+                            replyItem.innerHTML = `
+                                <div class="reply-header">
+                                    <div class="reply-author">${reply.authorName || 'مستخدم'}</div>
+                                    <div class="reply-date">${formatDate(reply.timestamp)}</div>
+                                </div>
+                                <div class="reply-text">${reply.text}</div>
+                            `;
+                            
+                            repliesContainer.appendChild(replyItem);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading replies:', error);
+                });
+        }
+        
+        // إضافة تعليق جديد
+        function addComment() {
+            const commentText = document.getElementById('new-comment').value.trim();
+            
+            if (!commentText) {
+                showToast('يرجى كتابة تعليق', 'warning');
+                return;
+            }
+            
+            if (!currentProductForComments) return;
+            
+            const commentId = generateUUID();
+            const timestamp = new Date().toISOString();
+            
+            const commentData = {
+                id: commentId,
+                text: commentText,
+                authorId: currentUser.id,
+                authorName: currentUser.name,
+                timestamp: timestamp
+            };
+            
+            const commentRef = database.ref(`comments/${currentProductForComments}/${commentId}`);
+            commentRef.set(commentData)
+                .then(() => {
+                    document.getElementById('new-comment').value = '';
+                    loadComments(currentProductForComments);
+                    showToast('تم إضافة التعليق بنجاح', 'success');
+                })
+                .catch(error => {
+                    console.error('Error adding comment:', error);
+                    showToast('حدث خطأ في إضافة التعليق', 'error');
+                });
+        }
+        
+        // إظهار نموذج الرد
+        function showReplyForm(productId, commentId) {
+            const commentItem = document.querySelector(`#replies-${productId}-${commentId}`).parentNode;
+            
+            // إزالة أي نموذج رد موجود مسبقاً
+            const existingForm = commentItem.querySelector('.reply-form');
+            if (existingForm) {
+                existingForm.remove();
+                return;
+            }
+            
+            const replyForm = document.createElement('div');
+            replyForm.className = 'reply-form';
+            replyForm.innerHTML = `
+                <div class="form-group">
+                    <textarea id="reply-text-${commentId}" placeholder="اكتب ردك هنا..."></textarea>
+                    <button class="btn" onclick="addReply('${productId}', '${commentId}')" style="margin-top: 10px;">إضافة رد</button>
+                </div>
+            `;
+            
+            commentItem.appendChild(replyForm);
+        }
+        
+        // إضافة رد جديد
+        function addReply(productId, commentId) {
+            const replyText = document.getElementById(`reply-text-${commentId}`).value.trim();
+            
+            if (!replyText) {
+                showToast('يرجى كتابة رد', 'warning');
+                return;
+            }
+            
+            const replyId = generateUUID();
+            const timestamp = new Date().toISOString();
+            
+            const replyData = {
+                id: replyId,
+                text: replyText,
+                authorId: currentUser.id,
+                authorName: currentUser.name,
+                timestamp: timestamp
+            };
+            
+            const replyRef = database.ref(`comments/${productId}/${commentId}/replies/${replyId}`);
+            replyRef.set(replyData)
+                .then(() => {
+                    // إزالة نموذج الرد
+                    const replyForm = document.querySelector(`#reply-text-${commentId}`).closest('.reply-form');
+                    if (replyForm) {
+                        replyForm.remove();
+                    }
+                    
+                    // إعادة تحميل التعليقات والردود
+                    loadComments(productId);
+                    showToast('تم إضافة الرد بنجاح', 'success');
+                })
+                .catch(error => {
+                    console.error('Error adding reply:', error);
+                    showToast('حدث خطأ في إضافة الرد', 'error');
+                });
+        }
+        
+        // تنسيق التاريخ
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('ar-SA', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
     </script>
 </body>
