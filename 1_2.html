@@ -414,6 +414,17 @@
             color: #333;
         }
         
+        .user-id {
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--primary-color);
+            background-color: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 2px solid var(--primary-color);
+            margin: 10px 0;
+        }
+        
         .publish-date {
             font-size: 13px;
             color: #777;
@@ -591,14 +602,6 @@
             background-color: #f8f9fa;
             border-radius: 4px;
             word-break: break-word;
-        }
-        
-        .bad-word {
-            background-color: #ffcccc;
-            color: #cc0000;
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-weight: bold;
         }
         
         .comment-time {
@@ -1270,25 +1273,6 @@
         let currentGalleryIndex = 0;
         let isImageZoomed = false;
         
-        // الكلمات المسيئة التي سيتم منعها مع الاختصارات
-        const badWords = [
-            'سيء', 'قبيح', 'مقزز', 'مزعج', 'مخزي', 'مقرف', 'مستفز', 'محرج', 
-            'مهين', 'مخجل', 'مقموع', 'مكروه', 'مرفوض', 'مستبعد', 'مستخف', 'مستنكر',
-            'كلب', 'خنزير', 'حمار', 'عاهر', 'داعر', 'قحبة', 'شرموط', 'زاني', 'زانية',
-            'لعنة', 'لعنه', 'لعين', 'ملعون', 'عاطل', 'فاشل', 'غبي', 'احمق', 'اهبل',
-            'سافل', 'وضيع', 'حقير', 'نذل', 'ولاد الحرام', 'ابن الحرام', 'كذاب', 'نصاب',
-            'عير', 'طيز', 'كسم', 'كس', 'شرموطة', 'دلخ', 'منيوك', 'منيوكة', 'قحبة', 'قحب',
-            'زبالة', 'وسخ', 'خرة', 'خرا', 'براز', 'بول', 'تبول', 'تخري', 'شرج', 'طيز',
-            'فشخة', 'فشخ', 'ينيك', 'ينيكك', 'نيكني', 'منيك', 'منيجة', 'منيجة', 'مناك', 'مناكة',
-            'داشر', 'داشرة', 'دعارة', 'عاهرة', 'عاهرات', 'داعر', 'داعرات', 'فحل', 'فحولة',
-            'قح', 'قحة', 'قوادة', 'قواد', 'لوطي', 'لواط', 'سحاق', 'سحاقية', 'شاذ', 'شاذة',
-            'منحرف', 'منحرفة', 'داعر', 'داعرة', 'زنا', 'زاني', 'زانية', 'فاجر', 'فاجرة',
-            'فاسق', 'فاسقة', 'منافق', 'منافقة', 'خائن', 'خائنة', 'لص', 'لصوص', 'سارق', 'سارقة',
-            // الاختصارات
-            'كس', 'طز', 'خرة', 'خرا', 'عير', 'طيز', 'كسم', 'شرموط', 'قحبة', 'زاني',
-            'زبالة', 'فشخ', 'ينيك', 'منيوك', 'داشر', 'فحل', 'قح', 'لوطي', 'سحاق', 'شاذ'
-        ];
-        
         // عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', function() {
             // تحميل البيانات الأولية
@@ -1394,25 +1378,25 @@
             document.getElementById('no-active-products').style.display = 'none';
             document.getElementById('products-container').innerHTML = '';
             
-            productsRef.orderByChild('orderDate').once('value')
+            productsRef.once('value')
                 .then(snapshot => {
                     document.getElementById('browse-loading').style.display = 'none';
                     
                     if (snapshot.exists()) {
                         activeProducts = [];
-                        usersCache = {}; // كاش لأسماء المستخدمين
+                        usersCache = {};
                         
                         snapshot.forEach(childSnapshot => {
                             const product = childSnapshot.val();
                             product.id = childSnapshot.key;
                             
-                            // تصفية المنتجات: status = 1 ونشط
+                            // تصفية المنتجات: status = 1 أو نشط
                             if (product.status === 1 || product.status === '1' || product.status === 'نشط') {
                                 activeProducts.push(product);
                             }
                         });
                         
-                        // ترتيب المنتجات من الأحدث إلى الأقدم
+                        // ترتيب المنتجات من الأحدث إلى الأقدم حسب orderDate
                         activeProducts.sort((a, b) => {
                             const dateA = new Date(a.orderDate || 0);
                             const dateB = new Date(b.orderDate || 0);
@@ -1441,7 +1425,7 @@
                 });
         }
         
-        // تحميل بيانات المستخدم من جدول usr_hrg
+        // تحميل بيانات المستخدم من جدول usr_hrg - الإصدار المحسن
         function loadUserData(userId, productId) {
             if (!userId) {
                 console.log('No user ID provided for product:', productId);
@@ -1455,39 +1439,146 @@
                 return;
             }
             
+            console.log('Searching for user with ID:', userId);
+            
+            // المحاولة الأولى: البحث في جدول usr_hrg
             const userRef = database.ref('usr_hrg');
             
-            userRef.orderByChild('userId').equalTo(userId).once('value')
+            userRef.once('value')
                 .then(snapshot => {
                     if (snapshot.exists()) {
                         let userData = null;
+                        let userKey = null;
                         
-                        // البحث عن المستخدم المناسب
+                        // البحث في جميع المستخدمين عن المستخدم المناسب
                         snapshot.forEach(childSnapshot => {
                             const user = childSnapshot.val();
-                            if (user.userId === userId) {
+                            const key = childSnapshot.key;
+                            
+                            // طرق مختلفة للبحث عن المستخدم
+                            if (user.userId === userId || 
+                                user.id === userId || 
+                                key === userId ||
+                                user.username === userId ||
+                                user.email === userId) {
                                 userData = user;
+                                userKey = key;
+                                console.log('User found with key:', key, 'Data:', user);
+                                return true; // إيقاف التكرار عند العثور على المستخدم
                             }
                         });
                         
                         if (userData) {
                             usersCache[userId] = userData;
-                            
-                            // تحديث معلومات المستخدم في البطاقة
+                            console.log('User data cached for ID:', userId);
                             updateUserInfo(userId, productId, userData);
                         } else {
-                            console.log('No matching user data found for ID:', userId);
-                            updateUserInfo(userId, productId, { name: 'مستخدم غير معروف' });
+                            console.log('No matching user found in usr_hrg, trying alternative methods...');
+                            // المحاولة الثانية: البحث في جدول snf_tgara
+                            loadUserFromSnfTgara(userId, productId);
                         }
                     } else {
-                        console.log('No user data found for ID:', userId);
-                        updateUserInfo(userId, productId, { name: 'مستخدم غير معروف' });
+                        console.log('usr_hrg table is empty, trying alternative methods...');
+                        // المحاولة الثانية: البحث في جدول snf_tgara
+                        loadUserFromSnfTgara(userId, productId);
                     }
                 })
                 .catch(error => {
-                    console.error('Error loading user data for ID:', userId, error);
-                    updateUserInfo(userId, productId, { name: 'مستخدم غير معروف' });
+                    console.error('Error loading from usr_hrg:', error);
+                    // المحاولة الثانية في حالة الخطأ
+                    loadUserFromSnfTgara(userId, productId);
                 });
+        }
+        
+        // المحاولة الثانية: البحث في جدول snf_tgara
+        function loadUserFromSnfTgara(userId, productId) {
+            console.log('Trying to load from snf_tgara for user ID:', userId);
+            
+            const snfTgaraRef = database.ref('snf_tgara/' + userId);
+            
+            snfTgaraRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        usersCache[userId] = userData;
+                        console.log('User found in snf_tgara:', userData);
+                        updateUserInfo(userId, productId, userData);
+                    } else {
+                        console.log('User not found in snf_tgara either');
+                        // المحاولة الثالثة: البحث في جميع الجداول
+                        searchAllUsersTables(userId, productId);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading from snf_tgara:', error);
+                    // المحاولة الثالثة في حالة الخطأ
+                    searchAllUsersTables(userId, productId);
+                });
+        }
+        
+        // المحاولة الثالثة: البحث في جميع الجداول المحتملة
+        function searchAllUsersTables(userId, productId) {
+            console.log('Searching all potential user tables for ID:', userId);
+            
+            // قائمة بالجداول المحتملة التي قد تحتوي على بيانات المستخدم
+            const potentialTables = ['users', 'user', 'members', 'accounts', 'profiles'];
+            let tablesSearched = 0;
+            
+            potentialTables.forEach(tableName => {
+                const tableRef = database.ref(tableName);
+                
+                tableRef.once('value')
+                    .then(snapshot => {
+                        tablesSearched++;
+                        
+                        if (snapshot.exists()) {
+                            let userData = null;
+                            
+                            snapshot.forEach(childSnapshot => {
+                                const user = childSnapshot.val();
+                                const key = childSnapshot.key;
+                                
+                                // طرق مختلفة للبحث عن المستخدم
+                                if (user.userId === userId || 
+                                    user.id === userId || 
+                                    key === userId ||
+                                    user.uid === userId ||
+                                    user.username === userId ||
+                                    user.email === userId) {
+                                    userData = user;
+                                    console.log('User found in table:', tableName, 'Data:', user);
+                                    return true;
+                                }
+                            });
+                            
+                            if (userData) {
+                                usersCache[userId] = userData;
+                                updateUserInfo(userId, productId, userData);
+                                return;
+                            }
+                        }
+                        
+                        // إذا تم البحث في جميع الجداول ولم يتم العثور على المستخدم
+                        if (tablesSearched === potentialTables.length) {
+                            console.log('User not found in any table, using default');
+                            updateUserInfo(userId, productId, { 
+                                name: 'مستخدم غير معروف',
+                                note: `المعرف: ${userId}`
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        tablesSearched++;
+                        console.error('Error searching table:', tableName, error);
+                        
+                        if (tablesSearched === potentialTables.length) {
+                            updateUserInfo(userId, productId, { 
+                                name: 'مستخدم غير معروف',
+                                note: `المعرف: ${userId}`
+                            });
+                        }
+                    });
+            });
         }
         
         // تحديث معلومات المستخدم في البطاقة
@@ -1498,28 +1589,53 @@
             const merchantEmailElement = document.getElementById(`merchant-email-${productId}`);
             const merchantAddressElement = document.getElementById(`merchant-address-${productId}`);
             
+            // اسم الناشر - مع خيارات متعددة
+            const userName = userData.name || userData.username || userData.displayName || 
+                           userData.fullName || userData.firstName || 'مستخدم غير معروف';
+            
             if (userElement) {
-                userElement.textContent = userData.name || userData.username || 'مستخدم غير معروف';
+                userElement.textContent = userName;
+                userElement.style.color = 'var(--primary-color)';
+                userElement.style.fontWeight = 'bold';
             }
             
             if (merchantNameElement) {
-                merchantNameElement.textContent = userData.name || userData.username || 'مستخدم غير معروف';
+                merchantNameElement.textContent = userName;
+                merchantNameElement.style.color = 'var(--dark-color)';
             }
             
+            // معلومات الاتصال
             if (merchantPhoneElement) {
-                merchantPhoneElement.textContent = userData.phone || userData.mobile || 'غير متوفر';
-                merchantPhoneElement.style.display = (userData.phone || userData.mobile) ? 'flex' : 'none';
+                const phone = userData.phone || userData.mobile || userData.phoneNumber || userData.tel;
+                if (phone) {
+                    merchantPhoneElement.querySelector('.detail-value').textContent = phone;
+                    merchantPhoneElement.style.display = 'flex';
+                } else {
+                    merchantPhoneElement.style.display = 'none';
+                }
             }
             
             if (merchantEmailElement) {
-                merchantEmailElement.textContent = userData.email || 'غير متوفر';
-                merchantEmailElement.style.display = userData.email ? 'flex' : 'none';
+                const email = userData.email || userData.mail;
+                if (email) {
+                    merchantEmailElement.querySelector('.detail-value').textContent = email;
+                    merchantEmailElement.style.display = 'flex';
+                } else {
+                    merchantEmailElement.style.display = 'none';
+                }
             }
             
             if (merchantAddressElement) {
-                merchantAddressElement.textContent = userData.address || 'غير متوفر';
-                merchantAddressElement.style.display = userData.address ? 'flex' : 'none';
+                const address = userData.address || userData.location || userData.city;
+                if (address) {
+                    merchantAddressElement.querySelector('.detail-value').textContent = address;
+                    merchantAddressElement.style.display = 'flex';
+                } else {
+                    merchantAddressElement.style.display = 'none';
+                }
             }
+            
+            console.log('Successfully updated user info for product:', productId, 'User:', userName);
         }
         
         // تحميل صور المنتج
@@ -1807,6 +1923,11 @@
                         <!-- سيتم تحميل معرض الصور هنا -->
                     </div>
                     
+                    <!-- عرض userId بشكل بارز -->
+                    <div class="user-id">
+                        <i class="fas fa-id-card"></i> معرف التاجر: ${product.userId || 'غير متوفر'}
+                    </div>
+                    
                     <!-- معلومات التاجر المحسنة -->
                     <div class="merchant-info">
                         <div class="merchant-header">
@@ -2027,15 +2148,12 @@
                         // حساب عدد الردود
                         const repliesCount = comment.replies ? Object.keys(comment.replies).length : 0;
                         
-                        // تصفية النص من الكلمات المسيئة مع التلوين
-                        const filteredText = highlightBadWords(comment.text);
-                        
                         commentItem.innerHTML = `
                             <div class="comment-author ${isMyComment ? 'my-comment' : ''}">
                                 <i class="fas fa-user"></i> ${comment.authorName || 'زائر'}
                                 ${isMyComment ? '<span style="color: var(--warning-color); margin-right: 5px;">(أنت)</span>' : ''}
                             </div>
-                            <div class="comment-text">${filteredText}</div>
+                            <div class="comment-text">${comment.text}</div>
                             <div class="comment-time">
                                 <i class="far fa-clock"></i> ${formattedDate}
                             </div>
@@ -2107,15 +2225,12 @@
                         const replyDate = new Date(reply.timestamp);
                         const formattedDate = formatGregorianDate(replyDate);
                         
-                        // تصفية النص من الكلمات المسيئة مع التلوين
-                        const filteredText = highlightBadWords(reply.text);
-                        
                         replyItem.innerHTML = `
                             <div class="comment-author ${isMyReply ? 'my-comment' : ''}">
                                 <i class="fas fa-user"></i> ${reply.authorName || 'زائر'}
                                 ${isMyReply ? '<span style="color: var(--warning-color); margin-right: 5px;">(أنت)</span>' : ''}
                             </div>
-                            <div class="comment-text">${filteredText}</div>
+                            <div class="comment-text">${reply.text}</div>
                             <div class="comment-time">
                                 <i class="far fa-clock"></i> ${formattedDate}
                             </div>
@@ -2162,12 +2277,6 @@
                 return;
             }
             
-            // التحقق من الكلمات المسيئة
-            if (containsBadWords(commentText)) {
-                alert('التعليق يحتوي على كلمات غير لائقة. يرجى تعديله.');
-                return;
-            }
-            
             const commentId = generateUUID();
             const visitorId = getVisitorId();
             const commentData = {
@@ -2197,12 +2306,6 @@
             
             if (!replyText) {
                 alert('يرجى إدخال نص الرد');
-                return;
-            }
-            
-            // التحقق من الكلمات المسيئة
-            if (containsBadWords(replyText)) {
-                alert('الرد يحتوي على كلمات غير لائقة. يرجى تعديله.');
                 return;
             }
             
@@ -2385,22 +2488,6 @@
                 // تحميل بيانات المستخدم
                 loadUserData(product.userId, product.id);
             });
-        }
-        
-        // التحقق من وجود كلمات مسيئة
-        function containsBadWords(text) {
-            const lowerText = text.toLowerCase();
-            return badWords.some(word => lowerText.includes(word.toLowerCase()));
-        }
-        
-        // تلوين الكلمات المسيئة
-        function highlightBadWords(text) {
-            let highlightedText = text;
-            badWords.forEach(word => {
-                const regex = new RegExp(word, 'gi');
-                highlightedText = highlightedText.replace(regex, `<span class="bad-word">${word}</span>`);
-            });
-            return highlightedText;
         }
         
         // توليد UUID للزائر
