@@ -1567,7 +1567,7 @@
                 <!-- عدد المتصلين في الشريط العلوي - تم تعديل موقعه -->
                 <div class="header-online-users" id="header-online-users">
                     <i class="fas fa-users"></i>
-                    <span id="header-users-count">0</span> متصل الآن
+                    <span id="header-users-count">132</span> متصل الآن
                 </div>
 
                 <!-- زر المفضلة في الشريط العلوي - تم تعديل موقعه -->
@@ -1690,7 +1690,7 @@
             <!-- تم إخفاء عدد المتصلين من الفوتر -->
             <div class="online-users" id="online-users" style="display: none;">
                 <i class="fas fa-users"></i>
-                <span id="users-count">0</span> موجد الآن
+                <span id="users-count">132</span> موجد الآن
             </div>
         </div>
     </footer>
@@ -1728,6 +1728,10 @@
         let showFavoritesOnly = false;
         let isCommentsOpen = false;
         let onlineUsersCount = 0;
+        
+        // القيمة الافتراضية للمستخدمين المتصلين
+        const DEFAULT_ONLINE_USERS = 132;
+        let onlineUsersUpdateInterval = null;
 
         // متغيرات نظام تتبع المستخدمين المتصلين
         let currentUserId = null;
@@ -1776,19 +1780,22 @@
             // 1. إظهار شاشة التحميل
             showLoadingScreen();
             
-            // 2. تهيئة نظام تتبع المستخدمين المتصلين أولاً
+            // 2. تعيين القيمة الافتراضية للمستخدمين المتصلين
+            updateOnlineUsersCount(0);
+            
+            // 3. تهيئة نظام تتبع المستخدمين المتصلين أولاً
             initializeUserPresence();
             
-            // 3. تهيئة التعرف الصوتي
+            // 4. تهيئة التعرف الصوتي
             initializeSpeechRecognition();
             
-            // 4. تهيئة التطبيق
+            // 5. تهيئة التطبيق
             initializeApp();
             
-            // 5. إعداد مستمعي الأحداث
+            // 6. إعداد مستمعي الأحداث
             setupEventListeners();
             
-            // 6. تحميل البيانات
+            // 7. تحميل البيانات
             loadAllData().then(() => {
                 checkUrlForProduct();
                 displayPersonalizedProducts();
@@ -1799,8 +1806,11 @@
                 hideLoadingScreen();
             });
             
-            // 7. بدء تحديث المنتجات الجديدة تلقائياً
+            // 8. بدء تحديث المنتجات الجديدة تلقائياً
             startAutoUpdate();
+            
+            // 9. بدء التحديث المتكرر للمستخدمين المتصلين
+            startOnlineUsersUpdate();
         });
 
         // ==========================================
@@ -1862,7 +1872,7 @@
                 
                 console.log('👥 عدد المستخدمين المتصلين:', userCount);
                 
-                // تحديث العداد في الواجهة
+                // تحديث العداد في الواجهة مع إضافة القيمة الافتراضية
                 updateOnlineUsersCount(userCount);
                 
                 // تنظيف المستخدمين غير النشطين (أكثر من 5 دقائق)
@@ -1881,8 +1891,12 @@
 
         function updateOnlineUsersCount(count) {
             onlineUsersCount = count;
-            usersCountEl.textContent = count;
-            headerUsersCountEl.textContent = count;
+            
+            // حساب المجموع الكلي (القيمة الافتراضية + المستخدمين المتصلين فعلياً)
+            const totalUsers = DEFAULT_ONLINE_USERS + count;
+            
+            usersCountEl.textContent = totalUsers;
+            headerUsersCountEl.textContent = totalUsers;
             
             // إضافة تأثير عند تغيير العدد
             if (count > 0) {
@@ -1894,7 +1908,48 @@
             
             // عرض إشعار عند دخول مستخدم جديد (إذا كان العدد أكبر من 1)
             if (count > 1 && count !== onlineUsersCount) {
-                showNotification(`مستخدم جديد انضم إلى الصفحة! (${count} متصلين الآن)`, 'info');
+                showNotification(`مستخدم جديد انضم إلى الصفحة! (${totalUsers} متصلين الآن)`, 'info');
+            }
+        }
+
+        // ==========================================
+        // 🔄 نظام التحديث المتكرر للمستخدمين المتصلين
+        // ==========================================
+        function startOnlineUsersUpdate() {
+            // تحديث عدد المستخدمين المتصلين كل 10 ثواني
+            onlineUsersUpdateInterval = setInterval(() => {
+                forceOnlineUsersUpdate();
+            }, 10000); // 10 ثواني
+        }
+
+        function forceOnlineUsersUpdate() {
+            // تحديث وقت المستخدم الحالي للتأكد من أنه لا يزال متصلاً
+            if (userPresenceRef) {
+                userPresenceRef.update({
+                    lastOnline: firebase.database.ServerValue.TIMESTAMP
+                }).then(() => {
+                    console.log('🔄 تم تحديث حالة المستخدم:', currentUserId);
+                }).catch(error => {
+                    console.error('❌ خطأ في تحديث حالة المستخدم:', error);
+                });
+            }
+            
+            // إعادة تحميل عدد المستخدمين المتصلين
+            if (onlineUsersRef) {
+                onlineUsersRef.once('value').then(snapshot => {
+                    const users = snapshot.val();
+                    const userCount = users ? Object.keys(users).length : 0;
+                    
+                    console.log('🔄 التحديث المتكرر - عدد المستخدمين المتصلين:', userCount);
+                    
+                    // تحديث العداد في الواجهة مع إضافة القيمة الافتراضية
+                    updateOnlineUsersCount(userCount);
+                    
+                    // تنظيف المستخدمين غير النشطين
+                    cleanupInactiveUsers(users);
+                }).catch(error => {
+                    console.error('❌ خطأ في التحديث المتكرر للمستخدمين:', error);
+                });
             }
         }
 
