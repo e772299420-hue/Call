@@ -124,6 +124,23 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .header-online-users:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .header-online-users.active {
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
 
         /* زر المفضلة في الشريط العلوي - تم تعديل موقعه */
@@ -1535,7 +1552,7 @@
                 <!-- عدد المتصلين في الشريط العلوي - تم تعديل موقعه -->
                 <div class="header-online-users" id="header-online-users">
                     <i class="fas fa-users"></i>
-                    <span id="header-users-count">158</span> متصل الآن
+                    <span id="header-users-count">0</span> متصل الآن
                 </div>
 
                 <!-- زر المفضلة في الشريط العلوي - تم تعديل موقعه -->
@@ -1658,7 +1675,7 @@
             <!-- تم إخفاء عدد المتصلين من الفوتر -->
             <div class="online-users" id="online-users" style="display: none;">
                 <i class="fas fa-users"></i>
-                <span id="users-count">158</span> موجد الآن
+                <span id="users-count">0</span> موجد الآن
             </div>
         </div>
     </footer>
@@ -1695,7 +1712,13 @@
         let userInterests = JSON.parse(localStorage.getItem('userInterests')) || {};
         let showFavoritesOnly = false;
         let isCommentsOpen = false;
-        let onlineUsersCount = 158; // تم إصلاح العدد إلى 158
+        let onlineUsersCount = 150;
+
+        // متغيرات نظام تتبع المستخدمين المتصلين
+        let currentUserId = null;
+        let onlineUsersRef = null;
+        let userPresenceRef = null;
+        let connectedRef = null;
 
         // متغيرات معرض الصور
         let galleryImages = [];
@@ -1723,6 +1746,7 @@
         const headerUsersCountEl = document.getElementById('header-users-count');
         const voiceSearchBtn = document.getElementById('voice-search-btn');
         const headerFavoritesBtn = document.getElementById('header-favorites');
+        const headerOnlineUsersEl = document.getElementById('header-online-users');
 
         // ==========================================
         // 🎯 بدء التطبيق - الترتيب الصحيح
@@ -1732,25 +1756,119 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🏁 بدء تحميل التطبيق...');
             
-            // 1. تهيئة التعرف الصوتي
+            // 1. تهيئة نظام تتبع المستخدمين المتصلين أولاً
+            initializeUserPresence();
+            
+            // 2. تهيئة التعرف الصوتي
             initializeSpeechRecognition();
             
-            // 2. تهيئة التطبيق
+            // 3. تهيئة التطبيق
             initializeApp();
             
-            // 3. إعداد مستمعي الأحداث
+            // 4. إعداد مستمعي الأحداث
             setupEventListeners();
             
-            // 4. تحميل البيانات
+            // 5. تحميل البيانات
             loadAllData().then(() => {
                 checkUrlForProduct();
                 displayPersonalizedProducts();
                 console.log('🎉 تم تحميل التطبيق بالكامل بنجاح');
             });
             
-            // 5. بدء تحديث المنتجات الجديدة تلقائياً
+            // 6. بدء تحديث المنتجات الجديدة تلقائياً
             startAutoUpdate();
         });
+
+        // ==========================================
+        // 👥 نظام تتبع المستخدمين المتصلين - تم الإصلاح بالكامل
+        // ==========================================
+        function initializeUserPresence() {
+            // إنشاء معرف فريد للمستخدم
+            currentUserId = generateUserId();
+            console.log('🆔 معرف المستخدم الحالي:', currentUserId);
+            
+            // إنشاء مرجع لبيانات المستخدم المتصل
+            userPresenceRef = db.ref('online_users/' + currentUserId);
+            onlineUsersRef = db.ref('online_users');
+            connectedRef = db.ref('.info/connected');
+            
+            // مراقبة حالة الاتصال
+            connectedRef.on('value', function(snap) {
+                if (snap.val() === true) {
+                    // المستخدم متصل - إضافة/تحديث بياناته
+                    userPresenceRef.onDisconnect().remove();
+                    userPresenceRef.set({
+                        id: currentUserId,
+                        name: 'مستخدم ' + currentUserId.substring(0, 6),
+                        lastOnline: firebase.database.ServerValue.TIMESTAMP,
+                        joinedAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                    
+                    console.log('✅ تم تسجيل دخول المستخدم:', currentUserId);
+                } else {
+                    console.log('❌ المستخدم غير متصل');
+                }
+            });
+            
+            // مراقبة التغييرات في قائمة المستخدمين المتصلين
+            onlineUsersRef.on('value', function(snapshot) {
+                const users = snapshot.val();
+                const userCount = users ? Object.keys(users).length : ;
+                
+                console.log('👥 عدد المستخدمين المتصلين:', userCount);
+                
+                // تحديث العداد في الواجهة
+                updateOnlineUsersCount(userCount);
+                
+                // تنظيف المستخدمين غير النشطين (أكثر من 5 دقائق)
+                cleanupInactiveUsers(users);
+            });
+        }
+
+        function generateUserId() {
+            let userId = localStorage.getItem('userId');
+            if (!userId) {
+                userId = 'user_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('userId', userId);
+            }
+            return userId;
+        }
+
+        function updateOnlineUsersCount(count) {
+            onlineUsersCount = count;
+            usersCountEl.textContent = count;
+            headerUsersCountEl.textContent = count;
+            
+            // إضافة تأثير عند تغيير العدد
+            if (count > 0) {
+                headerOnlineUsersEl.classList.add('active');
+                setTimeout(() => {
+                    headerOnlineUsersEl.classList.remove('active');
+                }, 2000);
+            }
+            
+            // عرض إشعار عند دخول مستخدم جديد (إذا كان العدد أكبر من 1)
+            if (count > 1 && count !== onlineUsersCount) {
+                showNotification(`مستخدم جديد انضم إلى الصفحة! (${count} متصلين الآن)`, 'info');
+            }
+        }
+
+        function cleanupInactiveUsers(users) {
+            if (!users) return;
+            
+            const now = Date.now();
+            const FIVE_MINUTES = 5 * 60 * 1000; // 5 دقائق
+            
+            Object.keys(users).forEach(userId => {
+                const user = users[userId];
+                if (user.lastOnline && (now - user.lastOnline) > FIVE_MINUTES) {
+                    // حذف المستخدم غير النشط
+                    db.ref('online_users/' + userId).remove()
+                        .then(() => console.log('🧹 تم تنظيف مستخدم غير نشط:', userId))
+                        .catch(err => console.error('خطأ في تنظيف المستخدم:', err));
+                }
+            });
+        }
 
         // ==========================================
         // 🎤 تهيئة نظام التعرف الصوتي - تم الإصلاح
@@ -1868,9 +1986,6 @@
             
             // إخفاء شريط الفلاتر افتراضياً
             hideFilterBar();
-            
-            // تحديث عدد المتصلين
-            updateOnlineUsersCount();
         }
 
         function setupEventListeners() {
@@ -3323,16 +3438,6 @@
             } catch (error) {
                 console.error('خطأ في التحقق من المنتجات الجديدة:', error);
             }
-        }
-
-        // ==========================================
-        // 👥 نظام تحديث عدد المستخدمين المتصلين - تم الإصلاح
-        // ==========================================
-        function updateOnlineUsersCount() {
-            // تم إصلاح العدد إلى 158
-            onlineUsersCount = 158;
-            usersCountEl.textContent = onlineUsersCount;
-            headerUsersCountEl.textContent = onlineUsersCount;
         }
 
         // اتصال الشبكة
