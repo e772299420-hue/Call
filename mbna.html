@@ -1,0 +1,2616 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة العقارات</title>
+    <!-- ربط Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* الشريط العلوي */
+        header {
+            background: #357abd;
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-left: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .site-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        .site-subtitle {
+            font-size: 1rem;
+            color: #ff0000;
+            margin-top: 5px;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .page-title {
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        /* شاشة تسجيل الدخول */
+        #login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .login-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .login-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .login-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .login-tab.active {
+            border-bottom: 3px solid #2c3e50;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .login-form {
+            display: none;
+        }
+        
+        .login-form.active {
+            display: block;
+        }
+        
+        .password-container {
+            position: relative;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .remember-me input {
+            width: auto;
+            margin-left: 8px;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .close-btn:hover {
+            background: #c0392b;
+        }
+        
+        /* التبويبات */
+        .tabs {
+            display: flex;
+            margin: 20px 0;
+            border-bottom: 2px solid #ddd;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-left: 5px;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background-color: #fff;
+            border-bottom: 2px solid #fff;
+            margin-bottom: -2px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .tab-content {
+            display: none;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* نماذج الإدخال */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #4a6580;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(74, 101, 128, 0.2);
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #4a6580;
+        }
+        
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .btn-delete {
+            background-color: #e74c3c;
+        }
+        
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-edit {
+            background-color: #f39c12;
+        }
+        
+        .btn-edit:hover {
+            background-color: #d35400;
+        }
+        
+        .btn-comments {
+            background-color: #3498db;
+        }
+        
+        .btn-comments:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-sold {
+            background-color: #9b59b6;
+        }
+        
+        .btn-sold:hover {
+            background-color: #8e44ad;
+        }
+        
+        .btn-logout {
+            background-color: #7f8c8d;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        .btn-logout:hover {
+            background-color: #636e72;
+        }
+        
+        /* عرض المنتجات الجديد */
+        .products-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+        }
+        
+        .product-field {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .field-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .field-value {
+            color: #333;
+        }
+        
+        .product-images {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .product-actions .btn {
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        /* حالة التحميل والرسائل */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .user-info {
+            background-color: #e8f4fd;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .user-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* معاينة الصور */
+        .image-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .preview-image {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+        
+        .preview-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        
+        .remove-image {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        /* نافذة تأكيد البيع */
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .confirm-container {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .confirm-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        /* أنماط رفع الصور إلى Google Drive */
+        .image-upload-section {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+            background: #f8fafc;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .image-upload-section:hover {
+            border-color: #4a6580;
+            background: #f1f5f9;
+        }
+        
+        .upload-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px auto 0;
+        }
+        
+        .upload-btn:hover {
+            background: #219653;
+            transform: translateY(-2px);
+        }
+        
+        .upload-progress {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #4a6580, #357abd);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            color: #3498db;
+            font-weight: 500;
+            font-size: 14px;
+            display: block;
+        }
+        
+        .uploaded-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        
+        .uploaded-image-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .uploaded-image {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 3px solid white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .uploaded-image:hover {
+            transform: scale(1.05);
+        }
+        
+        /* إشعار الرفع */
+        .upload-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1001;
+            text-align: center;
+            border: 3px solid #357abd;
+            display: none;
+            max-width: 90%;
+            width: 400px;
+        }
+        
+        .upload-notification i {
+            font-size: 3rem;
+            color: #357abd;
+            margin-bottom: 15px;
+        }
+        
+        .upload-notification p {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .upload-notification .loading-text {
+            color: #357abd;
+            font-weight: 600;
+        }
+        
+        /* نافذة عرض الصورة */
+        .image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1002;
+            display: none;
+        }
+        
+        .modal-content {
+            max-width: 95%;
+            max-height: 95%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .modal-image {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            color: #ccc;
+        }
+        
+        .modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5rem;
+            z-index: 10;
+        }
+        
+        .modal-nav.prev {
+            left: 20px;
+        }
+        
+        .modal-nav.next {
+            right: 20px;
+        }
+        
+        .modal-counter {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 1rem;
+        }
+        
+        /* تبويب بياناتي */
+        .profile-card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .profile-field {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .profile-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .profile-value {
+            color: #333;
+        }
+        
+        .phone-visibility {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .phone-visibility input {
+            width: auto;
+        }
+        
+        /* نافذة التعليقات */
+        .comments-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .comments-container {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .comments-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .comments-list {
+            margin-bottom: 20px;
+        }
+        
+        .comment-item {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+        }
+        
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .comment-author {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .comment-date {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .comment-text {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .comment-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .comment-actions .btn {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .reply-form {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ddd;
+        }
+        
+        .reply-item {
+            background: #f0f0f0;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            margin-right: 20px;
+        }
+        
+        .reply-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .reply-author {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+        
+        .reply-date {
+            color: #7f8c8d;
+            font-size: 0.8rem;
+        }
+        
+        .reply-text {
+            color: #333;
+            font-size: 0.9rem;
+        }
+        
+        /* التكيف مع الشاشات الصغيرة */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .logo-container {
+                margin-bottom: 10px;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                margin: 5px 0;
+                border-radius: 5px;
+            }
+            
+            .product-actions {
+                flex-direction: column;
+            }
+            
+            .confirm-buttons {
+                flex-direction: column;
+            }
+            
+            .uploaded-image {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .modal-nav {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+            
+            .comments-container {
+                width: 95%;
+                padding: 15px;
+            }
+            
+            .comment-header {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .comment-actions {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen">
+        <div class="login-container">
+            <button class="close-btn" onclick="closePage()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="login-tabs">
+                <div class="login-tab active" id="login-tab-btn">تسجيل الدخول</div>
+                <div class="login-tab" id="register-tab-btn">إنشاء حساب</div>
+            </div>
+            
+            <form id="login-form" class="login-form active">
+                <div class="form-group">
+                    <label for="login-phone" class="required">رقم الجوال</label>
+                    <input type="tel" id="login-phone" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password" class="required">كلمة المرور</label>
+                    <div class="password-container">
+                        <input type="password" id="login-password" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('login-password')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="remember-me">
+                    <input type="checkbox" id="remember-me">
+                    <label for="remember-me">تذكر بياناتي</label>
+                </div>
+                
+                <button type="submit" class="btn">تسجيل الدخول</button>
+                <div id="login-message" class="message" style="display: none;"></div>
+            </form>
+            
+            <form id="register-form" class="login-form">
+                <div class="form-group">
+                    <label for="register-name" class="required">الاسم الكامل</label>
+                    <input type="text" id="register-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-phone" class="required">رقم الجوال (9 أرقام)</label>
+                    <input type="tel" id="register-phone" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-password" class="required">كلمة المرور</label>
+                    <div class="password-container">
+                        <input type="password" id="register-password" required minlength="6">
+                        <button type="button" class="toggle-password" onclick="togglePassword('register-password')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-confirm-password" class="required">تأكيد كلمة المرور</label>
+                    <div class="password-container">
+                        <input type="password" id="register-confirm-password" required minlength="6">
+                        <button type="button" class="toggle-password" onclick="togglePassword('register-confirm-password')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn">إنشاء حساب</button>
+                <div id="register-message" class="message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- الشريط العلوي -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <div class="logo">
+                    <img src="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true" alt="شعار AZ السوق الشامل">
+                </div>
+                <div>
+                    <h1 class="site-name">AZ السوق الشامل</h1>
+                    <div class="site-subtitle">لتلبية احتياجك بالكامل</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container" id="main-content" style="display: none;">
+        <div class="page-header">
+            <h2 class="page-title">منتجات قسم العقارات</h2>
+            <button id="logout-btn" class="btn btn-logout">تسجيل الخروج</button>
+        </div>
+        
+        <!-- معلومات المستخدم -->
+        <div class="user-info" id="user-info">
+            جاري تحميل معلومات المستخدم...
+        </div>
+        
+        <!-- رسالة حالة المستخدم -->
+        <div id="user-status-message" class="message warning" style="display: none;">
+            لقد تم توقيف المستخدم الحالي بسبب ما، يرجى التواصل مع إدارة المميز سوفت لتزويدكم بالمعلومات
+        </div>
+        
+        <!-- التبويبات -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('add')">إضافة عقار</div>
+            <div class="tab" onclick="switchTab('view')">عرض العقارات</div>
+            <div class="tab" onclick="switchTab('profile')">بياناتي</div>
+        </div>
+        
+        <!-- تبويب الإضافة -->
+        <div id="add-tab" class="tab-content active">
+            <form id="product-form">
+                <div class="form-group">
+                    <label for="governorate" class="required">المحافظة</label>
+                    <select id="governorate" required onchange="loadRegions(this.value)">
+                        <option value="">اختر المحافظة</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="region" class="required">المنطقة</label>
+                    <select id="region" required disabled>
+                        <option value="">اختر المنطقة</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="condition" class="required">نوع العقار</label>
+                    <select id="condition" required>
+                        <option value="أراضي">أراضي</option>
+                        <option value="منازل">منازل</option>
+                        <option value="شقق">شقق</option>
+                        <option value="محلات">محلات</option>
+                        <option value="مزارع">مزارع</option>
+                        <option value="مخازن">مخازن</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="requestType" class="required">نوع الطلب</label>
+                    <select id="requestType" required>
+                        <option value="بيع">بيع</option>
+                        <option value="شراء">شراء</option>
+                        <option value="ايجار">إيجار</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="productName" class="required">اسم العقار</label>
+                    <input type="text" id="productName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="specifications">مواصفات العقار (اختياري)</label>
+                    <textarea id="specifications" placeholder="مثال: 3 غرف نوم، 2 حمام، 200 متر مربع..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address">عنوان العقار (اختياري)</label>
+                    <input type="text" id="address">
+                </div>
+                
+                <!-- قسم رفع الصور إلى Google Drive -->
+                <div class="form-group">
+                    <label for="productImages">صور العقار (اختياري)</label>
+                    <div class="image-upload-section">
+                        <p>اسحب الصور هنا أو انقر لاختيارها</p>
+                        <input type="file" id="productImages" accept="image/*" multiple style="display: none;">
+                        <button type="button" class="upload-btn" onclick="document.getElementById('productImages').click()">
+                            <i class="fas fa-upload"></i> رفع الصور
+                        </button>
+                        <div class="upload-progress" id="upload-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <span class="progress-text" id="progress-text">جاري رفع الصور...</span>
+                        </div>
+                        <div class="uploaded-images" id="uploaded-images"></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="price" class="required">السعر</label>
+                    <input type="number" id="price" required min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="status" class="required">حالة العقار</label>
+                    <select id="status" required>
+                        <option value="نشط">نشط</option>
+                        <option value="موقف">موقف</option>
+                    </select>
+                </div>
+                
+                <input type="hidden" id="productId">
+                <input type="hidden" id="orderDate">
+                <input type="hidden" id="userId">
+                
+                <button type="submit" class="btn" id="save-product-btn">حفظ العقار</button>
+                <button type="button" class="btn" onclick="resetForm()" style="background-color: #95a5a6;">إلغاء</button>
+            </form>
+        </div>
+        
+        <!-- تبويب العرض -->
+        <div id="view-tab" class="tab-content">
+            <div id="loading" class="loading">جاري تحميل البيانات...</div>
+            <div id="no-products" class="message" style="display: none;">لا توجد عقارات لعرضها</div>
+            <div class="products-container" id="products-container" style="display: none;">
+                <!-- سيتم ملء هذا القسم بالعقارات -->
+            </div>
+        </div>
+        
+        <!-- تبويب بياناتي -->
+        <div id="profile-tab" class="tab-content">
+            <div class="profile-card">
+                <div class="profile-field">
+                    <div class="profile-label">الاسم الكامل</div>
+                    <div class="profile-value" id="profile-name"></div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">رقم الجوال</div>
+                    <div class="profile-value" id="profile-phone"></div>
+                    <div class="phone-visibility">
+                        <input type="checkbox" id="profile-phone-visibility" value="1">
+                        <label for="profile-phone-visibility" id="phone-visibility-label">عرض رقم الجوال للآخرين</label>
+                    </div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">تاريخ التسجيل</div>
+                    <div class="profile-value" id="profile-created"></div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">حالة الحساب</div>
+                    <div class="profile-value" id="profile-status"></div>
+                </div>
+                
+                <button class="btn btn-edit" onclick="editProfile()">تعديل البيانات</button>
+            </div>
+            
+            <!-- نموذج تعديل البيانات -->
+            <div class="profile-card" id="profile-edit-form" style="display: none; margin-top: 20px;">
+                <h3 style="margin-bottom: 20px;">تعديل البيانات الشخصية</h3>
+                <form id="update-profile-form">
+                    <div class="form-group">
+                        <label for="edit-name" class="required">الاسم الكامل</label>
+                        <input type="text" id="edit-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-phone" class="required">رقم الجوال</label>
+                        <input type="tel" id="edit-phone" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="phone-visibility">
+                            <input type="checkbox" id="edit-phone-visibility" value="1">
+                            <label for="edit-phone-visibility">عرض رقم الجوال للآخرين</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-password">كلمة المرور الجديدة (اتركها فارغة إذا لم ترد التغيير)</label>
+                        <div class="password-container">
+                            <input type="password" id="edit-password">
+                            <button type="button" class="toggle-password" onclick="togglePassword('edit-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn">حفظ التعديلات</button>
+                    <button type="button" class="btn" onclick="cancelEditProfile()" style="background-color: #95a5a6;">إلغاء</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تأكيد البيع -->
+    <div class="confirm-modal" id="confirm-sold-modal">
+        <div class="confirm-container">
+            <h3>تأكيد عملية البيع</h3>
+            <p id="confirm-message">هل تمت عملية المتاجرة بالمحتوى؟</p>
+            <div class="confirm-buttons">
+                <button class="btn btn-sold" onclick="confirmSold()">نعم</button>
+                <button class="btn" style="background-color: #95a5a6;" onclick="closeConfirmSold()">لا</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة التعليقات -->
+    <div class="comments-modal" id="comments-modal">
+        <div class="comments-container">
+            <div class="comments-header">
+                <h3 id="comments-title">التعليقات والردود</h3>
+                <button class="btn" onclick="closeCommentsModal()">إغلاق</button>
+            </div>
+            
+            <div id="comments-list" class="comments-list">
+                <!-- سيتم ملء هذا القسم بالتعليقات -->
+            </div>
+            
+            <div class="form-group">
+                <label for="new-comment">إضافة تعليق جديد</label>
+                <textarea id="new-comment" placeholder="اكتب تعليقك هنا..."></textarea>
+                <button class="btn" onclick="addComment()" style="margin-top: 10px;">إضافة تعليق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- إشعار الرفع -->
+    <div class="upload-notification" id="upload-notification">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p class="loading-text">جاري رفع الصورة إلى موقع المتجر</p>
+        <p>الرجاء الانتظار حتى يتم رفع الصورة</p>
+        <p>سنخبرك عند اكتمال الرفع</p>
+    </div>
+
+    <!-- نافذة عرض الصورة -->
+    <div class="image-modal" id="image-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+            <button class="modal-nav prev" id="modal-prev">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="modal-nav next" id="modal-next">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="modal-counter" id="modal-counter"></div>
+            <img class="modal-image" id="modal-image" src="" alt="صورة مكبرة">
+        </div>
+    </div>
+
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAub8yG87hhzVoZxflqpB_smvTFNpRY-Xw",
+            authDomain: "chat-fat-free.firebaseapp.com",
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/",
+            projectId: "chat-fat-free",
+            storageBucket: "chat-fat-free.appspot.com",
+            messagingSenderId: "888827487238",
+            appId: "1:888827238:web:6660cd0e8b7831dff40f87"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // عناصر DOM
+        let currentUser = null;
+        let currentEditingProduct = null;
+        let governoratesData = {};
+        let userStatus = "نشط";
+        let selectedImages = [];
+        let currentProductToMarkAsSold = null;
+        let currentProductForComments = null;
+
+        // إعدادات Google Drive API
+        const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms';
+        const DRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbwk7cLtyeG1lC--OUvfHJB8VQHccabTjPxbWbEmFjqQPbRxOrOGvMpjncFk2R9r8RNL/exec';
+
+        // متغيرات نظام رفع الصور
+        let uploadedImageUrls = [];
+        let currentModalImages = [];
+        let currentModalIndex = 0;
+
+        // عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // التحقق من وجود مستخدم مسجل مسبقاً
+            checkLoggedInUser();
+            
+            // إعداد مستمعين لأزرار التبويب في تسجيل الدخول
+            document.getElementById('login-tab-btn').addEventListener('click', function() {
+                switchLoginTab('login');
+            });
+            
+            document.getElementById('register-tab-btn').addEventListener('click', function() {
+                switchLoginTab('register');
+            });
+            
+            // إعداد مستمعي النماذج
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('product-form').addEventListener('submit', handleFormSubmit);
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            document.getElementById('update-profile-form').addEventListener('submit', handleProfileUpdate);
+            
+            // إعداد مستمع لرفع الصور
+            document.getElementById('productImages').addEventListener('change', handleImageSelection);
+            
+            // تحميل المنتجات عند فتح تبويب العرض
+            document.querySelector('.tab[onclick="switchTab(\'view\')"]').addEventListener('click', function() {
+                loadUserProducts();
+            });
+            
+            // إعداد إغلاق نافذة الصورة
+            document.getElementById('modal-close').addEventListener('click', function() {
+                document.getElementById('image-modal').style.display = 'none';
+            });
+            
+            // إغلاق نافذة الصورة عند النقر خارجها
+            document.getElementById('image-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+            
+            // إغلاق نافذة التعليقات عند النقر خارجها
+            document.getElementById('comments-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeCommentsModal();
+                }
+            });
+            
+            // تحميل بيانات التذكر إذا كانت موجودة
+            loadRememberedData();
+        });
+
+        // إغلاق الصفحة
+        function closePage() {
+            if (confirm('هل تريد إغلاق الصفحة؟')) {
+                window.close();
+            }
+        }
+        
+        // التحقق من وجود مستخدم مسجل مسبقاً
+        function checkLoggedInUser() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    showMainContent();
+                } catch (error) {
+                    console.error('Error parsing saved user data:', error);
+                    localStorage.removeItem('currentUser');
+                    showLoginScreen();
+                }
+            } else {
+                showLoginScreen();
+            }
+        }
+        
+        // إظهار شاشة تسجيل الدخول
+        function showLoginScreen() {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('main-content').style.display = 'none';
+        }
+        
+        // إخفاء شاشة تسجيل الدخول
+        function hideLoginScreen() {
+            document.getElementById('login-screen').style.display = 'none';
+        }
+        
+        // تحميل بيانات التذكر
+        function loadRememberedData() {
+            const remembered = localStorage.getItem('rememberLogin');
+            if (remembered === '1') {
+                document.getElementById('login-phone').value = localStorage.getItem('savedPhone') || '';
+                document.getElementById('login-password').value = localStorage.getItem('savedPassword') || '';
+                document.getElementById('remember-me').checked = true;
+            }
+        }
+        
+        // حفظ بيانات التذكر
+        function saveRememberedData(phone, password) {
+            const remember = document.getElementById('remember-me').checked;
+            if (remember) {
+                localStorage.setItem('rememberLogin', '1');
+                localStorage.setItem('savedPhone', phone);
+                localStorage.setItem('savedPassword', password);
+            } else {
+                localStorage.removeItem('rememberLogin');
+                localStorage.removeItem('savedPhone');
+                localStorage.removeItem('savedPassword');
+            }
+        }
+        
+        // تبديل عرض كلمة المرور
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.parentNode.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+        
+        // التبديل بين تبويبات تسجيل الدخول والتسجيل
+        function switchLoginTab(tabName) {
+            document.querySelectorAll('.login-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.login-form').forEach(form => {
+                form.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + '-tab-btn').classList.add('active');
+            document.getElementById(tabName + '-form').classList.add('active');
+        }
+        
+        // الحصول على IP المستخدم
+        async function getUserIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.error('Error getting IP:', error);
+                return 'unknown';
+            }
+        }
+        
+        // توليد معرف مستخدم فريد
+        function generateUserId() {
+            return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // التحقق من الاسم المكرر
+        async function checkDuplicateName(name) {
+            const usersRef = database.ref('مستخدم_العقارات');
+            const snapshot = await usersRef.orderByChild('name').equalTo(name).once('value');
+            return snapshot.exists();
+        }
+        
+        // التحقق من رقم الجوال المكرر
+        async function checkDuplicatePhone(phone) {
+            const usersRef = database.ref('مستخدم_العقارات');
+            const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
+            return snapshot.exists();
+        }
+        
+        // الحصول على آخر معرف مستخدم
+        async function getLastUserId() {
+            const usersRef = database.ref('مستخدم_العقارات');
+            const snapshot = await usersRef.orderByKey().limitToLast(1).once('value');
+            if (snapshot.exists()) {
+                const lastKey = Object.keys(snapshot.val())[0];
+                const lastId = parseInt(lastKey.split('_')[1]) || 0;
+                return lastId + 1;
+            }
+            return 1;
+        }
+        
+        // معالجة التسجيل
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('register-name').value;
+            const phone = document.getElementById('register-phone').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            const messageElement = document.getElementById('register-message');
+            
+            // التحقق من تطابق كلمتي المرور
+            if (password !== confirmPassword) {
+                messageElement.textContent = 'كلمتا المرور غير متطابقتين';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            // التحقق من صحة رقم الهاتف
+            const phoneRegex = /^[0-9]{9}$/;
+            if (!phoneRegex.test(phone)) {
+                messageElement.textContent = 'رقم الجوال يجب أن يتكون من 9 أرقام فقط';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            // التحقق من الاسم المكرر
+            const isNameDuplicate = await checkDuplicateName(name);
+            if (isNameDuplicate) {
+                messageElement.textContent = 'الاسم مستخدم بالفعل';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            // التحقق من رقم الجوال المكرر
+            const isPhoneDuplicate = await checkDuplicatePhone(phone);
+            if (isPhoneDuplicate) {
+                messageElement.textContent = 'رقم الجوال مستخدم بالفعل';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            try {
+                // الحصول على IP المستخدم
+                const userIP = await getUserIP();
+                
+                // الحصول على آخر معرف مستخدم
+                const lastId = await getLastUserId();
+                const userId = `user_${lastId}`;
+                
+                // حفظ بيانات المستخدم في مستخدم_العقارات
+                const userData = {
+                    id: lastId,
+                    name: name,
+                    phone: phone,
+                    password: password,
+                    ip: userIP,
+                    status: 1,
+                    phoneVisibility: 1,
+                    createdAt: new Date().toISOString()
+                };
+                
+                await database.ref('مستخدم_العقارات/' + userId).set(userData);
+                
+                messageElement.textContent = 'تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول';
+                messageElement.className = 'message success';
+                messageElement.style.display = 'block';
+                
+                // الانتقال إلى تبويب تسجيل الدخول
+                setTimeout(() => {
+                    switchLoginTab('login');
+                    document.getElementById('register-form').reset();
+                    messageElement.style.display = 'none';
+                }, 2000);
+                
+            } catch (error) {
+                messageElement.textContent = 'حدث خطأ أثناء إنشاء الحساب';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                console.error('Error creating account:', error);
+            }
+        }
+        
+        // معالجة تسجيل الدخول
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const phone = document.getElementById('login-phone').value;
+            const password = document.getElementById('login-password').value;
+            const messageElement = document.getElementById('login-message');
+            
+            try {
+                // البحث عن المستخدم في مستخدم_العقارات
+                const usersRef = database.ref('مستخدم_العقارات');
+                const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
+                
+                if (snapshot.exists()) {
+                    const users = snapshot.val();
+                    const userId = Object.keys(users)[0];
+                    const userData = users[userId];
+                    
+                    // التحقق من كلمة المرور
+                    if (userData.password === password) {
+                        // التحقق من حالة المستخدم
+                        if (userData.status === 1) {
+                            // تسجيل الدخول ناجح
+                            currentUser = {
+                                id: userId,
+                                ...userData
+                            };
+                            
+                            // حفظ بيانات المستخدم في localStorage
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                            
+                            // حفظ بيانات التذكر
+                            saveRememberedData(phone, password);
+                            
+                            messageElement.style.display = 'none';
+                            hideLoginScreen();
+                            showMainContent();
+                        } else {
+                            // المستخدم موقف
+                            messageElement.textContent = 'عفواً، لا تستطيع الدخول. لقد تم توقيفك من قبل مسؤول النظام. يرجى التواصل مع المميز سوفت للأنظمة المحاسبية المتكاملة';
+                            messageElement.className = 'message error';
+                            messageElement.style.display = 'block';
+                            
+                            // إفراغ بيانات تسجيل الدخول
+                            document.getElementById('login-form').reset();
+                            localStorage.removeItem('rememberLogin');
+                            localStorage.removeItem('savedPhone');
+                            localStorage.removeItem('savedPassword');
+                        }
+                    } else {
+                        messageElement.textContent = 'كلمة المرور غير صحيحة';
+                        messageElement.className = 'message error';
+                        messageElement.style.display = 'block';
+                    }
+                } else {
+                    messageElement.textContent = 'لا يوجد حساب مرتبط بهذا رقم الجوال';
+                    messageElement.className = 'message error';
+                    messageElement.style.display = 'block';
+                }
+            } catch (error) {
+                messageElement.textContent = 'حدث خطأ أثناء تسجيل الدخول';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                console.error('Error logging in:', error);
+            }
+        }
+        
+        // ===== نظام رفع الصور إلى Google Drive =====
+        
+        // ضغط الصور مع الإعدادات المتوازنة
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                if (file.size < 1024 * 1024) {
+                    resolve(file);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        const maxWidth = 1000;
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob((blob) => {
+                            resolve(new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            }));
+                        }, 'image/jpeg', 0.85);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // رفع الصور مع الإشعار
+        async function uploadImagesToDrive(files) {
+            const uploadedImageUrls = [];
+            const progressElement = document.getElementById('upload-progress');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            
+            const uploadNotification = document.getElementById('upload-notification');
+            uploadNotification.style.display = 'block';
+            
+            progressElement.style.display = 'block';
+            
+            const totalFiles = files.length;
+            
+            for (let i = 0; i < totalFiles; i++) {
+                const file = files[i];
+                
+                try {
+                    const progressPercent = ((i + 1) / totalFiles) * 100;
+                    progressFill.style.width = `${progressPercent}%`;
+                    progressText.textContent = `جاري رفع الصورة ${i + 1} من ${totalFiles}: ${file.name}`;
+                    
+                    const compressedFile = await compressImage(file);
+                    
+                    const base64Data = await fileToBase64(compressedFile);
+                    
+                    const formData = new FormData();
+                    formData.append('fileData', base64Data);
+                    formData.append('fileName', compressedFile.name);
+                    formData.append('mimeType', compressedFile.type);
+                    formData.append('folderId', DRIVE_FOLDER_ID);
+                    
+                    const response = await fetch(DRIVE_API_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`خطأ HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.success && data.fileId) {
+                        const imageUrl = `https://drive.usercontent.google.com/download?id=${data.fileId}&authuser=0`;
+                        uploadedImageUrls.push(imageUrl);
+                        console.log(`تم رفع الصورة بنجاح: ${file.name} - URL: ${imageUrl}`);
+                    } else {
+                        console.error('فشل رفع الصورة:', file.name, data);
+                        throw new Error(data.error || 'فشل رفع الصورة: استجابة غير صالحة');
+                    }
+                    
+                } catch (error) {
+                    console.error('خطأ في رفع الصورة:', file.name, error);
+                    throw new Error(`فشل رفع الصورة ${file.name}: ${error.message}`);
+                }
+            }
+            
+            uploadNotification.style.display = 'none';
+            
+            progressText.textContent = `تم رفع ${uploadedImageUrls.length} صورة بنجاح`;
+            progressText.style.color = '#27ae60';
+            
+            showToast(`تم رفع ${uploadedImageUrls.length} صورة بنجاح إلى موقع المتجر`, 'success');
+            
+            return uploadedImageUrls;
+        }
+        
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // معالجة اختيار الصور
+        async function handleImageSelection(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            const invalidFiles = files.filter(file => !validTypes.includes(file.type));
+            
+            if (invalidFiles.length > 0) {
+                showToast('يرجى اختيار ملفات صور صالحة فقط (JPEG, PNG, GIF, WebP)', 'warning');
+                return;
+            }
+            
+            const maxSize = 5 * 1024 * 1024;
+            const oversizedFiles = files.filter(file => file.size > maxSize);
+            
+            if (oversizedFiles.length > 0) {
+                showToast('حجم الصورة يجب أن يكون أقل من 5 ميجابايت', 'warning');
+                return;
+            }
+            
+            const progressElement = document.getElementById('upload-progress');
+            const uploadedImagesElement = document.getElementById('uploaded-images');
+            
+            progressElement.style.display = 'block';
+            uploadedImagesElement.innerHTML = '';
+            
+            try {
+                const imageUrls = await uploadImagesToDrive(files);
+                
+                imageUrls.forEach((url, index) => {
+                    const container = document.createElement('div');
+                    container.className = 'uploaded-image-container';
+                    
+                    const img = document.createElement('img');
+                    img.className = 'uploaded-image';
+                    img.src = url;
+                    img.alt = files[index].name;
+                    img.title = 'انقر للتكبير';
+                    
+                    // إضافة حدث النقر لعرض الصورة مكبرة
+                    img.addEventListener('click', () => {
+                        showImageModal([url]);
+                    });
+                    
+                    container.appendChild(img);
+                    uploadedImagesElement.appendChild(container);
+                });
+                
+                uploadedImageUrls = imageUrls;
+                
+            } catch (error) {
+                console.error('حدث خطأ في رفع الصور:', error);
+                const progressText = document.getElementById('progress-text');
+                progressText.textContent = 'حدث خطأ في رفع الصور';
+                progressText.style.color = '#e74c3c';
+                showToast('حدث خطأ في رفع الصور: ' + error.message, 'error');
+            }
+        }
+        
+        // عرض الصورة في نافذة مكبرة مع إمكانية التنقل
+        function showImageModal(images, startIndex = 0) {
+            const modal = document.getElementById('image-modal');
+            const modalImage = document.getElementById('modal-image');
+            const modalCounter = document.getElementById('modal-counter');
+            const modalPrev = document.getElementById('modal-prev');
+            const modalNext = document.getElementById('modal-next');
+            
+            currentModalImages = images;
+            currentModalIndex = startIndex;
+            
+            function updateModal() {
+                modalImage.src = currentModalImages[currentModalIndex];
+                modalCounter.textContent = `${currentModalIndex + 1} / ${currentModalImages.length}`;
+                
+                // إظهار/إخفاء أزرار التنقل
+                modalPrev.style.display = currentModalImages.length > 1 ? 'flex' : 'none';
+                modalNext.style.display = currentModalImages.length > 1 ? 'flex' : 'none';
+                modalCounter.style.display = currentModalImages.length > 1 ? 'block' : 'none';
+            }
+            
+            modalPrev.onclick = function() {
+                currentModalIndex = (currentModalIndex - 1 + currentModalImages.length) % currentModalImages.length;
+                updateModal();
+            };
+            
+            modalNext.onclick = function() {
+                currentModalIndex = (currentModalIndex + 1) % currentModalImages.length;
+                updateModal();
+            };
+            
+            // التنقل باستخدام مفاتيح الأسهم
+            document.addEventListener('keydown', function handleKeydown(e) {
+                if (modal.style.display === 'flex') {
+                    if (e.key === 'ArrowRight') {
+                        modalNext.click();
+                    } else if (e.key === 'ArrowLeft') {
+                        modalPrev.click();
+                    } else if (e.key === 'Escape') {
+                        modal.style.display = 'none';
+                        document.removeEventListener('keydown', handleKeydown);
+                    }
+                }
+            });
+            
+            updateModal();
+            modal.style.display = 'flex';
+        }
+        
+        // دالة لعرض الإشعارات
+        function showToast(message, type = 'info') {
+            // إنشاء عنصر الإشعار
+            const toast = document.createElement('div');
+            toast.className = `message ${type}`;
+            toast.textContent = message;
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '1003';
+            toast.style.minWidth = '300px';
+            toast.style.maxWidth = '500px';
+            
+            document.body.appendChild(toast);
+            
+            // إزالة الإشعار بعد 5 ثوانٍ
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 5000);
+        }
+        
+        // توليد UUID
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        
+        // الحصول على التاريخ والوقت الحاليين
+        function getCurrentDateTime() {
+            const now = new Date();
+            const date = now.toISOString().split('T')[0];
+            const time = now.toLocaleTimeString('ar-SA', { hour12: true });
+            return {
+                date: date,
+                time: time
+            };
+        }
+        
+        // معالجة إرسال النموذج
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (userStatus !== "نشط") {
+                alert("لا يمكنك إضافة أو تعديل العقارات لأن حسابك غير نشط. يرجى التواصل مع إدارة المميز سوفت.");
+                return;
+            }
+            
+            // رفع الصور أولاً
+            const imageUrls = uploadedImageUrls;
+            
+            const productId = document.getElementById('productId').value || generateUUID();
+            
+            // الحصول على التاريخ والوقت الحاليين
+            const currentDateTime = getCurrentDateTime();
+            
+            const productData = {
+                id: productId,
+                governorate: document.getElementById('governorate').value,
+                region: document.getElementById('region').value,
+                condition: document.getElementById('condition').value,
+                requestType: document.getElementById('requestType').value,
+                productName: document.getElementById('productName').value,
+                specifications: document.getElementById('specifications').value,
+                address: document.getElementById('address').value,
+                price: document.getElementById('price').value,
+                status: document.getElementById('status').value,
+                orderDate: currentDateTime.date,
+                orderTime: currentDateTime.time,
+                userId: document.getElementById('userId').value,
+                imageUrls: imageUrls
+            };
+            
+            const productRef = database.ref('asnaf_ard/' + productId);
+            productRef.set(productData)
+                .then(() => {
+                    showToast('تم حفظ العقار بنجاح!', 'success');
+                    resetForm();
+                    
+                    if (currentEditingProduct) {
+                        switchTab('view');
+                        loadUserProducts();
+                        currentEditingProduct = null;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving product:', error);
+                    showToast('حدث خطأ أثناء حفظ العقار', 'error');
+                });
+        }
+        
+        // إعادة تعيين النموذج
+        function resetForm() {
+            document.getElementById('product-form').reset();
+            document.getElementById('productId').value = '';
+            document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('region').disabled = true;
+            document.getElementById('region').innerHTML = '<option value="">اختر المنطقة</option>';
+            document.getElementById('uploaded-images').innerHTML = '';
+            document.getElementById('upload-progress').style.display = 'none';
+            uploadedImageUrls = [];
+            selectedImages = [];
+            currentEditingProduct = null;
+        }
+        
+        // إظهار المحتوى الرئيسي
+        function showMainContent() {
+            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('logout-btn').style.display = 'block';
+            
+            document.getElementById('user-info').innerHTML = 
+                `مرحباً ${currentUser.name} - رقم الجوال: ${currentUser.phone} 
+                <span class="user-status status-active">الحالة: نشط</span>`;
+            
+            document.getElementById('userId').value = currentUser.id;
+            document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+            
+            loadGovernorates();
+            loadProfileData();
+        }
+        
+        // تحميل بيانات المستخدم لتبويب "بياناتي"
+        function loadProfileData() {
+            document.getElementById('profile-name').textContent = currentUser.name;
+            document.getElementById('profile-phone').textContent = currentUser.phone;
+            
+            // تحويل تاريخ الإنشاء إلى تنسيق مقروء
+            const createdDate = currentUser.createdAt ? new Date(currentUser.createdAt) : new Date();
+            document.getElementById('profile-created').textContent = createdDate.toLocaleDateString('ar-SA');
+            
+            document.getElementById('profile-status').textContent = currentUser.status === 1 ? 'نشط' : 'موقف';
+            
+            // إعداد حقل عرض رقم الجوال
+            const phoneVisibility = currentUser.phoneVisibility || 1;
+            document.getElementById('profile-phone-visibility').checked = phoneVisibility == 1;
+            document.getElementById('phone-visibility-label').textContent = 
+                phoneVisibility == 1 ? 'عرض رقم الجوال للآخرين' : 'لم يتم عرض رقم الجوال للآخرين';
+        }
+        
+        // فتح نموذج تعديل البيانات
+        function editProfile() {
+            document.getElementById('edit-name').value = currentUser.name;
+            document.getElementById('edit-phone').value = currentUser.phone;
+            document.getElementById('edit-phone-visibility').checked = currentUser.phoneVisibility == 1;
+            document.getElementById('profile-edit-form').style.display = 'block';
+        }
+        
+        // إلغاء تعديل البيانات
+        function cancelEditProfile() {
+            document.getElementById('profile-edit-form').style.display = 'none';
+        }
+        
+        // معالجة تحديث بيانات المستخدم
+        function handleProfileUpdate(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('edit-name').value;
+            const phone = document.getElementById('edit-phone').value;
+            const password = document.getElementById('edit-password').value;
+            const phoneVisibility = document.getElementById('edit-phone-visibility').checked ? 1 : 0;
+            
+            // التحقق من صحة رقم الهاتف
+            const phoneRegex = /^[0-9]{9}$/;
+            if (!phoneRegex.test(phone)) {
+                showToast('رقم الجوال يجب أن يتكون من 9 أرقام فقط', 'error');
+                return;
+            }
+            
+            // تحديث بيانات المستخدم
+            const userRef = database.ref('مستخدم_العقارات/' + currentUser.id);
+            
+            const updateData = {
+                name: name,
+                phone: phone,
+                phoneVisibility: phoneVisibility
+            };
+            
+            // إذا تم إدخال كلمة مرور جديدة، أضفها للبيانات
+            if (password) {
+                updateData.password = password;
+            }
+            
+            userRef.update(updateData)
+                .then(() => {
+                    // تحديث بيانات المستخدم المحلية
+                    currentUser.name = name;
+                    currentUser.phone = phone;
+                    currentUser.phoneVisibility = phoneVisibility;
+                    
+                    if (password) {
+                        currentUser.password = password;
+                    }
+                    
+                    // تحديث localStorage
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    // تحديث واجهة المستخدم
+                    loadProfileData();
+                    document.getElementById('user-info').innerHTML = 
+                        `مرحباً ${currentUser.name} - رقم الجوال: ${currentUser.phone} 
+                        <span class="user-status status-active">الحالة: نشط</span>`;
+                    
+                    document.getElementById('profile-edit-form').style.display = 'none';
+                    
+                    showToast('تم تحديث بياناتك بنجاح!', 'success');
+                })
+                .catch(error => {
+                    console.error('Error updating profile:', error);
+                    showToast('حدث خطأ أثناء تحديث البيانات', 'error');
+                });
+        }
+        
+        // معالجة تسجيل الخروج
+        function handleLogout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            hideMainContent();
+            resetForm();
+            showLoginScreen();
+        }
+        
+        // إخفاء المحتوى الرئيسي
+        function hideMainContent() {
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'none';
+            
+            document.getElementById('login-form').reset();
+            document.getElementById('register-form').reset();
+            document.getElementById('login-message').style.display = 'none';
+            document.getElementById('register-message').style.display = 'none';
+            
+            switchLoginTab('login');
+        }
+        
+        // تحميل المحافظات
+        function loadGovernorates() {
+            const governoratesRef = database.ref('governorates');
+            
+            governoratesRef.once('value')
+                .then(snapshot => {
+                    const governoratesSelect = document.getElementById('governorate');
+                    governoratesSelect.innerHTML = '<option value="">اختر المحافظة</option>';
+                    
+                    if (snapshot.exists()) {
+                        governoratesData = snapshot.val();
+                        
+                        Object.keys(governoratesData).forEach(key => {
+                            const governorate = governoratesData[key];
+                            const option = document.createElement('option');
+                            option.value = key;
+                            option.textContent = governorate.name || 'غير معروف';
+                            governoratesSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading governorates:', error);
+                });
+        }
+        
+        // تحميل المناطق
+        function loadRegions(governorateId) {
+            const regionsSelect = document.getElementById('region');
+            
+            regionsSelect.innerHTML = '<option value="">اختر المنطقة</option>';
+            
+            if (!governorateId) {
+                regionsSelect.disabled = true;
+                return;
+            }
+            
+            if (governoratesData[governorateId] && governoratesData[governorateId].regions) {
+                const regions = governoratesData[governorateId].regions;
+                
+                regionsSelect.disabled = false;
+                
+                Object.keys(regions).forEach(key => {
+                    const region = regions[key];
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = region.name || 'غير معروف';
+                    regionsSelect.appendChild(option);
+                });
+            } else {
+                regionsSelect.innerHTML = '<option value="">لا توجد مناطق متاحة</option>';
+                regionsSelect.disabled = false;
+            }
+        }
+        
+        // التبديل بين التبويبات
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + '-tab').classList.add('active');
+            document.querySelector('.tab[onclick="switchTab(\'' + tabName + '\')"]').classList.add('active');
+            
+            if (tabName === 'view') {
+                loadUserProducts();
+            } else if (tabName === 'profile') {
+                loadProfileData();
+            }
+        }
+        
+        // تحميل منتجات المستخدم
+        function loadUserProducts() {
+            const productsRef = database.ref('asnaf_ard');
+            const userId = document.getElementById('userId').value;
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('no-products').style.display = 'none';
+            document.getElementById('products-container').style.display = 'none';
+            
+            productsRef.orderByChild('userId').equalTo(userId).once('value')
+                .then(snapshot => {
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    const productsContainer = document.getElementById('products-container');
+                    productsContainer.innerHTML = '';
+                    
+                    if (snapshot.exists()) {
+                        document.getElementById('products-container').style.display = 'grid';
+                        
+                        snapshot.forEach(childSnapshot => {
+                            const product = childSnapshot.val();
+                            const productCard = document.createElement('div');
+                            productCard.className = 'product-card';
+                            
+                            let imagesHTML = '';
+                            if (product.imageUrls && product.imageUrls.length > 0) {
+                                imagesHTML = `
+                                    <div class="product-field">
+                                        <div class="field-label">الصور</div>
+                                        <div class="product-images">
+                                            ${product.imageUrls.map(img => `
+                                                <img src="${img}" class="product-image" onclick="showImageModal(['${img}'])">
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                            
+                            const displayDateTime = product.orderTime ? 
+                                `${product.orderDate} - ${product.orderTime}` : 
+                                product.orderDate;
+                            
+                            productCard.innerHTML = `
+                                ${imagesHTML}
+                                <div class="product-field">
+                                    <div class="field-label">اسم العقار</div>
+                                    <div class="field-value">${product.productName}</div>
+                                </div>
+                                <div class="product-field">
+                                    <div class="field-label">السعر</div>
+                                    <div class="field-value">${product.price} ريال</div>
+                                </div>
+                                <div class="product-field">
+                                    <div class="field-label">نوع الطلب</div>
+                                    <div class="field-value">${product.requestType}</div>
+                                </div>
+                                <div class="product-field">
+                                    <div class="field-label">نوع العقار</div>
+                                    <div class="field-value">${product.condition}</div>
+                                </div>
+                                <div class="product-field">
+                                    <div class="field-label">المحافظة</div>
+                                    <div class="field-value">${product.governorate}</div>
+                                </div>
+                                <div class="product-field">
+                                    <div class="field-label">المنطقة</div>
+                                    <div class="field-value">${product.region}</div>
+                                </div>
+                                <div class="product-field">
+                                    <div class="field-label">تاريخ ووقت النشر</div>
+                                    <div class="field-value">${displayDateTime}</div>
+                                </div>
+                                <div class="product-field">
+                                    <div class="field-label">الحالة</div>
+                                    <div class="field-value">${product.status}</div>
+                                </div>
+                                <div class="product-actions">
+                                    <button class="btn btn-edit" onclick="editProduct('${product.id}')">تعديل</button>
+                                    <button class="btn btn-delete" onclick="deleteProduct('${product.id}')">حذف</button>
+                                    <button class="btn btn-comments" onclick="showComments('${product.id}', '${product.productName}')">عرض التعليقات</button>
+                                    <button class="btn btn-sold" onclick="markAsSold('${product.id}', '${product.productName}')">تم البيع</button>
+                                </div>
+                            `;
+                            
+                            productsContainer.appendChild(productCard);
+                        });
+                    } else {
+                        document.getElementById('no-products').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    console.error('Error loading products:', error);
+                });
+        }
+        
+        // تعديل المنتج
+        function editProduct(productId) {
+            const productRef = database.ref('asnaf_ard/' + productId);
+            
+            productRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const product = snapshot.val();
+                        currentEditingProduct = productId;
+                        
+                        document.getElementById('productId').value = product.id;
+                        document.getElementById('governorate').value = product.governorate || '';
+                        
+                        if (product.governorate) {
+                            loadRegions(product.governorate);
+                            setTimeout(() => {
+                                document.getElementById('region').value = product.region || '';
+                            }, 300);
+                        }
+                        
+                        document.getElementById('condition').value = product.condition || '';
+                        document.getElementById('requestType').value = product.requestType || '';
+                        document.getElementById('productName').value = product.productName || '';
+                        document.getElementById('specifications').value = product.specifications || '';
+                        document.getElementById('address').value = product.address || '';
+                        document.getElementById('price').value = product.price || '';
+                        document.getElementById('status').value = product.status || '';
+                        
+                        uploadedImageUrls = product.imageUrls || [];
+                        const uploadedImagesElement = document.getElementById('uploaded-images');
+                        uploadedImagesElement.innerHTML = '';
+                        
+                        if (uploadedImageUrls.length > 0) {
+                            uploadedImageUrls.forEach((url) => {
+                                const container = document.createElement('div');
+                                container.className = 'uploaded-image-container';
+                                
+                                const img = document.createElement('img');
+                                img.className = 'uploaded-image';
+                                img.src = url;
+                                img.alt = `صورة العقار`;
+                                img.title = 'انقر للتكبير';
+                                
+                                img.addEventListener('click', () => {
+                                    showImageModal([url]);
+                                });
+                                
+                                container.appendChild(img);
+                                uploadedImagesElement.appendChild(container);
+                            });
+                        }
+                        
+                        switchTab('add');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading product for edit:', error);
+                });
+        }
+        
+        // حذف المنتج
+        function deleteProduct(productId) {
+            if (confirm('هل أنت متأكد من رغبتك في حذف هذا العقار؟')) {
+                const productRef = database.ref('asnaf_ard/' + productId);
+                
+                productRef.remove()
+                    .then(() => {
+                        showToast('تم حذف العقار بنجاح', 'success');
+                        loadUserProducts();
+                    })
+                    .catch(error => {
+                        console.error('Error deleting product:', error);
+                        showToast('حدث خطأ أثناء حذف العقار', 'error');
+                    });
+            }
+        }
+        
+        // عرض نافذة تأكيد البيع
+        function markAsSold(productId, productName) {
+            currentProductToMarkAsSold = productId;
+            document.getElementById('confirm-message').textContent = `هل تمت عملية المتاجرة بالمحتوى "${productName}"؟`;
+            document.getElementById('confirm-sold-modal').style.display = 'flex';
+        }
+        
+        // إغلاق نافذة تأكيد البيع
+        function closeConfirmSold() {
+            document.getElementById('confirm-sold-modal').style.display = 'none';
+            currentProductToMarkAsSold = null;
+        }
+        
+        // تأكيد عملية البيع
+        function confirmSold() {
+            if (!currentProductToMarkAsSold) return;
+            
+            const productRef = database.ref('asnaf_ard/' + currentProductToMarkAsSold);
+            
+            productRef.update({
+                status: 'موقف'
+            })
+            .then(() => {
+                showToast('تم تحديث حالة العقار إلى "موقف" بنجاح!', 'success');
+                closeConfirmSold();
+                loadUserProducts();
+            })
+            .catch(error => {
+                console.error('Error updating product status:', error);
+                showToast('حدث خطأ أثناء تحديث حالة العقار', 'error');
+            });
+        }
+        
+        // ===== نظام التعليقات والردود =====
+        
+        // عرض نافذة التعليقات
+        function showComments(productId, productName) {
+            currentProductForComments = productId;
+            document.getElementById('comments-title').textContent = `التعليقات والردود - ${productName}`;
+            document.getElementById('comments-modal').style.display = 'flex';
+            loadComments(productId);
+        }
+        
+        // إغلاق نافذة التعليقات
+        function closeCommentsModal() {
+            document.getElementById('comments-modal').style.display = 'none';
+            currentProductForComments = null;
+            document.getElementById('new-comment').value = '';
+        }
+        
+        // تحميل التعليقات والردود
+        function loadComments(productId) {
+            const commentsRef = database.ref(`comments/${productId}`);
+            const commentsList = document.getElementById('comments-list');
+            
+            commentsList.innerHTML = '<div class="loading">جاري تحميل التعليقات...</div>';
+            
+            commentsRef.once('value')
+                .then(snapshot => {
+                    commentsList.innerHTML = '';
+                    
+                    if (snapshot.exists()) {
+                        snapshot.forEach(childSnapshot => {
+                            const comment = childSnapshot.val();
+                            const commentId = childSnapshot.key;
+                            
+                            const commentItem = document.createElement('div');
+                            commentItem.className = 'comment-item';
+                            
+                            loadReplies(productId, commentId, commentItem);
+                            
+                            commentItem.innerHTML = `
+                                <div class="comment-header">
+                                    <div class="comment-author">${comment.authorName || 'مستخدم'}</div>
+                                    <div class="comment-date">${formatDate(comment.timestamp)}</div>
+                                </div>
+                                <div class="comment-text">${comment.text}</div>
+                                <div class="comment-actions">
+                                    <button class="btn" onclick="showReplyForm('${productId}', '${commentId}')">رد</button>
+                                </div>
+                                <div class="replies-container" id="replies-${productId}-${commentId}"></div>
+                            `;
+                            
+                            commentsList.appendChild(commentItem);
+                        });
+                    } else {
+                        commentsList.innerHTML = '<div class="message info">لا توجد تعليقات بعد</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading comments:', error);
+                    commentsList.innerHTML = '<div class="message error">حدث خطأ في تحميل التعليقات</div>';
+                });
+        }
+        
+        // تحميل الردود
+        function loadReplies(productId, commentId, commentItem) {
+            const repliesRef = database.ref(`comments/${productId}/${commentId}/replies`);
+            
+            repliesRef.once('value')
+                .then(snapshot => {
+                    const repliesContainer = commentItem.querySelector(`#replies-${productId}-${commentId}`);
+                    
+                    if (snapshot.exists()) {
+                        snapshot.forEach(childSnapshot => {
+                            const reply = childSnapshot.val();
+                            
+                            const replyItem = document.createElement('div');
+                            replyItem.className = 'reply-item';
+                            replyItem.innerHTML = `
+                                <div class="reply-header">
+                                    <div class="reply-author">${reply.authorName || 'مستخدم'}</div>
+                                    <div class="reply-date">${formatDate(reply.timestamp)}</div>
+                                </div>
+                                <div class="reply-text">${reply.text}</div>
+                            `;
+                            
+                            repliesContainer.appendChild(replyItem);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading replies:', error);
+                });
+        }
+        
+        // إضافة تعليق جديد
+        function addComment() {
+            const commentText = document.getElementById('new-comment').value.trim();
+            
+            if (!commentText) {
+                showToast('يرجى كتابة تعليق', 'warning');
+                return;
+            }
+            
+            if (!currentProductForComments) return;
+            
+            const commentId = generateUUID();
+            const timestamp = new Date().toISOString();
+            
+            const commentData = {
+                id: commentId,
+                text: commentText,
+                authorId: currentUser.id,
+                authorName: currentUser.name,
+                timestamp: timestamp
+            };
+            
+            const commentRef = database.ref(`comments/${currentProductForComments}/${commentId}`);
+            commentRef.set(commentData)
+                .then(() => {
+                    document.getElementById('new-comment').value = '';
+                    loadComments(currentProductForComments);
+                    showToast('تم إضافة التعليق بنجاح', 'success');
+                })
+                .catch(error => {
+                    console.error('Error adding comment:', error);
+                    showToast('حدث خطأ في إضافة التعليق', 'error');
+                });
+        }
+        
+        // إظهار نموذج الرد
+        function showReplyForm(productId, commentId) {
+            const commentItem = document.querySelector(`#replies-${productId}-${commentId}`).parentNode;
+            
+            const existingForm = commentItem.querySelector('.reply-form');
+            if (existingForm) {
+                existingForm.remove();
+                return;
+            }
+            
+            const replyForm = document.createElement('div');
+            replyForm.className = 'reply-form';
+            replyForm.innerHTML = `
+                <div class="form-group">
+                    <textarea id="reply-text-${commentId}" placeholder="اكتب ردك هنا..."></textarea>
+                    <button class="btn" onclick="addReply('${productId}', '${commentId}')" style="margin-top: 10px;">إضافة رد</button>
+                </div>
+            `;
+            
+            commentItem.appendChild(replyForm);
+        }
+        
+        // إضافة رد جديد
+        function addReply(productId, commentId) {
+            const replyText = document.getElementById(`reply-text-${commentId}`).value.trim();
+            
+            if (!replyText) {
+                showToast('يرجى كتابة رد', 'warning');
+                return;
+            }
+            
+            const replyId = generateUUID();
+            const timestamp = new Date().toISOString();
+            
+            const replyData = {
+                id: replyId,
+                text: replyText,
+                authorId: currentUser.id,
+                authorName: currentUser.name,
+                timestamp: timestamp
+            };
+            
+            const replyRef = database.ref(`comments/${productId}/${commentId}/replies/${replyId}`);
+            replyRef.set(replyData)
+                .then(() => {
+                    const replyForm = document.querySelector(`#reply-text-${commentId}`).closest('.reply-form');
+                    if (replyForm) {
+                        replyForm.remove();
+                    }
+                    
+                    loadComments(productId);
+                    showToast('تم إضافة الرد بنجاح', 'success');
+                })
+                .catch(error => {
+                    console.error('Error adding reply:', error);
+                    showToast('حدث خطأ في إضافة الرد', 'error');
+                });
+        }
+        
+        // تنسيق التاريخ
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('ar-SA', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    </script>
+</body>
+  </html>
