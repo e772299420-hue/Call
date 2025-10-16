@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الإعلانات النصية</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 120px;
+            transition: border 0.3s;
+        }
+        
+        textarea:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+        
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        #saveBtn {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        #saveBtn:hover {
+            background-color: #27ae60;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 5px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* زر الحفظ العائم */
+        .floating-save-btn {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            padding: 15px 25px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+        
+        .floating-save-btn:hover {
+            background-color: #27ae60;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .floating-save-btn {
+                position: relative;
+                left: auto;
+                top: auto;
+                transform: none;
+                width: 100%;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>نظام الإعلانات النصية</h1>
+        
+        <div id="message" class="message"></div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>جاري حفظ البيانات...</p>
+        </div>
+        
+        <form id="textForm">
+            <div class="form-group">
+                <label for="A1">النص 1 (A1)</label>
+                <textarea id="A1" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A2">النص 2 (A2)</label>
+                <textarea id="A2" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A3">النص 3 (A3)</label>
+                <textarea id="A3" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A4">النص 4 (A4)</label>
+                <textarea id="A4" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A5">النص 5 (A5)</label>
+                <textarea id="A5" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A6">النص 6 (A6)</label>
+                <textarea id="A6" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A7">النص 7 (A7)</label>
+                <textarea id="A7" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A8">النص 8 (A8)</label>
+                <textarea id="A8" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A9">النص 9 (A9)</label>
+                <textarea id="A9" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A10">النص 10 (A10)</label>
+                <textarea id="A10" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A11">النص 11 (A11)</label>
+                <textarea id="A11" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A12">النص 12 (A12)</label>
+                <textarea id="A12" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A13">النص 13 (A13)</label>
+                <textarea id="A13" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A14">النص 14 (A14)</label>
+                <textarea id="A14" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A15">النص 15 (A15)</label>
+                <textarea id="A15" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A16">النص 16 (A16)</label>
+                <textarea id="A16" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A17">النص 17 (A17)</label>
+                <textarea id="A17" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A18">النص 18 (A18)</label>
+                <textarea id="A18" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A19">النص 19 (A19)</label>
+                <textarea id="A19" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="A20">النص 20 (A20)</label>
+                <textarea id="A20" placeholder="أدخل النص الطويل هنا..."></textarea>
+            </div>
+        </form>
+    </div>
+
+    <!-- زر الحفظ العائم -->
+    <button class="floating-save-btn" id="saveBtn">حفظ البيانات</button>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // عناصر DOM
+        const textForm = document.getElementById('textForm');
+        const saveBtn = document.getElementById('saveBtn');
+        const messageDiv = document.getElementById('message');
+        const loadingDiv = document.getElementById('loading');
+        
+        // تحميل البيانات تلقائياً عند فتح الصفحة
+        window.addEventListener('load', function() {
+            loadData();
+        });
+        
+        // حفظ البيانات في Firebase
+        saveBtn.addEventListener('click', function() {
+            saveData();
+        });
+        
+        // وظائف مساعدة
+        function saveData() {
+            showLoading(true);
+            
+            const data = {};
+            for (let i = 1; i <= 20; i++) {
+                const fieldId = 'A' + i;
+                const fieldValue = document.getElementById(fieldId).value;
+                data[fieldId] = fieldValue;
+            }
+            
+            // حفظ البيانات في مسار "اعلانات نصيه"
+            database.ref('اعلانات نصيه').set(data)
+                .then(() => {
+                    showMessage('تم حفظ البيانات بنجاح!', 'success');
+                    showLoading(false);
+                })
+                .catch((error) => {
+                    showMessage('حدث خطأ أثناء حفظ البيانات: ' + error.message, 'error');
+                    showLoading(false);
+                });
+        }
+        
+        function loadData() {
+            showLoading(true);
+            
+            database.ref('اعلانات نصيه').once('value')
+                .then((snapshot) => {
+                    const data = snapshot.val();
+                    
+                    if (data) {
+                        for (let i = 1; i <= 20; i++) {
+                            const fieldId = 'A' + i;
+                            if (data[fieldId]) {
+                                document.getElementById(fieldId).value = data[fieldId];
+                            }
+                        }
+                        showMessage('تم تحميل البيانات بنجاح!', 'success');
+                    } else {
+                        showMessage('لا توجد بيانات محفوظة!', 'error');
+                    }
+                    
+                    showLoading(false);
+                })
+                .catch((error) => {
+                    showMessage('حدث خطأ أثناء تحميل البيانات: ' + error.message, 'error');
+                    showLoading(false);
+                });
+        }
+        
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showLoading(show) {
+            loadingDiv.style.display = show ? 'block' : 'none';
+        }
+    </script>
+</body>
+                  </html>
