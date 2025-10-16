@@ -435,7 +435,7 @@
             margin-top: 10px;
         }
         
-        /* معلومات التاجر المحسنة */
+        /* معلومات التاجر المحسنة - مخفية */
         .merchant-info {
             background: linear-gradient(135deg, #f8f9fa, #e9ecef);
             padding: 15px;
@@ -443,6 +443,7 @@
             margin: 15px 0;
             border: 1px solid #e3e6e8;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: none; /* تم إخفاؤها */
         }
         
         .merchant-header {
@@ -1255,10 +1256,10 @@
                     <option value="مخازن">مخازن</option>
                 </select>
                 <select id="filter-type" class="filter-select" onchange="filterProducts()">
-                    <option value="">جميع الأنواع</option>
+                    <option value="">جميع أنواع الطلب</option>
                     <option value="بيع">بيع</option>
                     <option value="شراء">شراء</option>
-                    <option value="ايجار">ايجار</option>
+                    <option value="إيجار">إيجار</option>
                 </select>
                 <!-- حقل الترتيب الجديد -->
                 <select id="filter-sort" class="filter-select" onchange="filterProducts()">
@@ -1443,8 +1444,9 @@
                             const product = childSnapshot.val();
                             product.id = childSnapshot.key;
                             
-                            // عرض جميع العقارات بدون تصفية
+                            // عرض جميع العقارات مؤقتاً للاختبار
                             activeProducts.push(product);
+                            console.log('Product loaded:', product);
                         });
                         
                         // ترتيب المنتجات من الأحدث إلى الأقدم
@@ -1455,6 +1457,7 @@
                         });
                         
                         if (activeProducts.length > 0) {
+                            console.log('Total products found:', activeProducts.length);
                             activeProducts.forEach(product => {
                                 // إنشاء بطاقة المنتج مع تحميل بيانات المستخدم
                                 const productCard = createProductCard(product);
@@ -1465,9 +1468,17 @@
                             });
                         } else {
                             document.getElementById('no-active-products').style.display = 'block';
+                            document.getElementById('no-active-products').innerHTML = `
+                                <i class="fas fa-info-circle"></i> 
+                                لا توجد عقارات في قاعدة البيانات
+                            `;
                         }
                     } else {
                         document.getElementById('no-active-products').style.display = 'block';
+                        document.getElementById('no-active-products').innerHTML = `
+                            <i class="fas fa-info-circle"></i> 
+                            لا توجد عقارات في قاعدة البيانات
+                        `;
                     }
                 })
                 .catch(error => {
@@ -1481,13 +1492,13 @@
                 });
         }
         
-        // تحميل بيانات المستخدم من جدول مستخدم_العقارات - الإصدار المحسن
+        // تحميل بيانات المستخدم من جدول مستخدم_العقارات
         function loadUserData(userId, productId) {
             if (!userId) {
                 console.log('No user ID provided for product:', productId);
                 updateUserInfo(userId, productId, { 
-                    name: 'مستخدم غير معروف',
-                    phone: 'غير متوفر'
+                    phone: 'غير متوفر',
+                    phoneVisibility: 0
                 });
                 return;
             }
@@ -1507,16 +1518,13 @@
                 .then(snapshot => {
                     if (snapshot.exists()) {
                         let userData = null;
-                        let foundUserKey = null;
                         
                         // البحث في جميع المستخدمين عن المستخدم المناسب
                         snapshot.forEach(childSnapshot => {
                             const user = childSnapshot.val();
                             const key = childSnapshot.key;
                             
-                            console.log('Checking user key:', key, 'User data:', user);
-                            
-                            // طرق مختلفة للبحث عن المستخدم - أكثر مرونة
+                            // طرق مختلفة للبحث عن المستخدم
                             if (user.userId === userId || 
                                 user.id === userId || 
                                 key === userId ||
@@ -1526,149 +1534,62 @@
                                 (user.phone && user.phone.includes(userId)) ||
                                 (user.id && user.id.toString() === userId.toString())) {
                                 userData = user;
-                                foundUserKey = key;
                                 console.log('User found with key:', key, 'Data:', user);
-                                return true; // إيقاف التكرار عند العثور على المستخدم
+                                return true;
                             }
                         });
                         
                         if (userData) {
                             usersCache[userId] = userData;
-                            console.log('User data cached for ID:', userId);
                             updateUserInfo(userId, productId, userData);
                         } else {
-                            console.log('No matching user found in مستخدم_العقارات, searching in alternative tables...');
-                            // البحث في جداول بديلة
-                            searchAlternativeTables(userId, productId);
+                            console.log('No matching user found in مستخدم_العقارات');
+                            // استخدام بيانات افتراضية
+                            updateUserInfo(userId, productId, { 
+                                phone: userId,
+                                phoneVisibility: 1
+                            });
                         }
                     } else {
-                        console.log('مستخدم_العقارات table is empty, searching in alternative tables...');
-                        searchAlternativeTables(userId, productId);
+                        console.log('مستخدم_العقارات table is empty');
+                        // استخدام بيانات افتراضية
+                        updateUserInfo(userId, productId, { 
+                            phone: userId,
+                            phoneVisibility: 1
+                        });
                     }
                 })
                 .catch(error => {
                     console.error('Error loading from مستخدم_العقارات:', error);
-                    searchAlternativeTables(userId, productId);
-                });
-        }
-        
-        // البحث في الجداول البديلة
-        function searchAlternativeTables(userId, productId) {
-            console.log('Searching alternative tables for user:', userId);
-            
-            const alternativeTables = ['usr_hrg', 'users', 'user', 'العقارات_مستخدمين', 'مستخدمين_العقارات'];
-            let tablesSearched = 0;
-            let userFound = false;
-            
-            alternativeTables.forEach(tableName => {
-                if (userFound) return;
-                
-                const tableRef = database.ref(tableName);
-                
-                tableRef.once('value')
-                    .then(snapshot => {
-                        tablesSearched++;
-                        
-                        if (snapshot.exists()) {
-                            let userData = null;
-                            
-                            snapshot.forEach(childSnapshot => {
-                                const user = childSnapshot.val();
-                                const key = childSnapshot.key;
-                                
-                                // طرق مختلفة للبحث عن المستخدم
-                                if (user.userId === userId || 
-                                    user.id === userId || 
-                                    key === userId ||
-                                    user.uid === userId ||
-                                    user.username === userId ||
-                                    user.email === userId ||
-                                    user.phone === userId ||
-                                    (user.phone && user.phone.includes(userId))) {
-                                    userData = user;
-                                    console.log('User found in alternative table:', tableName, 'Data:', user);
-                                    userFound = true;
-                                    return true;
-                                }
-                            });
-                            
-                            if (userData) {
-                                usersCache[userId] = userData;
-                                updateUserInfo(userId, productId, userData);
-                                return;
-                            }
-                        }
-                        
-                        // إذا تم البحث في جميع الجداول ولم يتم العثور على المستخدم
-                        if (tablesSearched === alternativeTables.length && !userFound) {
-                            console.log('User not found in any table, using default data');
-                            updateUserInfo(userId, productId, { 
-                                name: 'مالك العقار',
-                                phone: userId,
-                                note: `رقم الجوال: ${userId}`
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        tablesSearched++;
-                        console.error('Error searching table:', tableName, error);
-                        
-                        if (tablesSearched === alternativeTables.length && !userFound) {
-                            updateUserInfo(userId, productId, { 
-                                name: 'مالك العقار',
-                                phone: userId,
-                                note: `رقم الجوال: ${userId}`
-                            });
-                        }
+                    // استخدام بيانات افتراضية في حالة الخطأ
+                    updateUserInfo(userId, productId, { 
+                        phone: userId,
+                        phoneVisibility: 1
                     });
-            });
+                });
         }
         
         // تحديث معلومات المستخدم في البطاقة
         function updateUserInfo(userId, productId, userData) {
-            const userElement = document.getElementById(`user-${productId}`);
-            const merchantNameElement = document.getElementById(`merchant-name-${productId}`);
-            const merchantPhoneElement = document.getElementById(`merchant-phone-${productId}`);
-            const merchantEmailElement = document.getElementById(`merchant-email-${productId}`);
-            const merchantAddressElement = document.getElementById(`merchant-address-${productId}`);
             const phoneField = document.getElementById(`phone-field-${productId}`);
             const phoneValue = document.getElementById(`phone-value-${productId}`);
             const callBtn = document.getElementById(`call-btn-${productId}`);
             const whatsappBtn = document.getElementById(`whatsapp-btn-${productId}`);
             
-            // اسم الناشر - مع خيارات متعددة
-            const userName = userData.name || userData.username || userData.displayName || 
-                           userData.fullName || userData.firstName || 'مالك العقار';
-            
             // رقم الهاتف
             const phone = userData.phone || userData.mobile || userData.phoneNumber || userData.tel || userId;
             
-            // البريد الإلكتروني
-            const email = userData.email || userData.mail;
+            // التحقق من إعدادات رؤية الهاتف
+            const phoneVisibility = userData.phoneVisibility || userData.showPhone || userData.phoneVisible || 1;
             
-            // العنوان
-            const address = userData.address || userData.location || userData.city || userData.region;
-            
-            console.log('Updating user info for product:', productId, 'User:', userName, 'Phone:', phone);
-            
-            // تحديث اسم الناشر
-            if (userElement) {
-                userElement.textContent = userName;
-                userElement.style.color = 'var(--primary-color)';
-                userElement.style.fontWeight = 'bold';
-            }
-            
-            if (merchantNameElement) {
-                merchantNameElement.textContent = userName;
-            }
-            
-            // تحديث معلومات الهاتف
+            // تحديث معلومات الهاتف بناءً على إعدادات الرؤية
             if (phoneValue && phone) {
                 phoneValue.textContent = phone;
             }
             
             if (phoneField) {
-                if (phone && phone !== 'غير متوفر') {
+                // إذا كان phoneVisibility = 1، قم بعرض رقم الجوال
+                if (phone && (phoneVisibility === 1 || phoneVisibility === '1' || phoneVisibility === true)) {
                     phoneField.style.display = 'flex';
                     
                     if (callBtn) {
@@ -1684,35 +1605,8 @@
                         };
                     }
                 } else {
+                    // إذا كان phoneVisibility = 0، قم بإخفاء رقم الجوال
                     phoneField.style.display = 'none';
-                }
-            }
-            
-            // تحديث معلومات التاجر
-            if (merchantPhoneElement) {
-                if (phone && phone !== 'غير متوفر') {
-                    merchantPhoneElement.querySelector('.detail-value').textContent = phone;
-                    merchantPhoneElement.style.display = 'flex';
-                } else {
-                    merchantPhoneElement.style.display = 'none';
-                }
-            }
-            
-            if (merchantEmailElement) {
-                if (email) {
-                    merchantEmailElement.querySelector('.detail-value').textContent = email;
-                    merchantEmailElement.style.display = 'flex';
-                } else {
-                    merchantEmailElement.style.display = 'none';
-                }
-            }
-            
-            if (merchantAddressElement) {
-                if (address) {
-                    merchantAddressElement.querySelector('.detail-value').textContent = address;
-                    merchantAddressElement.style.display = 'flex';
-                } else {
-                    merchantAddressElement.style.display = 'none';
                 }
             }
         }
@@ -1949,10 +1843,6 @@
             card.className = 'product-card';
             card.id = `product-${product.id}`;
             
-            // جلب بيانات المحافظة والمنطقة
-            const governorateName = governoratesData[product.governorate]?.name || product.governorate || 'غير محدد';
-            const regionName = governoratesData[product.governorate]?.regions?.[product.region]?.name || product.region || 'غير محدد';
-            
             // تنسيق تاريخ النشر
             let publishDate = 'غير محدد';
             if (product.orderDate || product.timestamp) {
@@ -1991,35 +1881,6 @@
                         <!-- سيتم تحميل معرض الصور هنا -->
                     </div>
                     
-                    <!-- معلومات التاجر -->
-                    <div class="merchant-info">
-                        <div class="merchant-header">
-                            <div class="merchant-avatar">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div class="merchant-name" id="merchant-name-${product.id}">جاري التحميل...</div>
-                        </div>
-                        <div class="merchant-details">
-                            <div class="merchant-detail-item" id="merchant-phone-${product.id}" style="display: none;">
-                                <i class="fas fa-phone"></i>
-                                <span>هاتف: <span class="detail-value">جاري التحميل...</span></span>
-                            </div>
-                            <div class="merchant-detail-item" id="merchant-email-${product.id}" style="display: none;">
-                                <i class="fas fa-envelope"></i>
-                                <span>بريد إلكتروني: <span class="detail-value">جاري التحميل...</span></span>
-                            </div>
-                            <div class="merchant-detail-item" id="merchant-address-${product.id}" style="display: none;">
-                                <i class="fas fa-map-marker-alt"></i>
-                                <span>عنوان: <span class="detail-value">جاري التحميل...</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="product-detail">
-                        <span class="detail-label"><i class="fas fa-user"></i> الناشر:</span>
-                        <span class="detail-value" id="user-${product.id}">جاري التحميل...</span>
-                    </div>
-                    
                     <!-- حقل رقم الهاتف وأزرار الاتصال -->
                     <div class="phone-field" id="phone-field-${product.id}" style="display: none;">
                         <div class="phone-label">
@@ -2040,13 +1901,13 @@
                         <span class="detail-label"><i class="fas fa-home"></i> نوع العقار:</span>
                         <span class="detail-value">${product.propertyType}</span>
                     </div>
+                    <div class="product-detail">
+                        <span class="detail-label"><i class="fas fa-tag"></i> نوع الطلب:</span>
+                        <span class="detail-value">${product.requestType || 'غير محدد'}</span>
+                    </div>
                     <div class="product-detail" style="display: ${conditionDisplay};">
                         <span class="detail-label"><i class="fas fa-check-circle"></i> الحالة:</span>
                         <span class="detail-value">${product.condition}</span>
-                    </div>
-                    <div class="product-detail">
-                        <span class="detail-label"><i class="fas fa-map-marker-alt"></i> الموقع:</span>
-                        <span class="detail-value">${governorateName} - ${regionName}</span>
                     </div>
                     <div class="product-detail" style="display: ${specificationsDisplay};">
                         <span class="detail-label"><i class="fas fa-info-circle"></i> المواصفات:</span>
@@ -2531,6 +2392,10 @@
             
             if (products.length === 0) {
                 document.getElementById('no-active-products').style.display = 'block';
+                document.getElementById('no-active-products').innerHTML = `
+                    <i class="fas fa-info-circle"></i> 
+                    لا توجد عقارات تطابق معايير البحث
+                `;
                 return;
             }
             
