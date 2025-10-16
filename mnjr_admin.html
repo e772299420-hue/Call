@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>صفحة الإدارة - السوق الشامل</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- إضافة Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -123,6 +126,7 @@
             background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
             color: white;
             padding: 25px 20px;
+            position: relative;
         }
         
         .card-header i {
@@ -205,6 +209,37 @@
             max-width: 1200px;
         }
         
+        /* إشعار عدد التجار غير النشطين بكلمة مرور افتراضية */
+        .merchant-notification {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #ff9800;
+            color: white;
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            animation: pulse 2s infinite;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .loading {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
@@ -234,6 +269,11 @@
                 left: 10px;
                 padding: 10px 15px;
                 font-size: 0.9rem;
+            }
+            
+            .merchant-notification {
+                font-size: 0.8rem;
+                padding: 4px 10px;
             }
         }
     </style>
@@ -293,14 +333,16 @@
         </div>
         
         <!-- تعريف التجار -->
-        <div class="card" onclick="window.location.href='tager.html'">
+        <div class="card" id="merchants-card" onclick="window.location.href='tager.html'">
             <div class="card-header">
                 <i class="fas fa-user-tie"></i>
                 <h2>تعريف التجار</h2>
+                <!-- سيتم إضافة الإشعار هنا عبر JavaScript -->
             </div>
             <div class="card-body">
                 <p>إضافة تجار جدد أو إدارة بيانات التجار الحاليين في النظام</p>
                 <button class="btn">فتح الصفحة</button>
+                <div id="merchants-loading" class="loading">جاري تحميل بيانات التجار...</div>
             </div>
         </div>
         
@@ -355,6 +397,71 @@
     </div>
 
     <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            // يجب إضافة معلومات التهيئة الخاصة بمشروعك هنا
+            apiKey: "your-api-key",
+            authDomain: "chat-fat-free.firebaseapp.com",
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com",
+            projectId: "chat-fat-free",
+            storageBucket: "chat-fat-free.appspot.com",
+            messagingSenderId: "your-sender-id",
+            appId: "your-app-id"
+        };
+
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // دالة لجلب عدد التجار غير النشطين بكلمة مرور افتراضية
+        function getInactiveMerchantsWithDefaultPassword() {
+            const loadingElement = document.getElementById('merchants-loading');
+            
+            // جلب بيانات التجار من Firebase
+            database.ref('merchants').once('value')
+                .then((snapshot) => {
+                    const merchantsData = snapshot.val();
+                    let inactiveWithDefaultPasswordCount = 0;
+
+                    if (merchantsData) {
+                        // حساب عدد التجار غير النشطين بكلمة مرور افتراضية
+                        Object.keys(merchantsData).forEach(merchantId => {
+                            const merchant = merchantsData[merchantId];
+                            const isInactive = merchant.status && merchant.status.toLowerCase() === 'inactive';
+                            const hasDefaultPassword = merchant.password && merchant.password === 'default_password';
+                            
+                            if (isInactive && hasDefaultPassword) {
+                                inactiveWithDefaultPasswordCount++;
+                            }
+                        });
+                    }
+
+                    // إخفاء رسالة التحميل
+                    loadingElement.style.display = 'none';
+
+                    // عرض الإشعار فقط إذا كان هناك تجار بحاجة للعلاج
+                    if (inactiveWithDefaultPasswordCount > 0) {
+                        showMerchantNotification(inactiveWithDefaultPasswordCount);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error fetching merchants data:', error);
+                    loadingElement.textContent = 'خطأ في تحميل البيانات';
+                    loadingElement.style.color = '#ff4444';
+                });
+        }
+
+        // دالة لعرض الإشعار
+        function showMerchantNotification(count) {
+            const cardHeader = document.querySelector('#merchants-card .card-header');
+            
+            const notification = document.createElement('div');
+            notification.className = 'merchant-notification';
+            notification.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${count} يحتاج تحديث`;
+            
+            cardHeader.appendChild(notification);
+        }
+
         // دالة للتحقق قبل إغلاق الصفحة
         function handleBeforeUnload(e) {
             if (!sessionStorage.getItem('redirecting')) {
@@ -363,11 +470,13 @@
             }
         }
         
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        
+        // تحميل بيانات التجار عند تحميل الصفحة
         window.addEventListener('load', function() {
             sessionStorage.removeItem('redirecting');
+            getInactiveMerchantsWithDefaultPassword();
         });
+        
+        window.addEventListener('beforeunload', handleBeforeUnload);
         
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'hidden') {
