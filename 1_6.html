@@ -1,1 +1,2595 @@
-لاتوجد وظائف شاغرة بالوقت الحالي
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AZ السوق الشامل - الموقع الرسمي</title>
+    <meta name="description" content="موقع AZ السوق الشامل لعرض وطلب المنتجات والخدمات في جميع أنحاء اليمن.">
+    <meta name="keywords" content="السوق الشامل, az السوق الشامل, azالسوق الشامل, AZ السوق الشامل, موقع السوق الشامل, az al souq al shamel, azsouk">
+    <meta name="author" content="AZ السوق الشامل">
+    <meta name="google-site-verification" content="Py26cVMd571vmKQo4rbXGAKTvCgiuTym5A9JfBGFqZQ" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AZ السوق الشامل">
+    <link rel="apple-touch-icon" href="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+<style>
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2980b9;
+    --accent-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    --welcome-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --restaurant-color: #e67e22;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+body {
+    background: #f5f7fa;
+    color:#333; padding:20px; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    overflow-x:hidden; position:relative;
+    padding-bottom: 50px;
+    font-size: 18px;
+}
+
+/* إخفاء مؤشرات الحالة */
+.status-bar {
+    display: none;
+}
+
+.header {
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(15px);
+    padding:10px 20px; display:flex; justify-content:space-between; align-items:center;
+    border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2);
+    position:sticky; top:20px; z-index:100; margin-bottom:30px;
+    width:95%; max-width:1200px;
+    border:2px solid rgba(255,255,255,0.3);
+    opacity: 0;
+    transform: translateY(-100px) scale(0.8);
+}
+
+.app-name {
+    font-size:28px; font-weight:bold;
+    background: linear-gradient(90deg, var(--dark-color), var(--secondary-color), #8e44ad);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    display: flex; align-items: center; gap: 15px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    flex-direction: column;
+    position: relative;
+}
+
+.app-subtitle {
+    font-size: 14px;
+    color: #e74c3c;
+    font-weight: normal;
+    margin-top: 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.logo-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-header {
+    width: 70px; height: 70px; border-radius: 50%; object-fit: cover;
+    box-shadow: 0 0 20px rgba(52, 152, 219, 0.8);
+    border: 3px solid var(--primary-color);
+    transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    animation: logoFloat 4s ease-in-out infinite;
+    position: relative;
+    z-index: 3;
+}
+
+.logo-ghost-right {
+    width: 70px; height: 70px; border-radius: 50%; object-fit: cover;
+    position: absolute;
+    opacity: 0.3;
+    filter: blur(2px);
+    z-index: 2;
+    animation: ghostMoveRight 6s ease-in-out infinite;
+    border: 2px solid rgba(52, 152, 219, 0.5);
+}
+
+.logo-ghost-left {
+    width: 70px; height: 70px; border-radius: 50%; object-fit: cover;
+    position: absolute;
+    opacity: 0.3;
+    filter: blur(2px);
+    z-index: 1;
+    animation: ghostMoveLeft 6s ease-in-out infinite;
+    border: 2px solid rgba(52, 152, 219, 0.5);
+}
+
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+@keyframes ghostMoveRight {
+    0%, 100% { 
+        transform: translateX(0px) translateY(0px) scale(0.8);
+        opacity: 0.2;
+    }
+    25% { 
+        transform: translateX(40px) translateY(-5px) scale(0.9);
+        opacity: 0.4;
+    }
+    50% { 
+        transform: translateX(20px) translateY(5px) scale(1);
+        opacity: 0.3;
+    }
+    75% { 
+        transform: translateX(60px) translateY(-3px) scale(0.95);
+        opacity: 0.35;
+    }
+}
+
+@keyframes ghostMoveLeft {
+    0%, 100% { 
+        transform: translateX(0px) translateY(0px) scale(0.8);
+        opacity: 0.2;
+    }
+    25% { 
+        transform: translateX(-40px) translateY(-5px) scale(0.9);
+        opacity: 0.4;
+    }
+    50% { 
+        transform: translateX(-20px) translateY(5px) scale(1);
+        opacity: 0.3;
+    }
+    75% { 
+        transform: translateX(-60px) translateY(-3px) scale(0.95);
+        opacity: 0.35;
+    }
+}
+
+.logo-header:hover {
+    transform: scale(1.2) rotate(15deg);
+    box-shadow: 0 0 30px rgba(52, 152, 219, 1);
+    filter: brightness(1.2);
+}
+
+.container {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr));
+    gap:30px; margin-bottom:40px; width:95%; max-width:1200px;
+}
+
+.box {
+    background: rgba(255,255,255,0.95);
+    border-radius:25px;
+    padding:25px;
+    box-shadow:0 15px 35px rgba(0,0,0,0.15);
+    transition:all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display:flex; flex-direction:column; align-items:center;
+    opacity:0;
+    transform:translateY(100px) rotateX(45deg);
+    border:3px solid rgba(52, 152, 219, 0.3);
+    min-height: 280px;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.8s;
+}
+
+.box:hover::before {
+    left: 100%;
+}
+
+.box:hover {
+    transform:translateY(-15px) rotateX(0deg) scale(1.03);
+    box-shadow:0 25px 50px rgba(0,0,0,0.25);
+    border-color: var(--primary-color);
+}
+
+.box-title {
+    text-align:center; margin-bottom:25px; padding-bottom:15px;
+    border-bottom:3px solid transparent;
+    background: none;
+    border-image: none;
+    color: #e74c3c;
+    font-size:28px; width:100%; cursor:pointer;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.box-title::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    width: 0;
+    height: 3px;
+    background: #e74c3c;
+    transition: all 0.5s ease;
+    transform: translateX(-50%);
+}
+
+.box-title:hover::after {
+    width: 100%;
+}
+
+.buttons-grid {
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:15px;
+    width:100%;
+}
+
+.btn {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color:white; border:none; border-radius:12px; cursor:pointer;
+    font-size:18px; font-weight:700;
+    transition:all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    text-align:center; flex-direction:column;
+    height:50px !important;
+    opacity:0; transform:scale(0) rotate(180deg);
+    box-shadow:0 5px 15px rgba(52, 152, 219, 0.3);
+    text-shadow:0 1px 2px rgba(0,0,0,0.3);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.6s ease;
+}
+
+.btn:hover::before {
+    width: 200px;
+    height: 200px;
+}
+
+.btn:hover {
+    transform:translateY(-5px) scale(1.05) rotate(0deg);
+    box-shadow:0 10px 20px rgba(52, 152, 219, 0.5);
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #8e44ad 100%);
+}
+
+.btn:hover i {
+    transform: scale(1.1) rotate(10deg);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.btn i {
+    font-size:20px;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.btn-text {
+    font-size:16px;
+    text-align:center;
+    line-height:1.2;
+    font-weight:600;
+    color:#fff;
+    z-index: 2;
+    position: relative;
+}
+
+.install-btn, .meal-order-btn {
+    grid-column: span 1 !important;
+    height: 50px !important;
+}
+
+.install-btn::after, .meal-order-btn::after {
+    display: none;
+}
+
+/* شاشة الحظر المحسنة */
+.blocked-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(231, 76, 60, 0.95); display: none;
+    justify-content: center; align-items: center; z-index: 10000;
+    backdrop-filter: blur(15px);
+}
+
+.blocked-overlay.show { display: flex; animation: blockOverlayShow 1s ease-out; }
+
+.blocked-container {
+    background: white; border-radius: 25px; padding: 50px; text-align: center;
+    max-width: 550px; width: 90%; box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+    animation: blockModalSlideIn 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border: 3px solid var(--danger-color);
+    font-size: 18px;
+}
+
+.blocked-icon {
+    font-size: 100px; color: var(--danger-color); margin-bottom: 25px;
+    animation: shake 1.5s infinite;
+    text-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+}
+
+.blocked-title {
+    font-size: 36px; color: var(--danger-color); margin-bottom: 20px; font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.blocked-message {
+    font-size: 22px; color: #666; margin-bottom: 25px; line-height: 1.8;
+}
+
+.blocked-reason {
+    background: linear-gradient(135deg, #ffebee, #ffcdd2);
+    border: 2px solid var(--danger-color);
+    border-radius: 15px; padding: 20px; margin-bottom: 25px;
+    color: #d32f2f; font-weight: bold; font-size: 20px;
+}
+
+.blocked-contact {
+    font-size: 20px; color: #333; margin-bottom: 25px;
+}
+
+.blocked-phone {
+    font-size: 26px; color: var(--welcome-color); font-weight: bold; margin: 15px 0;
+    text-shadow: 0 2px 4px rgba(39, 174, 96, 0.3);
+}
+
+/* النص المتحرك */
+.footer-marquee {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(15px);
+    box-shadow: 0 -8px 25px rgba(0,0,0,0.2); border-top: 3px solid var(--primary-color);
+    height: 45px; overflow: hidden; display: flex; align-items: center;
+    justify-content: center; width: 100%;
+    opacity: 0;
+    transform: translateY(100%);
+}
+
+.footer-marquee::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(45deg, rgba(52,152,219,0.1), transparent, rgba(52,152,219,0.1));
+    z-index: 1; animation: shine 5s infinite;
+}
+
+.footer-text-container {
+    width: 100%; overflow: hidden; position: relative; z-index: 2;
+    height: 45px; display: flex; align-items: center; justify-content: center;
+}
+
+.footer-scrolling-text {
+    display: inline-block; white-space: nowrap;
+    animation: scroll-text-left-to-right 30s linear infinite;
+    font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    font-size: 20px; letter-spacing: 1px; color: var(--dark-color);
+    padding: 0 20px; line-height: 45px;
+}
+
+/* شاشات تسجيل الدخول */
+.login-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); display: none; justify-content: center;
+    align-items: center; z-index: 2000; backdrop-filter: blur(10px);
+    animation: fadeIn 0.6s ease;
+}
+
+.login-modal.show { display: flex; }
+
+.login-container {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px; padding: 40px;
+    width: 90%; max-width: 450px; box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    position: relative;
+    animation: modalSlideIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border: 2px solid rgba(106, 17, 203, 0.3);
+    font-size: 18px;
+}
+
+.login-header { text-align: center; margin-bottom: 30px; }
+
+.login-logo {
+    display: flex; align-items: center; justify-content: center;
+    gap: 15px; margin-bottom: 20px;
+}
+
+.login-logo i {
+    font-size: 50px;
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: logoRotate 4s ease-in-out infinite;
+}
+
+@keyframes logoRotate {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(10deg) scale(1.1); }
+}
+
+.login-logo span {
+    font-size: 32px; font-weight: bold;
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+.login-title { font-size: 32px; color: #333; margin-bottom: 8px; font-weight: bold; }
+.login-subtitle { color: #666; font-size: 20px; }
+
+.form-group { margin-bottom: 25px; position: relative; }
+.form-group label {
+    display: block; margin-bottom: 10px; font-weight: bold; color: #555;
+    font-size: 18px;
+}
+.form-group input {
+    width: 100%; padding: 15px 18px; border: 2px solid #ddd;
+    border-radius: 12px; font-size: 18px;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    background: rgba(255,255,255,0.9);
+}
+.form-group input:focus {
+    border-color: #6a11cb; outline: none;
+    box-shadow: 0 0 0 4px rgba(106, 17, 203, 0.2);
+    transform: scale(1.02);
+}
+
+.password-toggle {
+    position: absolute; left: 18px; top: 52px; cursor: pointer;
+    color: #6a11cb; font-size: 20px;
+    transition: all 0.3s ease;
+}
+
+.password-toggle:hover {
+    color: #2575fc; transform: scale(1.1);
+}
+
+/* حقل حفظ البيانات */
+.remember-me {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #555;
+}
+
+.remember-me input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.login-btn {
+    display: block; width: 100%;
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    color: white; padding: 15px; border-radius: 12px; border: none;
+    font-size: 22px; font-weight: bold; cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    margin-top: 15px; position: relative; overflow: hidden;
+}
+
+.login-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.6s ease;
+}
+
+.login-btn:hover::before {
+    width: 400px;
+    height: 400px;
+}
+
+.login-btn:hover {
+    background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(106, 17, 203, 0.4);
+}
+
+.login-btn:disabled {
+    background: #ccc; cursor: not-allowed; transform: none;
+    box-shadow: none;
+}
+
+.login-message {
+    margin-top: 25px; padding: 15px; border-radius: 10px;
+    text-align: center; display: none; animation: fadeIn 0.6s ease;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.error-message {
+    background: linear-gradient(135deg, #ffebee, #ffcdd2);
+    color: #d32f2f; border: 2px solid #d32f2f;
+}
+.success-message {
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    color: #388e3c; border: 2px solid #388e3c;
+}
+
+.close-btn {
+    position: absolute; top: 15px; right: 15px; background: none;
+    border: none; font-size: 2rem; color: #666; cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+}
+
+.close-btn:hover {
+    color: #000; transform: rotate(90deg) scale(1.1);
+    background: rgba(255,0,0,0.1);
+}
+
+.loading-spinner {
+    display: inline-block; width: 20px; height: 20px;
+    border: 3px solid rgba(255,255,255,.3); border-radius: 50%;
+    border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-left: 10px;
+}
+
+/* زر تثبيت PWA */
+.pwa-install-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+    display: none;
+}
+
+/* نافذة اختيار التثبيت */
+.install-choice-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); display: none; justify-content: center;
+    align-items: center; z-index: 2000; backdrop-filter: blur(10px);
+    animation: fadeIn 0.6s ease;
+}
+
+.install-choice-modal.show { display: flex; }
+
+.install-choice-container {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px; padding: 30px;
+    width: 90%; max-width: 500px; box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    position: relative;
+    animation: modalSlideIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border: 2px solid rgba(52, 152, 219, 0.3);
+    text-align: center;
+}
+
+.install-choice-header {
+    margin-bottom: 25px;
+}
+
+.install-choice-header i {
+    font-size: 60px;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.install-choice-title {
+    font-size: 28px;
+    color: var(--dark-color);
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.install-choice-subtitle {
+    font-size: 18px;
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.install-choice-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.install-choice-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.install-choice-btn.download {
+    background: linear-gradient(135deg, var(--welcome-color) 0%, #2ecc71 100%);
+    color: white;
+}
+
+.install-choice-btn.install {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+}
+
+.install-choice-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.install-choice-btn:active {
+    transform: translateY(-1px);
+}
+
+.install-choice-cancel {
+    background: transparent;
+    color: #666;
+    border: 1px solid #ddd;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.install-choice-cancel:hover {
+    background: #f5f5f5;
+}
+
+/* شريط التقدم */
+.progress-container {
+    width: 100%;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    margin: 15px 0;
+    overflow: hidden;
+    display: none;
+}
+
+.progress-bar {
+    width: 0%;
+    height: 20px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* الأنيميشنات المحسنة */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+
+@keyframes headerEntrance {
+    0% { opacity: 0; transform: translateY(-100px) scale(0.8); }
+    50% { opacity: 0.7; transform: translateY(-20px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes boxFall {
+    0% { opacity: 0; transform: translateY(100px) rotateX(45deg) scale(0.8); }
+    50% { opacity: 0.7; transform: translateY(-10px) rotateX(10deg) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) rotateX(0deg) scale(1); }
+}
+
+@keyframes btnEntrance {
+    0% { opacity: 0; transform: scale(0) rotate(180deg); }
+    50% { opacity: 0.7; transform: scale(1.1) rotate(90deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes footerSlideUp {
+    0% { opacity: 0; transform: translateY(100%); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes scroll-text-left-to-right {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes downloadShine {
+    0% { transform: translateX(-200%) translateY(-200%); }
+    100% { transform: translateX(200%) translateY(200%); }
+}
+
+@keyframes shine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(-100px) scale(0.5) rotate(-10deg); }
+    to { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+@keyframes blockOverlayShow {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes blockModalSlideIn {
+    from { opacity: 0; transform: scale(0.3) rotate(-20deg); }
+    to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* تأثيرات إضافية للحاويات */
+.box:nth-child(1) {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,248,255,0.95) 100%);
+}
+
+.box:nth-child(2) {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,255,248,0.95) 100%);
+}
+
+.box:nth-child(3) {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,248,248,0.95) 100%);
+}
+
+/* تحسينات للشاشات المختلفة */
+@media(max-width:768px){
+    .container{grid-template-columns:1fr;}
+    .header{flex-direction:column;gap:15px;text-align:center; padding: 10px;}
+    .buttons-grid{grid-template-columns:repeat(2,1fr); gap:12px;}
+    .btn{height:50px; font-size: 16px; padding:10px;}
+    .box {min-height: 240px; padding: 20px;}
+    .footer-marquee { height: 40px; }
+    .footer-text-container { height: 40px; }
+    .footer-scrolling-text { font-size: 18px; line-height: 40px; }
+    .app-name { font-size: 24px; }
+    .logo-header { width: 60px; height: 60px; }
+    .logo-ghost-right, .logo-ghost-left { width: 60px; height: 60px; }
+    .box-title { font-size: 24px; }
+    .btn i { font-size: 18px; }
+    .btn-text { font-size: 14px; }
+    .pwa-install-btn {
+        top: 10px;
+        left: 10px;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    .install-choice-buttons {
+        flex-direction: column;
+    }
+}
+
+@media(max-width:480px){
+    .buttons-grid{grid-template-columns:1fr; gap:10px;}
+    .btn{height:50px; flex-direction:row; justify-content:flex-start; padding:10px 15px;}
+    .footer-marquee { height: 35px; }
+    .footer-text-container { height: 35px; }
+    .footer-scrolling-text { font-size: 16px; line-height: 35px; }
+    .login-container, .blocked-container { padding: 25px; }
+    .login-logo i { font-size: 40px; }
+    .login-logo span { font-size: 26px; }
+    .login-title { font-size: 28px; }
+    .blocked-icon { font-size: 80px; }
+    .blocked-title { font-size: 30px; }
+    .app-name { font-size: 20px; }
+    .box { min-height: 200px; padding: 15px; }
+    .btn i { font-size: 18px; }
+    .btn-text { font-size: 14px; }
+    .pwa-install-btn {
+        top: 5px;
+        left: 5px;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    .install-choice-container {
+        padding: 20px;
+    }
+    .install-choice-title {
+        font-size: 24px;
+    }
+}
+
+@media(max-width:360px){
+    .buttons-grid{grid-template-columns:1fr; gap:8px;}
+    .btn{height:45px; padding:8px 12px; font-size: 15px;}
+    .btn i { font-size: 16px; }
+    .btn-text { font-size: 13px; }
+    .box-title { font-size: 22px; }
+    .logo-header { width: 50px; height: 50px; }
+    .logo-ghost-right, .logo-ghost-left { width: 50px; height: 50px; }
+}
+</style>
+</head>
+<body>
+
+<!-- زر تثبيت PWA -->
+<button class="pwa-install-btn" id="pwaInstallBtn">
+    <i class="fas fa-download"></i> تثبيت التطبيق
+</button>
+
+<!-- نافذة اختيار التثبيت -->
+<div class="install-choice-modal" id="installChoiceModal">
+    <div class="install-choice-container">
+        <button class="close-btn" id="closeInstallChoice">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="install-choice-header">
+            <i class="fas fa-mobile-alt"></i>
+            <h2 class="install-choice-title">تثبيت تطبيق AZ</h2>
+            <p class="install-choice-subtitle">اختر الطريقة التي تفضلها لتثبيت التطبيق</p>
+        </div>
+        
+        <div class="install-choice-buttons">
+            <button class="install-choice-btn download" id="downloadAppBtn">
+                <i class="fas fa-download"></i>
+                <span>تحميل التطبيق</span>
+            </button>
+            <button class="install-choice-btn install" id="installAppBtn">
+                <i class="fas fa-mobile-alt"></i>
+                <span>تثبيت التطبيق</span>
+            </button>
+        </div>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+        
+        <button class="install-choice-cancel" id="cancelInstallBtn">إلغاء</button>
+    </div>
+</div>
+
+<!-- مؤشرات الحالة (مخفية) -->
+<div class="status-bar" style="display: none;">
+    <div class="status-indicator" id="connectionStatus">
+        <i class="fas fa-wifi"></i>
+        <span>جاري التحقق...</span>
+    </div>
+    <div class="status-indicator tracking" id="trackingStatus">
+        <i class="fas fa-chart-line"></i>
+        <span>تتبع نشط</span>
+    </div>
+</div>
+
+<div class="header" id="mainHeader">
+    <div class="app-name">
+        <div class="logo-container">
+            <img src="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true" alt="شعار AZ" class="logo-header">
+            <img src="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true" alt="شعار شفاف يمين" class="logo-ghost-right">
+            <img src="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true" alt="شعار شفاف يسار" class="logo-ghost-left">
+        </div>
+        AZ السوق الشامل
+        <div class="app-subtitle">لتلبية احتياجك بالكامل</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="box" id="box1">
+        <h2 class="box-title" onclick="refreshPage()">
+            <i class="fas fa-shopping-cart"></i> خدمات التسوق الإلكتروني
+        </h2>
+        <div class="buttons-grid">
+            <button class="btn" onclick="openPage('1_1.html')">
+                <i class="fas fa-shopping-bag"></i>
+                <span class="btn-text">قسم المنتجات التجارية الجديدة</span>
+            </button>
+            <button class="btn" onclick="openPage('1_2.html')">
+                <i class="fas fa-clipboard-list"></i>
+                <span class="btn-text">قسم المنتجات المستعملة - الحراج</span>
+            </button>
+            <button class="btn" onclick="openPage('1_5.html')">
+                <i class="fas fa-building"></i>
+                <span class="btn-text">قسم المباني والعقارات</span>
+            </button>
+            <button class="btn" onclick="openPage('1_6.html')">
+                <i class="fas fa-briefcase"></i>
+                <span class="btn-text">قسم الوظائف الشاغرة</span>
+            </button>
+            <button class="btn" onclick="openPage('index_mt.html')">
+                <i class="fas fa-utensils"></i>
+                <span class="btn-text">قسم الطلب والتوصيل السريع</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="box" id="box2">
+        <h2 class="box-title">
+            <i class="fas fa-building"></i> الخدمات والمواقع التجارية
+        </h2>
+        <div class="buttons-grid">
+            <button class="btn" onclick="openPage('txs_1.html')">
+                <i class="fas fa-map-marker-alt"></i>
+                <span class="btn-text">مواقع وأرقام أشخاص تهمك</span>
+            </button>
+            <button class="btn" onclick="openPage('2_1.html')">
+                <i class="fas fa-landmark"></i>
+                <span class="btn-text">منشأت حكومية</span>
+            </button>
+            <button class="btn" onclick="openPage('2_2.html')">
+                <i class="fas fa-hotel"></i>
+                <span class="btn-text">منشأت خاصة</span>
+            </button>
+            <button class="btn" onclick="openPage('2_3.html')">
+                <i class="fas fa-store-alt"></i>
+                <span class="btn-text">محلات تجارية</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="box" id="box3">
+        <h2 class="box-title">
+            <i class="fas fa-cog"></i> التهيئة والإعدادات
+        </h2>
+        <div class="buttons-grid">
+            <button class="btn" onclick="openCommercialSettings()">
+                <i class="fas fa-cogs"></i>
+                <span class="btn-text">إعدادات المنتجات الجديدة</span>
+            </button>
+            <button class="btn" onclick="openPage('1_4.html')">
+                <i class="fas fa-exchange-alt"></i>
+                <span class="btn-text">مدخلات الخدمات</span>
+            </button>
+            <button class="btn" onclick="openRestaurantMerchantLogin()">
+                <i class="fas fa-utensils"></i>
+                <span class="btn-text">إعدادات منتجات الطلب والتوصيل السريع</span>
+            </button>
+            <button class="btn" onclick="openAdminLogin()">
+                <i class="fas fa-user-cog"></i>
+                <span class="btn-text">إعدادات المتجر الإدارية</span>
+            </button>
+            <button class="btn" onclick="openPage('as.html')">
+                <i class="fas fa-user-plus"></i>
+                <span class="btn-text">طلب الانضمام</span>
+            </button>
+            <button class="btn" onclick="openPage('mr.html')">
+                <i class="fas fa-info-circle"></i>
+                <span class="btn-text">عنا</span>
+            </button>
+            <button class="btn" onclick="openAppInstallation()">
+                <i class="fas fa-mobile-alt"></i>
+                <span class="btn-text">تثبيت تطبيق المتجر</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- النص المتحرك في التذييل -->
+<div class="footer-marquee" id="footerMarquee">
+    <div class="footer-text-container">
+        <div class="footer-scrolling-text" id="footerScrollingText">
+            الراعي الرسمي لهذا المتجر المميز سوفت للأنظمة المحاسبية المتكاملة أول نظام محاسبي يصنع حسب الطلب للطلب والاستفسار اتصل على 772299420
+        </div>
+    </div>
+</div>
+
+<!-- شاشة الحظر -->
+<div class="blocked-overlay" id="blockedOverlay">
+    <div class="blocked-container">
+        <div class="blocked-icon">
+            <i class="fas fa-ban"></i>
+        </div>
+        <h2 class="blocked-title">تم حظر الوصول</h2>
+        <p class="blocked-message">
+            عذراً، تم منعك من الوصول إلى هذا الموقع
+        </p>
+        <div class="blocked-reason" id="blockedReason">
+            سبب الحظر: مخالفة شروط الاستخدام
+        </div>
+        <div class="blocked-contact">
+            للاستفسار أو رفع الحظر، يرجى التواصل معنا:
+            <div class="blocked-phone">📞 772299420</div>
+        </div>
+    </div>
+</div>
+
+<!-- شاشة تسجيل الدخول للتاجر -->
+<div class="login-modal" id="merchantLoginModal">
+    <div class="login-container">
+        <button class="close-btn" id="closeMerchantLogin">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="login-header">
+            <div class="login-logo">
+                <i class="fas fa-store"></i>
+                <span>AZ</span>
+            </div>
+            <h2 class="login-title">تسجيل الدخول للتاجر</h2>
+            <p class="login-subtitle">أدخل بيانات الدخول للوصول إلى لوحة التحكم</p>
+        </div>
+        
+        <form id="merchantLoginForm">
+            <div class="form-group">
+                <label for="merchantUsername">اسم المستخدم</label>
+                <input type="text" id="merchantUsername" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="merchantPassword">كلمة المرور</label>
+                <input type="password" id="merchantPassword" name="password" required>
+                <i class="fas fa-eye password-toggle" id="toggleMerchantPassword"></i>
+            </div>
+            
+            <!-- حقل حفظ البيانات -->
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMerchant">
+                <label for="rememberMerchant">حفظ بياناتي</label>
+            </div>
+            
+            <button type="submit" class="login-btn" id="merchantLoginBtn">
+                تسجيل الدخول
+                <span class="loading-spinner" id="merchantLoadingSpinner" style="display: none;"></span>
+            </button>
+        </form>
+        
+        <div id="merchantLoginMessage" class="login-message"></div>
+    </div>
+</div>
+
+<!-- شاشة تسجيل الدخول للإدارة -->
+<div class="login-modal" id="adminLoginModal">
+    <div class="login-container">
+        <button class="close-btn" id="closeAdminLogin">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="login-header">
+            <div class="login-logo">
+                <i class="fas fa-user-cog"></i>
+                <span>AZ</span>
+            </div>
+            <h2 class="login-title">تسجيل الدخول للإدارة</h2>
+            <p class="login-subtitle">أدخل بيانات الدخول للوصول إلى لوحة الإدارة</p>
+        </div>
+        
+        <form id="adminLoginForm">
+            <div class="form-group">
+                <label for="adminUsername">اسم المستخدم</label>
+                <input type="text" id="adminUsername" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="adminPassword">كلمة المرور</label>
+                <input type="password" id="adminPassword" name="password" required>
+                <i class="fas fa-eye password-toggle" id="toggleAdminPassword"></i>
+            </div>
+            
+            <button type="submit" class="login-btn" id="adminLoginBtn">
+                تسجيل الدخول
+                <span class="loading-spinner" id="adminLoadingSpinner" style="display: none;"></span>
+            </button>
+        </form>
+        
+        <div id="adminLoginMessage" class="login-message"></div>
+    </div>
+</div>
+
+<!-- شاشة تسجيل الدخول لتاجر المطاعم -->
+<div class="login-modal" id="restaurantMerchantLoginModal">
+    <div class="login-container">
+        <button class="close-btn" id="closeRestaurantMerchantLogin">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="login-header">
+            <div class="login-logo">
+                <i class="fas fa-utensils"></i>
+                <span>AZ</span>
+            </div>
+            <h2 class="login-title">تسجيل الدخول لإدارة المطاعم</h2>
+            <p class="login-subtitle">أدخل بيانات الدخول للوصول إلى لوحة إدارة المطاعم</p>
+        </div>
+        
+        <form id="restaurantMerchantLoginForm">
+            <div class="form-group">
+                <label for="restaurantMerchantUsername">اسم المستخدم</label>
+                <input type="text" id="restaurantMerchantUsername" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="restaurantMerchantPassword">كلمة المرور</label>
+                <input type="password" id="restaurantMerchantPassword" name="password" required>
+                <i class="fas fa-eye password-toggle" id="toggleRestaurantMerchantPassword"></i>
+            </div>
+            
+            <!-- حقل حفظ البيانات -->
+            <div class="remember-me">
+                <input type="checkbox" id="rememberRestaurantMerchant">
+                <label for="rememberRestaurantMerchant">حفظ بياناتي</label>
+            </div>
+            
+            <button type="submit" class="login-btn" id="restaurantMerchantLoginBtn">
+                تسجيل الدخول
+                <span class="loading-spinner" id="restaurantMerchantLoadingSpinner" style="display: none;"></span>
+            </button>
+        </form>
+        
+        <div id="restaurantMerchantLoginMessage" class="login-message"></div>
+    </div>
+</div>
+
+<!-- حاوية الإشعارات (مخفية) -->
+<div class="toast-container" id="toastContainer" style="display: none;"></div>
+
+<script>
+// ===== إفراغ جميع بيانات الجلوبال عند فتح الصفحة =====
+function clearGlobalData() {
+    // إفراغ sessionStorage
+    sessionStorage.removeItem('globalUserData');
+    sessionStorage.removeItem('merchantName');
+    sessionStorage.removeItem('merchantPhone');
+    sessionStorage.removeItem('merchantId');
+    
+    // إفراغ localStorage
+    localStorage.removeItem('globalUserData');
+    localStorage.removeItem('merchantName');
+    localStorage.removeItem('merchantPhone');
+    localStorage.removeItem('merchantId');
+    
+    console.log('🧹 تم إفراغ جميع بيانات الجلوبال');
+}
+
+// تهيئة Firebase
+const firebaseConfig = {
+    databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// ===== نظام إدارة المستخدم العام المحسن =====
+const globalUser = {
+    data: null,
+    
+    setUserData: function(userData) {
+        this.data = userData;
+        // استخدام sessionStorage للتخزين المؤقت
+        sessionStorage.setItem('globalUserData', JSON.stringify(userData));
+        console.log('✅ تم تخزين بيانات المستخدم في الجلسة:', userData);
+    },
+    
+    getUserData: function() {
+        if (this.data) return this.data;
+        
+        // البحث في sessionStorage فقط
+        const storedData = sessionStorage.getItem('globalUserData');
+        if (storedData) {
+            this.data = JSON.parse(storedData);
+            return this.data;
+        }
+        return null;
+    },
+    
+    getUsername: function() {
+        const userData = this.getUserData();
+        return userData ? userData.username : 'زائر';
+    },
+    
+    getUserId: function() {
+        const userData = this.getUserData();
+        return userData ? userData.id : null;
+    },
+    
+    isLoggedIn: function() {
+        return this.getUserData() !== null;
+    },
+    
+    logout: function() {
+        this.data = null;
+        sessionStorage.removeItem('globalUserData');
+        console.log('🚪 تم تسجيل الخروج');
+    }
+};
+
+// ===== نظام تخزين بيانات التاجر في الجلوبال =====
+const merchantGlobal = {
+    // حفظ اسم التاجر
+    setMerchantName: function(name) {
+        sessionStorage.setItem('merchantName', name);
+        console.log('✅ تم حفظ اسم التاجر في الجلوبال:', name);
+    },
+    
+    getMerchantName: function() {
+        return sessionStorage.getItem('merchantName') || '';
+    },
+    
+    // حفظ رقم الجوال/الواتساب
+    setMerchantPhone: function(phone) {
+        sessionStorage.setItem('merchantPhone', phone);
+        console.log('✅ تم حفظ رقم التاجر في الجلوبال:', phone);
+    },
+    
+    getMerchantPhone: function() {
+        return sessionStorage.getItem('merchantPhone') || '';
+    },
+    
+    // حفظ معرف التاجر
+    setMerchantId: function(merchantId) {
+        sessionStorage.setItem('merchantId', merchantId);
+        console.log('✅ تم حفظ معرف التاجر في الجلوبال:', merchantId);
+    },
+    
+    getMerchantId: function() {
+        return sessionStorage.getItem('merchantId') || '';
+    },
+    
+    // إفراغ جميع بيانات التاجر
+    clearAll: function() {
+        sessionStorage.removeItem('merchantName');
+        sessionStorage.removeItem('merchantPhone');
+        sessionStorage.removeItem('merchantId');
+        console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
+    }
+};
+
+// ===== نظام تتبع الزوار المحسن مع قاعدة البيانات الجديدة =====
+class AdvancedVisitorTracker {
+    constructor() {
+        this.visitorId = this.getOrCreateVisitorId();
+        this.sessionId = this.generateSessionId();
+        this.currentPage = this.getCurrentPage();
+        this.startTime = Date.now();
+        this.isOnline = navigator.onLine;
+        this.isBlocked = false;
+        this.heartbeatInterval = null;
+        this.blockCheckInterval = null;
+        
+        // مراجع Firebase للجداول الجديدة
+        this.visitorsRef = database.ref('visitors');
+        this.datVisitorsRef = database.ref('dat_visitors');
+        this.bagVisitorsRef = database.ref('bag_visitors');
+        this.blockedVisitorsRef = database.ref('bannedVisitors'); // تم التصحيح
+        this.blockedIPsRef = database.ref('blocked_ips');
+        
+        console.log('🚀 تم تهيئة نظام تتبع الزوار المتقدم');
+        console.log('🆔 معرف الزائر:', this.visitorId);
+    }
+    
+    // إنشاء أو استرجاع معرف الزائر
+    getOrCreateVisitorId() {
+        let visitorId = localStorage.getItem("visitorId");
+        if (!visitorId) {
+            visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+            localStorage.setItem("visitorId", visitorId);
+            localStorage.setItem("firstVisit", new Date().toISOString());
+        }
+        return visitorId;
+    }
+    
+    // إنشاء معرف جلسة
+    generateSessionId() {
+        return 'session_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    }
+    
+    // الحصول على الصفحة الحالية
+    getCurrentPage() {
+        return window.location.pathname.split("/").pop() || "index.html";
+    }
+    
+    // جلب عنوان IP بمحاولات متعددة
+    async getIPAddress() {
+        const services = [
+            "https://api.ipify.org?format=json",
+            "https://api64.ipify.org?format=json",
+            "https://jsonip.com",
+            "https://ipinfo.io/json"
+        ];
+        
+        for (let service of services) {
+            try {
+                const response = await fetch(service, { timeout: 5000 });
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.ip || data.ip;
+                }
+            } catch (error) {
+                console.warn(`⚠️ فشل جلب IP من ${service}:`, error);
+                continue;
+            }
+        }
+        
+        // محاولة باستخدام WebRTC كبديل
+        try {
+            const ip = await this.getIPWithWebRTC();
+            if (ip && ip !== "unknown") return ip;
+        } catch (error) {
+            console.warn("⚠️ فشل جلب IP باستخدام WebRTC:", error);
+        }
+        
+        return "unknown";
+    }
+    
+    // جلب IP باستخدام WebRTC
+    getIPWithWebRTC() {
+        return new Promise((resolve) => {
+            const pc = new RTCPeerConnection({ 
+                iceServers: [{ urls: "stun:stun.l.google.com:19302" }] 
+            });
+            pc.createDataChannel("");
+            pc.createOffer().then(offer => pc.setLocalDescription(offer));
+            
+            pc.onicecandidate = (ice) => {
+                if (!ice.candidate) return;
+                const ip = ice.candidate.address;
+                resolve(ip || "unknown");
+                pc.close();
+            };
+            
+            setTimeout(() => resolve("unknown"), 1000);
+        });
+    }
+    
+    // بدء التتبع
+    async startTracking() {
+        console.log('📊 بدء تتبع الزائر...');
+        
+        // التحقق من الحظر أولاً
+        const isBlocked = await this.checkIfBlocked();
+        if (isBlocked) {
+            this.handleBlocked({ reason: 'تم حظر هذا الزائر من قبل الإدارة' });
+            return;
+        }
+        
+        // جلب عنوان IP
+        const ipAddress = await this.getIPAddress();
+        
+        // تسجيل الزائر في قاعدة البيانات الجديدة
+        await this.registerVisitor(ipAddress);
+        
+        // بدء المراقبة المستمرة
+        this.startHeartbeat();
+        this.startBlockCheck();
+        this.setupEventListeners();
+        
+        console.log('✅ تم بدء تتبع الزائر بنجاح');
+    }
+    
+    // تسجيل الزائر في قاعدة البيانات الجديدة
+    async registerVisitor(ipAddress) {
+        try {
+            // البحث عن الزائر في جدول visitors
+            const visitorSnapshot = await this.visitorsRef.orderByChild('ip').equalTo(ipAddress).once('value');
+            let visitorNumber = null;
+            let visitorData = null;
+            
+            if (visitorSnapshot.exists()) {
+                // الزائر موجود - تحديث البيانات
+                visitorSnapshot.forEach(childSnapshot => {
+                    visitorNumber = childSnapshot.key;
+                    visitorData = childSnapshot.val();
+                });
+                
+                // تحديث حالة الزائر
+                await this.visitorsRef.child(visitorNumber).update({
+                    lastVisit: new Date().toISOString(),
+                    status: 'نشط',
+                    visitorId: this.visitorId,
+                    ip: ipAddress
+                });
+            } else {
+                // زائر جديد - إنشاء رقم تسلسلي
+                const counterSnapshot = await this.visitorsRef.orderByKey().limitToLast(1).once('value');
+                let newNumber = 1;
+                
+                if (counterSnapshot.exists()) {
+                    counterSnapshot.forEach(childSnapshot => {
+                        const currentNumber = parseInt(childSnapshot.key);
+                        newNumber = currentNumber > 0 ? currentNumber + 1 : 1;
+                    });
+                }
+                
+                visitorNumber = newNumber.toString();
+                
+                // إضافة الزائر الجديد
+                await this.visitorsRef.child(visitorNumber).set({
+                    visitorId: this.visitorId,
+                    ip: ipAddress,
+                    status: 'نشط',
+                    firstVisit: new Date().toISOString(),
+                    lastVisit: new Date().toISOString(),
+                    totalVisits: 1,
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform
+                });
+            }
+            
+            // تسجيل زيارة اليوم في dat_visitors
+            await this.registerDailyVisit(visitorNumber);
+            
+            // تسجيل دخول الصفحة الحالية في bag_visitors
+            await this.registerPageVisit(visitorNumber);
+            
+            // حفظ البيانات محلياً
+            this.saveLocalData(visitorNumber, ipAddress);
+            
+        } catch (error) {
+            console.error('❌ خطأ في تسجيل الزائر:', error);
+        }
+    }
+    
+    // تسجيل زيارة اليوم
+    async registerDailyVisit(visitorNumber) {
+        try {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            
+            // البحث عن زيارة اليوم
+            const dateVisitSnapshot = await this.datVisitorsRef
+                .orderByChild('visitorNumber_date')
+                .equalTo(visitorNumber + '_' + today)
+                .once('value');
+            
+            if (!dateVisitSnapshot.exists()) {
+                // لا توجد زيارة لهذا اليوم - إنشاء جديدة
+                await this.datVisitorsRef.push({
+                    visitorNumber: visitorNumber,
+                    date: today,
+                    visitorNumber_date: visitorNumber + '_' + today,
+                    visitCount: 1,
+                    firstVisitTime: new Date().toISOString(),
+                    lastVisitTime: new Date().toISOString()
+                });
+            } else {
+                // تحديث زيارة اليوم
+                dateVisitSnapshot.forEach(childSnapshot => {
+                    childSnapshot.ref.update({
+                        lastVisitTime: new Date().toISOString(),
+                        visitCount: (childSnapshot.val().visitCount || 0) + 1
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('❌ خطأ في تسجيل زيارة اليوم:', error);
+        }
+    }
+    
+    // تسجيل دخول الصفحة
+    async registerPageVisit(visitorNumber) {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const pageName = this.getCurrentPage();
+            const enterTime = new Date().toISOString();
+            
+            // الحصول على آخر مسلسل لهذا الزائر في هذا التاريخ
+            const lastSerialSnapshot = await this.bagVisitorsRef
+                .orderByChild('visitorNumber_date')
+                .equalTo(visitorNumber + '_' + today)
+                .once('value');
+            
+            let serialNumber = 1;
+            if (lastSerialSnapshot.exists()) {
+                lastSerialSnapshot.forEach(childSnapshot => {
+                    const currentSerial = childSnapshot.val().serialNumber || 0;
+                    if (currentSerial >= serialNumber) {
+                        serialNumber = currentSerial + 1;
+                    }
+                });
+            }
+            
+            // إضافة سجل الصفحة
+            const pageVisitRef = await this.bagVisitorsRef.push({
+                visitorNumber: visitorNumber,
+                date: today,
+                visitorNumber_date: visitorNumber + '_' + today,
+                serialNumber: serialNumber,
+                pageName: pageName,
+                enterTime: enterTime,
+                exitTime: null,
+                exitDate: null,
+                sessionId: this.sessionId,
+                pageTitle: document.title
+            });
+            
+            // حفظ معرف السجل محلياً للإشارة إليه عند الخروج
+            localStorage.setItem('currentPageVisitId', pageVisitRef.key);
+            localStorage.setItem('currentPageEnterTime', enterTime);
+            
+        } catch (error) {
+            console.error('❌ خطأ في تسجيل دخول الصفحة:', error);
+        }
+    }
+    
+    // تحديث خروج الصفحة
+    async updatePageExit() {
+        try {
+            const pageVisitId = localStorage.getItem('currentPageVisitId');
+            if (!pageVisitId) return;
+            
+            const exitTime = new Date().toISOString();
+            const exitDate = new Date().toISOString().split('T')[0];
+            
+            await this.bagVisitorsRef.child(pageVisitId).update({
+                exitTime: exitTime,
+                exitDate: exitDate,
+                sessionDuration: Date.now() - this.startTime
+            });
+            
+            // تنظيف التخزين المحلي
+            localStorage.removeItem('currentPageVisitId');
+            localStorage.removeItem('currentPageEnterTime');
+            
+        } catch (error) {
+            console.error('❌ خطأ في تحديث خروج الصفحة:', error);
+        }
+    }
+    
+    // حفظ البيانات محلياً
+    saveLocalData(visitorNumber, ipAddress) {
+        const visitorData = {
+            visitorNumber: visitorNumber,
+            visitorId: this.visitorId,
+            sessionId: this.sessionId,
+            ip: ipAddress,
+            currentPage: this.currentPage,
+            enterTime: new Date().toISOString(),
+            startTime: this.startTime
+        };
+        
+        localStorage.setItem('visitorData', JSON.stringify(visitorData));
+        localStorage.setItem('visitorData_timestamp', Date.now().toString());
+    }
+    
+    // بدء النبضة لتحديث البيانات دورياً
+    startHeartbeat() {
+        this.heartbeatInterval = setInterval(async () => {
+            if (!this.isBlocked) {
+                // تحديث آخر نشاط
+                const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+                if (visitorData.visitorNumber) {
+                    await this.visitorsRef.child(visitorData.visitorNumber).update({
+                        lastActivity: new Date().toISOString()
+                    });
+                }
+            }
+        }, 30000);
+    }
+    
+    // بدء فحص الحظر
+    startBlockCheck() {
+        this.blockCheckInterval = setInterval(async () => {
+            await this.checkIfBlocked();
+        }, 15000);
+    }
+    
+    // فحص حالة الحظر
+    async checkIfBlocked() {
+        try {
+            if (!this.isOnline) return false;
+            
+            const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+            
+            // فحص حظر الزائر بالرقم
+            if (visitorData.visitorNumber) {
+                const visitorSnapshot = await this.visitorsRef.child(visitorData.visitorNumber).once('value');
+                const visitor = visitorSnapshot.val();
+                
+                if (visitor && visitor.status === 'محظور') {
+                    this.handleBlocked({ reason: 'تم حظر هذا الزائر من قبل الإدارة' });
+                    return true;
+                }
+            }
+            
+            // فحص حظر IP
+            if (visitorData.ip && visitorData.ip !== 'unknown') {
+                const ipKey = visitorData.ip.replace(/\./g, '_');
+                const ipSnapshot = await this.blockedIPsRef.child(ipKey).once('value');
+                const ipBlocked = ipSnapshot.val();
+                
+                if (ipBlocked && ipBlocked.status === 'blocked') {
+                    this.handleBlocked(ipBlocked);
+                    return true;
+                }
+            }
+            
+            // فحص الحظر من bannedVisitors
+            const bannedSnapshot = await this.blockedVisitorsRef.once('value');
+            if (bannedSnapshot.exists()) {
+                bannedSnapshot.forEach(childSnapshot => {
+                    const bannedData = childSnapshot.val();
+                    // التحقق من الحظر باستخدام IP
+                    if (bannedData.ip === visitorData.ip) {
+                        this.handleBlocked({ reason: bannedData.reason || 'تم حظر هذا IP من قبل الإدارة' });
+                        return true;
+                    }
+                    // التحقق من الحظر باستخدام visitorId
+                    if (bannedData.visitorId === this.visitorId) {
+                        this.handleBlocked({ reason: bannedData.reason || 'تم حظر هذا الزائر من قبل الإدارة' });
+                        return true;
+                    }
+                });
+            }
+            
+            return false;
+            
+        } catch (error) {
+            console.error('❌ خطأ في فحص الحظر:', error);
+            return false;
+        }
+    }
+    
+    // معالجة الحظر
+    handleBlocked(blockedData) {
+        this.isBlocked = true;
+        this.showBlockedScreen(blockedData);
+        this.stopTracking();
+        
+        // منع التفاعل مع الصفحة
+        document.body.style.overflow = 'hidden';
+        document.body.style.pointerEvents = 'none';
+        
+        console.log('🚫 تم حظر الزائر:', blockedData.reason);
+    }
+    
+    // عرض شاشة الحظر
+    showBlockedScreen(blockedData) {
+        const blockedOverlay = document.getElementById('blockedOverlay');
+        const blockedReason = document.getElementById('blockedReason');
+        
+        if (blockedData.reason) {
+            blockedReason.textContent = `سبب الحظر: ${blockedData.reason}`;
+        }
+        
+        blockedOverlay.classList.add('show');
+        blockedOverlay.style.pointerEvents = 'all';
+    }
+    
+    // إعداد مستمعي الأحداث
+    setupEventListeners() {
+        // مراقبة حالة الاتصال
+        window.addEventListener('online', () => {
+            this.isOnline = true;
+        });
+        
+        window.addEventListener('offline', () => {
+            this.isOnline = false;
+        });
+        
+        // مراقبة النشاط
+        ['click', 'scroll', 'keypress', 'mousemove', 'touchstart'].forEach(event => {
+            document.addEventListener(event, () => {
+                this.recordActivity();
+            }, { passive: true });
+        });
+        
+        // مراقبة مغادرة الصفحة
+        window.addEventListener('beforeunload', () => {
+            this.handlePageExit();
+        });
+        
+        // مراقبة إخفاء/إظهار الصفحة
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                this.handlePageHidden();
+            } else {
+                this.handlePageVisible();
+            }
+        });
+    }
+    
+    // تسجيل النشاط
+    recordActivity() {
+        // يمكن إضافة تسجيل النشاط إذا لزم الأمر
+    }
+    
+    // معالجة إخفاء الصفحة
+    handlePageHidden() {
+        // تحديث حالة الصفحة
+    }
+    
+    // معالجة إظهار الصفحة
+    handlePageVisible() {
+        // تحديث حالة الصفحة
+    }
+    
+    // معالجة مغادرة الصفحة
+    async handlePageExit() {
+        await this.updatePageExit();
+        
+        const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+        if (visitorData.visitorNumber) {
+            // تحديث وقت الخروج النهائي
+            await this.visitorsRef.child(visitorData.visitorNumber).update({
+                lastExit: new Date().toISOString()
+            });
+        }
+    }
+    
+    // إيقاف المراقبة
+    stopTracking() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
+        if (this.blockCheckInterval) {
+            clearInterval(this.blockCheckInterval);
+            this.blockCheckInterval = null;
+        }
+        
+        console.log('🛑 تم إيقاف مراقبة الزائر');
+    }
+}
+
+// إنشاء مثيل من نظام المراقبة المتقدم
+const visitorTracker = new AdvancedVisitorTracker();
+
+// ===== دوال مساعدة =====
+
+// دالة إنشاء معرف فريد
+function generateId(text) {
+    const arabicToEnglish = {
+        'أ': 'a', 'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j', 'ح': 'h', 'خ': 'kh',
+        'د': 'd', 'ذ': 'th', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh', 'ص': 's',
+        'ض': 'd', 'ط': 't', 'ظ': 'th', 'ع': 'a', 'غ': 'gh', 'ف': 'f', 'ق': 'q',
+        'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n', 'ه': 'h', 'و': 'w', 'ي': 'y',
+        'ء': '', 'آ': 'a', 'ة': 'h', 'ى': 'a', 'ئ': 'i', 'ؤ': 'u', ' ': '_'
+    };
+    
+    return text.toLowerCase()
+        .replace(/[\u0621-\u064A\u0660-\u0669\s]/g, (match) => arabicToEnglish[match] || match)
+        .replace(/[^a-z0-9_]/g, '');
+}
+
+// ===== نظام تثبيت التطبيق المحسن =====
+let deferredPrompt;
+
+// استمع لحدث beforeinstallprompt لعرض زر التثبيت
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showPWAInstallButton();
+});
+
+// عرض زر تثبيت PWA
+function showPWAInstallButton() {
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if (installBtn) {
+        installBtn.style.display = 'block';
+    }
+}
+
+// تثبيت كـ PWA
+async function installPWA() {
+    if (!deferredPrompt) {
+        return false;
+    }
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// دالة التثبيت المحسنة
+function installAppEnhanced() {
+    // روابط التحميل
+    const downloadLinks = {
+        android: 'https://drive.google.com/uc?export=download&id=1iPwYBIEvs-RvXryeDNOHZVpbZrcm6q-9',
+        direct: 'https://drive.google.com/uc?export=download&id=1iPwYBIEvs-RvXryeDNOHZVpbZrcm6q-9'
+    };
+    
+    // حاول التثبيت كـ PWA أولاً
+    if (deferredPrompt) {
+        installPWA().then(success => {
+            if (!success) {
+                // إذا فشل PWA، استخدم التحميل العادي
+                downloadAppDirect();
+            }
+        });
+    } else {
+        // إذا لم يكن PWA متاحاً، استخدم التحميل العادي
+        downloadAppDirect();
+    }
+}
+
+// تحميل التطبيق مباشرة
+function downloadAppDirect() {
+    const downloadUrl = 'https://drive.google.com/uc?export=download&id=1iPwYBIEvs-RvXryeDNOHZVpbZrcm6q-9';
+    
+    // استخدام fetch لتحميل الملف مباشرة
+    fetch(downloadUrl)
+        .then(response => response.blob())
+        .then(blob => {
+            // إنشاء رابط تحميل
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'AZالسوق الشامل.apk';
+            
+            // إضافة للصفحة والنقر عليه برمجياً
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // تحرير الذاكرة
+            window.URL.revokeObjectURL(url);
+            
+            // إشعار بنجاح التحميل
+            setTimeout(() => {
+                alert('✅ تم تحميل التطبيق بنجاح! ابحث عن الملف في مجلد التنزيلات وقم بتثبيته.');
+            }, 1000);
+        })
+        .catch(error => {
+            console.error('❌ خطأ في تحميل الملف:', error);
+            // إذا فشل التحميل المباشر، استخدم الطريقة التقليدية
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = 'AZالسوق الشامل.apk';
+            link.target = '_blank';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            alert('📱 جاري تحميل التطبيق... ابحث عن الملف في مجلد التنزيلات بعد اكتمال التحميل.');
+        });
+}
+
+// ===== نظام تثبيت التطبيق الجديد =====
+function showInstallChoice() {
+    const modal = document.getElementById('installChoiceModal');
+    modal.classList.add('show');
+}
+
+function setupInstallChoice() {
+    const modal = document.getElementById('installChoiceModal');
+    const closeBtn = document.getElementById('closeInstallChoice');
+    const downloadBtn = document.getElementById('downloadAppBtn');
+    const installBtn = document.getElementById('installAppBtn');
+    const cancelBtn = document.getElementById('cancelInstallBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    
+    // إغلاق النافذة
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        progressContainer.style.display = 'none';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+    });
+    
+    cancelBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        progressContainer.style.display = 'none';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+        }
+    });
+    
+    // زر تحميل التطبيق
+    downloadBtn.addEventListener('click', () => {
+        progressContainer.style.display = 'block';
+        
+        // محاكاة شريط التقدم
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 10;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                
+                // بدء التحميل الفعلي بعد انتهاء الشريط
+                setTimeout(() => {
+                    downloadAppDirect();
+                    setTimeout(() => {
+                        modal.classList.remove('show');
+                        progressContainer.style.display = 'none';
+                        progressBar.style.width = '0%';
+                        progressBar.textContent = '0%';
+                    }, 1000);
+                }, 500);
+            }
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+        }, 200);
+    });
+    
+    // زر تثبيت التطبيق
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            const success = await installPWA();
+            if (success) {
+                modal.classList.remove('show');
+                alert('✅ تم بدء تثبيت التطبيق بنجاح!');
+            } else {
+                alert('❌ تم إلغاء التثبيت. يرجى استخدام خيار التحميل بدلاً من ذلك.');
+            }
+        } else {
+            alert('❌ التثبيت التلقائي غير متاح. يرجى استخدام خيار التحميل بدلاً من ذلك.');
+        }
+    });
+}
+
+// ===== وظائف التطبيق الأساسية =====
+
+// دالة تحديث الصفحة
+function refreshPage() {
+    location.reload();
+}
+
+// دالة فتح الصفحات
+function openPage(pageUrl) {
+    // تسجيل الانتقال
+    visitorTracker.updatePageExit().then(() => {
+        window.location.href = pageUrl;
+    });
+}
+
+// دالة فتح إعدادات التاجر - دائماً تطلب تسجيل الدخول
+function openCommercialSettings() {
+    // إظهار شاشة تسجيل الدخول مباشرة دون فحص الحالة الحالية
+    document.getElementById('merchantLoginModal').classList.add('show');
+    
+    // تحميل البيانات المحفوظة إن وجدت
+    loadSavedMerchantCredentials();
+    
+    // تسجيل محاولة الوصول
+    const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+    if (visitorData.visitorNumber) {
+        database.ref('visitors').child(visitorData.visitorNumber).update({
+            merchantLoginAttempts: (visitorData.merchantLoginAttempts || 0) + 1,
+            lastMerchantLoginAttempt: new Date().toISOString()
+        });
+    }
+}
+
+// دالة فتح إعدادات الإدارة - دائماً تطلب تسجيل الدخول
+function openAdminLogin() {
+    // إظهار شاشة تسجيل الدخول مباشرة دون فحص الحالة الحالية
+    document.getElementById('adminLoginModal').classList.add('show');
+    
+    // تسجيل محاولة الوصول
+    const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+    if (visitorData.visitorNumber) {
+        database.ref('visitors').child(visitorData.visitorNumber).update({
+            adminLoginAttempts: (visitorData.adminLoginAttempts || 0) + 1,
+            lastAdminLoginAttempt: new Date().toISOString()
+        });
+    }
+}
+
+// دالة فتح إعدادات تاجر المطاعم - دائماً تطلب تسجيل الدخول
+function openRestaurantMerchantLogin() {
+    // إظهار شاشة تسجيل الدخول مباشرة دون فحص الحالة الحالية
+    document.getElementById('restaurantMerchantLoginModal').classList.add('show');
+    
+    // تحميل البيانات المحفوظة إن وجدت
+    loadSavedRestaurantMerchantCredentials();
+    
+    // تسجيل محاولة الوصول
+    const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+    if (visitorData.visitorNumber) {
+        database.ref('visitors').child(visitorData.visitorNumber).update({
+            restaurantLoginAttempts: (visitorData.restaurantLoginAttempts || 0) + 1,
+            lastRestaurantLoginAttempt: new Date().toISOString()
+        });
+    }
+}
+
+// ===== دوال حفظ واسترجاع بيانات تسجيل الدخول =====
+
+// تحميل بيانات تسجيل الدخول للتاجر
+function loadSavedMerchantCredentials() {
+    const savedUsername = localStorage.getItem('savedMerchantUsername');
+    const savedPassword = localStorage.getItem('savedMerchantPassword');
+    const rememberMe = localStorage.getItem('rememberMerchant') === 'true';
+    
+    if (rememberMe && savedUsername && savedPassword) {
+        document.getElementById('merchantUsername').value = savedUsername;
+        document.getElementById('merchantPassword').value = savedPassword;
+        document.getElementById('rememberMerchant').checked = true;
+    }
+}
+
+// حفظ بيانات تسجيل الدخول للتاجر
+function saveMerchantCredentials(username, password, remember) {
+    if (remember) {
+        localStorage.setItem('savedMerchantUsername', username);
+        localStorage.setItem('savedMerchantPassword', password);
+        localStorage.setItem('rememberMerchant', 'true');
+    } else {
+        localStorage.removeItem('savedMerchantUsername');
+        localStorage.removeItem('savedMerchantPassword');
+        localStorage.removeItem('rememberMerchant');
+    }
+}
+
+// تحميل بيانات تسجيل الدخول لتاجر المطاعم
+function loadSavedRestaurantMerchantCredentials() {
+    const savedUsername = localStorage.getItem('savedRestaurantMerchantUsername');
+    const savedPassword = localStorage.getItem('savedRestaurantMerchantPassword');
+    const rememberMe = localStorage.getItem('rememberRestaurantMerchant') === 'true';
+    
+    if (rememberMe && savedUsername && savedPassword) {
+        document.getElementById('restaurantMerchantUsername').value = savedUsername;
+        document.getElementById('restaurantMerchantPassword').value = savedPassword;
+        document.getElementById('rememberRestaurantMerchant').checked = true;
+    }
+}
+
+// حفظ بيانات تسجيل الدخول لتاجر المطاعم
+function saveRestaurantMerchantCredentials(username, password, remember) {
+    if (remember) {
+        localStorage.setItem('savedRestaurantMerchantUsername', username);
+        localStorage.setItem('savedRestaurantMerchantPassword', password);
+        localStorage.setItem('rememberRestaurantMerchant', 'true');
+    } else {
+        localStorage.removeItem('savedRestaurantMerchantUsername');
+        localStorage.removeItem('savedRestaurantMerchantPassword');
+        localStorage.removeItem('rememberRestaurantMerchant');
+    }
+}
+
+// ===== الانتقال التلقائي إلى حاوية خدمات التسوق الإلكتروني =====
+function scrollToShoppingServices() {
+    const box1 = document.getElementById('box1');
+    if (box1) {
+        box1.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // إضافة تأثير مميز للحاوية
+        box1.style.boxShadow = '0 0 30px rgba(52, 152, 219, 0.5)';
+        box1.style.borderColor = 'var(--primary-color)';
+        
+        setTimeout(() => {
+            box1.style.boxShadow = '0 15px 35px rgba(0,0,0,0.15)';
+            box1.style.borderColor = 'rgba(52, 152, 219, 0.3)';
+        }, 2000);
+    }
+}
+
+// ===== دالة فتح تثبيت التطبيق =====
+function openAppInstallation() {
+    // فتح الرابط في نافذة جديدة
+    window.open('https://median.co/share/pwxmljk', '_blank');
+    
+    // عرض الإشعار
+    alert(`عزيزنا العميل 
+متجر AZ السوق الشامل لتلبية احتياجك بالكامل 
+
+يرحب بكم في شاشه تثبيت تطبيق المتجر 
+يمكنك النقر على شاشة الجوال التي ستظهر امامك وتجربة للتطبيق قبل تحميله او تحميلة 
+
+نأمل أن ينال التطبيق إعجابكم 
+سالين المولى ان تكون بداية طيبة 
+ولاتنسونا من خالص دعاكم 
+اخوكم المهندس/ مروان محمد عبدالله الذماري`);
+}
+
+// ===== أحداث تحميل الصفحة والتفاعل =====
+
+document.addEventListener('DOMContentLoaded', function() {
+    // إفراغ جميع بيانات الجلوبال عند فتح الصفحة
+    clearGlobalData();
+    
+    // الانتقال التلقائي إلى حاوية خدمات التسوق الإلكتروني
+    setTimeout(() => {
+        scrollToShoppingServices();
+    }, 1000);
+    
+    // تأثيرات تحميل الصفحة المحسنة والمتدرجة
+    const header = document.getElementById('mainHeader');
+    const boxes = document.querySelectorAll('.box');
+    const buttons = document.querySelectorAll('.btn');
+    const footerMarquee = document.getElementById('footerMarquee');
+
+    // **تأثير دخول الهيدر**
+    setTimeout(() => {
+        header.style.animation = 'headerEntrance 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards';
+    }, 200);
+
+    // **تأثير دخول الحاويات بشكل متدرج**
+    boxes.forEach((box, index) => {
+        setTimeout(() => {
+            box.style.animation = 'boxFall 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards';
+        }, 600 + index * 200); // تأخير متزايد لكل حاوية
+    });
+
+    // **تأثير دخول الأزرار بشكل متدرج**
+    buttons.forEach((btn, index) => {
+        setTimeout(() => {
+            btn.style.animation = 'btnEntrance 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards';
+        }, 1400 + index * 80); // تأخير متزايد لكل زر
+    });
+
+    // **تأثير دخول الشريط السفلي**
+    setTimeout(() => {
+        footerMarquee.style.animation = 'footerSlideUp 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards';
+    }, 2000 + buttons.length * 80);
+
+    // تغيير نص الشريط المتحرك مع تأثيرات
+    const footerScrollingText = document.getElementById('footerScrollingText');
+    const texts = [
+        "🌟 الراعي الرسمي لهذا المتجر المميز سوفت للأنظمة المحاسبية المتكاملة - أول نظام محاسبي يصنع حسب الطلب - للطلب والاستفسار اتصل على 772299420",
+        "💼 نظام محاسبي متكامل ومخصص حسب احتياجاتك - المميز سوفت - اتصل اطلبه الآن ولا تتردد 772299420",
+        "🎯 مرحباً بكم في AZ السوق الشامل - خدماتنا متاحة على مدار الساعة - للدعم الفني 772299420",
+        "⚡ تطبيق AZ - تجربة تسوق فريدة ومميزة - حمل التطبيق الآن واستمتع بأفضل العروض"
+    ];
+    
+    let currentTextIndex = 0;
+    setInterval(() => {
+        currentTextIndex = (currentTextIndex + 1) % texts.length;
+        footerScrollingText.style.opacity = '0.6';
+        footerScrollingText.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+            footerScrollingText.textContent = texts[currentTextIndex];
+            footerScrollingText.style.opacity = '1';
+            footerScrollingText.style.transform = 'scale(1)';
+        }, 300);
+    }, 10000);
+    
+    // إضافة تأثيرات hover للحاويات
+    boxes.forEach(box => {
+        box.addEventListener('mouseenter', () => {
+            box.style.transform = 'translateY(-15px) rotateX(0deg) scale(1.03)';
+            box.style.boxShadow = '0 25px 50px rgba(0,0,0,0.25)';
+        });
+        
+        box.addEventListener('mouseleave', () => {
+            box.style.transform = 'translateY(0) rotateX(0deg) scale(1)';
+            box.style.boxShadow = '0 15px 35px rgba(0,0,0,0.15)';
+        });
+    });
+    
+    // بدء تتبع الزوار
+    setTimeout(async () => {
+        try {
+            await visitorTracker.startTracking();
+        } catch (error) {
+            console.error('خطأ في بدء تتبع الزائر:', error);
+        }
+    }, 1500);
+    
+    // إعداد أحداث تسجيل الدخول
+    setupMerchantLogin();
+    setupAdminLogin();
+    setupRestaurantMerchantLogin();
+    
+    // إعداد نافذة اختيار التثبيت
+    setupInstallChoice();
+    
+    // إعداد زر تثبيت PWA
+    const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+    if (pwaInstallBtn) {
+        pwaInstallBtn.addEventListener('click', showInstallChoice);
+    }
+    
+    // تسجيل Service Worker لتطبيق PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then((registration) => {
+                    console.log('✅ Service Worker مسجل بنجاح:', registration);
+                })
+                .catch((error) => {
+                    console.log('❌ فشل تسجيل Service Worker:', error);
+                });
+        });
+    }
+});
+
+// ===== إعداد تسجيل الدخول للتاجر =====
+function setupMerchantLogin() {
+    const modal = document.getElementById('merchantLoginModal');
+    const closeBtn = document.getElementById('closeMerchantLogin');
+    const form = document.getElementById('merchantLoginForm');
+    const usernameInput = document.getElementById('merchantUsername');
+    const passwordInput = document.getElementById('merchantPassword');
+    const togglePassword = document.getElementById('toggleMerchantPassword');
+    const loginBtn = document.getElementById('merchantLoginBtn');
+    const spinner = document.getElementById('merchantLoadingSpinner');
+    const messageDiv = document.getElementById('merchantLoginMessage');
+    const rememberCheckbox = document.getElementById('rememberMerchant');
+    
+    // إغلاق النافذة
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        form.reset();
+        messageDiv.style.display = 'none';
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            form.reset();
+            messageDiv.style.display = 'none';
+        }
+    });
+    
+    // إظهار/إخفاء كلمة المرور
+    togglePassword.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        togglePassword.classList.toggle('fa-eye');
+        togglePassword.classList.toggle('fa-eye-slash');
+    });
+    
+    // معالجة تسجيل الدخول
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+        const remember = rememberCheckbox.checked;
+        
+        loginBtn.disabled = true;
+        spinner.style.display = 'inline-block';
+        messageDiv.style.display = 'none';
+        
+        try {
+            if (!username || !password) {
+                throw new Error('يرجى ملء جميع الحقول');
+            }
+            
+            const merchantId = generateId(username);
+            const merchantSnapshot = await database.ref('merchants').child(merchantId).once('value');
+            const merchantData = merchantSnapshot.val();
+            
+            if (!merchantData) {
+                throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
+            }
+            
+            if (merchantData.password !== password) {
+                throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
+            }
+
+            if (!['active', 'نشط', 'فعال'].includes(merchantData.status)) {
+                throw new Error('المستخدم تم توقيفه من قبل مسؤول النظام');
+            }
+            
+            // التحقق من نوع الوظيفة - يجب أن يكون تاجر وليس مطعم
+            if (merchantData.job === 'مطعم' || merchantData.job === 'restaurant' || 
+                merchantData.job === 'مطاعم' || merchantData.job === 'restaurants') {
+                throw new Error('❌ هذا الحساب مرتبط بالمطاعم وليس بالتجار. يرجى استخدام زر "إعدادات منتجات الطلب والتوصيل السريع" بدلاً من ذلك.');
+            }
+            
+            // التحقق الإضافي للتأكد من أن نوع الوظيفة هو تاجر
+            if (!merchantData.job || 
+                (merchantData.job !== 'تاجر' && merchantData.job !== 'merchant' && 
+                 merchantData.job !== 'تجار' && merchantData.job !== 'merchants')) {
+                throw new Error('❌ نوع الوظيفة غير مدعوم لهذه الصفحة. يرجى التواصل مع الدعم الفني.');
+            }
+            
+            // حفظ بيانات التاجر في الجلوبال
+            merchantGlobal.setMerchantName(merchantData.commercialName || merchantData.name || username);
+            merchantGlobal.setMerchantPhone(merchantData.mobile || merchantData.whatsapp || '');
+            merchantGlobal.setMerchantId(merchantId);
+            
+            const userDataToStore = {
+                id: merchantId,
+                username: username,
+                name: merchantData.name || username,
+                commercialName: merchantData.commercialName || '',
+                email: merchantData.email || '',
+                mobile: merchantData.mobile || '',
+                job: merchantData.job || 'تاجر',
+                type: 'merchant',
+                loginTime: new Date().toISOString()
+            };
+            
+            globalUser.setUserData(userDataToStore);
+            
+            // حفظ بيانات تسجيل الدخول إذا طلب المستخدم ذلك
+            saveMerchantCredentials(username, password, remember);
+            
+            // عرض رسالة نجاح
+            messageDiv.textContent = '✅ تم تسجيل الدخول بنجاح! جاري التوجيه إلى لوحة تحكم التاجر...';
+            messageDiv.className = 'login-message success-message';
+            messageDiv.style.display = 'block';
+            
+            form.reset();
+            
+            setTimeout(() => {
+                modal.classList.remove('show');
+                window.location.href = 'manjr_tagr_snf.html';
+            }, 1500);
+            
+        } catch (error) {
+            messageDiv.textContent = error.message;
+            messageDiv.className = 'login-message error-message';
+            messageDiv.style.display = 'block';
+            
+            // إغلاق النافذة إذا كان الخطأ متعلق بنوع المستخدم
+            if (error.message.includes('مرتبط بالمطاعم') || error.message.includes('نوع الوظيفة غير مدعوم')) {
+                setTimeout(() => {
+                    modal.classList.remove('show');
+                }, 4000);
+            }
+        } finally {
+            loginBtn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    });
+}
+
+// ===== إعداد تسجيل الدخول للإدارة =====
+function setupAdminLogin() {
+    const modal = document.getElementById('adminLoginModal');
+    const closeBtn = document.getElementById('closeAdminLogin');
+    const form = document.getElementById('adminLoginForm');
+    const usernameInput = document.getElementById('adminUsername');
+    const passwordInput = document.getElementById('adminPassword');
+    const togglePassword = document.getElementById('toggleAdminPassword');
+    const loginBtn = document.getElementById('adminLoginBtn');
+    const spinner = document.getElementById('adminLoadingSpinner');
+    const messageDiv = document.getElementById('adminLoginMessage');
+    
+    // إغلاق النافذة
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        form.reset();
+        messageDiv.style.display = 'none';
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            form.reset();
+            messageDiv.style.display = 'none';
+        }
+    });
+    
+    // إظهار/إخفاء كلمة المرور
+    togglePassword.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        togglePassword.classList.toggle('fa-eye');
+        togglePassword.classList.toggle('fa-eye-slash');
+    });
+    
+    // معالجة تسجيل الدخول
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+        
+        loginBtn.disabled = true;
+        spinner.style.display = 'inline-block';
+        messageDiv.style.display = 'none';
+        
+        try {
+            if (!username || !password) {
+                throw new Error('يرجى ملء جميع الحقول');
+            }
+            
+            // مسار قاعدة البيانات للتحقق من الإدمن
+            const adminSnapshot = await database.ref('admins').child(username).once('value');
+            const adminData = adminSnapshot.val();
+            
+            if (!adminData) {
+                throw new Error('اسم المستخدم غير صحيح');
+            }
+            
+            if (adminData.password !== password) {
+                throw new Error('كلمة المرور غير صحيحة');
+            }
+
+            const userDataToStore = {
+                id: username,
+                username: username,
+                name: adminData.name || username,
+                type: 'admin',
+                loginTime: new Date().toISOString()
+            };
+            
+            globalUser.setUserData(userDataToStore);
+            
+            // عرض رسالة نجاح
+            messageDiv.textContent = 'تم تسجيل الدخول بنجاح! جاري التوجيه...';
+            messageDiv.className = 'login-message success-message';
+            messageDiv.style.display = 'block';
+            
+            form.reset();
+            
+            setTimeout(() => {
+                modal.classList.remove('show');
+                window.location.href = 'mnjr_admin.html';
+            }, 1500);
+            
+        } catch (error) {
+            messageDiv.textContent = error.message;
+            messageDiv.className = 'login-message error-message';
+            messageDiv.style.display = 'block';
+        } finally {
+            loginBtn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    });
+}
+
+// ===== إعداد تسجيل الدخول لتاجر المطاعم =====
+function setupRestaurantMerchantLogin() {
+    const modal = document.getElementById('restaurantMerchantLoginModal');
+    const closeBtn = document.getElementById('closeRestaurantMerchantLogin');
+    const form = document.getElementById('restaurantMerchantLoginForm');
+    const usernameInput = document.getElementById('restaurantMerchantUsername');
+    const passwordInput = document.getElementById('restaurantMerchantPassword');
+    const togglePassword = document.getElementById('toggleRestaurantMerchantPassword');
+    const loginBtn = document.getElementById('restaurantMerchantLoginBtn');
+    const spinner = document.getElementById('restaurantMerchantLoadingSpinner');
+    const messageDiv = document.getElementById('restaurantMerchantLoginMessage');
+    const rememberCheckbox = document.getElementById('rememberRestaurantMerchant');
+    
+    // إغلاق النافذة
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        form.reset();
+        messageDiv.style.display = 'none';
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            form.reset();
+            messageDiv.style.display = 'none';
+        }
+    });
+    
+    // إظهار/إخفاء كلمة المرور
+    togglePassword.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        togglePassword.classList.toggle('fa-eye');
+        togglePassword.classList.toggle('fa-eye-slash');
+    });
+    
+    // معالجة تسجيل الدخول
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+        const remember = rememberCheckbox.checked;
+        
+        loginBtn.disabled = true;
+        spinner.style.display = 'inline-block';
+        messageDiv.style.display = 'none';
+        
+        try {
+            if (!username || !password) {
+                throw new Error('يرجى ملء جميع الحقول');
+            }
+            
+            const merchantId = generateId(username);
+            const merchantSnapshot = await database.ref('merchants').child(merchantId).once('value');
+            const merchantData = merchantSnapshot.val();
+            
+            if (!merchantData) {
+                throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
+            }
+            
+            if (merchantData.password !== password) {
+                throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
+            }
+            
+            if (!['active', 'نشط', 'فعال'].includes(merchantData.status)) {
+                throw new Error('المستخدم تم توقيفه من قبل مسؤول النظام');
+            }
+            
+            // التحقق من نوع الوظيفة - يجب أن يكون مطعم وليس تاجر
+            if (merchantData.job === 'تاجر' || merchantData.job === 'merchant' || 
+                merchantData.job === 'تجار' || merchantData.job === 'merchants') {
+                throw new Error('❌ هذا الحساب مرتبط بالتجار وليس بالمطاعم. يرجى استخدام زر "إعدادات المنتجات الجديدة" بدلاً من ذلك.');
+            }
+            
+            // التحقق الإضافي للتأكد من أن نوع الوظيفة هو مطعم
+            if (!merchantData.job || 
+                (merchantData.job !== 'مطعم' && merchantData.job !== 'restaurant' && 
+                 merchantData.job !== 'مطاعم' && merchantData.job !== 'restaurants')) {
+                throw new Error('❌ نوع الوظيفة غير مدعوم لهذه الصفحة. يرجى التواصل مع الدعم الفني.');
+            }
+            
+            // حفظ بيانات التاجر في الجلوبال
+            merchantGlobal.setMerchantName(merchantData.commercialName || merchantData.name || username);
+            merchantGlobal.setMerchantPhone(merchantData.mobile || merchantData.whatsapp || '');
+            merchantGlobal.setMerchantId(merchantId);
+            
+            const userDataToStore = {
+                id: merchantId,
+                username: username,
+                name: merchantData.name || username,
+                commercialName: merchantData.commercialName || '',
+                email: merchantData.email || '',
+                mobile: merchantData.mobile || '',
+                job: merchantData.job || 'مطعم',
+                type: 'merchant',
+                loginTime: new Date().toISOString()
+            };
+            
+            globalUser.setUserData(userDataToStore);
+            
+            // حفظ بيانات تسجيل الدخول إذا طلب المستخدم ذلك
+            saveRestaurantMerchantCredentials(username, password, remember);
+            
+            // عرض رسالة نجاح
+            messageDiv.textContent = '✅ تم تسجيل الدخول بنجاح! جاري التوجيه إلى لوحة إدارة المطاعم...';
+            messageDiv.className = 'login-message success-message';
+            messageDiv.style.display = 'block';
+            
+            form.reset();
+            
+            setTimeout(() => {
+                modal.classList.remove('show');
+                window.location.href = 'manjr_mt.html';
+            }, 1500);
+            
+        } catch (error) {
+            messageDiv.textContent = error.message;
+            messageDiv.className = 'login-message error-message';
+            messageDiv.style.display = 'block';
+            
+            // إغلاق النافذة إذا كان الخطأ متعلق بنوع المستخدم
+            if (error.message.includes('مرتبط بالتجار') || error.message.includes('نوع الوظيفة غير مدعوم')) {
+                setTimeout(() => {
+                    modal.classList.remove('show');
+                }, 4000);
+            }
+        } finally {
+            loginBtn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    });
+}
+
+// ===== معالجة الأخطاء العامة =====
+window.addEventListener('error', (event) => {
+    console.error('خطأ في الصفحة:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('وعد مرفوض:', event.reason);
+});
+</script>
+
+</body>
+</html>
