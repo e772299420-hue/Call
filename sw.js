@@ -2,9 +2,9 @@ const CACHE_NAME = 'az-souk-al-shamel-v1.0.0';
 
 // الملفات التي سيتم تخزينها في الكاش
 const urlsToCache = [
-  '/AZ-Souk/',
-  '/AZ-Souk/index.html',
-  '/AZ-Souk/manifest.json'
+  '/Call/',
+  '/Call/index.html',
+  '/Call/manifest.json'
 ];
 
 // تثبيت Service Worker
@@ -57,30 +57,12 @@ self.addEventListener('fetch', (event) => {
       .then((response) => {
         // إذا وجد الملف في الكاش، استخدمه
         if (response) {
-          console.log('📦 Service Worker: تم تقديم الملف من الكاش:', event.request.url);
           return response;
         }
 
         // إذا لم يوجد في الكاش، حمله من الشبكة
-        console.log('🌐 Service Worker: جاري تحميل الملف من الشبكة:', event.request.url);
-        
         return fetch(event.request)
           .then((response) => {
-            // تحقق من أن الاستجابة صالحة
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // استنسخ الاستجابة
-            const responseToCache = response.clone();
-
-            // افتح الكاش وأضف الملف الجديد
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-                console.log('✅ Service Worker: تم تخزين الملف الجديد في الكاش:', event.request.url);
-              });
-
             return response;
           })
           .catch((error) => {
@@ -88,7 +70,7 @@ self.addEventListener('fetch', (event) => {
             
             // إذا فشل التحميل، حاول تقديم الصفحة الرئيسية
             if (event.request.destination === 'document') {
-              return caches.match('/AZ-Souk/index.html');
+              return caches.match('/Call/index.html');
             }
             
             return new Response('فشل في تحميل الملف. يرجى التحقق من اتصال الإنترنت.', {
