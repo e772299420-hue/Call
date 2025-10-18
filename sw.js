@@ -1,30 +1,16 @@
 const CACHE_NAME = 'az-souk-al-shamel-v1.0.0';
-const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json'
-];
 
 self.addEventListener('install', (event) => {
   console.log('🚀 Service Worker: تم التثبيت');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('✅ Service Worker: فتح الكاش');
-        return cache.addAll(urlsToCache);
-      })
-  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('🔥 Service Worker: تم التفعيل');
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
-  );
+  // تمرير جميع الطلبات مباشرة للشبكة
+  event.respondWith(fetch(event.request));
 });
