@@ -87,7 +87,7 @@
         /* الشريط الثابت */
         .filter-bar {
             background-color: var(--filter-bar-color);
-            padding: 15px 0;
+            padding: 10px 0;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 90px;
@@ -99,7 +99,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
         }
         
         .filter-controls {
@@ -109,26 +109,13 @@
             flex: 1;
         }
         
-        .section-title {
-            color: white;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        
-        .section-subtitle {
-            color: #e0e0e0;
-            text-align: center;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-        
         .property-type-filter {
             max-width: 200px;
         }
         
         .property-type-select {
             width: 100%;
-            padding: 10px 12px;
+            padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 14px;
@@ -150,7 +137,7 @@
             background-color: var(--warning-color);
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 8px 12px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
@@ -203,28 +190,6 @@
             border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 14px;
-        }
-        
-        /* عنوان الصفحة */
-        .page-header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--light-color);
-        }
-        
-        .page-title {
-            color: var(--dark-color);
-            text-align: center;
-        }
-        
-        .page-subtitle {
-            color: #666;
-            text-align: center;
-            margin-top: 5px;
-            font-size: 16px;
         }
         
         /* نماذج الإدخال */
@@ -394,20 +359,19 @@
         .product-title {
             font-size: 20px;
             font-weight: bold;
-            margin-bottom: 5px;
-            text-align: center;
-            color: var(--dark-color);
+            margin-bottom: 8px;
+            text-align: right;
+            color: #e74c3c;
         }
         
         .product-price {
             font-size: 24px;
             font-weight: bold;
             color: var(--dark-color);
-            margin: 15px 0;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 5px;
+            justify-content: right;
         }
         
         .image-gallery {
@@ -458,7 +422,7 @@
         }
         
         .product-detail {
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             display: flex;
         }
         
@@ -495,7 +459,6 @@
             align-items: center;
             gap: 5px;
             margin-top: 10px;
-            display: none; /* إخفاء حقل الوقت */
         }
         
         /* معلومات التاجر المحسنة - مخفية */
@@ -561,7 +524,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin: 5px 0;
+            margin: 8px 0;
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 8px;
@@ -587,11 +550,10 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin: 5px 0;
+            margin: 8px 0;
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 8px;
-            border: 1px solid #e9ecef;
         }
         
         .phone-label {
@@ -1168,11 +1130,6 @@
                 gap: 10px;
             }
             
-            .page-header {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
             .filter-bar-content {
                 flex-direction: column;
                 gap: 10px;
@@ -1289,9 +1246,6 @@
     <!-- الشريط الثابت -->
     <div class="filter-bar">
         <div class="container">
-            <div class="section-title">قسم المباني والعقارات وتأجير المنازل</div>
-            <div class="section-subtitle">توجد اراضي وبيوت ومحلات للبيع والايجار</div>
-            
             <div class="filter-bar-content">
                 <div class="filter-controls">
                     <div class="property-type-filter">
@@ -1308,10 +1262,10 @@
                     <div class="product-count" id="product-count">
                         <i class="fas fa-home"></i> <span id="count-value">0</span>
                     </div>
+                    <button class="toggle-tools-btn" onclick="toggleToolsBar()">
+                        <i class="fas fa-cogs"></i> عرض أكثر
+                    </button>
                 </div>
-                <button class="toggle-tools-btn" onclick="toggleToolsBar()">
-                    <i class="fas fa-cogs"></i> عرض أكثر
-                </button>
             </div>
         </div>
     </div>
@@ -1734,9 +1688,35 @@
                     }
                     
                     if (whatsappBtn) {
+                        // الحصول على نوع الطلب وتحويله للنص المناسب
+                        const product = activeProducts.find(p => p.id === productId);
+                        const requestType = product ? product.requestType : '';
+                        let requestText = '';
+                        
+                        if (requestType === 'بيع') {
+                            requestText = 'شراء';
+                        } else if (requestType === 'شراء') {
+                            requestText = 'بيع';
+                        } else if (requestType === 'إيجار') {
+                            requestText = 'استأجر';
+                        } else {
+                            requestText = 'الاستفسار عن';
+                        }
+                        
                         whatsappBtn.onclick = function() {
+                            const product = activeProducts.find(p => p.id === productId);
+                            const productName = product ? (product.productName || product.title || 'المنتج') : 'المنتج';
+                            const productUrl = window.location.href.split('#')[0] + `#product-${productId}`;
+                            
+                            const message = `مرحبا انا عميل متجر AZ السوق الشامل لتلبية احتياجك بالكامل 
+
+انني ارغب ${requestText} ${productName}
+${productUrl}
+
+هل لازال العرض ساري؟`;
+                            
                             const yemenPhone = phone.startsWith('+') ? phone : `+967${phone.replace(/\D/g, '')}`;
-                            window.open(`https://wa.me/${yemenPhone}`, '_blank');
+                            window.open(`https://wa.me/${yemenPhone}?text=${encodeURIComponent(message)}`, '_blank');
                         };
                     }
                 } else {
@@ -1993,13 +1973,25 @@
             const propertyType = product.condition || product.propertyType || 'غير محدد';
             const requestType = product.requestType || 'غير محدد';
             
+            // تحويل نوع الطلب للنص المناسب للبادج
+            let requestBadgeText = '';
+            if (requestType === 'بيع') {
+                requestBadgeText = 'شراء';
+            } else if (requestType === 'شراء') {
+                requestBadgeText = 'بيع';
+            } else if (requestType === 'إيجار') {
+                requestBadgeText = 'استأجر';
+            } else {
+                requestBadgeText = requestType;
+            }
+            
             // التحقق إذا كان المنتج منشور من قبل المستخدم الحالي
             const isMyProduct = product.userId === currentUserId;
             
             card.innerHTML = `
                 <div class="product-header">
                     <div class="product-badge">
-                        <i class="fas fa-tag"></i> ${propertyType}
+                        <i class="fas fa-tag"></i> ${requestBadgeText} - ${propertyType}
                     </div>
                     ${isMyProduct ? `
                     <div class="my-product-badge">
@@ -2013,9 +2005,7 @@
                     </div>
                     
                     <div class="product-title">${product.productName || product.title || 'عقار بدون اسم'}</div>
-                    <div class="product-price">
-                        <i class="fas fa-coins"></i> ${product.price || '0'} ريال
-                    </div>
+                    <div class="product-price">${product.price || '0'} ريال</div>
                     
                     <div class="image-gallery">
                         <!-- سيتم تحميل معرض الصور هنا -->
@@ -2040,29 +2030,9 @@
                                 <i class="fas fa-phone-alt"></i> اتصال
                             </button>
                             <button class="phone-btn whatsapp-btn" id="whatsapp-btn-${product.id}">
-                                <i class="fab fa-whatsapp"></i> واتساب
+                                <i class="fab fa-whatsapp"></i> مراسلة
                             </button>
                         </div>
-                    </div>
-                    
-                    <div class="product-detail">
-                        <span class="detail-label"><i class="fas fa-home"></i> النوع:</span>
-                        <span class="detail-value">${propertyType}</span>
-                    </div>
-                    
-                    <div class="product-detail" style="display: ${requestTypeDisplay};">
-                        <span class="detail-label"><i class="fas fa-exchange-alt"></i> نوع الطلب:</span>
-                        <span class="detail-value">${requestType}</span>
-                    </div>
-                    
-                    <div class="product-detail" style="display: ${specificationsDisplay};">
-                        <span class="detail-label"><i class="fas fa-info-circle"></i> المواصفات:</span>
-                        <span class="detail-value">${product.specifications}</span>
-                    </div>
-                    
-                    <div class="product-detail" style="display: ${addressDisplay};">
-                        <span class="detail-label"><i class="fas fa-map-marker-alt"></i> العنوان:</span>
-                        <span class="detail-value">${product.address}</span>
                     </div>
                     
                     <div class="publish-date">
@@ -2431,20 +2401,26 @@
         
         // مشاركة المنتج
         function shareProduct(productId) {
-            const productUrl = window.location.href + '#product-' + productId;
+            const product = activeProducts.find(p => p.id === productId);
+            const productName = product ? (product.productName || product.title || 'عقار') : 'عقار';
+            const productUrl = window.location.href.split('#')[0] + `#product-${productId}`;
+            
+            const shareText = `اكتشف هذا العقار الرائع 
+${productName}
+على منصة AZ السوق الشامل ${productUrl}`;
             
             if (navigator.share) {
                 navigator.share({
                     title: 'عقار من AZ السوق الشامل',
-                    text: 'اكتشف هذا العقار الرائع على منصة AZ السوق الشامل',
+                    text: shareText,
                     url: productUrl
                 })
                 .catch(error => {
                     console.error('Error sharing product:', error);
-                    copyToClipboard(productUrl);
+                    copyToClipboard(shareText);
                 });
             } else {
-                copyToClipboard(productUrl);
+                copyToClipboard(shareText);
             }
         }
         
