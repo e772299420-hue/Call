@@ -1,1 +1,1539 @@
 mnjar_wd.html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الوظائف</title>
+    <!-- ربط Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* الشريط العلوي */
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-left: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .site-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        .site-subtitle {
+            font-size: 1rem;
+            color: #3498db;
+            margin-top: 5px;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .page-title {
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        /* شاشة تسجيل الدخول */
+        #login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .login-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .login-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .login-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .login-tab.active {
+            border-bottom: 3px solid #2c3e50;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .login-form {
+            display: none;
+        }
+        
+        .login-form.active {
+            display: block;
+        }
+        
+        .password-container {
+            position: relative;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .remember-me input {
+            width: auto;
+            margin-left: 8px;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .close-btn:hover {
+            background: #c0392b;
+        }
+        
+        /* التبويبات */
+        .tabs {
+            display: flex;
+            margin: 20px 0;
+            border-bottom: 2px solid #ddd;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-left: 5px;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background-color: #fff;
+            border-bottom: 2px solid #fff;
+            margin-bottom: -2px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .tab-content {
+            display: none;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* نماذج الإدخال */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #4a6580;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(74, 101, 128, 0.2);
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #4a6580;
+        }
+        
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .btn-delete {
+            background-color: #e74c3c;
+        }
+        
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-edit {
+            background-color: #f39c12;
+        }
+        
+        .btn-edit:hover {
+            background-color: #d35400;
+        }
+        
+        .btn-logout {
+            background-color: #7f8c8d;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        .btn-logout:hover {
+            background-color: #636e72;
+        }
+        
+        /* حالة التحميل والرسائل */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .user-info {
+            background-color: #e8f4fd;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .user-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* تبويب بياناتي */
+        .profile-card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .profile-field {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .profile-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .profile-value {
+            color: #333;
+        }
+        
+        .phone-visibility {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .phone-visibility input {
+            width: auto;
+        }
+        
+        /* أقسام النموذج */
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-right: 4px solid #3498db;
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+            font-size: 1.3rem;
+        }
+        
+        /* التكيف مع الشاشات الصغيرة */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .logo-container {
+                margin-bottom: 10px;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                margin: 5px 0;
+                border-radius: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen">
+        <div class="login-container">
+            <button class="close-btn" onclick="closePage()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="login-tabs">
+                <div class="login-tab active" id="login-tab-btn">تسجيل الدخول</div>
+                <div class="login-tab" id="register-tab-btn">إنشاء حساب</div>
+            </div>
+            
+            <form id="login-form" class="login-form active">
+                <div class="form-group">
+                    <label for="login-phone" class="required">رقم الجوال</label>
+                    <input type="tel" id="login-phone" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password" class="required">كلمة المرور</label>
+                    <div class="password-container">
+                        <input type="password" id="login-password" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('login-password')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="remember-me">
+                    <input type="checkbox" id="remember-me">
+                    <label for="remember-me">تذكر بياناتي</label>
+                </div>
+                
+                <button type="submit" class="btn">تسجيل الدخول</button>
+                <div id="login-message" class="message" style="display: none;"></div>
+            </form>
+            
+            <form id="register-form" class="login-form">
+                <div class="form-group">
+                    <label for="register-name" class="required">الاسم الكامل</label>
+                    <input type="text" id="register-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-phone" class="required">رقم الجوال (9 أرقام)</label>
+                    <input type="tel" id="register-phone" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-password" class="required">كلمة المرور</label>
+                    <div class="password-container">
+                        <input type="password" id="register-password" required minlength="6">
+                        <button type="button" class="toggle-password" onclick="togglePassword('register-password')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-confirm-password" class="required">تأكيد كلمة المرور</label>
+                    <div class="password-container">
+                        <input type="password" id="register-confirm-password" required minlength="6">
+                        <button type="button" class="toggle-password" onclick="togglePassword('register-confirm-password')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn">إنشاء حساب</button>
+                <div id="register-message" class="message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- الشريط العلوي -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <div class="logo">
+                    <img src="https://github.com/e772299420-hue/Call/blob/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png?raw=true" alt="شعار AZ السوق الشامل">
+                </div>
+                <div>
+                    <h1 class="site-name">نظام إدارة الوظائف</h1>
+                    <div class="site-subtitle">لتلبية احتياجاتك الوظيفية</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container" id="main-content" style="display: none;">
+        <div class="page-header">
+            <h2 class="page-title">قسم الوظائف الشاغرة</h2>
+            <button id="logout-btn" class="btn btn-logout">تسجيل الخروج</button>
+        </div>
+        
+        <!-- معلومات المستخدم -->
+        <div class="user-info" id="user-info">
+            جاري تحميل معلومات المستخدم...
+        </div>
+        
+        <!-- رسالة حالة المستخدم -->
+        <div id="user-status-message" class="message warning" style="display: none;">
+            لقد تم توقيف المستخدم الحالي، يرجى التواصل مع إدارة النظام
+        </div>
+        
+        <!-- التبويبات -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('add')">التقديم لطلب وظيفة</div>
+            <div class="tab" onclick="switchTab('vacancies')">إضافة وظيفة شاغرة</div>
+            <div class="tab" onclick="switchTab('profile')">بياناتي</div>
+        </div>
+        
+        <!-- تبويب التقديم لطلب وظيفة -->
+        <div id="add-tab" class="tab-content active">
+            <form id="job-form">
+                <h3 style="margin-bottom: 20px; color: #2c3e50;">بيانات المتقدم</h3>
+                
+                <div class="form-group">
+                    <label for="fullName" class="required">الاسم الرباعي</label>
+                    <input type="text" id="fullName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="gender" class="required">الجنس</label>
+                    <select id="gender" required>
+                        <option value="">اختر الجنس</option>
+                        <option value="ذكر">ذكر</option>
+                        <option value="أنثى">أنثى</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="age" class="required">العمر</label>
+                    <input type="number" id="age" required min="18" max="70">
+                </div>
+                
+                <div class="form-group">
+                    <label for="maritalStatus" class="required">الحالة الاجتماعية</label>
+                    <select id="maritalStatus" required>
+                        <option value="">اختر الحالة الاجتماعية</option>
+                        <option value="عازب">عازب</option>
+                        <option value="متزوج">متزوج</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address" class="required">عنوان السكن</label>
+                    <input type="text" id="address" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone1" class="required">رقم الجوال 1</label>
+                    <input type="tel" id="phone1" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone2">رقم الجوال 2 (اختياري)</label>
+                    <input type="tel" id="phone2" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط">
+                </div>
+                
+                <div class="form-group">
+                    <label for="applicantNotes">ملاحظات المتقدم</label>
+                    <textarea id="applicantNotes" placeholder="ملاحظات إضافية..."></textarea>
+                </div>
+                
+                <h3 style="margin: 30px 0 20px; color: #2c3e50;">بيانات المؤهل الدراسي</h3>
+                
+                <div class="form-group">
+                    <label for="education" class="required">المؤهل الدراسي</label>
+                    <select id="education" required>
+                        <option value="">اختر المؤهل الدراسي</option>
+                        <option value="إعدادي">إعدادي</option>
+                        <option value="ثانوي">ثانوي</option>
+                        <option value="دبلوم">دبلوم</option>
+                        <option value="جامعي">جامعي</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="issuingAuthority" class="required">الجهة المصدرة للشهادة</label>
+                    <input type="text" id="issuingAuthority" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="issueDate" class="required">تاريخ الإصدار</label>
+                    <input type="date" id="issueDate" required>
+                </div>
+                
+                <h3 style="margin: 30px 0 20px; color: #2c3e50;">بيانات الوظيفة المراد التقديم لها</h3>
+                
+                <div class="form-group">
+                    <label for="job1" class="required">اسم الوظيفة 1</label>
+                    <input type="text" id="job1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="job2">اسم الوظيفة 2 (اختياري)</label>
+                    <input type="text" id="job2">
+                </div>
+                
+                <div class="form-group">
+                    <label for="job3">اسم الوظيفة 3 (اختياري)</label>
+                    <input type="text" id="job3">
+                </div>
+                
+                <div class="form-group">
+                    <label for="workPeriod" class="required">الفترة</label>
+                    <select id="workPeriod" required>
+                        <option value="">اختر الفترة</option>
+                        <option value="نهاري">نهاري</option>
+                        <option value="مسائي">مسائي</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="workHours" class="required">ساعات الدوام</label>
+                    <select id="workHours" required>
+                        <option value="">اختر ساعات الدوام</option>
+                        <option value="ربع دوام">ربع دوام</option>
+                        <option value="نصف دوام">نصف دوام</option>
+                        <option value="دوام كامل">دوام كامل</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="jobLocation" class="required">موقع الوظيفة</label>
+                    <select id="jobLocation" required>
+                        <option value="">اختر موقع الوظيفة</option>
+                        <option value="بنفس المحافظة">بنفس المحافظة</option>
+                        <option value="خارج المحافظة">خارج المحافظة</option>
+                        <option value="خارج اليمن">خارج اليمن</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="salaryRange" class="required">الراتب المتوقع</label>
+                    <input type="text" id="salaryRange" required placeholder="مثال: 100000 - 150000 ريال">
+                </div>
+                
+                <div class="form-group">
+                    <label for="status" class="required">الحالة</label>
+                    <select id="status" required>
+                        <option value="نشط">نشط</option>
+                        <option value="غير نشط">غير نشط</option>
+                    </select>
+                </div>
+                
+                <input type="hidden" id="jobId">
+                <input type="hidden" id="applicationDate">
+                <input type="hidden" id="userId">
+                
+                <button type="submit" class="btn" id="save-job-btn">حفظ طلب الوظيفة</button>
+                <button type="button" class="btn" onclick="resetForm()" style="background-color: #95a5a6;">إلغاء</button>
+            </form>
+        </div>
+        
+        <!-- تبويب إضافة وظيفة شاغرة -->
+        <div id="vacancies-tab" class="tab-content">
+            <h3 style="margin-bottom: 20px; color: #2c3e50;">نموذج إضافة وظيفة شاغرة</h3>
+            <form id="vacancy-form">
+                <div class="form-section">
+                    <h4 class="section-title">معلومات الوظيفة الأساسية</h4>
+                    
+                    <div class="form-group">
+                        <label for="vacancyTitle" class="required">عنوان الوظيفة</label>
+                        <input type="text" id="vacancyTitle" required placeholder="مثال: مطور ويب، محاسب، مدير مبيعات">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="companyName" class="required">اسم الشركة</label>
+                        <input type="text" id="companyName" required placeholder="اسم الشركة أو المؤسسة">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vacancyLocation" class="required">موقع الوظيفة</label>
+                        <input type="text" id="vacancyLocation" required placeholder="المدينة أو المنطقة">
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">تفاصيل الوظيفة</h4>
+                    
+                    <div class="form-group">
+                        <label for="vacancyType" class="required">نوع الوظيفة</label>
+                        <select id="vacancyType" required>
+                            <option value="">اختر نوع الوظيفة</option>
+                            <option value="دوام كامل">دوام كامل</option>
+                            <option value="دوام جزئي">دوام جزئي</option>
+                            <option value="عن بعد">عن بعد</option>
+                            <option value="مؤقت">مؤقت</option>
+                            <option value="تدريب">تدريب</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="salary" class="required">الراتب</label>
+                        <input type="text" id="salary" required placeholder="مثال: 10000 - 15000 ريال">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="experience" class="required">الخبرة المطلوبة</label>
+                        <input type="text" id="experience" required placeholder="مثال: 2-5 سنوات">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="educationRequired" class="required">المؤهل المطلوب</label>
+                        <select id="educationRequired" required>
+                            <option value="">اختر المؤهل المطلوب</option>
+                            <option value="ثانوي">ثانوي</option>
+                            <option value="دبلوم">دبلوم</option>
+                            <option value="بكالوريوس">بكالوريوس</option>
+                            <option value="ماجستير">ماجستير</option>
+                            <option value="دكتوراه">دكتوراه</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">وصف الوظيفة والمتطلبات</h4>
+                    
+                    <div class="form-group">
+                        <label for="vacancyDescription" class="required">وصف الوظيفة</label>
+                        <textarea id="vacancyDescription" required placeholder="وصف تفصيلي للوظيفة والمهام المطلوبة..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vacancyRequirements" class="required">متطلبات الوظيفة</label>
+                        <textarea id="vacancyRequirements" required placeholder="اكتب كل متطلب في سطر منفصل..."></textarea>
+                        <small style="color: #666;">اكتب كل متطلب في سطر جديد</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vacancyBenefits">مزايا الوظيفة (اختياري)</label>
+                        <textarea id="vacancyBenefits" placeholder="المزايا والإضافات التي تقدمها الشركة..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">معلومات التواصل</h4>
+                    
+                    <div class="form-group">
+                        <label for="contactEmail" class="required">البريد الإلكتروني للتواصل</label>
+                        <input type="email" id="contactEmail" required placeholder="example@company.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contactPhone" class="required">رقم الهاتف للتواصل</label>
+                        <input type="tel" id="contactPhone" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required placeholder="123456789">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="applicationDeadline" class="required">آخر موعد للتقديم</label>
+                        <input type="date" id="applicationDeadline" required>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="vacancyId">
+                <input type="hidden" id="vacancyPostDate">
+                
+                <button type="submit" class="btn">نشر الوظيفة</button>
+                <button type="button" class="btn" onclick="resetVacancyForm()" style="background-color: #95a5a6;">إلغاء</button>
+            </form>
+        </div>
+        
+        <!-- تبويب بياناتي -->
+        <div id="profile-tab" class="tab-content">
+            <div class="profile-card">
+                <div class="profile-field">
+                    <div class="profile-label">الاسم الكامل</div>
+                    <div class="profile-value" id="profile-name"></div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">رقم الجوال</div>
+                    <div class="profile-value" id="profile-phone"></div>
+                    <div class="phone-visibility">
+                        <input type="checkbox" id="profile-phone-visibility" value="1">
+                        <label for="profile-phone-visibility" id="phone-visibility-label">عرض رقم الجوال للآخرين</label>
+                    </div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">تاريخ التسجيل</div>
+                    <div class="profile-value" id="profile-created"></div>
+                </div>
+                
+                <div class="profile-field">
+                    <div class="profile-label">حالة الحساب</div>
+                    <div class="profile-value" id="profile-status"></div>
+                </div>
+                
+                <button class="btn btn-edit" onclick="editProfile()">تعديل البيانات</button>
+            </div>
+            
+            <!-- نموذج تعديل البيانات -->
+            <div class="profile-card" id="profile-edit-form" style="display: none; margin-top: 20px;">
+                <h3 style="margin-bottom: 20px;">تعديل البيانات الشخصية</h3>
+                <form id="update-profile-form">
+                    <div class="form-group">
+                        <label for="edit-name" class="required">الاسم الكامل</label>
+                        <input type="text" id="edit-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-phone" class="required">رقم الجوال</label>
+                        <input type="tel" id="edit-phone" pattern="[0-9]{9}" title="يجب إدخال 9 أرقام فقط" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="phone-visibility">
+                            <input type="checkbox" id="edit-phone-visibility" value="1">
+                            <label for="edit-phone-visibility">عرض رقم الجوال للآخرين</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-password">كلمة المرور الجديدة (اتركها فارغة إذا لم ترد التغيير)</label>
+                        <div class="password-container">
+                            <input type="password" id="edit-password">
+                            <button type="button" class="toggle-password" onclick="togglePassword('edit-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn">حفظ التعديلات</button>
+                    <button type="button" class="btn" onclick="cancelEditProfile()" style="background-color: #95a5a6;">إلغاء</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAub8yG87hhzVoZxflqpB_smvTFNpRY-Xw",
+            authDomain: "chat-fat-free.firebaseapp.com",
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/",
+            projectId: "chat-fat-free",
+            storageBucket: "chat-fat-free.appspot.com",
+            messagingSenderId: "888827487238",
+            appId: "1:888827238:web:6660cd0e8b7831dff40f87"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // عناصر DOM
+        let currentUser = null;
+        let currentEditingJob = null;
+        let userStatus = "نشط";
+
+        // عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // التحقق من وجود مستخدم مسجل مسبقاً
+            checkLoggedInUser();
+            
+            // إعداد مستمعين لأزرار التبويب في تسجيل الدخول
+            document.getElementById('login-tab-btn').addEventListener('click', function() {
+                switchLoginTab('login');
+            });
+            
+            document.getElementById('register-tab-btn').addEventListener('click', function() {
+                switchLoginTab('register');
+            });
+            
+            // إعداد مستمعي النماذج
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('job-form').addEventListener('submit', handleFormSubmit);
+            document.getElementById('vacancy-form').addEventListener('submit', handleVacancySubmit);
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            document.getElementById('update-profile-form').addEventListener('submit', handleProfileUpdate);
+            
+            // تحميل بيانات التذكر إذا كانت موجودة
+            loadRememberedData();
+        });
+
+        // إغلاق الصفحة
+        function closePage() {
+            if (confirm('هل تريد إغلاق الصفحة؟')) {
+                window.close();
+            }
+        }
+        
+        // التحقق من وجود مستخدم مسجل مسبقاً
+        function checkLoggedInUser() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    showMainContent();
+                } catch (error) {
+                    console.error('Error parsing saved user data:', error);
+                    localStorage.removeItem('currentUser');
+                    showLoginScreen();
+                }
+            } else {
+                showLoginScreen();
+            }
+        }
+        
+        // إظهار شاشة تسجيل الدخول
+        function showLoginScreen() {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('main-content').style.display = 'none';
+        }
+        
+        // إخفاء شاشة تسجيل الدخول
+        function hideLoginScreen() {
+            document.getElementById('login-screen').style.display = 'none';
+        }
+        
+        // تحميل بيانات التذكر
+        function loadRememberedData() {
+            const remembered = localStorage.getItem('rememberLogin');
+            if (remembered === '1') {
+                document.getElementById('login-phone').value = localStorage.getItem('savedPhone') || '';
+                document.getElementById('login-password').value = localStorage.getItem('savedPassword') || '';
+                document.getElementById('remember-me').checked = true;
+            }
+        }
+        
+        // حفظ بيانات التذكر
+        function saveRememberedData(phone, password) {
+            const remember = document.getElementById('remember-me').checked;
+            if (remember) {
+                localStorage.setItem('rememberLogin', '1');
+                localStorage.setItem('savedPhone', phone);
+                localStorage.setItem('savedPassword', password);
+            } else {
+                localStorage.removeItem('rememberLogin');
+                localStorage.removeItem('savedPhone');
+                localStorage.removeItem('savedPassword');
+            }
+        }
+        
+        // تبديل عرض كلمة المرور
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.parentNode.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+        
+        // التبديل بين تبويبات تسجيل الدخول والتسجيل
+        function switchLoginTab(tabName) {
+            document.querySelectorAll('.login-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.login-form').forEach(form => {
+                form.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + '-tab-btn').classList.add('active');
+            document.getElementById(tabName + '-form').classList.add('active');
+        }
+        
+        // الحصول على IP المستخدم
+        async function getUserIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.error('Error getting IP:', error);
+                return 'unknown';
+            }
+        }
+        
+        // توليد معرف مستخدم فريد
+        function generateUserId() {
+            return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // التحقق من الاسم المكرر
+        async function checkDuplicateName(name) {
+            const usersRef = database.ref('use_wdefa');
+            const snapshot = await usersRef.orderByChild('name').equalTo(name).once('value');
+            return snapshot.exists();
+        }
+        
+        // التحقق من رقم الجوال المكرر
+        async function checkDuplicatePhone(phone) {
+            const usersRef = database.ref('use_wdefa');
+            const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
+            return snapshot.exists();
+        }
+        
+        // الحصول على آخر معرف مستخدم
+        async function getLastUserId() {
+            const usersRef = database.ref('use_wdefa');
+            const snapshot = await usersRef.orderByKey().limitToLast(1).once('value');
+            if (snapshot.exists()) {
+                const lastKey = Object.keys(snapshot.val())[0];
+                const lastId = parseInt(lastKey.split('_')[1]) || 0;
+                return lastId + 1;
+            }
+            return 1;
+        }
+        
+        // معالجة التسجيل
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('register-name').value;
+            const phone = document.getElementById('register-phone').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            const messageElement = document.getElementById('register-message');
+            
+            // التحقق من تطابق كلمتي المرور
+            if (password !== confirmPassword) {
+                messageElement.textContent = 'كلمتا المرور غير متطابقتين';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            // التحقق من صحة رقم الهاتف
+            const phoneRegex = /^[0-9]{9}$/;
+            if (!phoneRegex.test(phone)) {
+                messageElement.textContent = 'رقم الجوال يجب أن يتكون من 9 أرقام فقط';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            // التحقق من الاسم المكرر
+            const isNameDuplicate = await checkDuplicateName(name);
+            if (isNameDuplicate) {
+                messageElement.textContent = 'الاسم مستخدم بالفعل';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            // التحقق من رقم الجوال المكرر
+            const isPhoneDuplicate = await checkDuplicatePhone(phone);
+            if (isPhoneDuplicate) {
+                messageElement.textContent = 'رقم الجوال مستخدم بالفعل';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                return;
+            }
+            
+            try {
+                // الحصول على IP المستخدم
+                const userIP = await getUserIP();
+                
+                // الحصول على آخر معرف مستخدم
+                const lastId = await getLastUserId();
+                const userId = `user_${lastId}`;
+                
+                // حفظ بيانات المستخدم في use_wdefa
+                const userData = {
+                    id: lastId,
+                    name: name,
+                    phone: phone,
+                    password: password,
+                    ip: userIP,
+                    status: 1,
+                    phoneVisibility: 1, // القيمة الافتراضية 1 (مفعل)
+                    createdAt: new Date().toISOString()
+                };
+                
+                await database.ref('use_wdefa/' + userId).set(userData);
+                
+                messageElement.textContent = 'تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول';
+                messageElement.className = 'message success';
+                messageElement.style.display = 'block';
+                
+                // الانتقال إلى تبويب تسجيل الدخول
+                setTimeout(() => {
+                    switchLoginTab('login');
+                    document.getElementById('register-form').reset();
+                    messageElement.style.display = 'none';
+                }, 2000);
+                
+            } catch (error) {
+                messageElement.textContent = 'حدث خطأ أثناء إنشاء الحساب';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                console.error('Error creating account:', error);
+            }
+        }
+        
+        // معالجة تسجيل الدخول
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const phone = document.getElementById('login-phone').value;
+            const password = document.getElementById('login-password').value;
+            const messageElement = document.getElementById('login-message');
+            
+            try {
+                // البحث عن المستخدم في use_wdefa
+                const usersRef = database.ref('use_wdefa');
+                const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
+                
+                if (snapshot.exists()) {
+                    const users = snapshot.val();
+                    const userId = Object.keys(users)[0];
+                    const userData = users[userId];
+                    
+                    // التحقق من كلمة المرور
+                    if (userData.password === password) {
+                        // التحقق من حالة المستخدم - فقط من خلال الحالة العامة (status)
+                        if (userData.status === 1) {
+                            // تسجيل الدخول ناجح
+                            currentUser = {
+                                id: userId,
+                                ...userData
+                            };
+                            
+                            // حفظ بيانات المستخدم في localStorage
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                            
+                            // حفظ بيانات التذكر
+                            saveRememberedData(phone, password);
+                            
+                            messageElement.style.display = 'none';
+                            hideLoginScreen();
+                            showMainContent();
+                        } else {
+                            // المستخدم موقف
+                            messageElement.textContent = 'عفواً، لا تستطيع الدخول. لقد تم توقيفك من قبل مسؤول النظام. يرجى التواصل مع إدارة النظام';
+                            messageElement.className = 'message error';
+                            messageElement.style.display = 'block';
+                            
+                            // إفراغ بيانات تسجيل الدخول
+                            document.getElementById('login-form').reset();
+                            localStorage.removeItem('rememberLogin');
+                            localStorage.removeItem('savedPhone');
+                            localStorage.removeItem('savedPassword');
+                        }
+                    } else {
+                        messageElement.textContent = 'كلمة المرور غير صحيحة';
+                        messageElement.className = 'message error';
+                        messageElement.style.display = 'block';
+                    }
+                } else {
+                    messageElement.textContent = 'لا يوجد حساب مرتبط بهذا رقم الجوال';
+                    messageElement.className = 'message error';
+                    messageElement.style.display = 'block';
+                }
+            } catch (error) {
+                messageElement.textContent = 'حدث خطأ أثناء تسجيل الدخول';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+                console.error('Error logging in:', error);
+            }
+        }
+        
+        // توليد UUID
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        
+        // الحصول على التاريخ والوقت الحاليين
+        function getCurrentDateTime() {
+            const now = new Date();
+            const date = now.toISOString().split('T')[0];
+            const time = now.toLocaleTimeString('ar-SA', { hour12: true });
+            return {
+                date: date,
+                time: time
+            };
+        }
+        
+        // معالجة إرسال النموذج
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (userStatus !== "نشط") {
+                alert("لا يمكنك إضافة أو تعديل طلبات الوظائف لأن حسابك غير نشط. يرجى التواصل مع إدارة النظام.");
+                return;
+            }
+            
+            const jobId = document.getElementById('jobId').value || generateUUID();
+            
+            // الحصول على التاريخ والوقت الحاليين
+            const currentDateTime = getCurrentDateTime();
+            
+            const jobData = {
+                id: jobId,
+                fullName: document.getElementById('fullName').value,
+                gender: document.getElementById('gender').value,
+                age: document.getElementById('age').value,
+                maritalStatus: document.getElementById('maritalStatus').value,
+                address: document.getElementById('address').value,
+                phone1: document.getElementById('phone1').value,
+                phone2: document.getElementById('phone2').value,
+                applicantNotes: document.getElementById('applicantNotes').value,
+                education: document.getElementById('education').value,
+                issuingAuthority: document.getElementById('issuingAuthority').value,
+                issueDate: document.getElementById('issueDate').value,
+                job1: document.getElementById('job1').value,
+                job2: document.getElementById('job2').value,
+                job3: document.getElementById('job3').value,
+                workPeriod: document.getElementById('workPeriod').value,
+                workHours: document.getElementById('workHours').value,
+                jobLocation: document.getElementById('jobLocation').value,
+                salaryRange: document.getElementById('salaryRange').value,
+                status: document.getElementById('status').value,
+                applicationDate: currentDateTime.date,
+                applicationTime: currentDateTime.time,
+                userId: document.getElementById('userId').value
+            };
+            
+            const jobRef = database.ref('طلب وظيفة/' + jobId);
+            jobRef.set(jobData)
+                .then(() => {
+                    showToast('تم حفظ طلب الوظيفة بنجاح!', 'success');
+                    resetForm();
+                    
+                    if (currentEditingJob) {
+                        currentEditingJob = null;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving job:', error);
+                    showToast('حدث خطأ أثناء حفظ طلب الوظيفة', 'error');
+                });
+        }
+        
+        // معالجة إرسال نموذج الوظيفة الشاغرة
+        async function handleVacancySubmit(e) {
+            e.preventDefault();
+            
+            const vacancyId = document.getElementById('vacancyId').value || generateUUID();
+            
+            // الحصول على التاريخ والوقت الحاليين
+            const currentDateTime = getCurrentDateTime();
+            
+            const vacancyData = {
+                id: vacancyId,
+                title: document.getElementById('vacancyTitle').value,
+                company: document.getElementById('companyName').value,
+                location: document.getElementById('vacancyLocation').value,
+                type: document.getElementById('vacancyType').value,
+                salary: document.getElementById('salary').value,
+                experience: document.getElementById('experience').value,
+                educationRequired: document.getElementById('educationRequired').value,
+                description: document.getElementById('vacancyDescription').value,
+                requirements: document.getElementById('vacancyRequirements').value.split('\n').filter(req => req.trim() !== ''),
+                benefits: document.getElementById('vacancyBenefits').value,
+                contactEmail: document.getElementById('contactEmail').value,
+                contactPhone: document.getElementById('contactPhone').value,
+                deadline: document.getElementById('applicationDeadline').value,
+                postDate: currentDateTime.date,
+                postTime: currentDateTime.time,
+                postedBy: currentUser.id
+            };
+            
+            const vacancyRef = database.ref('وظائف شاغرة/' + vacancyId);
+            vacancyRef.set(vacancyData)
+                .then(() => {
+                    showToast('تم نشر الوظيفة الشاغرة بنجاح!', 'success');
+                    resetVacancyForm();
+                })
+                .catch(error => {
+                    console.error('Error saving vacancy:', error);
+                    showToast('حدث خطأ أثناء نشر الوظيفة الشاغرة', 'error');
+                });
+        }
+        
+        // إعادة تعيين النموذج
+        function resetForm() {
+            document.getElementById('job-form').reset();
+            document.getElementById('jobId').value = '';
+            document.getElementById('applicationDate').value = new Date().toISOString().split('T')[0];
+            currentEditingJob = null;
+        }
+        
+        // إعادة تعيين نموذج الوظيفة الشاغرة
+        function resetVacancyForm() {
+            document.getElementById('vacancy-form').reset();
+            document.getElementById('vacancyId').value = '';
+            document.getElementById('vacancyPostDate').value = new Date().toISOString().split('T')[0];
+        }
+        
+        // إظهار المحتوى الرئيسي
+        function showMainContent() {
+            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('logout-btn').style.display = 'block';
+            
+            document.getElementById('user-info').innerHTML = 
+                `مرحباً ${currentUser.name} - رقم الجوال: ${currentUser.phone} 
+                <span class="user-status status-active">الحالة: نشط</span>`;
+            
+            document.getElementById('userId').value = currentUser.id;
+            document.getElementById('applicationDate').value = new Date().toISOString().split('T')[0];
+            
+            loadProfileData();
+        }
+        
+        // تحميل بيانات المستخدم لتبويب "بياناتي"
+        function loadProfileData() {
+            document.getElementById('profile-name').textContent = currentUser.name;
+            document.getElementById('profile-phone').textContent = currentUser.phone;
+            
+            // تحويل تاريخ الإنشاء إلى تنسيق مقروء
+            const createdDate = currentUser.createdAt ? new Date(currentUser.createdAt) : new Date();
+            document.getElementById('profile-created').textContent = createdDate.toLocaleDateString('ar-SA');
+            
+            document.getElementById('profile-status').textContent = currentUser.status === 1 ? 'نشط' : 'موقف';
+            
+            // إعداد حقل عرض رقم الجوال - مع معالجة القيمة بشكل صحيح
+            const phoneVisibility = parseInt(currentUser.phoneVisibility) || 1;
+            document.getElementById('profile-phone-visibility').checked = phoneVisibility === 1;
+            document.getElementById('phone-visibility-label').textContent = 
+                phoneVisibility === 1 ? 'عرض رقم الجوال للآخرين' : 'لم يتم عرض رقم الجوال للآخرين';
+        }
+        
+        // فتح نموذج تعديل البيانات
+        function editProfile() {
+            document.getElementById('edit-name').value = currentUser.name;
+            document.getElementById('edit-phone').value = currentUser.phone;
+            
+            // تحميل قيمة phoneVisibility بشكل صحيح
+            const phoneVisibility = parseInt(currentUser.phoneVisibility) || 1;
+            document.getElementById('edit-phone-visibility').checked = phoneVisibility === 1;
+            
+            document.getElementById('profile-edit-form').style.display = 'block';
+        }
+        
+        // إلغاء تعديل البيانات
+        function cancelEditProfile() {
+            document.getElementById('profile-edit-form').style.display = 'none';
+        }
+        
+        // معالجة تحديث بيانات المستخدم
+        function handleProfileUpdate(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('edit-name').value;
+            const phone = document.getElementById('edit-phone').value;
+            const password = document.getElementById('edit-password').value;
+            const phoneVisibility = document.getElementById('edit-phone-visibility').checked ? 1 : 0;
+            
+            // التحقق من صحة رقم الهاتف
+            const phoneRegex = /^[0-9]{9}$/;
+            if (!phoneRegex.test(phone)) {
+                showToast('رقم الجوال يجب أن يتكون من 9 أرقام فقط', 'error');
+                return;
+            }
+            
+            // تحديث بيانات المستخدم
+            const userRef = database.ref('use_wdefa/' + currentUser.id);
+            
+            // البيانات الأساسية للتحديث
+            const updateData = {
+                name: name,
+                phone: phone,
+                phoneVisibility: parseInt(phoneVisibility) // تحويل إلى رقم للتأكد
+            };
+            
+            // إذا تم إدخال كلمة مرور جديدة، أضفها للبيانات
+            if (password && password.trim() !== '') {
+                updateData.password = password;
+            }
+            // إذا لم يتم إدخال كلمة مرور جديدة، لا تقم بتحديث حقل كلمة المرور
+            // هذا يمنع حذف كلمة المرور القديمة
+            
+            userRef.update(updateData)
+                .then(() => {
+                    // تحديث بيانات المستخدم المحلية
+                    currentUser.name = name;
+                    currentUser.phone = phone;
+                    currentUser.phoneVisibility = parseInt(phoneVisibility);
+                    
+                    // إذا تم تغيير كلمة المرور، قم بتحديثها محلياً أيضاً
+                    if (password && password.trim() !== '') {
+                        currentUser.password = password;
+                    }
+                    
+                    // تحديث localStorage
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    // تحديث واجهة المستخدم
+                    loadProfileData();
+                    document.getElementById('user-info').innerHTML = 
+                        `مرحباً ${currentUser.name} - رقم الجوال: ${currentUser.phone} 
+                        <span class="user-status status-active">الحالة: نشط</span>`;
+                    
+                    document.getElementById('profile-edit-form').style.display = 'none';
+                    
+                    showToast('تم تحديث بياناتك بنجاح!', 'success');
+                })
+                .catch(error => {
+                    console.error('Error updating profile:', error);
+                    showToast('حدث خطأ أثناء تحديث البيانات', 'error');
+                });
+        }
+        
+        // معالجة تسجيل الخروج
+        function handleLogout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            hideMainContent();
+            resetForm();
+            showLoginScreen();
+        }
+        
+        // إخفاء المحتوى الرئيسي
+        function hideMainContent() {
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'none';
+            
+            document.getElementById('login-form').reset();
+            document.getElementById('register-form').reset();
+            document.getElementById('login-message').style.display = 'none';
+            document.getElementById('register-message').style.display = 'none';
+            
+            switchLoginTab('login');
+        }
+        
+        // التبديل بين التبويبات
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + '-tab').classList.add('active');
+            document.querySelector('.tab[onclick="switchTab(\'' + tabName + '\')"]').classList.add('active');
+            
+            if (tabName === 'profile') {
+                loadProfileData();
+            }
+        }
+        
+        // دالة لعرض الإشعارات
+        function showToast(message, type = 'info') {
+            // إنشاء عنصر الإشعار
+            const toast = document.createElement('div');
+            toast.className = `message ${type}`;
+            toast.textContent = message;
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '1003';
+            toast.style.minWidth = '300px';
+            toast.style.maxWidth = '500px';
+            
+            document.body.appendChild(toast);
+            
+            // إزالة الإشعار بعد 5 ثوانٍ
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
