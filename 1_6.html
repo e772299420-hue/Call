@@ -18,7 +18,8 @@
             --dark-color: #2c3e50;
             --success-color: #27ae60;
             --warning-color: #f39c12;
-            --filter-bar-color: rgba(255, 255, 255, 0.9);
+            --filter-bar-color: #1a1a2e; /* تغيير اللون إلى #1a1a2e */
+            --tools-bar-color: rgba(255, 255, 255, 0.95);
         }
         
         * {
@@ -218,7 +219,6 @@
             width: 100%;
             z-index: 999;
             transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
         }
         
         .filter-bar-content {
@@ -264,8 +264,8 @@
         
         .toggle-tools-btn {
             background-color: transparent;
-            color: var(--dark-color);
-            border: 2px solid rgba(0, 0, 0, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             padding: 8px 12px;
             border-radius: 6px;
             cursor: pointer;
@@ -277,9 +277,9 @@
         }
         
         .toggle-tools-btn:hover {
-            background-color: rgba(0, 0, 0, 0.05);
+            background-color: rgba(255, 255, 255, 0.1);
             transform: translateY(-2px);
-            border-color: rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.8);
         }
         
         /* زر المدخلات بجانب زر عرض أكثر - مخفي */
@@ -305,9 +305,9 @@
             border-color: rgba(255, 255, 255, 0.5);
         }
         
-        /* شريط الأدوات */
+        /* شريط الأدوات - منفصل تحت الشريط السابق */
         .tools-bar {
-            background-color: #f8f9fa;
+            background-color: var(--tools-bar-color);
             padding: 15px 0;
             border-top: 1px solid #eee;
             display: none;
@@ -317,6 +317,7 @@
             width: 100%;
             z-index: 998;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
         }
         
         .tools-bar.active {
@@ -1540,7 +1541,7 @@
         </div>
     </div>
 
-    <!-- شريط الأدوات -->
+    <!-- شريط الأدوات - منفصل تحت الشريط السابق -->
     <div class="tools-bar" id="tools-bar">
         <div class="tools-content">
             <div class="tool-item">
@@ -1809,7 +1810,7 @@
                                     const productCard = createProductCard(product);
                                     containerElement.appendChild(productCard);
                                     
-                                    // تحميل بيانات المستخدم من جدول مستخدم_العقارات
+                                    // تحميل بيانات المستخدم من جدول use_wdefa
                                     loadUserData(product.userId, product.id);
                                 });
                             }
@@ -1860,7 +1861,7 @@
             return true;
         }
         
-        // تحميل بيانات المستخدم من جدول مستخدم_العقارات
+        // تحميل بيانات المستخدم من جدول use_wdefa
         function loadUserData(userId, productId) {
             if (!userId) {
                 console.log('No user ID provided for product:', productId);
@@ -1881,8 +1882,8 @@
             
             console.log('Searching for user with ID:', userId);
             
-            // البحث في جدول مستخدم_العقارات
-            const userRef = database.ref('مستخدم_العقارات');
+            // البحث في جدول use_wdefa
+            const userRef = database.ref('use_wdefa');
             
             userRef.once('value')
                 .then(snapshot => {
@@ -1894,6 +1895,8 @@
                             const user = childSnapshot.val();
                             const key = childSnapshot.key;
                             
+                            console.log('Checking user in use_wdefa:', key, user);
+                            
                             // طرق مختلفة للبحث عن المستخدم
                             if (user.userId === userId || 
                                 user.id === userId || 
@@ -1904,7 +1907,55 @@
                                 (user.phone && user.phone.includes(userId)) ||
                                 (user.id && user.id.toString() === userId.toString())) {
                                 userData = user;
-                                console.log('User found with key:', key, 'Data:', user);
+                                console.log('User found in use_wdefa with key:', key, 'Data:', user);
+                                return true;
+                            }
+                        });
+                        
+                        if (userData) {
+                            usersCache[userId] = userData;
+                            updateUserInfo(userId, productId, userData);
+                        } else {
+                            console.log('No matching user found in use_wdefa, trying other tables');
+                            // البحث في جدول مستخدم_العقارات
+                            loadUserFromOtherTables(userId, productId);
+                        }
+                    } else {
+                        console.log('use_wdefa table is empty');
+                        // البحث في جدول مستخدم_العقارات
+                        loadUserFromOtherTables(userId, productId);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading from use_wdefa:', error);
+                    // البحث في جدول مستخدم_العقارات
+                    loadUserFromOtherTables(userId, productId);
+                });
+        }
+        
+        // البحث في الجداول الأخرى
+        function loadUserFromOtherTables(userId, productId) {
+            const usersRef = database.ref('مستخدم_العقارات');
+            
+            usersRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        let userData = null;
+                        
+                        snapshot.forEach(childSnapshot => {
+                            const user = childSnapshot.val();
+                            const key = childSnapshot.key;
+                            
+                            if (user.userId === userId || 
+                                user.id === userId || 
+                                key === userId ||
+                                user.username === userId ||
+                                user.email === userId ||
+                                user.phone === userId ||
+                                (user.phone && user.phone.includes(userId)) ||
+                                (user.id && user.id.toString() === userId.toString())) {
+                                userData = user;
+                                console.log('User found in مستخدم_العقارات:', key, 'Data:', user);
                                 return true;
                             }
                         });
@@ -1961,7 +2012,7 @@
                             usersCache[userId] = userData;
                             updateUserInfo(userId, productId, userData);
                         } else {
-                            console.log('No matching user found in المستخدمين');
+                            console.log('No matching user found in any table');
                             // استخدام بيانات افتراضية
                             updateUserInfo(userId, productId, { 
                                 phone: userId,
@@ -2018,7 +2069,7 @@
             }
             
             // تحديث حقل الناشر
-            const publisherName = userData.name || userData.username || userData.fullName || 'مستخدم';
+            const publisherName = userData.name || userData.username || userData.fullName || userData.displayName || 'مستخدم';
             if (publisherValue) {
                 publisherValue.textContent = publisherName;
             }
@@ -2095,6 +2146,8 @@ ${productUrl}
                 const product = activeProducts.find(p => p.id === productId);
                 if (product && product.specifications && product.specifications.trim() !== '') {
                     specificationsElement.style.display = 'block';
+                } else {
+                    specificationsElement.style.display = 'none';
                 }
             }
         }
