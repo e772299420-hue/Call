@@ -772,12 +772,12 @@ body {
         <form id="merchantLoginForm">
             <div class="form-group">
                 <label for="merchantUsername">اسم المستخدم</label>
-                <input type="text" id="merchantUsername" name="username" required>
+                <input type="text" id="merchantUsername" name="username" required placeholder="أدخل اسم المستخدم">
             </div>
             
             <div class="form-group">
                 <label for="merchantPassword">كلمة المرور</label>
-                <input type="password" id="merchantPassword" name="password" required>
+                <input type="password" id="merchantPassword" name="password" required placeholder="أدخل كلمة المرور">
                 <i class="fas fa-eye password-toggle" id="toggleMerchantPassword"></i>
             </div>
             
@@ -1254,45 +1254,123 @@ function hidePasswordResetModal() {
     document.getElementById('passwordResetModal').classList.remove('show');
 }
 
-// محاكاة قاعدة البيانات للتجار
+// قاعدة بيانات محسنة للتجار
 const mockMerchantsDatabase = {
+    // أسماء مستخدمين بالعربية
+    'المميز': {
+        password: '123456',
+        commercialName: 'المميز سوفت',
+        username: 'المميز',
+        name: 'المميز سوفت',
+        mobile: '772299420',
+        job: 'تاجر',
+        status: 'active'
+    },
+    'التقنية': {
+        password: '123456',
+        commercialName: 'متجر التقنية',
+        username: 'التقنية',
+        name: 'أحمد محمد',
+        mobile: '123456789',
+        job: 'تاجر',
+        status: 'active'
+    },
+    'الأصالة': {
+        password: '123456',
+        commercialName: 'الأصالة للمنتجات',
+        username: 'الأصالة',
+        name: 'سعيد علي',
+        mobile: '987654321',
+        job: 'تاجر',
+        status: 'active'
+    },
+    
+    // أسماء مستخدمين بالإنجليزية
     'almumayaz': {
         password: '123456',
         commercialName: 'المميز سوفت',
         username: 'almumayaz',
         name: 'المميز سوفت',
-        mobile: '772299420'
+        mobile: '772299420',
+        job: 'تاجر',
+        status: 'active'
     },
     'techstore': {
         password: '123456',
         commercialName: 'متجر التقنية',
         username: 'techstore',
         name: 'أحمد محمد',
-        mobile: '123456789'
+        mobile: '123456789',
+        job: 'تاجر',
+        status: 'active'
     },
     'asala': {
         password: '123456',
         commercialName: 'الأصالة للمنتجات',
         username: 'asala',
         name: 'سعيد علي',
-        mobile: '987654321'
+        mobile: '987654321',
+        job: 'تاجر',
+        status: 'active'
     },
-    'test': {
+    
+    // أسماء مستخدمين مختلطة
+    'test123': {
         password: '123456',
         commercialName: 'متجر الاختبار',
-        username: 'test',
+        username: 'test123',
         name: 'متجر الاختبار',
-        mobile: '111111111'
+        mobile: '111111111',
+        job: 'تاجر',
+        status: 'active'
+    },
+    'user_test': {
+        password: '123456',
+        commercialName: 'متجر المستخدم',
+        username: 'user_test',
+        name: 'محمد أحمد',
+        mobile: '222222222',
+        job: 'تاجر',
+        status: 'active'
     }
 };
 
 // قاعدة بيانات برقم الجوال للبحث
 const mockMerchantsByPhone = {
-    '772299420': 'almumayaz',
-    '123456789': 'techstore', 
-    '987654321': 'asala',
-    '111111111': 'test'
+    '772299420': 'المميز',
+    '123456789': 'التقنية', 
+    '987654321': 'الأصالة',
+    '111111111': 'test123',
+    '222222222': 'user_test'
 };
+
+// دالة للبحث عن التاجر في قاعدة البيانات
+function findMerchant(username) {
+    // البحث المباشر
+    if (mockMerchantsDatabase[username]) {
+        return mockMerchantsDatabase[username];
+    }
+    
+    // البحث الحساس لحالة الأحرف
+    const normalizedUsername = username.toLowerCase();
+    for (const key in mockMerchantsDatabase) {
+        if (key.toLowerCase() === normalizedUsername) {
+            return mockMerchantsDatabase[key];
+        }
+    }
+    
+    // البحث في جميع الحقول
+    for (const key in mockMerchantsDatabase) {
+        const merchant = mockMerchantsDatabase[key];
+        if (merchant.username.toLowerCase() === normalizedUsername || 
+            merchant.name.toLowerCase() === normalizedUsername ||
+            merchant.commercialName.toLowerCase() === normalizedUsername) {
+            return merchant;
+        }
+    }
+    
+    return null;
+}
 
 // إعداد تسجيل الدخول للتاجر
 function setupMerchantLogin() {
@@ -1347,8 +1425,8 @@ function setupMerchantLogin() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const username = normalizeUsername(usernameInput.value);
-        const password = normalizePassword(passwordInput.value);
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
         const remember = rememberCheckbox.checked;
         
         loginBtn.disabled = true;
@@ -1361,7 +1439,7 @@ function setupMerchantLogin() {
             }
             
             // البحث عن المستخدم في قاعدة البيانات
-            const merchantData = mockMerchantsDatabase[username];
+            const merchantData = findMerchant(username);
             
             if (!merchantData) {
                 throw new Error('اسم المستخدم غير مسجل في النظام');
@@ -1385,11 +1463,11 @@ function setupMerchantLogin() {
             // حفظ بيانات التاجر في الجلوبال
             merchantGlobal.setMerchantName(merchantData.commercialName || merchantData.name || username);
             merchantGlobal.setMerchantPhone(merchantData.mobile || '');
-            merchantGlobal.setMerchantId(username);
+            merchantGlobal.setMerchantId(merchantData.username);
             
             const userDataToStore = {
-                id: username,
-                username: username,
+                id: merchantData.username,
+                username: merchantData.username,
                 name: merchantData.name || username,
                 commercialName: merchantData.commercialName || '',
                 email: merchantData.email || '',
