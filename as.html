@@ -320,18 +320,35 @@
             font-size: 1.2rem;
         }
         
-        .instructions ol {
-            padding-right: 20px;
-        }
-        
-        .instructions li {
+        .instructions p {
             margin-bottom: 10px;
             line-height: 1.5;
+        }
+        
+        .instructions .welcome-text {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .instructions .platform-name {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
         }
         
         .instructions .important {
             color: #e74c3c;
             font-weight: bold;
+        }
+        
+        .instructions .note {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            border-right: 3px solid #ffc107;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -348,15 +365,14 @@
     
     <div class="container">
         <div class="instructions">
-            <h3>لطلب الإشتراك والانضمام</h3>
-            <ol>
-                <li>ادخل اسمك في حقل اسم المستخدم</li>
-                <li>ادخل اسم المحل الخاص بك في حقل الأسم التجاري</li>
-                <li>اختر نوع الوظيفة</li>
-                <li>اختر المحافظة والمنطقة</li>
-                <li>ادخل رقم جوال الواتساب <span class="important">مهم</span></li>
-                <li>قم بالنقر على زر تقديم طلب الإشتراك</li>
-            </ol>
+            <p class="welcome-text">مرحب بك</p>
+            <p class="platform-name">منصة AZ السوق الشامل لتلبية احتياجك بالكامل</p>
+            <p>قم بإدخال جميع البيانات الخاصة بك بشكل صحيح علماً ان جميعها مهمة لقبول تسجيل الانضمام</p>
+            <div class="note">
+                ملاحظة: رقم الجوال يجب أن يكون مرتبط بحساب الواتساب لتصلك رسالة التفعيل<br>
+                علماً انه يمكنك إخفاء الرقم عن المجتمع
+            </div>
+            <p>قم بالنقر على زر تقديم طلب الانضمام</p>
         </div>
         
         <div class="form-row">
@@ -410,7 +426,7 @@
                 </select>
             </div>
             
-            <div class="form-group">
+            <div class="form-group" style="display: none;">
                 <label for="merchant-phone">رقم الهاتف الثابت</label>
                 <input type="tel" id="merchant-phone" placeholder="أدخل رقم الهاتف الثابت">
             </div>
@@ -422,13 +438,13 @@
                 <input type="tel" id="merchant-mobile" placeholder="أدخل رقم الجوال/واتساب" required>
             </div>
             
-            <div class="form-group">
+            <div class="form-group" style="display: none;">
                 <label for="merchant-ip">أيبي هاتف العميل</label>
                 <input type="text" id="merchant-ip" placeholder="أدخل أيبي الهاتف">
             </div>
         </div>
         
-        <div class="form-row">
+        <div class="form-row" style="display: none;">
             <div class="form-group">
                 <label for="merchant-location">الموقع</label>
                 <div class="location-group">
@@ -445,7 +461,7 @@
             </div>
         </div>
         
-        <div class="form-row">
+        <div class="form-row" style="display: none;">
             <div class="form-group">
                 <label for="merchant-instagram">رابط انستجرام</label>
                 <input type="url" id="merchant-instagram" placeholder="https://instagram.com/username">
@@ -457,7 +473,7 @@
             </div>
         </div>
         
-        <div class="form-row">
+        <div class="form-row" style="display: none;">
             <div class="form-group">
                 <label for="merchant-youtube">رابط يوتيوب</label>
                 <input type="url" id="merchant-youtube" placeholder="https://youtube.com/username">
@@ -470,7 +486,7 @@
         </div>
         
         <button class="btn" id="addMerchantBtn">
-            <span id="addMerchantBtnText">تقديم طلب الإشتراك</span>
+            <span id="addMerchantBtnText">تقديم طلب الانضمام</span>
             <span id="addMerchantBtnLoading" class="loading-spinner" style="display: none;"></span>
         </button>
     </div>
@@ -524,21 +540,20 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadGovernoratesToSelect();
             setupEventListeners();
-            setupManualLocationInput();
             
-            // عرض إشعار التعليمات عند فتح الصفحة
-            setTimeout(() => {
-                showInstructionsToast();
-            }, 1000);
+            // إخفاء الحقول غير المرغوبة
+            hideUnwantedFields();
         });
+        
+        // إخفاء الحقول غير المرغوبة
+        function hideUnwantedFields() {
+            // تم إخفاء الحقول باستخدام style="display: none;" في HTML
+        }
         
         // إعداد مستمعي الأحداث
         function setupEventListeners() {
             // إضافة تاجر
             addMerchantBtn.addEventListener('click', addMerchant);
-            
-            // تحديد الموقع
-            getLocationBtn.addEventListener('click', getCurrentLocation);
             
             // تحديث المناطق عند تغيير المحافظة
             governorateSelect.addEventListener('change', updateAreaDropdown);
@@ -576,73 +591,6 @@
                     areaSelect.innerHTML += `<option value="${id}">${name}</option>`;
                 });
             }
-        }
-        
-        // بديل يدوي لإدخال الموقع
-        function setupManualLocationInput() {
-            // السماح بالإدخال اليدوي
-            locationInput.readOnly = false;
-        }
-        
-        // تحديد الموقع الحالي
-        function getCurrentLocation() {
-            if (!navigator.geolocation) {
-                showToast('المتصفح لا يدعم خدمات تحديد الموقع', 'error');
-                return;
-            }
-            
-            const originalHtml = getLocationBtn.innerHTML;
-            getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            getLocationBtn.disabled = true;
-            
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    const location = `${lat}, ${lng}`;
-                    locationInput.value = location;
-                    getLocationBtn.innerHTML = originalHtml;
-                    getLocationBtn.disabled = false;
-                    showToast('تم تحديد موقعك بنجاح', 'success');
-                    
-                    // حفظ الموقع في localStorage للاستخدام لاحقاً
-                    localStorage.setItem('lastLocation', location);
-                },
-                function(error) {
-                    console.error('خطأ في تحديد الموقع:', error);
-                    
-                    // محاولة استخدام الموقع المخزن مسبقاً
-                    const lastLocation = localStorage.getItem('lastLocation');
-                    if (lastLocation) {
-                        locationInput.value = lastLocation;
-                        showToast('تم استخدام آخر موقع معروف', 'info');
-                    } else {
-                        let errorMessage = 'فشل في تحديد الموقع';
-                        
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage = 'تم رفض الإذن لتحديد الموقع. يرجى السماح بالوصول إلى الموقع';
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage = 'معلومات الموقع غير متوفرة حالياً';
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage = 'انتهت مهلة طلب الموقع';
-                                break;
-                        }
-                        
-                        showToast(errorMessage, 'error');
-                    }
-                    
-                    getLocationBtn.innerHTML = originalHtml;
-                    getLocationBtn.disabled = false;
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: 300000
-                }
-            );
         }
         
         // وظيفة إنشاء معرف فريد
@@ -736,18 +684,10 @@
                 jobInput.value = 'تاجر';
                 governorateSelect.value = '';
                 areaSelect.innerHTML = '<option value="">اختر المنطقة</option>';
-                phoneInput.value = '';
                 mobileInput.value = '';
-                ipInput.value = '';
-                locationInput.value = '';
-                facebookInput.value = '';
-                instagramInput.value = '';
-                twitterInput.value = '';
-                youtubeInput.value = '';
-                googleInput.value = '';
                 
-                // عرض رسالة الترحيب
-                showWelcomeMessage(username);
+                // عرض رسالة النجاح
+                showSuccessMessage(username);
                 
             } catch (error) {
                 console.error('خطأ في إضافة التاجر:', error);
@@ -760,70 +700,17 @@
             }
         }
         
-        // عرض إشعار التعليمات عند فتح الصفحة
-        function showInstructionsToast() {
+        // عرض رسالة النجاح وإغلاق الصفحة
+        function showSuccessMessage(username) {
             const toast = document.createElement('div');
-            toast.className = `toast info`;
-            
-            toast.innerHTML = `
-                <div class="toast-content">
-                    <i class="fas fa-info-circle toast-icon"></i>
-                    <div>
-                        <strong>لطلب الإشتراك والانضمام:</strong><br>
-                        1 - ادخل اسمك في حقل اسم المستخدم<br>
-                        2 - ادخل اسم المحل الخاص بك في حقل الأسم التجاري<br>
-                        3 - اختر نوع الوظيفة<br>
-                        4 - اختر المحافظة والمنطقة<br>
-                        5 - ادخل رقم جوال الواتساب <strong>مهم</strong><br>
-                        ثم انقر على زر تقديم طلب الإشتراك
-                    </div>
-                </div>
-                <button class="toast-close">
-                    <i class="fas fa-times"></i>
-                </button>
-                <div class="toast-progress">
-                    <div class="toast-progress-bar"></div>
-                </div>
-            `;
-            
-            const toastContainer = document.getElementById('toastContainer');
-            toastContainer.appendChild(toast);
-            
-            // إضافة حدث إغلاق عند النقر على زر الإغلاق
-            const closeBtn = toast.querySelector('.toast-close');
-            closeBtn.addEventListener('click', () => {
-                toast.style.opacity = '0';
-                setTimeout(() => {
-                    toastContainer.removeChild(toast);
-                }, 300);
-            });
-            
-            // إزالة الإشعار تلقائياً بعد 15 ثانية
-            setTimeout(() => {
-                if (toast.parentNode === toastContainer) {
-                    toast.style.opacity = '0';
-                    setTimeout(() => {
-                        toastContainer.removeChild(toast);
-                    }, 300);
-                }
-            }, 15000);
-        }
-        
-        // عرض رسالة الترحيب بعد التسجيل
-        function showWelcomeMessage(username) {
-            const toast = document.createElement('div');
-            toast.className = `toast welcome`;
+            toast.className = `toast success`;
             
             toast.innerHTML = `
                 <div class="toast-content">
                     <i class="fas fa-check-circle toast-icon"></i>
                     <div>
-                        <strong>عزيزنا العميل ${username}</strong><br>
-                        متجر AZ السوق الشامل لتلبية احتياجك بالكامل يرحب بك<br>
-                        سيتم الرد عليك والموافقة من قبل إدارة المتجر<br>
-                        برسالة الى الواتساب الخاص بك<br>
-                        <br>
-                        شكرا لكم . . .
+                        <strong>تم تقديم طلب الانضمام بنجاح!</strong><br>
+                        سيتم التواصل معك قريباً عبر الواتساب
                     </div>
                 </div>
                 <button class="toast-close">
@@ -837,24 +724,22 @@
             const toastContainer = document.getElementById('toastContainer');
             toastContainer.appendChild(toast);
             
+            // العودة إلى الصفحة السابقة بعد 3 ثوانٍ
+            setTimeout(() => {
+                // إغلاق الصفحة الحالية والعودة إلى الصفحة السابقة
+                window.location.href = '1_1.html';
+            }, 3000);
+            
             // إضافة حدث إغلاق عند النقر على زر الإغلاق
             const closeBtn = toast.querySelector('.toast-close');
             closeBtn.addEventListener('click', () => {
                 toast.style.opacity = '0';
                 setTimeout(() => {
                     toastContainer.removeChild(toast);
+                    // العودة إلى الصفحة السابقة عند إغلاق الإشعار
+                    window.location.href = '1_1.html';
                 }, 300);
             });
-            
-            // إزالة الإشعار تلقائياً بعد 20 ثانية
-            setTimeout(() => {
-                if (toast.parentNode === toastContainer) {
-                    toast.style.opacity = '0';
-                    setTimeout(() => {
-                        toastContainer.removeChild(toast);
-                    }, 300);
-                }
-            }, 20000);
         }
         
         // وظيفة عرض الإشعار
