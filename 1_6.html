@@ -1090,6 +1090,27 @@ function normalizeText(text) {
     return text;
 }
 
+// دالة لتطبيع اسم المستخدم (أكثر مرونة)
+function normalizeUsername(username) {
+    if (!username) return '';
+    
+    // إزالة المسافات من البداية والنهاية
+    username = username.trim();
+    
+    // السماح بالحروف العربية والإنجليزية والأرقام والشرطة السفلية فقط
+    username = username.replace(/[^a-zA-Z0-9\u0600-\u06FF_]/g, '');
+    
+    return username;
+}
+
+// دالة لتطبيع كلمة المرور (أكثر مرونة)
+function normalizePassword(password) {
+    if (!password) return '';
+    
+    // كلمة المرور يمكن أن تحتوي على أي حروف ورموز
+    return password;
+}
+
 // دالة لتطبيع رقم الجوال
 function normalizePhone(phone) {
     if (!phone) return '';
@@ -1235,21 +1256,42 @@ function hidePasswordResetModal() {
 
 // محاكاة قاعدة البيانات للتجار
 const mockMerchantsDatabase = {
-    '772299420': {
+    'almumayaz': {
+        password: '123456',
         commercialName: 'المميز سوفت',
         username: 'almumayaz',
-        name: 'المميز سوفت'
+        name: 'المميز سوفت',
+        mobile: '772299420'
     },
-    '123456789': {
+    'techstore': {
+        password: '123456',
         commercialName: 'متجر التقنية',
         username: 'techstore',
-        name: 'أحمد محمد'
+        name: 'أحمد محمد',
+        mobile: '123456789'
     },
-    '987654321': {
+    'asala': {
+        password: '123456',
         commercialName: 'الأصالة للمنتجات',
         username: 'asala',
-        name: 'سعيد علي'
+        name: 'سعيد علي',
+        mobile: '987654321'
+    },
+    'test': {
+        password: '123456',
+        commercialName: 'متجر الاختبار',
+        username: 'test',
+        name: 'متجر الاختبار',
+        mobile: '111111111'
     }
+};
+
+// قاعدة بيانات برقم الجوال للبحث
+const mockMerchantsByPhone = {
+    '772299420': 'almumayaz',
+    '123456789': 'techstore', 
+    '987654321': 'asala',
+    '111111111': 'test'
 };
 
 // إعداد تسجيل الدخول للتاجر
@@ -1267,18 +1309,18 @@ function setupMerchantLogin() {
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     const joinRequestBtn = document.getElementById('joinRequestBtn');
     
-    // إغلاق النافذة
+    // إغلاق النافذة والعودة إلى الصفحة الرئيسية
     closeBtn.addEventListener('click', () => {
         modal.classList.remove('show');
-        form.reset();
-        messageDiv.style.display = 'none';
+        // العودة إلى الصفحة الرئيسية
+        window.location.href = '1_1.html';
     });
     
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('show');
-            form.reset();
-            messageDiv.style.display = 'none';
+            // العودة إلى الصفحة الرئيسية
+            window.location.href = '1_1.html';
         }
     });
     
@@ -1305,8 +1347,8 @@ function setupMerchantLogin() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const username = normalizeText(usernameInput.value.trim());
-        const password = passwordInput.value;
+        const username = normalizeUsername(usernameInput.value);
+        const password = normalizePassword(passwordInput.value);
         const remember = rememberCheckbox.checked;
         
         loginBtn.disabled = true;
@@ -1318,26 +1360,16 @@ function setupMerchantLogin() {
                 throw new Error('يرجى ملء جميع الحقول');
             }
             
-            const merchantId = generateId(username);
+            // البحث عن المستخدم في قاعدة البيانات
+            const merchantData = mockMerchantsDatabase[username];
             
-            // محاكاة قاعدة البيانات - في التطبيق الحقيقي سيتم الاتصال بقاعدة البيانات
-            // هنا نستخدم بيانات افتراضية للاختبار
-            const merchantData = {
-                id: merchantId,
-                username: username,
-                password: '123456', // كلمة المرور الافتراضية للاختبار
-                name: username,
-                commercialName: `متجر ${username}`,
-                email: `${username}@example.com`,
-                mobile: '772299420',
-                job: 'تاجر',
-                status: 'active',
-                type: 'merchant'
-            };
+            if (!merchantData) {
+                throw new Error('اسم المستخدم غير مسجل في النظام');
+            }
             
-            // التحقق من صحة بيانات الدخول
+            // التحقق من صحة كلمة المرور
             if (password !== merchantData.password) {
-                throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
+                throw new Error('كلمة المرور غير صحيحة');
             }
 
             if (!['active', 'نشط', 'فعال'].includes(merchantData.status)) {
@@ -1350,20 +1382,13 @@ function setupMerchantLogin() {
                 throw new Error('❌ هذا الحساب مرتبط بالمطاعم وليس بالتجار. يرجى استخدام الصفحة المخصصة للمطاعم بدلاً من ذلك.');
             }
             
-            // التحقق الإضافي للتأكد من أن نوع الوظيفة هو تاجر
-            if (!merchantData.job || 
-                (merchantData.job !== 'تاجر' && merchantData.job !== 'merchant' && 
-                 merchantData.job !== 'تجار' && merchantData.job !== 'merchants')) {
-                throw new Error('❌ نوع الوظيفة غير مدعوم لهذه الصفحة. يرجى التواصل مع الدعم الفني.');
-            }
-            
             // حفظ بيانات التاجر في الجلوبال
             merchantGlobal.setMerchantName(merchantData.commercialName || merchantData.name || username);
-            merchantGlobal.setMerchantPhone(merchantData.mobile || merchantData.whatsapp || '');
-            merchantGlobal.setMerchantId(merchantId);
+            merchantGlobal.setMerchantPhone(merchantData.mobile || '');
+            merchantGlobal.setMerchantId(username);
             
             const userDataToStore = {
-                id: merchantId,
+                id: username,
                 username: username,
                 name: merchantData.name || username,
                 commercialName: merchantData.commercialName || '',
@@ -1448,8 +1473,12 @@ function setupPasswordResetModal() {
     // التحقق من رقم الجوال أثناء الكتابة
     phoneInput.addEventListener('input', () => {
         const normalizedPhone = normalizePhone(phoneInput.value);
-        if (normalizedPhone && mockMerchantsDatabase[normalizedPhone]) {
-            commercialNameInput.value = mockMerchantsDatabase[normalizedPhone].commercialName;
+        if (normalizedPhone && mockMerchantsByPhone[normalizedPhone]) {
+            const username = mockMerchantsByPhone[normalizedPhone];
+            const merchantData = mockMerchantsDatabase[username];
+            if (merchantData) {
+                commercialNameInput.value = merchantData.commercialName;
+            }
         } else {
             commercialNameInput.value = '';
         }
@@ -1475,11 +1504,12 @@ function setupPasswordResetModal() {
             }
             
             // التحقق من وجود الرقم في قاعدة البيانات
-            if (!mockMerchantsDatabase[phoneNumber]) {
+            if (!mockMerchantsByPhone[phoneNumber]) {
                 throw new Error('عفواً هذا الرقم غير مخزن في خوادم المتجر. تأكد من الرقم وأعد الإدخال.');
             }
             
-            const merchantData = mockMerchantsDatabase[phoneNumber];
+            const username = mockMerchantsByPhone[phoneNumber];
+            const merchantData = mockMerchantsDatabase[username];
             const finalCommercialName = commercialName || merchantData.commercialName;
             
             // إنشاء رسالة واتساب
