@@ -530,10 +530,10 @@
         /* حاوية المنتجات */
         .products-container {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* تم التعديل لعرض منتجين في كل صف */
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 25px;
-            margin-top: 180px; /* مساحة للأشرطة الثابتة */
             padding: 20px 0;
+            /* تم إزالة margin-top الثابتة */
         }
         
         .product-card {
@@ -1465,7 +1465,7 @@
         /* التكيف مع الشاشات الصغيرة */
         @media (max-width: 1200px) {
             .products-container {
-                grid-template-columns: repeat(2, 1fr); /* الحفاظ على منتجين في كل صف */
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             }
         }
 
@@ -1509,8 +1509,7 @@
             }
             
             .products-container {
-                margin-top: 200px;
-                grid-template-columns: repeat(2, 1fr); /* الحفاظ على منتجين في كل صف */
+                grid-template-columns: 1fr;
                 gap: 20px;
             }
             
@@ -1692,8 +1691,6 @@
             }
             
             .products-container {
-                margin-top: 185px;
-                grid-template-columns: repeat(2, 1fr); /* الحفاظ على منتجين في كل صف */
                 gap: 15px;
             }
 
@@ -1805,7 +1802,7 @@
         <div class="filter-bar-content">
             <div class="filter-controls">
                 <div class="property-type-filter">
-                    <div class="property-type-label"></div> </div>
+                    <div class="property-type-label">نوع العقار</div>
                     <select id="property-type-filter" class="property-type-select" onchange="filterByPropertyType()">
                         <option value="">الكل</option>
                         <option value="أراضي">أراضي</option>
@@ -1972,6 +1969,9 @@
             // إعداد زر العودة للأعلى
             setupScrollToTop();
             
+            // تحديث مساحة منطقة العرض الرئيسية
+            updateProductsContainerMargin();
+            
             // إضافة مستمع للنقر خارج نافذة التعليقات لإخفائها
             document.addEventListener('click', function(event) {
                 if (commentModalOpen && !event.target.closest('.comments-section') && 
@@ -2001,7 +2001,33 @@
                         break;
                 }
             });
+
+            // تحديث المسافات عند تغيير حجم النافذة
+            window.addEventListener('resize', updateProductsContainerMargin);
         });
+
+        // دالة تحديث مساحة منطقة العرض الرئيسية تلقائيًا
+        function updateProductsContainerMargin() {
+            const header = document.querySelector('.header');
+            const filterBar = document.querySelector('.filter-bar');
+            const toolsBar = document.getElementById('tools-bar');
+            const productsContainer = document.querySelector('.products-container');
+            
+            if (!header || !filterBar || !productsContainer) return;
+            
+            let totalHeight = header.offsetHeight + filterBar.offsetHeight;
+            
+            // إضافة ارتفاع شريط الأدوات إذا كان ظاهرًا
+            if (toolsBar && toolsBar.style.display !== 'none') {
+                totalHeight += toolsBar.offsetHeight;
+            }
+            
+            // إضافة مسافة إضافية للفاصل
+            totalHeight += 20;
+            
+            // تطبيق المسافة المحسوبة
+            productsContainer.style.marginTop = totalHeight + 'px';
+        }
 
         // إعداد زر العودة للأعلى
         function setupScrollToTop() {
@@ -2051,14 +2077,13 @@
             if (toolsBar.style.display === 'none' || toolsBar.style.display === '') {
                 toolsBar.style.display = 'block';
                 document.querySelector('.toggle-tools-btn').innerHTML = '<i class="fas fa-times"></i> إخفاء الخيارات';
-                // تحديث مساحة الحاوية الرئيسية
-                document.querySelector('.products-container').style.marginTop = '40px';
             } else {
                 toolsBar.style.display = 'none';
                 document.querySelector('.toggle-tools-btn').innerHTML = '<i class="fas fa-cogs"></i> عرض أكثر';
-                // تحديث مساحة الحاوية الرئيسية
-                document.querySelector('.products-container').style.marginTop = '160px';
             }
+            
+            // تحديث مساحة منطقة العرض الرئيسية بعد تغيير حالة شريط الأدوات
+            updateProductsContainerMargin();
         }
 
         // تبديل عرض المفضلة
