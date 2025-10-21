@@ -1832,6 +1832,18 @@
             <div class="tool-item">
                 <input type="text" id="search-products" class="search-input" placeholder="ابحث في المنتجات...">
             </div>
+            <!-- حقل المحافظة -->
+            <div class="tool-item">
+                <select id="filter-governorate" class="tool-select" onchange="handleGovernorateChange()">
+                    <option value="">جميع المحافظات</option>
+                </select>
+            </div>
+            <!-- حقل المنطقة -->
+            <div class="tool-item">
+                <select id="filter-region" class="tool-select" onchange="filterProducts()">
+                    <option value="">جميع المناطق</option>
+                </select>
+            </div>
             <!-- تم وضع حقل القسم مكان نوع الطلب السابق -->
             <div class="tool-item">
                 <select id="filter-category" class="tool-select" onchange="filterProducts()">
@@ -1939,6 +1951,7 @@
         // متغيرات التطبيق
         let activeProducts = [];
         let governoratesData = {};
+        let regionsData = {};
         let categoriesData = {};
         let usersCache = {};
         let currentUserId = null;
@@ -1956,6 +1969,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             // تحميل البيانات الأولية
             loadGovernorates();
+            loadRegions();
             loadCategories();
             loadActiveProducts();
             
@@ -2162,10 +2176,30 @@
                 .then(snapshot => {
                     if (snapshot.exists()) {
                         governoratesData = snapshot.val();
+                        populateGovernoratesFilter();
+                    } else {
+                        console.log('No governorates found in database');
                     }
                 })
                 .catch(error => {
                     console.error('Error loading governorates:', error);
+                });
+        }
+        
+        // تحميل المناطق
+        function loadRegions() {
+            const regionsRef = database.ref('regions');
+            
+            regionsRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        regionsData = snapshot.val();
+                    } else {
+                        console.log('No regions found in database');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading regions:', error);
                 });
         }
         
@@ -2880,6 +2914,18 @@ ${productUrl}
                         </div>
                     </div>
 
+                    <!-- حقل المحافظة -->
+                    <div class="product-detail">
+                        <span class="detail-label"><i class="fas fa-map-marker-alt"></i> المحافظة:</span>
+                        <span class="detail-value" id="governorate-value-${product.id}">جاري التحميل...</span>
+                    </div>
+                    
+                    <!-- حقل المنطقة -->
+                    <div class="product-detail">
+                        <span class="detail-label"><i class="fas fa-location-dot"></i> المنطقة:</span>
+                        <span class="detail-value" id="region-value-${product.id}">جاري التحميل...</span>
+                    </div>
+
                     <!-- حقل القسم -->
                     <div class="product-detail">
                         <span class="detail-label"><i class="fas fa-list"></i> القسم:</span>
@@ -2964,8 +3010,33 @@ ${productUrl}
             loadProductImages(product.id, card);
             loadComments(product.id);
             loadLikes(product.id);
+            loadLocationData(product, product.id);
             
             return card;
+        }
+        
+        // تحميل بيانات الموقع (المحافظة والمنطقة)
+        function loadLocationData(product, productId) {
+            const governorateValue = document.getElementById(`governorate-value-${productId}`);
+            const regionValue = document.getElementById(`region-value-${productId}`);
+            
+            if (governorateValue) {
+                if (product.governorate) {
+                    const governorateName = governoratesData[product.governorate]?.name || product.governorate;
+                    governorateValue.textContent = governorateName || 'غير محدد';
+                } else {
+                    governorateValue.textContent = 'غير محدد';
+                }
+            }
+            
+            if (regionValue) {
+                if (product.region) {
+                    const regionName = regionsData[product.region]?.name || product.region;
+                    regionValue.textContent = regionName || 'غير محدد';
+                } else {
+                    regionValue.textContent = 'غير محدد';
+                }
+            }
         }
         
         // تنسيق التاريخ الميلادي
@@ -3312,6 +3383,43 @@ ${productName}
                 });
         }
         
+        // ملء قائمة المحافظات في الفلتر
+        function populateGovernoratesFilter() {
+            const governorateSelect = document.getElementById('filter-governorate');
+            governorateSelect.innerHTML = '<option value="">جميع المحافظات</option>';
+            
+            if (governoratesData) {
+                Object.keys(governoratesData).forEach(key => {
+                    const governorate = governoratesData[key];
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = governorate.name || key;
+                    governorateSelect.appendChild(option);
+                });
+            }
+        }
+        
+        // معالجة تغيير المحافظة
+        function handleGovernorateChange() {
+            const governorateSelect = document.getElementById('filter-governorate');
+            const regionSelect = document.getElementById('filter-region');
+            const selectedGovernorate = governorateSelect.value;
+            
+            regionSelect.innerHTML = '<option value="">جميع المناطق</option>';
+            
+            if (selectedGovernorate && governoratesData[selectedGovernorate] && governoratesData[selectedGovernorate].areas) {
+                const areas = governoratesData[selectedGovernorate].areas;
+                Object.keys(areas).forEach(areaKey => {
+                    const option = document.createElement('option');
+                    option.value = areaKey;
+                    option.textContent = areas[areaKey];
+                    regionSelect.appendChild(option);
+                });
+            }
+            
+            filterProducts();
+        }
+        
         // تصفية المنتجات
         function filterProducts() {
             if (showFavoritesOnly) {
@@ -3321,6 +3429,8 @@ ${productName}
             
             const searchText = document.getElementById('search-products')?.value.toLowerCase() || '';
             const requestTypeFilter = document.getElementById('request-type-filter')?.value || '';
+            const governorateFilter = document.getElementById('filter-governorate')?.value || '';
+            const regionFilter = document.getElementById('filter-region')?.value || '';
             const categoryFilter = document.getElementById('filter-category')?.value || '';
             const sortFilter = document.getElementById('filter-sort')?.value || '';
             
@@ -3329,6 +3439,8 @@ ${productName}
                 
                 let matchesSearch = true;
                 let matchesRequestType = true;
+                let matchesGovernorate = true;
+                let matchesRegion = true;
                 let matchesCategory = true;
                 
                 if (searchText) {
@@ -3346,11 +3458,19 @@ ${productName}
                     matchesRequestType = (product.requestType || '') === requestTypeFilter;
                 }
                 
+                if (governorateFilter) {
+                    matchesGovernorate = (product.governorate || '') === governorateFilter;
+                }
+                
+                if (regionFilter) {
+                    matchesRegion = (product.region || '') === regionFilter;
+                }
+                
                 if (categoryFilter) {
                     matchesCategory = (product.category || '') === categoryFilter;
                 }
                 
-                return matchesSearch && matchesRequestType && matchesCategory;
+                return matchesSearch && matchesRequestType && matchesGovernorate && matchesRegion && matchesCategory;
             });
             
             if (sortFilter) {
