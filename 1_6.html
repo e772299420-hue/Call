@@ -1146,6 +1146,24 @@ function normalizeNumbers(text) {
     return normalized;
 }
 
+// دالة للتحقق من صحة بيانات المستخدم المخزنة
+function validateStoredCredentials(username, password) {
+    // محاكاة قاعدة البيانات - في التطبيق الحقيقي سيتم الاتصال بقاعدة البيانات
+    // هنا نستخدم بيانات افتراضية للاختبار
+    const database = [
+        { username: 'admin', password: '123456', name: 'مسؤول النظام', commercialName: 'متجر المميز سوفت', mobile: '772299420', job: 'تاجر', status: 'active' },
+        { username: 'تاجر١', password: '١٢٣٤٥٦', name: 'تاجر رقم 1', commercialName: 'متجر التقنية', mobile: '123456789', job: 'تاجر', status: 'active' },
+        { username: 'merchant2', password: 'password', name: 'تاجر رقم 2', commercialName: 'متجر الأجهزة', mobile: '987654321', job: 'تاجر', status: 'active' }
+    ];
+    
+    // البحث عن المستخدم في قاعدة البيانات
+    const user = database.find(item => 
+        item.username === username && normalizeNumbers(item.password) === normalizeNumbers(password)
+    );
+    
+    return user;
+}
+
 // دالة للتحقق من رقم الجوال في قاعدة البيانات (محاكاة)
 function checkPhoneInDatabase(phone) {
     // محاكاة قاعدة البيانات - في التطبيق الحقيقي سيتم الاتصال بقاعدة البيانات
@@ -1288,61 +1306,45 @@ function setupMerchantLogin() {
                 throw new Error('يرجى ملء جميع الحقول');
             }
             
-            const merchantId = generateId(username);
+            // التحقق من صحة بيانات الدخول
+            const userData = validateStoredCredentials(username, password);
             
-            // محاكاة قاعدة البيانات - في التطبيق الحقيقي سيتم الاتصال بقاعدة البيانات
-            // هنا نستخدم بيانات افتراضية للاختبار
-            const merchantData = {
-                id: merchantId,
-                username: username,
-                password: password,
-                name: username,
-                commercialName: `متجر ${username}`,
-                email: `${username}@example.com`,
-                mobile: '772299420',
-                job: 'تاجر',
-                status: 'active',
-                type: 'merchant'
-            };
-            
-            // التحقق من صحة بيانات الدخول مع مراعاة الأرقام العربية والإنجليزية
-            const normalizedPassword = normalizeNumbers(password);
-            const normalizedStoredPassword = normalizeNumbers(merchantData.password);
-            
-            if (normalizedPassword !== normalizedStoredPassword) {
+            if (!userData) {
                 throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
             }
 
-            if (!['active', 'نشط', 'فعال'].includes(merchantData.status)) {
+            if (!['active', 'نشط', 'فعال'].includes(userData.status)) {
                 throw new Error('المستخدم تم توقيفه من قبل مسؤول النظام');
             }
             
             // التحقق من نوع الوظيفة - يجب أن يكون تاجر وليس مطعم
-            if (merchantData.job === 'مطعم' || merchantData.job === 'restaurant' || 
-                merchantData.job === 'مطاعم' || merchantData.job === 'restaurants') {
+            if (userData.job === 'مطعم' || userData.job === 'restaurant' || 
+                userData.job === 'مطاعم' || userData.job === 'restaurants') {
                 throw new Error('❌ هذا الحساب مرتبط بالمطاعم وليس بالتجار. يرجى استخدام الصفحة المخصصة للمطاعم بدلاً من ذلك.');
             }
             
             // التحقق الإضافي للتأكد من أن نوع الوظيفة هو تاجر
-            if (!merchantData.job || 
-                (merchantData.job !== 'تاجر' && merchantData.job !== 'merchant' && 
-                 merchantData.job !== 'تجار' && merchantData.job !== 'merchants')) {
+            if (!userData.job || 
+                (userData.job !== 'تاجر' && userData.job !== 'merchant' && 
+                 userData.job !== 'تجار' && userData.job !== 'merchants')) {
                 throw new Error('❌ نوع الوظيفة غير مدعوم لهذه الصفحة. يرجى التواصل مع الدعم الفني.');
             }
             
+            const merchantId = generateId(username);
+            
             // حفظ بيانات التاجر في الجلوبال
-            merchantGlobal.setMerchantName(merchantData.commercialName || merchantData.name || username);
-            merchantGlobal.setMerchantPhone(merchantData.mobile || merchantData.whatsapp || '');
+            merchantGlobal.setMerchantName(userData.commercialName || userData.name || username);
+            merchantGlobal.setMerchantPhone(userData.mobile || '');
             merchantGlobal.setMerchantId(merchantId);
             
             const userDataToStore = {
                 id: merchantId,
                 username: username,
-                name: merchantData.name || username,
-                commercialName: merchantData.commercialName || '',
-                email: merchantData.email || '',
-                mobile: merchantData.mobile || '',
-                job: merchantData.job || 'تاجر',
+                name: userData.name || username,
+                commercialName: userData.commercialName || '',
+                email: userData.email || '',
+                mobile: userData.mobile || '',
+                job: userData.job || 'تاجر',
                 type: 'merchant',
                 loginTime: new Date().toISOString()
             };
@@ -1401,6 +1403,26 @@ function loadSavedMerchantCredentials() {
         document.getElementById('merchantUsername').value = savedUsername;
         document.getElementById('merchantPassword').value = savedPassword;
         document.getElementById('rememberMerchant').checked = true;
+        
+        // التحقق من صحة البيانات المخزنة عند تحميل الصفحة
+        const userData = validateStoredCredentials(savedUsername, savedPassword);
+        if (!userData) {
+            // إذا كانت البيانات المخزنة غير صحيحة، إزالتها
+            localStorage.removeItem('savedMerchantUsername');
+            localStorage.removeItem('savedMerchantPassword');
+            localStorage.removeItem('rememberMerchant');
+            
+            document.getElementById('merchantUsername').value = '';
+            document.getElementById('merchantPassword').value = '';
+            document.getElementById('rememberMerchant').checked = false;
+            
+            notificationSystem.show(
+                'تنبيه', 
+                'بيانات تسجيل الدخول المخزنة غير صحيحة. يرجى إدخال بيانات جديدة.', 
+                'warning', 
+                5000
+            );
+        }
     }
 }
 
