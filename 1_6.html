@@ -864,7 +864,19 @@ body {
     جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة 
 </footer>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
 <script>
+// ===== تهيئة Firebase =====
+const firebaseConfig = {
+    databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
 // ===== نظام الإشعارات =====
 const notificationSystem = {
     show: function(title, message, type = 'info', duration = 5000) {
@@ -927,17 +939,6 @@ const notificationSystem = {
     }
 };
 
-// ===== إعدادات قاعدة البيانات =====
-const DB_CONFIG = {
-    // يمكن تغيير هذه الإعدادات حسب خادم قاعدة البيانات الخاص بك
-    API_BASE_URL: 'https://your-api-domain.com/api', // رابط API الخاص بقاعدة البيانات
-    ENDPOINTS: {
-        LOGIN: '/merchants/login',
-        CHECK_PHONE: '/merchants/check-phone',
-        VALIDATE_CREDENTIALS: '/merchants/validate'
-    }
-};
-
 // ===== نظام إدارة المستخدم العام المحسن =====
 const globalUser = {
     data: null,
@@ -948,7 +949,6 @@ const globalUser = {
         sessionStorage.setItem('globalUserData', JSON.stringify(userData));
         console.log('✅ تم تخزين بيانات المستخدم في الجلسة:', userData);
         updateUserDisplay();
-        // تم إزالة updateGlobalsBar() لأن شريط الجلوبلات مخفي
     },
     
     getUserData: function() {
@@ -958,13 +958,6 @@ const globalUser = {
         const storedData = sessionStorage.getItem('globalUserData');
         if (storedData) {
             this.data = JSON.parse(storedData);
-            return this.data;
-        }
-        
-        // البحث في localStorage كبديل
-        const localData = localStorage.getItem('globalUserData');
-        if (localData) {
-            this.data = JSON.parse(localData);
             return this.data;
         }
         
@@ -988,10 +981,8 @@ const globalUser = {
     logout: function() {
         this.data = null;
         sessionStorage.removeItem('globalUserData');
-        localStorage.removeItem('globalUserData');
         console.log('🚪 تم تسجيل الخروج');
         updateUserDisplay();
-        // تم إزالة updateGlobalsBar() لأن شريط الجلوبلات مخفي
     }
 };
 
@@ -1001,7 +992,6 @@ const merchantGlobal = {
     setMerchantName: function(name) {
         sessionStorage.setItem('merchantName', name);
         console.log('✅ تم حفظ اسم التاجر في الجلوبال:', name);
-        // تم إزالة updateGlobalsBar() لأن شريط الجلوبلات مخفي
     },
     
     getMerchantName: function() {
@@ -1012,7 +1002,6 @@ const merchantGlobal = {
     setMerchantPhone: function(phone) {
         sessionStorage.setItem('merchantPhone', phone);
         console.log('✅ تم حفظ رقم التاجر في الجلوبال:', phone);
-        // تم إزالة updateGlobalsBar() لأن شريط الجلوبلات مخفي
     },
     
     getMerchantPhone: function() {
@@ -1023,7 +1012,6 @@ const merchantGlobal = {
     setMerchantId: function(merchantId) {
         sessionStorage.setItem('merchantId', merchantId);
         console.log('✅ تم حفظ معرف التاجر في الجلوبال:', merchantId);
-        // تم إزالة updateGlobalsBar() لأن شريط الجلوبلات مخفي
     },
     
     getMerchantId: function() {
@@ -1036,7 +1024,6 @@ const merchantGlobal = {
         sessionStorage.removeItem('merchantPhone');
         sessionStorage.removeItem('merchantId');
         console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
-        // تم إزالة updateGlobalsBar() لأن شريط الجلوبلات مخفي
     }
 };
 
@@ -1133,98 +1120,6 @@ function normalizeNumbers(text) {
     }
     
     return normalized;
-}
-
-// دالة للاتصال بقاعدة البيانات والتحقق من صحة بيانات المستخدم
-async function validateStoredCredentials(username, password) {
-    try {
-        const response = await fetch(`${DB_CONFIG.API_BASE_URL}${DB_CONFIG.ENDPOINTS.VALIDATE_CREDENTIALS}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                username: username,
-                password: password
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error('خطأ في الاتصال بالخادم');
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.user) {
-            return data.user;
-        } else {
-            throw new Error(data.message || 'بيانات الدخول غير صحيحة');
-        }
-    } catch (error) {
-        console.error('❌ خطأ في التحقق من البيانات:', error);
-        throw error;
-    }
-}
-
-// دالة للتحقق من رقم الجوال في قاعدة البيانات
-async function checkPhoneInDatabase(phone) {
-    try {
-        const response = await fetch(`${DB_CONFIG.API_BASE_URL}${DB_CONFIG.ENDPOINTS.CHECK_PHONE}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                phone: phone
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error('خطأ في الاتصال بالخادم');
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.merchant) {
-            return data.merchant;
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error('❌ خطأ في التحقق من رقم الجوال:', error);
-        return null;
-    }
-}
-
-// دالة لتسجيل الدخول في قاعدة البيانات
-async function loginToDatabase(username, password) {
-    try {
-        const response = await fetch(`${DB_CONFIG.API_BASE_URL}${DB_CONFIG.ENDPOINTS.LOGIN}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                username: username,
-                password: password
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error('خطأ في الاتصال بالخادم');
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.user) {
-            return data.user;
-        } else {
-            throw new Error(data.message || 'بيانات الدخول غير صحيحة');
-        }
-    } catch (error) {
-        console.error('❌ خطأ في تسجيل الدخول:', error);
-        throw error;
-    }
 }
 
 // ===== نظام تسجيل الدخول للتاجر =====
@@ -1341,11 +1236,12 @@ function setupMerchantLogin() {
         
         try {
             // التحقق من رقم الجوال في قاعدة البيانات
-            const merchantData = await checkPhoneInDatabase(phoneNumber);
+            const merchantsRef = database.ref('merchants');
+            const snapshot = await merchantsRef.orderByChild('mobile').equalTo(phoneNumber).once('value');
             
-            if (merchantData) {
+            if (snapshot.exists()) {
                 // إذا كان الرقم موجوداً في قاعدة البيانات
-                const whatsappMessage = `الاسم التجاري: ${commercialName || merchantData.commercialName}\nرقم الجوال: ${phoneNumber}\n\nأتقدم بطلب إعادة تغيير كلمة المرور الخاصة بي\nولكم مني خالص الشكر`;
+                const whatsappMessage = `الاسم التجاري: ${commercialName}\nرقم الجوال: ${phoneNumber}\n\nأتقدم بطلب إعادة تغيير كلمة المرور الخاصة بي\nولكم مني خالص الشكر`;
                 const whatsappUrl = `https://wa.me/967772299420?text=${encodeURIComponent(whatsappMessage)}`;
                 
                 // فتح رابط الواتساب
@@ -1393,41 +1289,48 @@ function setupMerchantLogin() {
                 throw new Error('يرجى ملء جميع الحقول');
             }
             
-            // تسجيل الدخول باستخدام قاعدة البيانات
-            const userData = await loginToDatabase(username, password);
+            const merchantId = generateId(username);
+            const merchantSnapshot = await database.ref('merchants').child(merchantId).once('value');
+            const merchantData = merchantSnapshot.val();
             
-            if (!['active', 'نشط', 'فعال'].includes(userData.status)) {
+            if (!merchantData) {
+                throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
+            }
+            
+            if (merchantData.password !== password) {
+                throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
+            }
+
+            if (!['active', 'نشط', 'فعال'].includes(merchantData.status)) {
                 throw new Error('المستخدم تم توقيفه من قبل مسؤول النظام');
             }
             
             // التحقق من نوع الوظيفة - يجب أن يكون تاجر وليس مطعم
-            if (userData.job === 'مطعم' || userData.job === 'restaurant' || 
-                userData.job === 'مطاعم' || userData.job === 'restaurants') {
+            if (merchantData.job === 'مطعم' || merchantData.job === 'restaurant' || 
+                merchantData.job === 'مطاعم' || merchantData.job === 'restaurants') {
                 throw new Error('❌ هذا الحساب مرتبط بالمطاعم وليس بالتجار. يرجى استخدام الصفحة المخصصة للمطاعم بدلاً من ذلك.');
             }
             
             // التحقق الإضافي للتأكد من أن نوع الوظيفة هو تاجر
-            if (!userData.job || 
-                (userData.job !== 'تاجر' && userData.job !== 'merchant' && 
-                 userData.job !== 'تجار' && userData.job !== 'merchants')) {
+            if (!merchantData.job || 
+                (merchantData.job !== 'تاجر' && merchantData.job !== 'merchant' && 
+                 merchantData.job !== 'تجار' && merchantData.job !== 'merchants')) {
                 throw new Error('❌ نوع الوظيفة غير مدعوم لهذه الصفحة. يرجى التواصل مع الدعم الفني.');
             }
             
-            const merchantId = generateId(username);
-            
             // حفظ بيانات التاجر في الجلوبال
-            merchantGlobal.setMerchantName(userData.commercialName || userData.name || username);
-            merchantGlobal.setMerchantPhone(userData.mobile || '');
+            merchantGlobal.setMerchantName(merchantData.commercialName || merchantData.name || username);
+            merchantGlobal.setMerchantPhone(merchantData.mobile || merchantData.whatsapp || '');
             merchantGlobal.setMerchantId(merchantId);
             
             const userDataToStore = {
                 id: merchantId,
                 username: username,
-                name: userData.name || username,
-                commercialName: userData.commercialName || '',
-                email: userData.email || '',
-                mobile: userData.mobile || '',
-                job: userData.job || 'تاجر',
+                name: merchantData.name || username,
+                commercialName: merchantData.commercialName || '',
+                email: merchantData.email || '',
+                mobile: merchantData.mobile || '',
+                job: merchantData.job || 'تاجر',
                 type: 'merchant',
                 loginTime: new Date().toISOString()
             };
@@ -1477,7 +1380,7 @@ function setupMerchantLogin() {
 }
 
 // تحميل بيانات تسجيل الدخول للتاجر
-async function loadSavedMerchantCredentials() {
+function loadSavedMerchantCredentials() {
     const savedUsername = localStorage.getItem('savedMerchantUsername');
     const savedPassword = localStorage.getItem('savedMerchantPassword');
     const rememberMe = localStorage.getItem('rememberMerchant') === 'true';
@@ -1486,31 +1389,6 @@ async function loadSavedMerchantCredentials() {
         document.getElementById('merchantUsername').value = savedUsername;
         document.getElementById('merchantPassword').value = savedPassword;
         document.getElementById('rememberMerchant').checked = true;
-        
-        // التحقق من صحة البيانات المخزنة عند تحميل الصفحة
-        try {
-            const userData = await validateStoredCredentials(savedUsername, savedPassword);
-            if (!userData) {
-                // إذا كانت البيانات المخزنة غير صحيحة، إزالتها
-                localStorage.removeItem('savedMerchantUsername');
-                localStorage.removeItem('savedMerchantPassword');
-                localStorage.removeItem('rememberMerchant');
-                
-                document.getElementById('merchantUsername').value = '';
-                document.getElementById('merchantPassword').value = '';
-                document.getElementById('rememberMerchant').checked = false;
-                
-                notificationSystem.show(
-                    'تنبيه', 
-                    'بيانات تسجيل الدخول المخزنة غير صحيحة. يرجى إدخال بيانات جديدة.', 
-                    'warning', 
-                    5000
-                );
-            }
-        } catch (error) {
-            console.error('❌ خطأ في التحقق من البيانات المخزنة:', error);
-            // في حالة خطأ في الاتصال، نترك البيانات كما هي
-        }
     }
 }
 
