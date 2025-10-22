@@ -1074,7 +1074,7 @@
     <script type="module">
         // 🔥 1- ربط Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+        import { getDatabase, ref, onValue, set, get, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
@@ -1532,20 +1532,29 @@
         }
 
         // ==========================================
-        // ❤️ نظام الإعجابات والمفضلة
+        // ❤️ نظام الإعجابات والمفضلة - الإصلاح
         // ==========================================
         async function loadProductStats(productId) {
             try {
                 const statsRef = ref(db, `products_stats/${productId}`);
                 onValue(statsRef, (snapshot) => {
                     const stats = snapshot.val() || {};
+                    
+                    // الإعجابات
                     const likes = Array.isArray(stats.likes) ? stats.likes.length : 0;
-                    const comments = stats.comments ? Object.keys(stats.comments).length : 0;
-                    const views = (stats.views || 0) + 150;
-
-                    // تحديث العدادات
                     document.getElementById('like-count').textContent = likes;
-                    document.getElementById('comment-count').textContent = comments;
+
+                    // التعليقات - إصلاح: عد التعليقات من المسار الصحيح
+                    const commentsRef = ref(db, `comments/${productId}`);
+                    onValue(commentsRef, (commentsSnapshot) => {
+                        const commentsData = commentsSnapshot.val() || {};
+                        const commentCount = Object.keys(commentsData).length;
+                        document.getElementById('comment-count').textContent = commentCount;
+                        document.querySelector('.comments-count').textContent = commentCount;
+                    });
+
+                    // المشاهدات
+                    const views = (stats.views || 0) + 150;
                     document.getElementById('view-count').textContent = views;
 
                     // تحديث حالة زر الإعجاب
@@ -1567,12 +1576,13 @@
             if (!currentProductId) return;
             
             const userId = getUserId();
-            const statsRef = ref(db, `products_stats/${currentProductId}/likes`);
+            const statsRef = ref(db, `products_stats/${currentProductId}`);
             
             try {
-                const snapshot = await onValue(statsRef);
-                let likes = snapshot.val() || [];
-                if (!Array.isArray(likes)) likes = [];
+                // الحصول على البيانات الحالية
+                const snapshot = await get(statsRef);
+                const currentStats = snapshot.val() || {};
+                let likes = Array.isArray(currentStats.likes) ? currentStats.likes : [];
                 
                 const userIndex = likes.indexOf(userId);
                 if (userIndex === -1) {
@@ -1585,7 +1595,9 @@
                     showNotification('تم إلغاء الإعجاب');
                 }
                 
-                await set(statsRef, likes);
+                // تحديث البيانات في Firebase
+                await update(statsRef, { likes: likes });
+                
             } catch (error) {
                 console.error('خطأ في معالجة الإعجاب:', error);
                 showNotification('حدث خطأ في معالجة الإعجاب', 'error');
@@ -1608,7 +1620,7 @@
         }
 
         // ==========================================
-        // 💬 نظام التعليقات
+        // 💬 نظام التعليقات - الإصلاح
         // ==========================================
         function toggleComments() {
             const commentsSection = document.getElementById('comments-section');
@@ -1629,6 +1641,11 @@
                     const commentsData = snapshot.val() || {};
                     const comments = Object.entries(commentsData).map(([id, comment]) => ({ id, ...comment }));
                     displayComments(comments);
+                    
+                    // تحديث عداد التعليقات
+                    const commentCount = Object.keys(commentsData).length;
+                    document.getElementById('comment-count').textContent = commentCount;
+                    document.querySelector('.comments-count').textContent = commentCount;
                 });
             } catch (error) {
                 console.error('خطأ في تحميل التعليقات:', error);
@@ -1667,7 +1684,10 @@
             if (!currentProductId) return;
             
             const commentText = document.getElementById('comment-text').value.trim();
-            if (!commentText) return;
+            if (!commentText) {
+                showNotification('يرجى كتابة تعليق قبل الإرسال', 'error');
+                return;
+            }
 
             try {
                 const commentId = Date.now().toString();
@@ -1683,8 +1703,6 @@
                 document.getElementById('comment-text').value = '';
                 showNotification('تم إضافة التعليق بنجاح');
                 
-                // تحديث عداد التعليقات
-                loadProductStats(currentProductId);
             } catch (error) {
                 console.error('خطأ في إضافة التعليق:', error);
                 showNotification('حدث خطأ في إضافة التعليق', 'error');
