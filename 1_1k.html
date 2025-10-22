@@ -106,8 +106,8 @@
             right: 5px;
         }
 
-        /* زر البحث العائم */
-        .search-toggle {
+        /* زر الفلاتر العائم */
+        .filter-toggle {
             position: fixed;
             top: 80px;
             right: 20px;
@@ -127,74 +127,9 @@
             font-size: 18px;
         }
 
-        .search-toggle:hover {
+        .filter-toggle:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 20px rgba(0,123,255,0.4);
-        }
-
-        /* شريط البحث */
-        .search-bar {
-            position: fixed;
-            top: 80px;
-            left: 0;
-            right: 0;
-            background: white;
-            padding: 15px;
-            display: none;
-            flex-wrap: wrap;
-            gap: 15px;
-            z-index: 98;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-bottom: 2px solid #007bff;
-        }
-
-        .search-bar.active {
-            display: flex;
-        }
-
-        .search-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-            min-width: 300px;
-        }
-
-        .search-container input {
-            padding: 10px 15px;
-            border-radius: 25px;
-            border: 2px solid #e9ecef;
-            font-size: 14px;
-            background: white;
-            color: #333;
-            transition: all 0.3s ease;
-            flex: 1;
-            text-align: right;
-        }
-
-        .search-container input:focus {
-            border-color: #007bff;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
-        }
-
-        .search-btn {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .search-btn:hover {
-            background: #0056b3;
-            transform: translateY(-2px);
         }
 
         /* شريط الفلاتر */
@@ -247,6 +182,17 @@
             border-color: #007bff;
             outline: none;
             box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 2;
+        }
+
+        .search-container input {
+            flex: 1;
         }
 
         /* المنتجات */
@@ -844,19 +790,17 @@
                 font-size: 12px;
             }
 
-            .search-toggle {
+            .filter-toggle {
                 top: 70px;
                 right: 15px;
-                width: 45px;
-                height: 45px;
             }
 
-            .search-bar, .filter-bar {
+            .filter-bar {
                 top: 70px;
                 padding: 12px;
             }
 
-            .search-container, .filter-item {
+            .filter-item {
                 min-width: 100%;
             }
 
@@ -957,21 +901,10 @@
         <i class="fas fa-chevron-left"></i>
     </button>
 
-    <!-- ✅ زر البحث العائم -->
-    <button class="search-toggle" id="search-toggle">
-        <i class="fas fa-search"></i>
+    <!-- ✅ زر الفلاتر العائم -->
+    <button class="filter-toggle" id="filter-toggle">
+        <i class="fas fa-sliders-h"></i>
     </button>
-
-    <!-- ✅ شريط البحث -->
-    <div class="search-bar" id="search-bar">
-        <div class="search-container">
-            <input type="text" id="search-input" placeholder="ابحث عن منتج، قسم، تاجر، محافظة، منطقة...">
-            <button class="search-btn" id="search-btn">
-                <i class="fas fa-search"></i>
-                بحث
-            </button>
-        </div>
-    </div>
 
     <!-- ✅ شريط الفلاتر -->
     <div class="filter-bar" id="filter-bar">
@@ -992,6 +925,17 @@
             <select id="merchant">
                 <option value="">جميع التجار</option>
             </select>
+        </div>
+        <div class="filter-item">
+            <label for="category-filter">القسم:</label>
+            <select id="category-filter">
+                <option value="">جميع الأقسام</option>
+            </select>
+        </div>
+        <div class="filter-item">
+            <div class="search-container">
+                <input type="text" id="search" placeholder="ابحث عن منتج...">
+            </div>
         </div>
         <div class="filter-item">
             <label for="sort-by">ترتيب حسب:</label>
@@ -1117,18 +1061,10 @@
         
         const categoriesBar = document.getElementById("categories");
         const productsContainer = document.getElementById("products");
-        const searchToggle = document.getElementById("search-toggle");
-        const searchBar = document.getElementById("search-bar");
-        const searchInput = document.getElementById("search-input");
-        const searchBtn = document.getElementById("search-btn");
+        const filterToggle = document.getElementById("filter-toggle");
+        const filterBar = document.getElementById("filter-bar");
         const scrollLeft = document.getElementById("scroll-left");
         const scrollRight = document.getElementById("scroll-right");
-
-        // عناصر الفلاتر
-        const governorateSelect = document.getElementById('governorate');
-        const regionSelect = document.getElementById('region');
-        const merchantSelect = document.getElementById('merchant');
-        const sortBySelect = document.getElementById('sort-by');
 
         let allProducts = {};
         let allCategories = {};
@@ -1136,6 +1072,8 @@
         let allGovernorates = {};
         let allRegions = {};
         let categoryProductCounts = {};
+        let merchantProductCounts = {};
+        let currentMerchantFilter = '';
 
         // متغيرات معرض الصور
         let galleryImages = [];
@@ -1169,14 +1107,14 @@
             allGovernorates = governoratesSnap.val() || {};
             allRegions = regionsSnap.val() || {};
 
-            // حساب عدد المنتجات لكل قسم
-            calculateCategoryProductCounts();
+            // حساب عدد المنتجات لكل قسم وكل تاجر
+            calculateProductCounts();
+            
+            // عرض الأقسام مرتبة حسب عدد المنتجات
+            displayCategories();
             
             // تحميل الفلاتر
             populateFilters();
-            
-            // عرض الأقسام والمنتجات
-            updateCategoriesDisplay();
             
             // عرض منتجات القسم الأول تلقائياً
             const firstCategory = Object.keys(allCategories)[0];
@@ -1186,44 +1124,65 @@
 
             // إعداد أزرار التمرير
             setupScrollButtons();
-            
-            // إعداد البحث
-            setupSearch();
         });
 
-        // حساب عدد المنتجات لكل قسم
-        function calculateCategoryProductCounts() {
+        // حساب عدد المنتجات لكل قسم وكل تاجر
+        function calculateProductCounts() {
             categoryProductCounts = {};
+            merchantProductCounts = {};
             
             for (let productId in allProducts) {
                 const product = allProducts[productId];
+                
+                // عد المنتجات لكل قسم
                 if (product.category) {
                     categoryProductCounts[product.category] = (categoryProductCounts[product.category] || 0) + 1;
+                }
+                
+                // عد المنتجات لكل تاجر
+                if (product.userId) {
+                    merchantProductCounts[product.userId] = (merchantProductCounts[product.userId] || 0) + 1;
                 }
             }
         }
 
-        // تحديث عرض الأقسام بناءً على الفلاتر
-        function updateCategoriesDisplay() {
-            categoriesBar.innerHTML = "";
+        // حساب عدد المنتجات لكل قسم مع مراعاة التاجر المحدد
+        function calculateCategoryCountsWithMerchantFilter() {
+            const counts = {};
+            const selectedMerchant = document.getElementById('merchant').value;
             
-            // الحصول على الفلاتر الحالية
-            const filters = getCurrentFilters();
+            for (let productId in allProducts) {
+                const product = allProducts[productId];
+                
+                // إذا كان هناك تاجر محدد، نتحقق منه
+                if (selectedMerchant && product.userId !== selectedMerchant) {
+                    continue;
+                }
+                
+                // عد المنتجات للقسم مع مراعاة التاجر
+                if (product.category) {
+                    counts[product.category] = (counts[product.category] || 0) + 1;
+                }
+            }
+            
+            return counts;
+        }
+
+        // عرض الأقسام مع تحديث الأعداد حسب التاجر المحدد
+        function displayCategories() {
+            categoriesBar.innerHTML = '';
+            
+            // حساب الأعداد مع مراعاة التاجر المحدد
+            const currentCounts = calculateCategoryCountsWithMerchantFilter();
             
             // ترتيب الأقسام حسب عدد المنتجات (من الأكثر إلى الأقل)
             const sortedCategories = Object.keys(allCategories).sort((a, b) => {
-                return (categoryProductCounts[b] || 0) - (categoryProductCounts[a] || 0);
+                return (currentCounts[b] || 0) - (currentCounts[a] || 0);
             });
             
-            // تصفية الأقسام بناءً على الفلاتر
-            const filteredCategories = sortedCategories.filter(catId => {
-                const productCount = getCategoryProductCountWithFilters(catId, filters);
-                return productCount > 0;
-            });
-            
-            filteredCategories.forEach(catId => {
+            sortedCategories.forEach(catId => {
                 const category = allCategories[catId];
-                const productCount = getCategoryProductCountWithFilters(catId, filters);
+                const productCount = currentCounts[catId] || 0;
                 
                 const div = document.createElement("div");
                 div.className = "category";
@@ -1234,63 +1193,18 @@
                 div.onclick = () => loadProductsByCategory(catId);
                 categoriesBar.appendChild(div);
             });
-
-            // إذا لم توجد أقسام، عرض رسالة
-            if (filteredCategories.length === 0) {
-                categoriesBar.innerHTML = `
-                    <div style="color: white; padding: 10px; text-align: center; width: 100%;">
-                        لا توجد أقسام تطابق الفلاتر المحددة
-                    </div>
-                `;
-            }
-        }
-
-        // الحصول على عدد منتجات القسم مع تطبيق الفلاتر
-        function getCategoryProductCountWithFilters(categoryId, filters) {
-            let count = 0;
             
-            for (let productId in allProducts) {
-                const product = allProducts[productId];
-                
-                // التحقق من أن المنتج ينتمي للقسم
-                if (product.category !== categoryId) {
-                    continue;
-                }
-                
-                // تطبيق فلترة التاجر
-                if (filters.merchant && product.userId !== filters.merchant) {
-                    continue;
-                }
-                
-                // تطبيق فلترة المحافظة (إذا كانت البيانات متوفرة)
-                if (filters.governorate && product.userId && allMerchants[product.userId]) {
-                    const merchant = allMerchants[product.userId];
-                    if (merchant.governorate !== filters.governorate) {
-                        continue;
-                    }
-                }
-                
-                // تطبيق فلترة المنطقة (إذا كانت البيانات متوفرة)
-                if (filters.region && product.userId && allMerchants[product.userId]) {
-                    const merchant = allMerchants[product.userId];
-                    if (merchant.region !== filters.region) {
-                        continue;
-                    }
-                }
-                
-                count++;
-            }
-            
-            return count;
-        }
-
-        // الحصول على الفلاتر الحالية
-        function getCurrentFilters() {
-            return {
-                governorate: governorateSelect.value,
-                region: regionSelect.value,
-                merchant: merchantSelect.value
-            };
+            // تحديث أزرار التمرير بعد إعادة العرض
+            setTimeout(() => {
+                const checkScrollButtons = () => {
+                    const scrollLeftVisible = categoriesBar.scrollLeft > 0;
+                    const scrollRightVisible = categoriesBar.scrollLeft < categoriesBar.scrollWidth - categoriesBar.clientWidth;
+                    
+                    scrollLeft.style.display = scrollLeftVisible ? 'flex' : 'none';
+                    scrollRight.style.display = scrollRightVisible ? 'flex' : 'none';
+                };
+                checkScrollButtons();
+            }, 100);
         }
 
         // إعداد أزرار تمرير الأقسام
@@ -1318,208 +1232,10 @@
             setTimeout(checkScrollButtons, 100);
         }
 
-        // إعداد البحث
-        function setupSearch() {
-            // فتح/إغلاق شريط البحث
-            searchToggle.addEventListener('click', () => {
-                searchBar.classList.toggle('active');
-                if (searchBar.classList.contains('active')) {
-                    searchInput.focus();
-                }
-            });
-
-            // البحث عند النقر على زر البحث
-            searchBtn.addEventListener('click', performSearch);
-
-            // البحث عند الضغط على Enter
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    performSearch();
-                }
-            });
-
-            // إغلاق شريط البحث عند النقر خارجها
-            document.addEventListener('click', (e) => {
-                if (!searchBar.contains(e.target) && !searchToggle.contains(e.target)) {
-                    searchBar.classList.remove('active');
-                }
-            });
-        }
-
-        // تنفيذ البحث
-        function performSearch() {
-            const searchTerm = searchInput.value.trim().toLowerCase();
-            
-            if (!searchTerm) {
-                showNotification('يرجى إدخال كلمة للبحث', 'error');
-                return;
-            }
-
-            // إخفاء شريط البحث
-            searchBar.classList.remove('active');
-
-            // البحث في جميع البيانات
-            const searchResults = {
-                categories: [],
-                products: [],
-                merchants: [],
-                governorates: [],
-                regions: []
-            };
-
-            // البحث في الأقسام
-            Object.keys(allCategories).forEach(catId => {
-                const category = allCategories[catId];
-                if (category.name.toLowerCase().includes(searchTerm)) {
-                    searchResults.categories.push({ id: catId, name: category.name, type: 'category' });
-                }
-            });
-
-            // البحث في المنتجات
-            Object.keys(allProducts).forEach(productId => {
-                const product = allProducts[productId];
-                const productName = product.name || '';
-                const productDesc = product.description || '';
-                
-                if (productName.toLowerCase().includes(searchTerm) || productDesc.toLowerCase().includes(searchTerm)) {
-                    searchResults.products.push({ 
-                        id: productId, 
-                        name: productName, 
-                        type: 'product',
-                        category: product.category 
-                    });
-                }
-            });
-
-            // البحث في التجار
-            Object.keys(allMerchants).forEach(merchantId => {
-                const merchant = allMerchants[merchantId];
-                const merchantName = merchant.name || merchant.username || '';
-                
-                if (merchantName.toLowerCase().includes(searchTerm)) {
-                    searchResults.merchants.push({ id: merchantId, name: merchantName, type: 'merchant' });
-                }
-            });
-
-            // البحث في المحافظات
-            Object.keys(allGovernorates).forEach(govId => {
-                const governorate = allGovernorates[govId];
-                if (governorate.name.toLowerCase().includes(searchTerm)) {
-                    searchResults.governorates.push({ id: govId, name: governorate.name, type: 'governorate' });
-                }
-            });
-
-            // البحث في المناطق
-            Object.keys(allRegions).forEach(regionId => {
-                const region = allRegions[regionId];
-                if (region.name.toLowerCase().includes(searchTerm)) {
-                    searchResults.regions.push({ id: regionId, name: region.name, type: 'region' });
-                }
-            });
-
-            // معالجة نتائج البحث
-            processSearchResults(searchResults, searchTerm);
-        }
-
-        // معالجة نتائج البحث
-        function processSearchResults(results, searchTerm) {
-            const totalResults = 
-                results.categories.length + 
-                results.products.length + 
-                results.merchants.length + 
-                results.governorates.length + 
-                results.regions.length;
-
-            if (totalResults === 0) {
-                showNotification('لم يتم العثور على نتائج تطابق البحث', 'error');
-                return;
-            }
-
-            // إذا وجد قسم واحد فقط، عرضه مباشرة
-            if (results.categories.length === 1 && totalResults === 1) {
-                const category = results.categories[0];
-                showNotification(`تم العثور على قسم: ${category.name}`);
-                loadProductsByCategory(category.id);
-                scrollToCategory(category.id);
-                return;
-            }
-
-            // إذا وجد تاجر واحد فقط، تطبيق الفلترة
-            if (results.merchants.length === 1 && totalResults === 1) {
-                const merchant = results.merchants[0];
-                showNotification(`تم العثور على تاجر: ${merchant.name}`);
-                merchantSelect.value = merchant.id;
-                applyFilters();
-                return;
-            }
-
-            // إذا وجد محافظة واحدة فقط، تطبيق الفلترة
-            if (results.governorates.length === 1 && totalResults === 1) {
-                const governorate = results.governorates[0];
-                showNotification(`تم العثور على محافظة: ${governorate.name}`);
-                governorateSelect.value = governorate.id;
-                applyFilters();
-                return;
-            }
-
-            // إذا كانت هناك نتائج متعددة، عرض ملخص
-            let message = `تم العثور على ${totalResults} نتيجة: `;
-            const parts = [];
-            
-            if (results.categories.length > 0) parts.push(`${results.categories.length} قسم`);
-            if (results.products.length > 0) parts.push(`${results.products.length} منتج`);
-            if (results.merchants.length > 0) parts.push(`${results.merchants.length} تاجر`);
-            if (results.governorates.length > 0) parts.push(`${results.governorates.length} محافظة`);
-            if (results.regions.length > 0) parts.push(`${results.regions.length} منطقة`);
-            
-            message += parts.join('، ');
-            showNotification(message);
-
-            // تمييز الأقسام المطابقة
-            if (results.categories.length > 0) {
-                highlightMatchingCategories(results.categories.map(c => c.id));
-            }
-        }
-
-        // تمرير شريط الأقسام إلى قسم معين
-        function scrollToCategory(categoryId) {
-            const categoryElements = categoriesBar.querySelectorAll('.category');
-            categoryElements.forEach((element, index) => {
-                if (element.textContent.includes(allCategories[categoryId].name)) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
-            });
-        }
-
-        // تمييز الأقسام المطابقة في البحث
-        function highlightMatchingCategories(matchingCategoryIds) {
-            const categoryElements = categoriesBar.querySelectorAll('.category');
-            
-            categoryElements.forEach(element => {
-                element.classList.remove('search-match');
-                
-                matchingCategoryIds.forEach(catId => {
-                    if (element.textContent.includes(allCategories[catId].name)) {
-                        element.classList.add('search-match');
-                        element.style.background = '#ff6b6b';
-                        element.style.boxShadow = '0 5px 15px rgba(255, 107, 107, 0.4)';
-                    }
-                });
-            });
-
-            // إزالة التمييز بعد 5 ثوانٍ
-            setTimeout(() => {
-                categoryElements.forEach(element => {
-                    element.classList.remove('search-match');
-                    element.style.background = '';
-                    element.style.boxShadow = '';
-                });
-            }, 5000);
-        }
-
         // تحميل الفلاتر
         function populateFilters() {
             // المحافظات
+            const governorateSelect = document.getElementById('governorate');
             governorateSelect.innerHTML = '<option value="">جميع المحافظات</option>';
             Object.keys(allGovernorates).forEach(govId => {
                 const option = document.createElement('option');
@@ -1528,55 +1244,39 @@
                 governorateSelect.appendChild(option);
             });
 
-            // المناطق
-            regionSelect.innerHTML = '<option value="">جميع المناطق</option>';
-            Object.keys(allRegions).forEach(regionId => {
-                const option = document.createElement('option');
-                option.value = regionId;
-                option.textContent = allRegions[regionId].name || regionId;
-                regionSelect.appendChild(option);
-            });
-
-            // التجار
+            // التجار - مع إضافة عدد المنتجات لكل تاجر
+            const merchantSelect = document.getElementById('merchant');
             merchantSelect.innerHTML = '<option value="">جميع التجار</option>';
             Object.keys(allMerchants).forEach(merchantId => {
                 const merchant = allMerchants[merchantId];
+                const productCount = merchantProductCounts[merchantId] || 0;
                 const option = document.createElement('option');
                 option.value = merchantId;
-                option.textContent = merchant.name || merchant.username || merchantId;
+                option.textContent = `${merchant.name || merchant.username || merchantId} (${productCount})`;
                 merchantSelect.appendChild(option);
             });
 
-            // إضافة مستمعي الأحداث للفلاتر
-            governorateSelect.addEventListener('change', applyFilters);
-            regionSelect.addEventListener('change', applyFilters);
-            merchantSelect.addEventListener('change', applyFilters);
-            sortBySelect.addEventListener('change', filterProducts);
-        }
+            // الأقسام
+            const categorySelect = document.getElementById('category-filter');
+            categorySelect.innerHTML = '<option value="">جميع الأقسام</option>';
+            Object.keys(allCategories).forEach(catId => {
+                const option = document.createElement('option');
+                option.value = catId;
+                option.textContent = allCategories[catId].name;
+                categorySelect.appendChild(option);
+            });
 
-        // تطبيق الفلاتر على الأقسام والمنتجات
-        function applyFilters() {
-            // تحديث عرض الأقسام
-            updateCategoriesDisplay();
-            
-            // إذا كان هناك قسم نشط، عرض منتجاته
-            const activeCategory = document.querySelector('.category.active');
-            if (activeCategory) {
-                const categoryId = Object.keys(allCategories).find(catId => 
-                    activeCategory.textContent.includes(allCategories[catId].name)
-                );
-                if (categoryId) {
-                    filterProducts();
-                }
-            } else {
-                // إذا لم يكن هناك قسم نشط، إخفاء المنتجات
-                productsContainer.innerHTML = `
-                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #666;">
-                        <i class="fas fa-mouse-pointer" style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;"></i>
-                        <p>اختر قسمًا لعرض المنتجات</p>
-                    </div>
-                `;
-            }
+            // إضافة مستمعي الأحداث للفلاتر
+            governorateSelect.addEventListener('change', filterProducts);
+            merchantSelect.addEventListener('change', function() {
+                currentMerchantFilter = this.value;
+                // تحديث عرض الأقسام حسب التاجر المحدد
+                displayCategories();
+                filterProducts();
+            });
+            categorySelect.addEventListener('change', filterProducts);
+            document.getElementById('search').addEventListener('input', filterProducts);
+            document.getElementById('sort-by').addEventListener('change', filterProducts);
         }
 
         // ✅ 4- عرض المنتجات حسب القسم
@@ -1601,10 +1301,11 @@
             ) : null;
 
             const filters = {
-                governorate: governorateSelect.value,
-                region: regionSelect.value,
-                merchant: merchantSelect.value,
-                sortBy: sortBySelect.value
+                governorate: document.getElementById('governorate').value,
+                merchant: document.getElementById('merchant').value,
+                category: document.getElementById('category-filter').value,
+                search: document.getElementById('search').value.toLowerCase().trim(),
+                sortBy: document.getElementById('sort-by').value
             };
 
             productsContainer.innerHTML = "";
@@ -1620,22 +1321,25 @@
                 }
 
                 // الفلترة حسب الفلاتر
+                if (filters.category && product.category !== filters.category) {
+                    continue;
+                }
+
                 if (filters.merchant && product.userId !== filters.merchant) {
                     continue;
+                }
+
+                if (filters.search) {
+                    const searchText = `${product.name || ''} ${product.description || ''}`.toLowerCase();
+                    if (!searchText.includes(filters.search)) {
+                        continue;
+                    }
                 }
 
                 // فلترة المحافظة (إذا كانت البيانات متوفرة)
                 if (filters.governorate && product.userId && allMerchants[product.userId]) {
                     const merchant = allMerchants[product.userId];
                     if (merchant.governorate !== filters.governorate) {
-                        continue;
-                    }
-                }
-
-                // فلترة المنطقة (إذا كانت البيانات متوفرة)
-                if (filters.region && product.userId && allMerchants[product.userId]) {
-                    const merchant = allMerchants[product.userId];
-                    if (merchant.region !== filters.region) {
                         continue;
                     }
                 }
@@ -1822,7 +1526,7 @@
                 const locationDetail = document.createElement('div');
                 locationDetail.className = 'gallery-product-detail';
                 locationDetail.innerHTML = `<span class="label">الموقع:</span> ${product.location}`;
-                detailsContainer.appendChild(locationDetail);
+                detailsContainer.appendChild(statusDetail);
             }
         }
 
@@ -2195,6 +1899,18 @@
             document.getElementById('submit-comment').addEventListener('click', addComment);
             document.getElementById('close-comments').addEventListener('click', () => {
                 document.getElementById('comments-section').classList.remove('active');
+            });
+
+            // زر الفلاتر العائم
+            filterToggle.addEventListener('click', () => {
+                filterBar.classList.toggle('active');
+            });
+
+            // إغلاق الفلاتر عند النقر خارجها
+            document.addEventListener('click', (e) => {
+                if (!filterBar.contains(e.target) && !filterToggle.contains(e.target)) {
+                    filterBar.classList.remove('active');
+                }
             });
 
             // إغلاق المعرض عند النقر خارج المحتوى
