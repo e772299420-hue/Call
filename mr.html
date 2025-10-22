@@ -3,8 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>السوق الشامل - الصفحة الرئيسية</title>
+    <title>AZ السوق الشامل - الصفحة الرئيسية</title>
+    <meta name="description" content="موقع AZ السوق الشامل لعرض وطلب المنتجات والخدمات في جميع أنحاء اليمن.">
+    <meta name="keywords" content="السوق الشامل, مروان الذماري ,المميز سوفت ,az السوق الشامل, azالسوق الشامل, AZ السوق الشامل, موقع السوق الشامل, az al souq al shamel, azsouk">
+    <meta name="author" content="AZ السوق الشامل">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2980b9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AZ السوق الشامل">
+    <link rel="apple-touch-icon" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true">
+    <link rel="icon" type="image/png" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         * {
             margin: 0;
@@ -19,10 +36,10 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-bottom: 50px; /* مساحة للتذييل الثابت */
+            padding-bottom: 50px;
         }
 
-        /* شاشة البداية - داخل منطقة المحتوى */
+        /* شاشة البداية */
         #introScreen {
             position: absolute;
             top: 0;
@@ -40,7 +57,6 @@
             border-radius: 15px 15px 0 0;
         }
 
-        /* تأثير لمعة */
         #introScreen::after {
             content: "";
             position: absolute;
@@ -122,7 +138,7 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* شريط الأزرار - تم التصغير */
+        /* شريط الأزرار */
         .navbar {
             display: flex;
             background: #2980b9;
@@ -228,7 +244,7 @@
             color: #1c6ea4;
         }
 
-        /* شريط تسجيل الدخول - تم التعديل للون #243b55 */
+        /* شريط تسجيل الدخول */
         .login-bar {
             background: #243b55;
             padding: 8px 15px;
@@ -267,10 +283,10 @@
             box-shadow: 0 5px 12px rgba(0,0,0,0.3);
         }
 
-        /* شاشة العرض - تم التعديل للظهور أسفل الشريط المناسب */
+        /* شاشة العرض */
         #content-area {
             width: 100%;
-            height: calc(100vh - 130px); /* ارتفاع ثابت مع مساحة للشريط */
+            height: calc(100vh - 130px);
             background: white;
             display: flex;
             justify-content: center;
@@ -317,7 +333,6 @@
             animation: imageEntrance 1.5s ease-out forwards;
         }
 
-        /* تأثير سقوط الصورة من الأعلى وارتكازها بالأسفل */
         @keyframes imageEntrance {
             0% {
                 opacity: 0;
@@ -461,6 +476,414 @@
             transform: translateY(0);
         }
 
+        /* شاشة الحظر */
+        .blocked-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(231, 76, 60, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(15px);
+        }
+
+        .blocked-overlay.show {
+            display: flex;
+            animation: blockOverlayShow 1s ease-out;
+        }
+
+        .blocked-container {
+            background: white;
+            border-radius: 25px;
+            padding: 50px;
+            text-align: center;
+            max-width: 550px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+            animation: blockModalSlideIn 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 3px solid #e74c3c;
+            font-size: 18px;
+        }
+
+        .blocked-icon {
+            font-size: 100px;
+            color: #e74c3c;
+            margin-bottom: 25px;
+            animation: shake 1.5s infinite;
+            text-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .blocked-title {
+            font-size: 36px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .blocked-message {
+            font-size: 22px;
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.8;
+        }
+
+        .blocked-reason {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            border: 2px solid #e74c3c;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            color: #d32f2f;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .blocked-contact {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .blocked-phone {
+            font-size: 26px;
+            color: #27ae60;
+            font-weight: bold;
+            margin: 15px 0;
+            text-shadow: 0 2px 4px rgba(39, 174, 96, 0.3);
+        }
+
+        @keyframes blockOverlayShow {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes blockModalSlideIn {
+            from { opacity: 0; transform: scale(0.3) rotate(-20deg); }
+            to { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+
+        /* زر تثبيت PWA */
+        .pwa-install-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+            display: none;
+            animation: btnEntrance 0.8s ease-out;
+        }
+
+        @keyframes btnEntrance {
+            0% { opacity: 0; transform: scale(0) rotate(180deg); }
+            50% { opacity: 0.7; transform: scale(1.1) rotate(90deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+
+        /* نافذة اختيار التثبيت */
+        .install-choice-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.6s ease;
+        }
+
+        .install-choice-modal.show {
+            display: flex;
+        }
+
+        .install-choice-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            position: relative;
+            animation: modalSlideIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 2px solid rgba(52, 152, 219, 0.3);
+            text-align: center;
+        }
+
+        .install-choice-header {
+            margin-bottom: 25px;
+        }
+
+        .install-choice-header i {
+            font-size: 60px;
+            color: #2980b9;
+            margin-bottom: 15px;
+        }
+
+        .install-choice-title {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .install-choice-subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .install-choice-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .install-choice-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .install-choice-btn.download {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+
+        .install-choice-btn.install {
+            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+            color: white;
+        }
+
+        .install-choice-btn.share {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+        }
+
+        .install-choice-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .install-choice-cancel {
+            background: transparent;
+            color: #666;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .install-choice-cancel:hover {
+            background: #f5f5f5;
+        }
+
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-100px) scale(0.5) rotate(-10deg); }
+            to { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* نافذة المشاركة */
+        .share-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.6s ease;
+        }
+
+        .share-modal.show {
+            display: flex;
+        }
+
+        .share-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            position: relative;
+            animation: modalSlideIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 2px solid rgba(52, 152, 219, 0.3);
+            text-align: center;
+        }
+
+        .share-header {
+            margin-bottom: 25px;
+        }
+
+        .share-header i {
+            font-size: 60px;
+            color: #2980b9;
+            margin-bottom: 15px;
+        }
+
+        .share-title {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .share-subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .share-section {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            border: 2px solid #2980b9;
+        }
+
+        .qr-code {
+            margin: 15px auto;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .qr-code img {
+            width: 180px;
+            height: 180px;
+            display: block;
+            margin: 0 auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .share-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .share-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 16px;
+        }
+
+        .share-btn.whatsapp {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+        }
+
+        .share-btn.telegram {
+            background: linear-gradient(135deg, #0088cc 0%, #005999 100%);
+        }
+
+        .share-btn.link {
+            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+        }
+
+        .share-btn.email {
+            background: linear-gradient(135deg, #EA4335 0%, #D14836 100%);
+        }
+
+        .share-btn.sms {
+            background: linear-gradient(135deg, #34B7F1 0%, #0099CC 100%);
+        }
+
+        .share-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+
+        .share-note {
+            margin-top: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-radius: 10px;
+            border: 2px solid #27ae60;
+            font-size: 16px;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #000;
+            transform: rotate(90deg) scale(1.1);
+            background: rgba(255,0,0,0.1);
+        }
+
         /* تحسينات للشاشات الصغيرة */
         @media (max-width: 768px) {
             .navbar {
@@ -520,6 +943,22 @@
             #content-area {
                 height: calc(100vh - 120px);
             }
+
+            .share-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .qr-code img {
+                width: 150px;
+                height: 150px;
+            }
+
+            .pwa-install-btn {
+                top: 10px;
+                left: 10px;
+                padding: 8px 12px;
+                font-size: 14px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -550,10 +989,134 @@
             #content-area {
                 height: calc(100vh - 110px);
             }
+
+            .share-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .qr-code img {
+                width: 130px;
+                height: 130px;
+            }
+
+            .pwa-install-btn {
+                top: 5px;
+                left: 5px;
+                padding: 6px 10px;
+                font-size: 12px;
+            }
         }
     </style>
 </head>
 <body>
+
+    <!-- زر تثبيت PWA -->
+    <button class="pwa-install-btn" id="pwaInstallBtn">
+        <i class="fas fa-download"></i> تثبيت التطبيق
+    </button>
+
+    <!-- نافذة اختيار التثبيت -->
+    <div class="install-choice-modal" id="installChoiceModal">
+        <div class="install-choice-container">
+            <button class="close-btn" id="closeInstallChoice">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="install-choice-header">
+                <i class="fas fa-mobile-alt"></i>
+                <h2 class="install-choice-title">تثبيت تطبيق AZ</h2>
+                <p class="install-choice-subtitle">اختر الطريقة التي تفضلها لتثبيت التطبيق</p>
+            </div>
+            
+            <div class="install-choice-buttons">
+                <button class="install-choice-btn download" id="downloadAppBtn">
+                    <i class="fas fa-download"></i>
+                    <span>تحميل التطبيق</span>
+                </button>
+                <button class="install-choice-btn install" id="installAppBtn">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>تثبيت التطبيق</span>
+                </button>
+                <button class="install-choice-btn share" id="shareAppBtn">
+                    <i class="fas fa-share-alt"></i>
+                    <span>مشاركة التطبيق</span>
+                </button>
+            </div>
+            
+            <button class="install-choice-cancel" id="cancelInstallBtn">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- نافذة المشاركة -->
+    <div class="share-modal" id="shareModal">
+        <div class="share-container">
+            <button class="close-btn" id="closeShareModal">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="share-header">
+                <i class="fas fa-share-alt"></i>
+                <h2 class="share-title">مشاركة تطبيق AZ</h2>
+                <p class="share-subtitle">شارك التطبيق مع أصدقائك وعائلتك</p>
+            </div>
+            
+            <div class="share-section">
+                <div class="qr-code">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://e772299420-hue.github.io/Call/" 
+                         alt="QR Code للتطبيق">
+                    <p>📱 مسح الكود لفتح التطبيق</p>
+                </div>
+                
+                <div class="share-buttons">
+                    <button class="share-btn whatsapp" onclick="shareOnWhatsApp()">
+                        <i class="fab fa-whatsapp"></i>
+                        واتساب
+                    </button>
+                    <button class="share-btn telegram" onclick="shareOnTelegram()">
+                        <i class="fab fa-telegram"></i>
+                        تليجرام
+                    </button>
+                    <button class="share-btn link" onclick="copyAppLink()">
+                        <i class="fas fa-link"></i>
+                        نسخ الرابط
+                    </button>
+                    <button class="share-btn email" onclick="shareViaEmail()">
+                        <i class="fas fa-envelope"></i>
+                        إرسال بريد
+                    </button>
+                    <button class="share-btn sms" onclick="shareViaSMS()">
+                        <i class="fas fa-sms"></i>
+                        رسالة نصية
+                    </button>
+                </div>
+                
+                <div class="share-note">
+                    <i class="fas fa-info-circle"></i>
+                    رابط التطبيق: https://e772299420-hue.github.io/Call/
+                </div>
+            </div>
+            
+            <button class="install-choice-cancel" onclick="closeShareModal()">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- شاشة الحظر -->
+    <div class="blocked-overlay" id="blockedOverlay">
+        <div class="blocked-container">
+            <div class="blocked-icon">
+                <i class="fas fa-ban"></i>
+            </div>
+            <h2 class="blocked-title">تم حظر الوصول</h2>
+            <p class="blocked-message">
+                عذراً، تم منعك من الوصول إلى هذا الموقع
+            </p>
+            <div class="blocked-reason" id="blockedReason">
+                سبب الحظر: مخالفة شروط الاستخدام
+            </div>
+            <div class="blocked-contact">
+                للاستفسار أو رفع الحظر، يرجى التواصل معنا:
+                <div class="blocked-phone">📞 772299420</div>
+            </div>
+        </div>
+    </div>
 
     <!-- شريط الأزرار -->
     <div class="navbar">
@@ -583,7 +1146,7 @@
         </div>
     </div>
 
-    <!-- شريط تسجيل الدخول - تم تعديل موقعه وحجمه ولونه -->
+    <!-- شريط تسجيل الدخول -->
     <div class="login-bar" id="loginBar">
         <button class="login-bar-btn" onclick="openLoginPage()">
             <i class="fas fa-user"></i> تسجيل الدخول
@@ -611,73 +1174,677 @@
     </div>
 
     <script>
-        // متغير لتتبع مؤقت إخفاء شريط تسجيل الدخول
-        let loginBarTimeout;
-        
-        // متغير لتتبع الصفحة الحالية
-        let currentPage = '';
+        // ===== تهيئة Firebase =====
+        const firebaseConfig = {
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+        };
 
-        // إخفاء شاشة البداية بتحريك سلس وفتح المنتجات الجديدة تلقائياً
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // ===== نظام تتبع الزوار المتقدم =====
+        class AdvancedVisitorTracker {
+            constructor() {
+                this.visitorId = this.getOrCreateVisitorId();
+                this.sessionId = this.generateSessionId();
+                this.currentPage = this.getCurrentPage();
+                this.startTime = Date.now();
+                this.isOnline = navigator.onLine;
+                this.isBlocked = false;
+                this.heartbeatInterval = null;
+                this.blockCheckInterval = null;
+                
+                this.visitorsRef = database.ref('visitors');
+                this.datVisitorsRef = database.ref('dat_visitors');
+                this.bagVisitorsRef = database.ref('bag_visitors');
+                this.blockedVisitorsRef = database.ref('bannedVisitors');
+                this.blockedIPsRef = database.ref('blocked_ips');
+                
+                console.log('🚀 تم تهيئة نظام تتبع الزوار المتقدم');
+            }
+            
+            getOrCreateVisitorId() {
+                let visitorId = localStorage.getItem("visitorId");
+                if (!visitorId) {
+                    visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+                    localStorage.setItem("visitorId", visitorId);
+                    localStorage.setItem("firstVisit", new Date().toISOString());
+                }
+                return visitorId;
+            }
+            
+            generateSessionId() {
+                return 'session_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            }
+            
+            getCurrentPage() {
+                return window.location.pathname.split("/").pop() || "index.html";
+            }
+            
+            async getIPAddress() {
+                const services = [
+                    "https://api.ipify.org?format=json",
+                    "https://api64.ipify.org?format=json",
+                    "https://jsonip.com",
+                    "https://ipinfo.io/json"
+                ];
+                
+                for (let service of services) {
+                    try {
+                        const response = await fetch(service, { timeout: 5000 });
+                        if (response.ok) {
+                            const data = await response.json();
+                            return data.ip || data.ip;
+                        }
+                    } catch (error) {
+                        continue;
+                    }
+                }
+                return "unknown";
+            }
+            
+            async startTracking() {
+                console.log('📊 بدء تتبع الزائر...');
+                
+                const isBlocked = await this.checkIfBlocked();
+                if (isBlocked) {
+                    this.handleBlocked({ reason: 'تم حظر هذا الزائر من قبل الإدارة' });
+                    return;
+                }
+                
+                const ipAddress = await this.getIPAddress();
+                await this.registerVisitor(ipAddress);
+                
+                this.startHeartbeat();
+                this.startBlockCheck();
+                this.setupEventListeners();
+                
+                console.log('✅ تم بدء تتبع الزائر بنجاح');
+            }
+            
+            async registerVisitor(ipAddress) {
+                try {
+                    const visitorSnapshot = await this.visitorsRef.orderByChild('ip').equalTo(ipAddress).once('value');
+                    let visitorNumber = null;
+                    
+                    if (visitorSnapshot.exists()) {
+                        visitorSnapshot.forEach(childSnapshot => {
+                            visitorNumber = childSnapshot.key;
+                        });
+                        
+                        await this.visitorsRef.child(visitorNumber).update({
+                            lastVisit: new Date().toISOString(),
+                            status: 'نشط',
+                            visitorId: this.visitorId,
+                            ip: ipAddress
+                        });
+                    } else {
+                        const counterSnapshot = await this.visitorsRef.orderByKey().limitToLast(1).once('value');
+                        let newNumber = 1;
+                        
+                        if (counterSnapshot.exists()) {
+                            counterSnapshot.forEach(childSnapshot => {
+                                const currentNumber = parseInt(childSnapshot.key);
+                                newNumber = currentNumber > 0 ? currentNumber + 1 : 1;
+                            });
+                        }
+                        
+                        visitorNumber = newNumber.toString();
+                        
+                        await this.visitorsRef.child(visitorNumber).set({
+                            visitorId: this.visitorId,
+                            ip: ipAddress,
+                            status: 'نشط',
+                            firstVisit: new Date().toISOString(),
+                            lastVisit: new Date().toISOString(),
+                            totalVisits: 1,
+                            userAgent: navigator.userAgent,
+                            platform: navigator.platform
+                        });
+                    }
+                    
+                    await this.registerDailyVisit(visitorNumber);
+                    await this.registerPageVisit(visitorNumber);
+                    this.saveLocalData(visitorNumber, ipAddress);
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تسجيل الزائر:', error);
+                }
+            }
+            
+            async registerDailyVisit(visitorNumber) {
+                try {
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    const dateVisitSnapshot = await this.datVisitorsRef
+                        .orderByChild('visitorNumber_date')
+                        .equalTo(visitorNumber + '_' + today)
+                        .once('value');
+                    
+                    if (!dateVisitSnapshot.exists()) {
+                        await this.datVisitorsRef.push({
+                            visitorNumber: visitorNumber,
+                            date: today,
+                            visitorNumber_date: visitorNumber + '_' + today,
+                            visitCount: 1,
+                            firstVisitTime: new Date().toISOString(),
+                            lastVisitTime: new Date().toISOString()
+                        });
+                    } else {
+                        dateVisitSnapshot.forEach(childSnapshot => {
+                            childSnapshot.ref.update({
+                                lastVisitTime: new Date().toISOString(),
+                                visitCount: (childSnapshot.val().visitCount || 0) + 1
+                            });
+                        });
+                    }
+                } catch (error) {
+                    console.error('❌ خطأ في تسجيل زيارة اليوم:', error);
+                }
+            }
+            
+            async registerPageVisit(visitorNumber) {
+                try {
+                    const today = new Date().toISOString().split('T')[0];
+                    const pageName = this.getCurrentPage();
+                    const enterTime = new Date().toISOString();
+                    
+                    const lastSerialSnapshot = await this.bagVisitorsRef
+                        .orderByChild('visitorNumber_date')
+                        .equalTo(visitorNumber + '_' + today)
+                        .once('value');
+                    
+                    let serialNumber = 1;
+                    if (lastSerialSnapshot.exists()) {
+                        lastSerialSnapshot.forEach(childSnapshot => {
+                            const currentSerial = childSnapshot.val().serialNumber || 0;
+                            if (currentSerial >= serialNumber) {
+                                serialNumber = currentSerial + 1;
+                            }
+                        });
+                    }
+                    
+                    const pageVisitRef = await this.bagVisitorsRef.push({
+                        visitorNumber: visitorNumber,
+                        date: today,
+                        visitorNumber_date: visitorNumber + '_' + today,
+                        serialNumber: serialNumber,
+                        pageName: pageName,
+                        enterTime: enterTime,
+                        exitTime: null,
+                        exitDate: null,
+                        sessionId: this.sessionId,
+                        pageTitle: document.title
+                    });
+                    
+                    localStorage.setItem('currentPageVisitId', pageVisitRef.key);
+                    localStorage.setItem('currentPageEnterTime', enterTime);
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تسجيل دخول الصفحة:', error);
+                }
+            }
+            
+            async updatePageExit() {
+                try {
+                    const pageVisitId = localStorage.getItem('currentPageVisitId');
+                    if (!pageVisitId) return;
+                    
+                    const exitTime = new Date().toISOString();
+                    const exitDate = new Date().toISOString().split('T')[0];
+                    
+                    await this.bagVisitorsRef.child(pageVisitId).update({
+                        exitTime: exitTime,
+                        exitDate: exitDate,
+                        sessionDuration: Date.now() - this.startTime
+                    });
+                    
+                    localStorage.removeItem('currentPageVisitId');
+                    localStorage.removeItem('currentPageEnterTime');
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحديث خروج الصفحة:', error);
+                }
+            }
+            
+            saveLocalData(visitorNumber, ipAddress) {
+                const visitorData = {
+                    visitorNumber: visitorNumber,
+                    visitorId: this.visitorId,
+                    sessionId: this.sessionId,
+                    ip: ipAddress,
+                    currentPage: this.currentPage,
+                    enterTime: new Date().toISOString(),
+                    startTime: this.startTime
+                };
+                
+                localStorage.setItem('visitorData', JSON.stringify(visitorData));
+                localStorage.setItem('visitorData_timestamp', Date.now().toString());
+            }
+            
+            startHeartbeat() {
+                this.heartbeatInterval = setInterval(async () => {
+                    if (!this.isBlocked) {
+                        const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+                        if (visitorData.visitorNumber) {
+                            await this.visitorsRef.child(visitorData.visitorNumber).update({
+                                lastActivity: new Date().toISOString()
+                            });
+                        }
+                    }
+                }, 30000);
+            }
+            
+            startBlockCheck() {
+                this.blockCheckInterval = setInterval(async () => {
+                    await this.checkIfBlocked();
+                }, 15000);
+            }
+            
+            async checkIfBlocked() {
+                try {
+                    if (!this.isOnline) return false;
+                    
+                    const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+                    
+                    if (visitorData.visitorNumber) {
+                        const visitorSnapshot = await this.visitorsRef.child(visitorData.visitorNumber).once('value');
+                        const visitor = visitorSnapshot.val();
+                        
+                        if (visitor && visitor.status === 'محظور') {
+                            this.handleBlocked({ reason: 'تم حظر هذا الزائر من قبل الإدارة' });
+                            return true;
+                        }
+                    }
+                    
+                    if (visitorData.ip && visitorData.ip !== 'unknown') {
+                        const ipKey = visitorData.ip.replace(/\./g, '_');
+                        const ipSnapshot = await this.blockedIPsRef.child(ipKey).once('value');
+                        const ipBlocked = ipSnapshot.val();
+                        
+                        if (ipBlocked && ipBlocked.status === 'blocked') {
+                            this.handleBlocked(ipBlocked);
+                            return true;
+                        }
+                    }
+                    
+                    const bannedSnapshot = await this.blockedVisitorsRef.once('value');
+                    if (bannedSnapshot.exists()) {
+                        bannedSnapshot.forEach(childSnapshot => {
+                            const bannedData = childSnapshot.val();
+                            if (bannedData.ip === visitorData.ip) {
+                                this.handleBlocked({ reason: bannedData.reason || 'تم حظر هذا IP من قبل الإدارة' });
+                                return true;
+                            }
+                            if (bannedData.visitorId === this.visitorId) {
+                                this.handleBlocked({ reason: bannedData.reason || 'تم حظر هذا الزائر من قبل الإدارة' });
+                                return true;
+                            }
+                        });
+                    }
+                    
+                    return false;
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في فحص الحظر:', error);
+                    return false;
+                }
+            }
+            
+            handleBlocked(blockedData) {
+                this.isBlocked = true;
+                this.showBlockedScreen(blockedData);
+                this.stopTracking();
+                
+                document.body.style.overflow = 'hidden';
+                document.body.style.pointerEvents = 'none';
+                
+                console.log('🚫 تم حظر الزائر:', blockedData.reason);
+            }
+            
+            showBlockedScreen(blockedData) {
+                const blockedOverlay = document.getElementById('blockedOverlay');
+                const blockedReason = document.getElementById('blockedReason');
+                
+                if (blockedData.reason) {
+                    blockedReason.textContent = `سبب الحظر: ${blockedData.reason}`;
+                }
+                
+                blockedOverlay.classList.add('show');
+                blockedOverlay.style.pointerEvents = 'all';
+            }
+            
+            setupEventListeners() {
+                window.addEventListener('online', () => {
+                    this.isOnline = true;
+                });
+                
+                window.addEventListener('offline', () => {
+                    this.isOnline = false;
+                });
+                
+                ['click', 'scroll', 'keypress', 'mousemove', 'touchstart'].forEach(event => {
+                    document.addEventListener(event, () => {
+                        this.recordActivity();
+                    }, { passive: true });
+                });
+                
+                window.addEventListener('beforeunload', () => {
+                    this.handlePageExit();
+                });
+                
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') {
+                        this.handlePageHidden();
+                    } else {
+                        this.handlePageVisible();
+                    }
+                });
+            }
+            
+            recordActivity() {
+                // يمكن إضافة تسجيل النشاط إذا لزم الأمر
+            }
+            
+            handlePageHidden() {
+                // تحديث حالة الصفحة
+            }
+            
+            handlePageVisible() {
+                // تحديث حالة الصفحة
+            }
+            
+            async handlePageExit() {
+                await this.updatePageExit();
+                
+                const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+                if (visitorData.visitorNumber) {
+                    await this.visitorsRef.child(visitorData.visitorNumber).update({
+                        lastExit: new Date().toISOString()
+                    });
+                }
+            }
+            
+            stopTracking() {
+                if (this.heartbeatInterval) {
+                    clearInterval(this.heartbeatInterval);
+                    this.heartbeatInterval = null;
+                }
+                if (this.blockCheckInterval) {
+                    clearInterval(this.blockCheckInterval);
+                    this.blockCheckInterval = null;
+                }
+                
+                console.log('🛑 تم إيقاف مراقبة الزائر');
+            }
+        }
+
+        // ===== نظام إدارة المستخدم العام =====
+        const globalUser = {
+            data: null,
+            
+            setUserData: function(userData) {
+                this.data = userData;
+                sessionStorage.setItem('globalUserData', JSON.stringify(userData));
+                console.log('✅ تم تخزين بيانات المستخدم في الجلسة:', userData);
+            },
+            
+            getUserData: function() {
+                if (this.data) return this.data;
+                
+                const storedData = sessionStorage.getItem('globalUserData');
+                if (storedData) {
+                    this.data = JSON.parse(storedData);
+                    return this.data;
+                }
+                return null;
+            },
+            
+            getUsername: function() {
+                const userData = this.getUserData();
+                return userData ? userData.username : 'زائر';
+            },
+            
+            getUserId: function() {
+                const userData = this.getUserData();
+                return userData ? userData.id : null;
+            },
+            
+            isLoggedIn: function() {
+                return this.getUserData() !== null;
+            },
+            
+            logout: function() {
+                this.data = null;
+                sessionStorage.removeItem('globalUserData');
+                console.log('🚪 تم تسجيل الخروج');
+            }
+        };
+
+        // ===== نظام تخزين بيانات التاجر =====
+        const merchantGlobal = {
+            setMerchantName: function(name) {
+                sessionStorage.setItem('merchantName', name);
+                console.log('✅ تم حفظ اسم التاجر في الجلوبال:', name);
+            },
+            
+            getMerchantName: function() {
+                return sessionStorage.getItem('merchantName') || '';
+            },
+            
+            setMerchantPhone: function(phone) {
+                sessionStorage.setItem('merchantPhone', phone);
+                console.log('✅ تم حفظ رقم التاجر في الجلوبال:', phone);
+            },
+            
+            getMerchantPhone: function() {
+                return sessionStorage.getItem('merchantPhone') || '';
+            },
+            
+            setMerchantId: function(merchantId) {
+                sessionStorage.setItem('merchantId', merchantId);
+                console.log('✅ تم حفظ معرف التاجر في الجلوبال:', merchantId);
+            },
+            
+            getMerchantId: function() {
+                return sessionStorage.getItem('merchantId') || '';
+            },
+            
+            clearAll: function() {
+                sessionStorage.removeItem('merchantName');
+                sessionStorage.removeItem('merchantPhone');
+                sessionStorage.removeItem('merchantId');
+                console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
+            }
+        };
+
+        // ===== نظام PWA والتثبيت =====
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showPWAInstallButton();
+        });
+
+        function showPWAInstallButton() {
+            const installBtn = document.getElementById('pwaInstallBtn');
+            if (installBtn) {
+                installBtn.style.display = 'block';
+            }
+        }
+
+        async function installPWA() {
+            if (!deferredPrompt) {
+                return false;
+            }
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        function installAppEnhanced() {
+            const downloadLinks = {
+                android: 'https://drive.google.com/uc?export=download&id=1iPwYBIEvs-RvXryeDNOHZVpbZrcm6q-9',
+                direct: 'https://drive.google.com/uc?export=download&id=1iPwYBIEvs-RvXryeDNOHZVpbZrcm6q-9'
+            };
+            
+            if (deferredPrompt) {
+                installPWA().then(success => {
+                    if (!success) {
+                        downloadAppDirect();
+                    }
+                });
+            } else {
+                downloadAppDirect();
+            }
+        }
+
+        function downloadAppDirect() {
+            const downloadUrl = 'https://drive.google.com/uc?export=download&id=1iPwYBIEvs-RvXryeDNOHZVpbZrcm6q-9';
+            
+            fetch(downloadUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'AZالسوق الشامل.apk';
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    window.URL.revokeObjectURL(url);
+                    
+                    setTimeout(() => {
+                        alert('✅ تم تحميل التطبيق بنجاح! ابحث عن الملف في مجلد التنزيلات وقم بتثبيته.');
+                    }, 1000);
+                })
+                .catch(error => {
+                    console.error('❌ خطأ في تحميل الملف:', error);
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = 'AZالسوق الشامل.apk';
+                    link.target = '_blank';
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    alert('📱 جاري تحميل التطبيق... ابحث عن الملف في مجلد التنزيلات بعد اكتمال التحميل.');
+                });
+        }
+
+        // ===== نظام المشاركة =====
+        function openShareModal() {
+            const modal = document.getElementById('shareModal');
+            modal.classList.add('show');
+            console.log('✅ تم فتح نافذة المشاركة');
+        }
+
+        function closeShareModal() {
+            const modal = document.getElementById('shareModal');
+            modal.classList.remove('show');
+        }
+
+        function shareOnWhatsApp() {
+            const url = `https://wa.me/?text=${encodeURIComponent('تطبيق AZ السوق الشامل - لتلبية احتياجك بالكامل\n\nقم بتحميل التطبيق الآن:\nhttps://e772299420-hue.github.io/Call/')}`;
+            window.open(url, '_blank');
+            console.log('📱 مشاركة عبر واتساب');
+        }
+
+        function shareOnTelegram() {
+            const url = `https://t.me/share/url?url=${encodeURIComponent('https://e772299420-hue.github.io/Call/')}&text=${encodeURIComponent('تطبيق AZ السوق الشامل - لتلبية احتياجك بالكامل')}`;
+            window.open(url, '_blank');
+            console.log('📢 مشاركة عبر تليجرام');
+        }
+
+        function copyAppLink() {
+            const appLink = 'https://e772299420-hue.github.io/Call/';
+            navigator.clipboard.writeText(appLink).then(() => {
+                alert('✅ تم نسخ رابط التطبيق! يمكنك مشاركته الآن.');
+                console.log('📋 نسخ الرابط');
+            }).catch(() => {
+                const tempInput = document.createElement('input');
+                tempInput.value = appLink;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                alert('✅ تم نسخ رابط التطبيق! يمكنك مشاركته الآن.');
+            });
+        }
+
+        function shareViaEmail() {
+            const subject = 'تطبيق AZ السوق الشامل';
+            const body = 'مرحباً،\n\nأود مشاركة تطبيق AZ السوق الشامل معك. التطبيق يوفر خدمات متكاملة للتسوق الإلكتروني والخدمات التجارية.\n\nرابط التطبيق: https://e772299420-hue.github.io/Call/\n\nمع تحياتي';
+            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = url;
+            console.log('📧 مشاركة عبر البريد الإلكتروني');
+        }
+
+        function shareViaSMS() {
+            const body = 'تطبيق AZ السوق الشامل - لتلبية احتياجك بالكامل\nرابط التطبيق: https://e772299420-hue.github.io/Call/';
+            const url = `sms:?body=${encodeURIComponent(body)}`;
+            window.location.href = url;
+            console.log('💬 مشاركة عبر الرسائل النصية');
+        }
+
+        // ===== دوال الصفحة الرئيسية =====
+        let loginBarTimeout;
+        let currentPage = '';
+        const visitorTracker = new AdvancedVisitorTracker();
+
         function hideIntroScreen() {
             const introScreen = document.getElementById('introScreen');
             introScreen.style.opacity = '0';
             introScreen.style.transform = 'scale(1.1)';
             setTimeout(() => {
                 introScreen.style.display = 'none';
-                // فتح صفحة المنتجات الجديدة تلقائياً
                 openPage('new', document.getElementById('newProductsBtn'));
             }, 1000);
         }
 
-        // إخفاء شاشة البداية بعد 2 ثواني
-        setTimeout(hideIntroScreen, 2000);
-
-        // إخفاء شريط تسجيل الدخول بعد 10 ثواني
         function hideLoginBar() {
             const loginBar = document.getElementById('loginBar');
             loginBar.style.display = 'none';
-            // تعديل ارتفاع منطقة المحتوى عندما يختفي شريط تسجيل الدخول
             document.getElementById('content-area').style.height = 'calc(100vh - 120px)';
         }
 
-        // فتح الصفحات المختلفة - تم التعديل بشكل كامل
         function openPage(type, button) {
             let content = document.getElementById('content-area');
             
-            // حفظ الصفحة الحالية
             currentPage = type;
             
-            // إزالة النشاط من جميع الأزرار
             document.querySelectorAll('.navbar button').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // إضافة النشاط للزر المضغوط
             button.classList.add('active');
             
-            // إخفاء شريط تسجيل الدخول إذا كانت الإعدادات
             if (type === 'settings') {
                 document.getElementById('loginBar').style.display = 'none';
-                // إلغاء المؤقت إذا كان موجوداً
                 if (loginBarTimeout) {
                     clearTimeout(loginBarTimeout);
                 }
-                // تعديل ارتفاع منطقة المحتوى
                 content.style.height = 'calc(100vh - 120px)';
             } else {
-                // عرض شريط تسجيل الدخول
                 document.getElementById('loginBar').style.display = 'flex';
-                // تعديل ارتفاع منطقة المحتوى عندما يظهر شريط تسجيل الدخول
                 content.style.height = 'calc(100vh - 150px)';
                 
-                // إعادة تعيين المؤقت لإخفاء الشريط بعد 10 ثواني
                 if (loginBarTimeout) {
                     clearTimeout(loginBarTimeout);
                 }
                 loginBarTimeout = setTimeout(hideLoginBar, 10000);
             }
             
-            // مسح المحتوى الحالي
             content.innerHTML = '';
             
             if (type === 'new') {
@@ -730,7 +1897,6 @@
             }
         }
 
-        // فتح صفحة تسجيل الدخول بناءً على الصفحة الحالية
         function openLoginPage() {
             let loginUrl = '';
             
@@ -748,21 +1914,16 @@
                     loginUrl = 'https://e772299420-hue.github.io/Call/mbna.html';
                     break;
                 default:
-                    // إذا لم تكن هناك صفحة محددة، افتح صفحة افتراضية
                     loginUrl = 'https://e772299420-hue.github.io/Call/manjr_mt.html';
             }
             
-            // فتح صفحة تسجيل الدخول في نافذة جديدة
             window.open(loginUrl, '_blank');
         }
 
-        // حفظ الإعدادات
         function saveSettings() {
-            // في التطبيق الحقيقي، هنا سيتم حفظ الإعدادات في قاعدة البيانات أو التخزين المحلي
             alert('تم حفظ الإعدادات بنجاح ✅');
         }
 
-        // التحقق من ظهور العناصر عند التمرير
         function checkScroll() {
             const elements = document.querySelectorAll('.fade-in');
             elements.forEach(el => {
@@ -774,9 +1935,122 @@
             });
         }
 
-        // تفعيل تأثيرات التمرير
-        window.addEventListener('load', checkScroll);
-        window.addEventListener('scroll', checkScroll);
+        // ===== إعداد نافذة التثبيت =====
+        function setupInstallChoice() {
+            const modal = document.getElementById('installChoiceModal');
+            const closeBtn = document.getElementById('closeInstallChoice');
+            const downloadBtn = document.getElementById('downloadAppBtn');
+            const installBtn = document.getElementById('installAppBtn');
+            const shareBtn = document.getElementById('shareAppBtn');
+            const cancelBtn = document.getElementById('cancelInstallBtn');
+            
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('show');
+            });
+            
+            cancelBtn.addEventListener('click', () => {
+                modal.classList.remove('show');
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                }
+            });
+            
+            downloadBtn.addEventListener('click', () => {
+                downloadAppDirect();
+                modal.classList.remove('show');
+            });
+            
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    const success = await installPWA();
+                    if (success) {
+                        modal.classList.remove('show');
+                        alert('✅ تم بدء تثبيت التطبيق بنجاح!');
+                    } else {
+                        alert('❌ تم إلغاء التثبيت. يرجى استخدام خيار التحميل بدلاً من ذلك.');
+                    }
+                } else {
+                    alert('❌ التثبيت التلقائي غير متاح. يرجى استخدام خيار التحميل بدلاً من ذلك.');
+                }
+            });
+            
+            shareBtn.addEventListener('click', () => {
+                modal.classList.remove('show');
+                openShareModal();
+            });
+        }
+
+        // ===== إعداد نافذة المشاركة =====
+        function setupShareModal() {
+            const modal = document.getElementById('shareModal');
+            const closeBtn = document.getElementById('closeShareModal');
+            
+            closeBtn.addEventListener('click', closeShareModal);
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeShareModal();
+                }
+            });
+        }
+
+        // ===== تهيئة الصفحة =====
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(hideIntroScreen, 2000);
+            
+            setupInstallChoice();
+            setupShareModal();
+            
+            const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+            if (pwaInstallBtn) {
+                pwaInstallBtn.addEventListener('click', () => {
+                    document.getElementById('installChoiceModal').classList.add('show');
+                });
+            }
+            
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/Call/sw.js')
+                        .then((registration) => {
+                            console.log('✅ Service Worker مسجل بنجاح:', registration);
+                        })
+                        .catch((error) => {
+                            console.log('❌ فشل تسجيل Service Worker:', error);
+                        });
+                });
+            }
+            
+            setTimeout(async () => {
+                try {
+                    await visitorTracker.startTracking();
+                } catch (error) {
+                    console.error('خطأ في بدء تتبع الزائر:', error);
+                }
+            }, 1500);
+            
+            window.addEventListener('load', checkScroll);
+            window.addEventListener('scroll', checkScroll);
+        });
+
+        // ===== معالجة الأخطاء =====
+        window.addEventListener('error', (event) => {
+            console.error('خطأ في الصفحة:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('وعد مرفوض:', event.reason);
+        });
+
+        // اختصار لوحة المفاتيح لفتح نافذة المشاركة (Ctrl+Shift+S)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+                e.preventDefault();
+                openShareModal();
+            }
+        });
     </script>
 
 </body>
