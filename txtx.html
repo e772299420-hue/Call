@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المنتجات والأقسام - السوق الشامل</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* ===== الشريط العلوي ===== */
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: #3498db;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0 25px;
+            z-index: 1000;
+            flex-direction: row-reverse;
+        }
+
+        .app-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .app-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            padding: 5px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .app-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .app-subtitle {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            margin-top: -5px;
+        }
+
+        /* ===== شريط المعلومات ===== */
+        .info-bar {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            width: 100%;
+            background: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            z-index: 999;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+
+        .info-item i {
+            color: #3498db;
+        }
+
+        .status-badge {
+            background: #27ae60;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-inactive {
+            background: #e74c3c;
+        }
+
+        /* ===== حقل nam_usr على اليسار ===== */
+        .nam-usr-container {
+            position: fixed;
+            bottom: 70px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 12px;
+            width: 50px;
+            height: 50px;
+            z-index: 997;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 2px solid #3498db;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .nam-usr-container:hover {
+            width: 300px;
+            height: auto;
+            padding: 20px;
+        }
+
+        .nam-usr-field {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            color: #333;
+            text-align: center;
+            transition: all 0.4s ease;
+            opacity: 0;
+            font-weight: 500;
+        }
+
+        .nam-usr-container:hover .nam-usr-field {
+            opacity: 1;
+        }
+
+        .nam-usr-field::placeholder {
+            color: #999;
+        }
+
+        .nam-usr-field:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background: white;
+        }
+
+        /* ===== التذييل ===== */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: #2c3e50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            font-size: 16px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* ===== محتوى الصفحة ===== */
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 150px 20px 80px 20px;
+            position: relative;
+        }
+
+        /* ===== البطاقات ===== */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 25px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            width: 320px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            position: relative;
+            border: none;
+        }
+
+        .card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: #3498db;
+            color: white;
+            padding: 25px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255,255,255,0.1);
+            transform: rotate(45deg);
+        }
+
+        .card-header i {
+            font-size: 50px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-header h2 {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+            font-weight: 700;
+        }
+
+        .card-body {
+            padding: 25px;
+            background: white;
+        }
+
+        .card-body p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+        }
+
+        /* ===== الأزرار ===== */
+        .btn, .home-btn {
+            display: inline-block;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1.05rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn {
+            background: #3498db;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
+            background: #2980b9;
+        }
+
+        .home-btn {
+            background: #2ecc71;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+            margin-top: 20px;
+        }
+
+        .home-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.4);
+            background: #27ae60;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        /* ===== استجابة الهواتف ===== */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+            }
+            
+            .card {
+                width: 95%;
+            }
+            
+            .nam-usr-container {
+                bottom: 70px;
+                left: 15px;
+                width: 45px;
+                height: 45px;
+                border-radius: 50%;
+            }
+            
+            .nam-usr-container:hover {
+                width: 90%;
+                height: auto;
+                border-radius: 12px;
+                left: 5%;
+            }
+            
+            .app-name {
+                font-size: 18px;
+            }
+            
+            .app-subtitle {
+                font-size: 12px;
+            }
+            
+            body {
+                padding-top: 140px;
+            }
+            
+            .top-header {
+                padding: 0 15px;
+            }
+            
+            .info-bar {
+                padding: 8px 15px;
+            }
+            
+            .info-item {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-name {
+                font-size: 16px;
+            }
+            
+            .app-subtitle {
+                display: none;
+            }
+            
+            .card-header h2 {
+                font-size: 1.4rem;
+            }
+            
+            .card-body p {
+                font-size: 1rem;
+            }
+            
+            .info-bar {
+                flex-direction: column;
+                gap: 5px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- الشريط العلوي -->
+<header class="top-header">
+    <div class="app-info">
+        <div class="app-logo">
+            <img src="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true" alt="شعار AZ السوق الشامل">
+        </div>
+        <div class="app-name">AZ السوق الشامل لتلبية احتياجك بالكامل</div>
+        <div class="app-subtitle">قسم الأرقام والمواقع التجارية والخدميه</div>
+    </div>
+</header>
+
+<!-- شريط المعلومات -->
+<div class="info-bar">
+    <div class="user-info">
+        <div class="info-item">
+            <i class="fas fa-user"></i>
+            <span id="info-username">جاري التحميل...</span>
+        </div>
+        <div class="info-item">
+            <i class="fas fa-phone"></i>
+            <span id="info-phone">جاري التحميل...</span>
+        </div>
+    </div>
+    <div class="status-badge" id="info-status">جاري التحميل...</div>
+</div>
+
+<!-- حقل nam_usr على اليسار -->
+<div class="nam-usr-container">
+    <input type="text" id="nam_usr" class="nam-usr-field" placeholder="أدخل اسم المستخدم هنا">
+</div>
+
+<!-- الحاوية الرئيسية للبطاقات -->
+<div class="container">
+    <!-- مواقع وأرقام أشخاص تهمك -->
+    <div class="card" onclick="navigateToContacts()">
+        <div class="card-header">
+            <i class="fas fa-address-book"></i>
+            <h2>مواقع وأرقام أشخاص تهمك</h2>
+        </div>
+        <div class="card-body">
+            <p>إدارة المواقع والأرقام الهامة والاتصالات</p>
+            <button class="btn">فتح الصفحة</button>
+        </div>
+    </div>
+
+    <!-- منشأت حكومية -->
+    <div class="card" onclick="navigateToGovernment()">
+        <div class="card-header">
+            <i class="fas fa-landmark"></i>
+            <h2>منشأت حكومية</h2>
+        </div>
+        <div class="card-body">
+            <p>إدارة المنشآت الحكومية والخدمات الرسمية</p>
+            <button class="btn">فتح الصفحة</button>
+        </div>
+    </div>
+
+    <!-- منشأت خاصة -->
+    <div class="card" onclick="navigateToPrivate()">
+        <div class="card-header">
+            <i class="fas fa-building"></i>
+            <h2>منشأت خاصة</h2>
+        </div>
+        <div class="card-body">
+            <p>إدارة المنشآت الخاصة والمؤسسات الأهلية</p>
+            <button class="btn">فتح الصفحة</button>
+        </div>
+    </div>
+
+    <!-- محلات تجارية -->
+    <div class="card" onclick="navigateToShops()">
+        <div class="card-header">
+            <i class="fas fa-store"></i>
+            <h2>محلات تجارية</h2>
+        </div>
+        <div class="card-body">
+            <p>إدارة المحلات التجارية والأسواق</p>
+            <button class="btn">فتح الصفحة</button>
+        </div>
+    </div>
+</div>
+
+<!-- زر العودة إلى الصفحة الرئيسية -->
+<div class="button-container">
+    <a href="index.html" class="home-btn">
+        <i class="fas fa-home"></i> الرجوع إلى الرئيسية
+    </a>
+</div>
+
+<!-- التذييل -->
+<footer class="footer">
+    جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة 
+</footer>
+
+<script>
+// ===== نظام إدارة المستخدم المحسن مع بيانات حقيقية =====
+const userManager = {
+    data: null,
+    
+    // تهيئة بيانات المستخدم من مصادر متعددة
+    init: function() {
+        console.log('🔄 جاري تحميل بيانات المستخدم...');
+        
+        // المحاولة الأولى: من localStorage (بيانات المستخدم المسجلة)
+        const storedUserData = localStorage.getItem('currentUser');
+        if (storedUserData) {
+            try {
+                this.data = JSON.parse(storedUserData);
+                console.log('✅ تم تحميل بيانات المستخدم من localStorage:', this.data);
+                this.updateUI();
+                return;
+            } catch (error) {
+                console.error('❌ خطأ في تحليل بيانات localStorage:', error);
+            }
+        }
+        
+        // المحاولة الثانية: من sessionStorage (بيانات الجلسة)
+        const sessionUserData = sessionStorage.getItem('userSessionData');
+        if (sessionUserData) {
+            try {
+                this.data = JSON.parse(sessionUserData);
+                console.log('✅ تم تحميل بيانات المستخدم من sessionStorage:', this.data);
+                this.updateUI();
+                return;
+            } catch (error) {
+                console.error('❌ خطأ في تحليل بيانات sessionStorage:', error);
+            }
+        }
+        
+        // المحاولة الثالثة: من بيانات الصفحة السابقة (URL parameters)
+        this.loadFromURLParams();
+        
+        // إذا لم توجد بيانات، نعرض رسالة للمستخدم
+        if (!this.data) {
+            this.showDataNotFound();
+        }
+    },
+    
+    // تحميل البيانات من معلمات URL
+    loadFromURLParams: function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userName = urlParams.get('user') || urlParams.get('username') || urlParams.get('name');
+        
+        if (userName) {
+            this.data = {
+                id: 'temp_' + Date.now(),
+                username: userName,
+                name: userName,
+                mobile: urlParams.get('phone') || urlParams.get('mobile') || 'غير متوفر',
+                status: 'نشط',
+                type: 'user',
+                loginTime: new Date().toISOString()
+            };
+            console.log('✅ تم تحميل البيانات من URL:', this.data);
+            this.updateUI();
+        }
+    },
+    
+    // عرض واجهة عندما لا توجد بيانات
+    showDataNotFound: function() {
+        console.log('⚠️ لم يتم العثور على بيانات المستخدم');
+        
+        // استخدام بيانات افتراضية مع رسالة توضيحية
+        this.data = {
+            id: 'unknown_user',
+            username: 'زائر',
+            name: 'زائر',
+            mobile: 'غير متوفر',
+            status: 'غير معروف',
+            type: 'guest',
+            loginTime: new Date().toISOString()
+        };
+        
+        this.updateUI();
+        
+        // عرض رسالة للمستخدم
+        setTimeout(() => {
+            alert('⚠️ لم يتم العثور على بيانات المستخدم. يرجى تسجيل الدخول أو إدخال البيانات يدوياً.');
+        }, 1000);
+    },
+    
+    // تحديث واجهة المستخدم بالبيانات الفعلية
+    updateUI: function() {
+        if (!this.data) return;
+        
+        console.log('🎨 تحديث واجهة المستخدم بالبيانات:', this.data);
+        
+        // تحديث شريط المعلومات بالبيانات الفعلية
+        document.getElementById('info-username').textContent = `المستخدم: ${this.data.name || this.data.username || 'زائر'}`;
+        document.getElementById('info-phone').textContent = this.data.phone || this.data.mobile || this.data.tel || 'غير متوفر';
+        
+        // تحديث الحالة مع تلوين مناسب
+        const statusElement = document.getElementById('info-status');
+        const status = this.data.status || 'غير معروف';
+        statusElement.textContent = status;
+        statusElement.className = 'status-badge ' + (status === 'نشط' ? '' : 'status-inactive');
+        
+        // تحديث حقل nam_usr
+        document.getElementById('nam_usr').value = this.data.name || this.data.username || '';
+        
+        // حفظ البيانات للاستخدام المستقبلي
+        this.saveToStorage();
+    },
+    
+    // حفظ البيانات في التخزين المحلي
+    saveToStorage: function() {
+        try {
+            localStorage.setItem('currentUser', JSON.stringify(this.data));
+            sessionStorage.setItem('userSessionData', JSON.stringify(this.data));
+            console.log('💾 تم حفظ بيانات المستخدم في التخزين المحلي');
+        } catch (error) {
+            console.error('❌ خطأ في حفظ البيانات:', error);
+        }
+    },
+    
+    // تحديث بيانات المستخدم يدوياً
+    updateUserData: function(newData) {
+        this.data = { ...this.data, ...newData };
+        this.updateUI();
+        console.log('✏️ تم تحديث بيانات المستخدم:', this.data);
+    },
+    
+    // الحصول على بيانات المستخدم
+    getUserData: function() {
+        return this.data;
+    }
+};
+
+// ===== دوال التنقل =====
+function navigateToContacts() {
+    const userData = userManager.getUserData();
+    if (userData && userData.id !== 'unknown_user') {
+        // حفظ بيانات شريط المعلومات قبل الانتقال
+        userManager.saveToStorage();
+        window.location.href = 'txs_1.html';
+    } else {
+        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً في الحقل الموجود على اليسار');
+        document.querySelector('.nam-usr-container').style.width = '300px';
+        document.querySelector('.nam-usr-container').style.height = 'auto';
+        document.querySelector('.nam-usr-field').style.opacity = '1';
+        document.getElementById('nam_usr').focus();
+    }
+}
+
+function navigateToGovernment() {
+    const userData = userManager.getUserData();
+    if (userData) {
+        // حفظ بيانات شريط المعلومات قبل الانتقال
+        userManager.saveToStorage();
+        window.location.href = '2_1.html';
+    } else {
+        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً');
+    }
+}
+
+function navigateToPrivate() {
+    const userData = userManager.getUserData();
+    if (userData) {
+        // حفظ بيانات شريط المعلومات قبل الانتقال
+        userManager.saveToStorage();
+        window.location.href = '2_2.html';
+    } else {
+        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً');
+    }
+}
+
+function navigateToShops() {
+    const userData = userManager.getUserData();
+    if (userData) {
+        // حفظ بيانات شريط المعلومات قبل الانتقال
+        userManager.saveToStorage();
+        window.location.href = '2_3.html';
+    } else {
+        alert('⚠️ يرجى إدخال بيانات المستخدم أولاً');
+    }
+}
+
+// ===== معالجة حقل nam_usr =====
+document.getElementById('nam_usr').addEventListener('change', function() {
+    const newName = this.value.trim();
+    if (newName) {
+        userManager.updateUserData({ 
+            name: newName, 
+            username: newName,
+            displayName: newName 
+        });
+        
+        // تحديث عنوان الصفحة ليعكس التغيير
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('user', newName);
+        window.history.replaceState({}, '', newUrl);
+        
+        alert('✅ تم تحديث اسم المستخدم بنجاح');
+    }
+});
+
+// ===== تهيئة الصفحة =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 بدء تحميل الصفحة...');
+    
+    // تهيئة نظام إدارة المستخدم
+    userManager.init();
+    
+    console.log('✅ تم تحميل الصفحة بنجاح');
+});
+
+// ===== معالجة الأخطاء =====
+window.addEventListener('error', (event) => {
+    console.error('❌ خطأ في الصفحة:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('❌ وعد مرفوض:', event.reason);
+});
+</script>
+
+</body>
+  </html>
