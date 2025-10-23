@@ -195,6 +195,42 @@
             flex: 1;
         }
 
+        /* الإعلانات - إخفاء جميع الإعلانات باستثناء الإعلان الأخير */
+        .ad-container {
+            margin: 20px auto;
+            text-align: center;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: white;
+            padding: 10px;
+            display: none; /* إخفاء جميع الإعلانات افتراضياً */
+        }
+
+        /* إظهار الإعلان الأخير فقط */
+        .ad-container:last-of-type {
+            display: block;
+        }
+
+        .ad-banner {
+            width: 100%;
+            max-width: 728px;
+            margin: 0 auto;
+        }
+
+        .ad-square {
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .ad-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
         /* المنتجات */
         .products-container {
             display: grid;
@@ -950,6 +986,17 @@
     <!-- ✅ المنتجات -->
     <div id="products" class="products-container"></div>
 
+    <!-- ✅ إعلان في أسفل الصفحة فقط -->
+    <div class="ad-container">
+        <div class="ad-label">إعلان</div>
+        <ins class="adsbygoogle ad-banner"
+             style="display:block"
+             data-ad-client="ca-pub-1154460052219362"
+             data-ad-slot="5678901234"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+    </div>
+
     <!-- ✅ معرض الصور المحسن -->
     <div class="image-gallery" id="image-gallery">
         <div class="gallery-container">
@@ -1124,7 +1171,38 @@
 
             // إعداد أزرار التمرير
             setupScrollButtons();
+
+            // تحميل الإعلانات بعد تحميل المحتوى
+            loadAds();
         });
+
+        // تحميل إعلانات Google AdSense
+        function loadAds() {
+            try {
+                // إنشاء سكريبت AdSense
+                const adScript = document.createElement('script');
+                adScript.async = true;
+                adScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1154460052219362';
+                adScript.crossOrigin = 'anonymous';
+                document.head.appendChild(adScript);
+                
+                // تفعيل الإعلانات بعد تحميل السكريبت
+                adScript.onload = () => {
+                    try {
+                        (window.adsbygoogle = window.adsbygoogle || []).push({});
+                        console.log('تم تحميل إعلانات AdSense بنجاح');
+                    } catch (error) {
+                        console.error('خطأ في تفعيل إعلانات AdSense:', error);
+                    }
+                };
+                
+                adScript.onerror = () => {
+                    console.error('فشل في تحميل سكريبت AdSense');
+                };
+            } catch (error) {
+                console.error('خطأ في تحميل الإعلانات:', error);
+            }
+        }
 
         // حساب عدد المنتجات لكل قسم وكل تاجر
         function calculateProductCounts() {
@@ -1168,17 +1246,43 @@
             return counts;
         }
 
-        // عرض الأقسام مع تحديث الأعداد حسب التاجر المحدد
+        // التحقق مما إذا كان التاجر له وظيفة "تاجر"
+        function isMerchant(merchantData) {
+            return merchantData && 
+                   (merchantData.role === 'تاجر' || 
+                    merchantData.job === 'تاجر' || 
+                    merchantData.type === 'تاجر' ||
+                    merchantData.userType === 'تاجر' ||
+                    (merchantData.categories && Object.keys(merchantData.categories).length > 0));
+        }
+
+        // عرض الأقسام مع تحديث الأعداد حسب التاجر المحدد وإخفاء الفارغة
         function displayCategories() {
             categoriesBar.innerHTML = '';
             
             // حساب الأعداد مع مراعاة التاجر المحدد
             const currentCounts = calculateCategoryCountsWithMerchantFilter();
             
-            // ترتيب الأقسام حسب عدد المنتجات (من الأكثر إلى الأقل)
-            const sortedCategories = Object.keys(allCategories).sort((a, b) => {
-                return (currentCounts[b] || 0) - (currentCounts[a] || 0);
-            });
+            // ترتيب الأقسام حسب عدد المنتجات (من الأكثر إلى الأقل) وإخفاء الفارغة
+            const sortedCategories = Object.keys(allCategories)
+                .filter(catId => {
+                    // إخفاء الأقسام التي ليس لها منتجات
+                    const productCount = currentCounts[catId] || 0;
+                    return productCount > 0;
+                })
+                .sort((a, b) => {
+                    return (currentCounts[b] || 0) - (currentCounts[a] || 0);
+                });
+            
+            // إذا لم توجد أقسام، عرض رسالة
+            if (sortedCategories.length === 0) {
+                categoriesBar.innerHTML = `
+                    <div style="color: rgba(255,255,255,0.7); font-style: italic; padding: 10px;">
+                        لا توجد أقسام تحتوي على منتجات
+                    </div>
+                `;
+                return;
+            }
             
             sortedCategories.forEach(catId => {
                 const category = allCategories[catId];
@@ -1244,27 +1348,51 @@
                 governorateSelect.appendChild(option);
             });
 
-            // التجار - مع إضافة عدد المنتجات لكل تاجر
+            // التجار - مع إضافة عدد المنتجات لكل تاجر وإخفاء من ليس لديهم منتجات أو ليسوا تجار
             const merchantSelect = document.getElementById('merchant');
             merchantSelect.innerHTML = '<option value="">جميع التجار</option>';
-            Object.keys(allMerchants).forEach(merchantId => {
-                const merchant = allMerchants[merchantId];
-                const productCount = merchantProductCounts[merchantId] || 0;
-                const option = document.createElement('option');
-                option.value = merchantId;
-                option.textContent = `${merchant.name || merchant.username || merchantId} (${productCount})`;
-                merchantSelect.appendChild(option);
-            });
+            
+            Object.keys(allMerchants)
+                .filter(merchantId => {
+                    const merchant = allMerchants[merchantId];
+                    const productCount = merchantProductCounts[merchantId] || 0;
+                    
+                    // إخفاء التجار الذين ليس لديهم منتجات أو ليسوا تجار
+                    return productCount > 0 && isMerchant(merchant);
+                })
+                .sort((a, b) => {
+                    // ترتيب التجار حسب عدد المنتجات (من الأكثر إلى الأقل)
+                    return (merchantProductCounts[b] || 0) - (merchantProductCounts[a] || 0);
+                })
+                .forEach(merchantId => {
+                    const merchant = allMerchants[merchantId];
+                    const productCount = merchantProductCounts[merchantId] || 0;
+                    const option = document.createElement('option');
+                    option.value = merchantId;
+                    option.textContent = `${merchant.name || merchant.username || merchantId} (${productCount})`;
+                    merchantSelect.appendChild(option);
+                });
 
-            // الأقسام
+            // الأقسام - إخفاء الأقسام الفارغة
             const categorySelect = document.getElementById('category-filter');
             categorySelect.innerHTML = '<option value="">جميع الأقسام</option>';
-            Object.keys(allCategories).forEach(catId => {
-                const option = document.createElement('option');
-                option.value = catId;
-                option.textContent = allCategories[catId].name;
-                categorySelect.appendChild(option);
-            });
+            
+            Object.keys(allCategories)
+                .filter(catId => {
+                    // إخفاء الأقسام التي ليس لها منتجات
+                    const productCount = categoryProductCounts[catId] || 0;
+                    return productCount > 0;
+                })
+                .sort((a, b) => {
+                    // ترتيب الأقسام حسب عدد المنتجات (من الأكثر إلى الأقل)
+                    return (categoryProductCounts[b] || 0) - (categoryProductCounts[a] || 0);
+                })
+                .forEach(catId => {
+                    const option = document.createElement('option');
+                    option.value = catId;
+                    option.textContent = `${allCategories[catId].name} (${categoryProductCounts[catId] || 0})`;
+                    categorySelect.appendChild(option);
+                });
 
             // إضافة مستمعي الأحداث للفلاتر
             governorateSelect.addEventListener('change', filterProducts);
@@ -1326,6 +1454,11 @@
                 }
 
                 if (filters.merchant && product.userId !== filters.merchant) {
+                    continue;
+                }
+
+                // التحقق من أن التاجر له وظيفة "تاجر"
+                if (product.userId && allMerchants[product.userId] && !isMerchant(allMerchants[product.userId])) {
                     continue;
                 }
 
@@ -1535,7 +1668,7 @@
             const merchantBtn = document.getElementById('merchant-btn');
             const merchantNameText = document.getElementById('merchant-name-text');
             
-            if (product.userId && allMerchants[product.userId]) {
+            if (product.userId && allMerchants[product.userId] && isMerchant(allMerchants[product.userId])) {
                 const merchant = allMerchants[product.userId];
                 const merchantName = merchant.name || merchant.username || "تاجر";
                 merchantBtn.style.display = 'block';
