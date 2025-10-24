@@ -28,6 +28,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- إعلانات AMP -->
+    <script async custom-element="amp-auto-ads" src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js"></script>
+    
 <style>
 :root {
     --primary-color: #3498db;
@@ -69,7 +72,7 @@ body {
 }
 
 .app-name {
-    font-size:28px; font-weight:bold;
+    font-size:32px; font-weight:bold;
     background: linear-gradient(90deg, var(--dark-color), var(--secondary-color), #8e44ad);
     -webkit-background-clip:text; background-clip:text; color:transparent;
     display: flex; align-items: center; gap: 15px;
@@ -79,9 +82,9 @@ body {
 }
 
 .app-subtitle {
-    font-size: 14px;
+    font-size: 16px;
     color: #e74c3c;
-    font-weight: normal;
+    font-weight: bold;
     margin-top: 0;
     text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
@@ -328,7 +331,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    padding: 12px 20px;
+    padding: 12px;
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
     color: white;
     border: none;
@@ -341,6 +344,8 @@ body {
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     margin-top: 15px;
     width: 100%;
+    height: 50px;
+    flex-direction: column;
 }
 
 .menu-btn:hover {
@@ -412,6 +417,32 @@ body {
     z-index: 10;
     min-width: 25px;
     text-align: center;
+}
+
+/* زر تثبيت التطبيق العائم */
+.floating-install-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: linear-gradient(135deg, var(--welcome-color) 0%, #2ecc71 100%);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 8px 25px rgba(39, 174, 96, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    font-size: 16px;
+}
+
+.floating-install-btn:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 12px 30px rgba(39, 174, 96, 0.7);
 }
 
 /* زر العرض العائم */
@@ -620,58 +651,70 @@ body {
     margin-top: 10px;
 }
 
-/* شاشة الحظر المحسنة */
-.blocked-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(231, 76, 60, 0.95); display: none;
-    justify-content: center; align-items: center; z-index: 10000;
+/* شريط الإعلانات */
+.ad-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background: rgba(255,255,255,0.95);
     backdrop-filter: blur(15px);
+    box-shadow: 0 -8px 25px rgba(0,0,0,0.2);
+    border-top: 3px solid var(--primary-color);
+    height: 60px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(100%);
 }
 
-.blocked-overlay.show { display: flex; animation: blockOverlayShow 1s ease-out; }
+.ad-banner::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(45deg, rgba(52,152,219,0.1), transparent, rgba(52,152,219,0.1));
+    z-index: 1; animation: shine 5s infinite;
+}
 
-.blocked-container {
-    background: white; border-radius: 25px; padding: 50px; text-align: center;
-    max-width: 550px; width: 90%; box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-    animation: blockModalSlideIn 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    border: 3px solid var(--danger-color);
+.ad-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+}
+
+.ad-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 0 20px;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
     font-size: 18px;
+    letter-spacing: 1px;
+    color: var(--dark-color);
+    white-space: nowrap;
+    animation: ad-slide 20s linear infinite;
 }
 
-.blocked-icon {
-    font-size: 100px; color: var(--danger-color); margin-bottom: 25px;
-    animation: shake 1.5s infinite;
-    text-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+.ad-content i {
+    color: var(--primary-color);
+    font-size: 20px;
 }
 
-.blocked-title {
-    font-size: 36px; color: var(--danger-color); margin-bottom: 20px; font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.blocked-message {
-    font-size: 22px; color: #666; margin-bottom: 25px; line-height: 1.8;
-}
-
-.blocked-reason {
-    background: linear-gradient(135deg, #ffebee, #ffcdd2);
-    border: 2px solid var(--danger-color);
-    border-radius: 15px; padding: 20px; margin-bottom: 25px;
-    color: #d32f2f; font-weight: bold; font-size: 20px;
-}
-
-.blocked-contact {
-    font-size: 20px; color: #333; margin-bottom: 25px;
-}
-
-.blocked-phone {
-    font-size: 26px; color: var(--welcome-color); font-weight: bold; margin: 15px 0;
-    text-shadow: 0 2px 4px rgba(39, 174, 96, 0.3);
+@keyframes ad-slide {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
 }
 
 /* النص المتحرك */
 .footer-marquee {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+    position: fixed; bottom: 60px; left: 0; right: 0; z-index: 90;
     background: rgba(255,255,255,0.95); backdrop-filter: blur(15px);
     box-shadow: 0 -8px 25px rgba(0,0,0,0.2); border-top: 3px solid var(--primary-color);
     height: 45px; overflow: hidden; display: flex; align-items: center;
@@ -1013,14 +1056,9 @@ body {
     to { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
 }
 
-@keyframes blockOverlayShow {
-    from { opacity: 0; transform: scale(0.5); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes blockModalSlideIn {
-    from { opacity: 0; transform: scale(0.3) rotate(-20deg); }
-    to { opacity: 1; transform: scale(1) rotate(0deg); }
+@keyframes ad-slide {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
 }
 
 /* تأثيرات إضافية للحاويات */
@@ -1035,7 +1073,7 @@ body {
     .buttons-grid{grid-template-columns:repeat(2,1fr); gap:12px;}
     .btn{height:50px; font-size: 16px; padding:10px;}
     .box {min-height: 240px; padding: 20px;}
-    .footer-marquee { height: 40px; }
+    .footer-marquee { height: 40px; bottom: 50px; }
     .footer-text-container { height: 40px; }
     .footer-scrolling-text { font-size: 18px; line-height: 40px; }
     .app-name { font-size: 24px; }
@@ -1044,10 +1082,10 @@ body {
     .box-title { font-size: 24px; }
     .btn i { font-size: 18px; }
     .btn-text { font-size: 14px; }
-    .pwa-install-btn {
+    .floating-install-btn {
         top: 10px;
         left: 10px;
-        padding: 8px 12px;
+        padding: 10px 15px;
         font-size: 14px;
     }
     .install-choice-buttons {
@@ -1066,12 +1104,18 @@ body {
         padding: 12px 16px;
         font-size: 14px;
     }
+    .ad-banner {
+        height: 50px;
+    }
+    .ad-content {
+        font-size: 16px;
+    }
 }
 
 @media(max-width:480px){
     .buttons-grid{grid-template-columns:1fr; gap:10px;}
     .btn{height:50px; flex-direction:row; justify-content:flex-start; padding:10px 15px;}
-    .footer-marquee { height: 35px; }
+    .footer-marquee { height: 35px; bottom: 45px; }
     .footer-text-container { height: 35px; }
     .footer-scrolling-text { font-size: 16px; line-height: 35px; }
     .login-container, .blocked-container { padding: 25px; }
@@ -1084,10 +1128,10 @@ body {
     .box { min-height: 200px; padding: 15px; }
     .btn i { font-size: 18px; }
     .btn-text { font-size: 14px; }
-    .pwa-install-btn {
+    .floating-install-btn {
         top: 5px;
         left: 5px;
-        padding: 6px 10px;
+        padding: 8px 12px;
         font-size: 12px;
     }
     .install-choice-container, .share-container {
@@ -1109,6 +1153,12 @@ body {
         padding: 10px 14px;
         font-size: 12px;
     }
+    .ad-banner {
+        height: 45px;
+    }
+    .ad-content {
+        font-size: 14px;
+    }
 }
 
 @media(max-width:360px){
@@ -1125,13 +1175,28 @@ body {
         padding: 8px 12px;
         font-size: 11px;
     }
+    .floating-install-btn {
+        top: 5px;
+        left: 5px;
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+    .ad-banner {
+        height: 40px;
+    }
+    .ad-content {
+        font-size: 13px;
+    }
 }
 </style>
 </head>
 <body>
 
-<!-- زر تثبيت PWA -->
-<button class="pwa-install-btn" id="pwaInstallBtn">
+<!-- إعلانات AMP -->
+<amp-auto-ads type="adsense" data-ad-client="ca-pub-1154460052219362"></amp-auto-ads>
+
+<!-- زر تثبيت التطبيق العائم -->
+<button class="floating-install-btn" id="floatingInstallBtn">
     <i class="fas fa-download"></i> تثبيت التطبيق
 </button>
 
@@ -1361,31 +1426,23 @@ body {
     </div>
 </div>
 
+<!-- شريط الإعلانات -->
+<div class="ad-banner" id="adBanner">
+    <div class="ad-container">
+        <div class="ad-content">
+            <i class="fas fa-ad"></i>
+            <span>تطبيق AZ السوق الشامل - أفضل منصة للتسوق الإلكتروني في اليمن</span>
+            <i class="fas fa-star"></i>
+            <span>للإعلان على الموقع: 772299420</span>
+        </div>
+    </div>
+</div>
+
 <!-- النص المتحرك في التذييل -->
 <div class="footer-marquee" id="footerMarquee">
     <div class="footer-text-container">
         <div class="footer-scrolling-text" id="footerScrollingText">
             الراعي الرسمي لهذا المتجر المميز سوفت للأنظمة المحاسبية المتكاملة أول نظام محاسبي يصنع حسب الطلب للطلب والاستفسار اتصل على 772299420
-        </div>
-    </div>
-</div>
-
-<!-- شاشة الحظر -->
-<div class="blocked-overlay" id="blockedOverlay">
-    <div class="blocked-container">
-        <div class="blocked-icon">
-            <i class="fas fa-ban"></i>
-        </div>
-        <h2 class="blocked-title">تم حظر الوصول</h2>
-        <p class="blocked-message">
-            عذراً، تم منعك من الوصول إلى هذا الموقع
-        </p>
-        <div class="blocked-reason" id="blockedReason">
-            سبب الحظر: مخالفة شروط الاستخدام
-        </div>
-        <div class="blocked-contact">
-            للاستفسار أو رفع الحظر، يرجى التواصل معنا:
-            <div class="blocked-phone">📞 772299420</div>
         </div>
     </div>
 </div>
@@ -1647,7 +1704,7 @@ function checkShareModalElements() {
         'closeShareModal': document.getElementById('closeShareModal'),
         'installChoiceModal': document.getElementById('installChoiceModal'),
         'shareAppBtn': document.getElementById('shareAppBtn'),
-        'pwaInstallBtn': document.getElementById('pwaInstallBtn')
+        'floatingInstallBtn': document.getElementById('floatingInstallBtn')
     };
     
     console.log('🔍 فحص عناصر نافذة المشاركة:');
@@ -1781,15 +1838,11 @@ class AdvancedVisitorTracker {
         this.currentPage = this.getCurrentPage();
         this.startTime = Date.now();
         this.isOnline = navigator.onLine;
-        this.isBlocked = false;
         this.heartbeatInterval = null;
-        this.blockCheckInterval = null;
         
         this.visitorsRef = database.ref('visitors');
         this.datVisitorsRef = database.ref('dat_visitors');
         this.bagVisitorsRef = database.ref('bag_visitors');
-        this.blockedVisitorsRef = database.ref('bannedVisitors');
-        this.blockedIPsRef = database.ref('blocked_ips');
         
         console.log('🚀 تم تهيئة نظام تتبع الزوار المتقدم');
         console.log('🆔 معرف الزائر:', this.visitorId);
@@ -1840,17 +1893,10 @@ class AdvancedVisitorTracker {
     async startTracking() {
         console.log('📊 بدء تتبع الزائر...');
         
-        const isBlocked = await this.checkIfBlocked();
-        if (isBlocked) {
-            this.handleBlocked({ reason: 'تم حظر هذا الزائر من قبل الإدارة' });
-            return;
-        }
-        
         const ipAddress = await this.getIPAddress();
         await this.registerVisitor(ipAddress);
         
         this.startHeartbeat();
-        this.startBlockCheck();
         this.setupEventListeners();
         
         console.log('✅ تم بدء تتبع الزائر بنجاح');
@@ -2020,94 +2066,13 @@ class AdvancedVisitorTracker {
     
     startHeartbeat() {
         this.heartbeatInterval = setInterval(async () => {
-            if (!this.isBlocked) {
-                const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
-                if (visitorData.visitorNumber) {
-                    await this.visitorsRef.child(visitorData.visitorNumber).update({
-                        lastActivity: new Date().toISOString()
-                    });
-                }
-            }
-        }, 30000);
-    }
-    
-    startBlockCheck() {
-        this.blockCheckInterval = setInterval(async () => {
-            await this.checkIfBlocked();
-        }, 15000);
-    }
-    
-    async checkIfBlocked() {
-        try {
-            if (!this.isOnline) return false;
-            
             const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
-            
             if (visitorData.visitorNumber) {
-                const visitorSnapshot = await this.visitorsRef.child(visitorData.visitorNumber).once('value');
-                const visitor = visitorSnapshot.val();
-                
-                if (visitor && visitor.status === 'محظور') {
-                    this.handleBlocked({ reason: 'تم حظر هذا الزائر من قبل الإدارة' });
-                    return true;
-                }
-            }
-            
-            if (visitorData.ip && visitorData.ip !== 'unknown') {
-                const ipKey = visitorData.ip.replace(/\./g, '_');
-                const ipSnapshot = await this.blockedIPsRef.child(ipKey).once('value');
-                const ipBlocked = ipSnapshot.val();
-                
-                if (ipBlocked && ipBlocked.status === 'blocked') {
-                    this.handleBlocked(ipBlocked);
-                    return true;
-                }
-            }
-            
-            const bannedSnapshot = await this.blockedVisitorsRef.once('value');
-            if (bannedSnapshot.exists()) {
-                bannedSnapshot.forEach(childSnapshot => {
-                    const bannedData = childSnapshot.val();
-                    if (bannedData.ip === visitorData.ip) {
-                        this.handleBlocked({ reason: bannedData.reason || 'تم حظر هذا IP من قبل الإدارة' });
-                        return true;
-                    }
-                    if (bannedData.visitorId === this.visitorId) {
-                        this.handleBlocked({ reason: bannedData.reason || 'تم حظر هذا الزائر من قبل الإدارة' });
-                        return true;
-                    }
+                await this.visitorsRef.child(visitorData.visitorNumber).update({
+                    lastActivity: new Date().toISOString()
                 });
             }
-            
-            return false;
-            
-        } catch (error) {
-            console.error('❌ خطأ في فحص الحظر:', error);
-            return false;
-        }
-    }
-    
-    handleBlocked(blockedData) {
-        this.isBlocked = true;
-        this.showBlockedScreen(blockedData);
-        this.stopTracking();
-        
-        document.body.style.overflow = 'hidden';
-        document.body.style.pointerEvents = 'none';
-        
-        console.log('🚫 تم حظر الزائر:', blockedData.reason);
-    }
-    
-    showBlockedScreen(blockedData) {
-        const blockedOverlay = document.getElementById('blockedOverlay');
-        const blockedReason = document.getElementById('blockedReason');
-        
-        if (blockedData.reason) {
-            blockedReason.textContent = `سبب الحظر: ${blockedData.reason}`;
-        }
-        
-        blockedOverlay.classList.add('show');
-        blockedOverlay.style.pointerEvents = 'all';
+        }, 30000);
     }
     
     setupEventListeners() {
@@ -2166,10 +2131,6 @@ class AdvancedVisitorTracker {
             clearInterval(this.heartbeatInterval);
             this.heartbeatInterval = null;
         }
-        if (this.blockCheckInterval) {
-            clearInterval(this.blockCheckInterval);
-            this.blockCheckInterval = null;
-        }
         
         console.log('🛑 تم إيقاف مراقبة الزائر');
     }
@@ -2203,9 +2164,9 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 function showPWAInstallButton() {
-    const installBtn = document.getElementById('pwaInstallBtn');
+    const installBtn = document.getElementById('floatingInstallBtn');
     if (installBtn) {
-        installBtn.style.display = 'block';
+        installBtn.style.display = 'flex';
     }
 }
 
@@ -2614,6 +2575,39 @@ function setupAdminLogin() {
     });
 }
 
+// ===== نظام شريط الإعلانات =====
+function setupAdBanner() {
+    const adBanner = document.getElementById('adBanner');
+    const adContent = document.querySelector('.ad-content');
+    
+    if (adBanner && adContent) {
+        // إظهار شريط الإعلانات بعد تحميل الصفحة
+        setTimeout(() => {
+            adBanner.style.animation = 'footerSlideUp 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards';
+        }, 2500);
+        
+        // تغيير الإعلان كل 10 ثوانٍ
+        const adTexts = [
+            'تطبيق AZ السوق الشامل - أفضل منصة للتسوق الإلكتروني في اليمن',
+            'للإعلان على الموقع: 772299420',
+            'تسوق بسهولة وأمان مع AZ السوق الشامل',
+            'خدمات متكاملة للتسوق الإلكتروني والخدمات التجارية',
+            'AZ السوق الشامل - لتلبية احتياجك بالكامل'
+        ];
+        
+        let currentAdIndex = 0;
+        setInterval(() => {
+            currentAdIndex = (currentAdIndex + 1) % adTexts.length;
+            adContent.innerHTML = `
+                <i class="fas fa-ad"></i>
+                <span>${adTexts[currentAdIndex]}</span>
+                <i class="fas fa-star"></i>
+                <span>للإعلان على الموقع: 772299420</span>
+            `;
+        }, 10000);
+    }
+}
+
 // ===== أحداث تحميل الصفحة والتفاعل =====
 document.addEventListener('DOMContentLoaded', function() {
     // التحقق من وجود إصدار جديد وحذف البيانات المؤقتة
@@ -2643,6 +2637,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // تهيئة تسجيل الدخول للإدارة
     setupAdminLogin();
+    
+    // تهيئة شريط الإعلانات
+    setupAdBanner();
     
     // الانتقال التلقائي إلى حاوية خدمات التسوق الإلكتروني
     setTimeout(() => {
@@ -2719,9 +2716,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setupInstallChoice();
     setupShareModal();
     
-    const pwaInstallBtn = document.getElementById('pwaInstallBtn');
-    if (pwaInstallBtn) {
-        pwaInstallBtn.addEventListener('click', showInstallChoice);
+    const floatingInstallBtn = document.getElementById('floatingInstallBtn');
+    if (floatingInstallBtn) {
+        floatingInstallBtn.addEventListener('click', showInstallChoice);
     }
     
     if ('serviceWorker' in navigator) {
@@ -2735,6 +2732,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     }
+    
+    // عرض مقاس الشاشة عند التحميل
+    const screenSize = {
+        width: window.innerWidth,
+        height: window.innerHeight
+    };
+    console.log('📱 مقاس الشاشة:', screenSize.width + 'x' + screenSize.height);
 });
 
 // ===== معالجة الأخطاء العامة =====
