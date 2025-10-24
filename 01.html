@@ -444,6 +444,7 @@
             width: 100%;
             height: 200px;
             object-fit: cover;
+            cursor: pointer;
         }
 
         @media (min-width: 768px) {
@@ -1058,30 +1059,6 @@
             min-width: 200px;
         }
 
-        .view-toggle {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .view-btn {
-            background: rgba(102, 126, 234, 0.1);
-            color: var(--primary-color);
-            border: 2px solid #667eea;
-            padding: 0.5rem 1rem;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .view-btn.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .view-btn:hover:not(.active) {
-            background: rgba(102, 126, 234, 0.2);
-        }
-
         .product-date {
             font-size: 0.8rem;
             color: #64748b;
@@ -1272,12 +1249,6 @@
                             <option value="price_low">السعر (منخفض إلى مرتفع)</option>
                             <option value="price_high">السعر (مرتفع إلى منخفض)</option>
                         </select>
-                        
-                        <div class="view-toggle">
-                            <button class="view-btn active" data-view="list">
-                                <i class="fas fa-list"></i> عرض قائمة
-                            </button>
-                        </div>
                     </div>
 
                     <div class="form-group">
@@ -2421,6 +2392,9 @@
             
             // إخفاء أدوات التعديل
             document.getElementById('adjustment-controls').style.display = 'none';
+            
+            // لا نقوم بإعادة تعيين النموذج هنا لمنع فقدان البيانات
+            showToast('تم إغلاق محرر الصور', 'info');
         }
 
         // حفظ الصورة المحررة - محدث
@@ -2545,9 +2519,12 @@
                     .filter(([id, product]) => product.userId === currentUser.id)
                     .map(([id, product]) => ({
                         ...product,
-                        id
+                        id,
+                        // إضافة حقل الترتيب إذا لم يكن موجوداً
+                        order: product.order || product.createdAt || product.date || 0
                     }));
                 
+                // الترتيب حسب حقل الترتيب (الأحدث أولاً)
                 sortProducts('newest');
                 
             } catch (error) {
@@ -2558,7 +2535,7 @@
             }
         }
 
-        // ترتيب المنتجات
+        // ترتيب المنتجات حسب حقل الترتيب
         function sortProducts(sortBy = null) {
             if (!sortBy) {
                 sortBy = document.getElementById('sort-products').value;
@@ -2569,16 +2546,16 @@
             switch(sortBy) {
                 case 'newest':
                     sortedProducts.sort((a, b) => {
-                        const dateA = a.createdAt || a.date || 0;
-                        const dateB = b.createdAt || b.date || 0;
-                        return dateB - dateA;
+                        const orderA = a.order || a.createdAt || a.date || 0;
+                        const orderB = b.order || b.createdAt || b.date || 0;
+                        return orderB - orderA; // الأحدث أولاً
                     });
                     break;
                 case 'oldest':
                     sortedProducts.sort((a, b) => {
-                        const dateA = a.createdAt || a.date || 0;
-                        const dateB = b.createdAt || b.date || 0;
-                        return dateA - dateB;
+                        const orderA = a.order || a.createdAt || a.date || 0;
+                        const orderB = b.order || b.createdAt || b.date || 0;
+                        return orderA - orderB; // الأقدم أولاً
                     });
                     break;
                 case 'name_asc':
@@ -2862,7 +2839,8 @@
                         imageUrls: finalImageUrls,
                         userId: currentUser.id,
                         updatedAt: Date.now(),
-                        date: date
+                        date: date,
+                        order: Date.now() // تحديث حقل الترتيب
                     };
                 } else {
                     productId = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -2875,7 +2853,8 @@
                         imageUrls: finalImageUrls,
                         userId: currentUser.id,
                         createdAt: Date.now(),
-                        date: date
+                        date: date,
+                        order: Date.now() // إضافة حقل الترتيب
                     };
                 }
                 
