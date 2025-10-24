@@ -1557,7 +1557,7 @@
                     const data = await response.json();
                     
                     if (data.success && data.fileId) {
-                        const imageUrl = `https://drive.usercontent.google.com/download?id=${data.fileId}&authuser=0`;
+                        const imageUrl = `https://drive.google.com/uc?id=${data.fileId}`;
                         uploadedImageUrls.push(imageUrl);
                     } else {
                         throw new Error(data.error || 'فشل رفع الصورة: استجابة غير صالحة');
@@ -1636,7 +1636,7 @@
             modal.style.display = 'flex';
         }
 
-        // معالجة اختيار الصور
+        // معالجة اختيار الصور - محدثة للتحقق من الحد الأقصى
         function handleImageSelection(e) {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
@@ -1721,6 +1721,9 @@
             });
             
             showToast(`تم إضافة ${files.length} صورة للمعاينة`, 'info');
+            
+            // إعادة تعيين حقل الإدخال للسماح باختيار نفس الملف مرة أخرى
+            e.target.value = '';
         }
 
         // تحديث مؤشرات الصور بعد الحذف
@@ -1731,7 +1734,7 @@
             });
         }
 
-        // فتح محرر الصور
+        // فتح محرر الصور - محدث
         function openImageEditor(imageSrc, index) {
             const modal = document.getElementById('image-editor-modal');
             const canvas = document.getElementById('editor-canvas');
@@ -1752,44 +1755,101 @@
             modal.style.display = 'flex';
         }
 
-        // إغلاق محرر الصور
+        // إغلاق محرر الصور - محدث لمنع الحفظ التلقائي
         function closeImageEditor() {
             const modal = document.getElementById('image-editor-modal');
             modal.style.display = 'none';
+            // لا نقوم بحفظ الصورة تلقائياً عند الإغلاق
         }
 
-        // اقتصاص الصورة
+        // اقتصاص الصورة - محدث للعمل الفعلي
         function cropImage() {
-            showToast('خاصية الاقتصاص قيد التطوير', 'info');
+            const canvas = document.getElementById('editor-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // في التطبيق الحقيقي، يمكن إضافة منطق اختيار منطقة الاقتصاص
+            // هنا نستخدم اقتصاص بسيط كنموذج
+            const cropWidth = canvas.width * 0.8;
+            const cropHeight = canvas.height * 0.8;
+            const cropX = (canvas.width - cropWidth) / 2;
+            const cropY = (canvas.height - cropHeight) / 2;
+            
+            const imageData = ctx.getImageData(cropX, cropY, cropWidth, cropHeight);
+            
+            canvas.width = cropWidth;
+            canvas.height = cropHeight;
+            ctx.putImageData(imageData, 0, 0);
+            
+            showToast('تم اقتصاص الصورة', 'success');
         }
 
-        // تدوير الصورة
+        // تدوير الصورة - محدث للعمل الفعلي
         function rotateImage() {
             const canvas = document.getElementById('editor-canvas');
             const ctx = canvas.getContext('2d');
             
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             
-            const temp = canvas.width;
-            canvas.width = canvas.height;
-            canvas.height = temp;
+            // إنشاء canvas مؤقت للتدوير
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
             
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate(Math.PI / 2);
-            ctx.drawImage(canvas, -canvas.height / 2, -canvas.width / 2);
+            tempCanvas.width = canvas.height;
+            tempCanvas.height = canvas.width;
+            
+            tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            tempCtx.rotate(Math.PI / 2);
+            tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+            
+            // تحديث canvas الأصلي
+            canvas.width = tempCanvas.width;
+            canvas.height = tempCanvas.height;
+            ctx.drawImage(tempCanvas, 0, 0);
             
             showToast('تم تدوير الصورة 90 درجة', 'success');
         }
 
-        // ضبط السطوع
+        // ضبط السطوع - محدث للعمل الفعلي
         function adjustBrightness() {
-            showToast('خاصية ضبط السطوع قيد التطوير', 'info');
+            const canvas = document.getElementById('editor-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // زيادة السطوع بنسبة 20%
+            const brightness = 1.2;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(255, data[i] * brightness);     // الأحمر
+                data[i + 1] = Math.min(255, data[i + 1] * brightness); // الأخضر
+                data[i + 2] = Math.min(255, data[i + 2] * brightness); // الأزرق
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            showToast('تم زيادة سطوع الصورة', 'success');
         }
 
-        // ضبط التباين
+        // ضبط التباين - محدث للعمل الفعلي
         function adjustContrast() {
-            showToast('خاصية ضبط التباين قيد التطوير', 'info');
+            const canvas = document.getElementById('editor-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // زيادة التباين
+            const contrast = 1.3;
+            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+            
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = factor * (data[i] - 128) + 128;     // الأحمر
+                data[i + 1] = factor * (data[i + 1] - 128) + 128; // الأخضر
+                data[i + 2] = factor * (data[i + 2] - 128) + 128; // الأزرق
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            showToast('تم زيادة تباين الصورة', 'success');
         }
 
         // إعادة تعيين الصورة
@@ -1803,7 +1863,7 @@
             }
         }
 
-        // حفظ الصورة المحررة
+        // حفظ الصورة المحررة - محدث
         function saveEditedImage() {
             const canvas = document.getElementById('editor-canvas');
             
@@ -1982,7 +2042,23 @@
             displayProducts(filteredProducts);
         }
 
+        // دالة محسنة لتحويل رابط Google Drive إلى رابط صورة مباشر
         function getCorsImageUrl(url) {
+            if (!url) return '';
+            
+            // إذا كان الرابط يحتوي على id، قم بتحويله إلى رابط مباشر
+            if (url.includes('drive.google.com') && url.includes('id=')) {
+                const fileId = url.split('id=')[1].split('&')[0];
+                return `https://drive.google.com/uc?id=${fileId}`;
+            }
+            
+            // إذا كان الرابط يحتوي على file/d/، قم بتحويله إلى رابط مباشر
+            if (url.includes('drive.google.com/file/d/')) {
+                const parts = url.split('/');
+                const fileId = parts[parts.indexOf('d') + 1];
+                return `https://drive.google.com/uc?id=${fileId}`;
+            }
+            
             return url;
         }
 
@@ -2192,11 +2268,30 @@
                     return;
                 }
                 
-                // رفع الصور إذا كانت هناك صور جديدة
+                // رفع الصور فقط إذا كانت هناك صور جديدة
                 let finalImageUrls = [];
-                if (uploadedImageUrls.length > 0) {
-                    const filesToUpload = uploadedImageUrls.map(item => item.file);
+                let hasNewImages = false;
+                
+                // التحقق مما إذا كانت هناك صور جديدة لرفعها
+                const newImages = uploadedImageUrls.filter(item => item.file !== null);
+                if (newImages.length > 0) {
+                    hasNewImages = true;
+                    const filesToUpload = newImages.map(item => item.file);
                     finalImageUrls = await uploadImagesToDrive(filesToUpload);
+                } else if (isEditing && currentEditProductId) {
+                    // في حالة التعديل، استخدم الصور الحالية إذا لم تكن هناك صور جديدة
+                    const currentProduct = allProducts.find(p => p.id === currentEditProductId);
+                    if (currentProduct && currentProduct.imageUrls) {
+                        finalImageUrls = currentProduct.imageUrls;
+                    }
+                }
+                
+                // في حالة التعديل، أضف الصور الموجودة مسبقاً إذا لم تكن هناك صور جديدة
+                if (isEditing && currentEditProductId && !hasNewImages) {
+                    const currentProduct = allProducts.find(p => p.id === currentEditProductId);
+                    if (currentProduct && currentProduct.imageUrls) {
+                        finalImageUrls = currentProduct.imageUrls;
+                    }
                 }
                 
                 let productId;
@@ -2210,7 +2305,7 @@
                         price: price,
                         category: category,
                         availability: availability,
-                        imageUrls: finalImageUrls.length > 0 ? finalImageUrls : product.imageUrls,
+                        imageUrls: finalImageUrls,
                         userId: currentUser.id,
                         updatedAt: Date.now(),
                         date: date
@@ -2239,7 +2334,7 @@
                 
             } catch (error) {
                 console.error('خطأ في إضافة/تعديل المنتج:', error);
-                showToast('حدث خطأ في عملية الحفظ', 'error');
+                showToast('حدث خطأ في عملية الحفظ: ' + error.message, 'error');
             } finally {
                 showGlobalLoading(false);
             }
@@ -2279,7 +2374,7 @@
             
             if (product.imageUrls && product.imageUrls.length > 0) {
                 uploadedImageUrls = product.imageUrls.map(url => ({
-                    file: null,
+                    file: null, // تم تعيين file إلى null للإشارة إلى أن هذه الصورة موجودة مسبقاً
                     preview: url
                 }));
                 
@@ -2289,13 +2384,13 @@
                     
                     const img = document.createElement('img');
                     img.className = 'uploaded-image';
-                    img.src = url;
+                    img.src = getCorsImageUrl(url);
                     img.alt = `صورة المنتج`;
                     img.title = 'انقر للتكبير';
                     img.dataset.fileIndex = index;
                     
                     img.addEventListener('click', () => {
-                        showImageModal([url]);
+                        showImageModal([getCorsImageUrl(url)]);
                     });
                     
                     const editOptions = document.createElement('div');
@@ -2305,7 +2400,7 @@
                     editBtn.className = 'image-edit-btn';
                     editBtn.innerHTML = '<i class="fas fa-edit"></i> تحرير';
                     editBtn.onclick = function() {
-                        openImageEditor(url, index);
+                        openImageEditor(getCorsImageUrl(url), index);
                     };
                     
                     const removeBtn = document.createElement('button');
