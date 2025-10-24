@@ -9,14 +9,19 @@
     <meta name="author" content="AZ السوق الشامل">
     <meta name="google-site-verification" content="Py26cVMd571vmKQo4rbXGAKTvCgiuTym5A9JfBGFqZQ" />
     
+    <!-- منع التخزين المؤقت للمتصفح -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/Call/manifest.json">
+    <link rel="manifest" href="/Call/manifest.json?v=2">
     <meta name="theme-color" content="#3498db">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="AZ السوق الشامل">
-    <link rel="apple-touch-icon" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true">
-    <link rel="icon" type="image/png" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true">
+    <link rel="apple-touch-icon" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true&v=2">
+    <link rel="icon" type="image/png" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true&v=2">
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -1389,13 +1394,78 @@ body {
 <div class="toast-container" id="toastContainer" style="display: none;"></div>
 
 <script>
+// ===== نظام التحديث التلقائي =====
+function getAutoVersion() {
+    // استخدام تاريخ ووقت اليوم كإصدار (يتغير تلقائياً كل دقيقة)
+    const now = new Date();
+    const version = now.getFullYear() + '.' + 
+                   (now.getMonth() + 1) + '.' + 
+                   now.getDate() + '.' +
+                   now.getHours() + '.' +
+                   now.getMinutes();
+    return version;
+}
+
+const CACHE_VERSION = getAutoVersion();
+console.log('🔄 إصدار التطبيق الحالي:', CACHE_VERSION);
+
+// ===== نظام منع التخزين المؤقت =====
+function clearAllCache() {
+    console.log('🧹 بدء حذف جميع البيانات المؤقتة...');
+    
+    // حذف بيانات الجلسة
+    sessionStorage.clear();
+    
+    // حذف بيانات التخزين المحلي
+    localStorage.clear();
+    
+    // حذف بيانات التخزين المؤقت للمتصفح
+    if ('caches' in window) {
+        caches.keys().then(function(names) {
+            names.forEach(function(name) {
+                caches.delete(name);
+            });
+        });
+    }
+    
+    // حذف cookies
+    document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    
+    console.log('✅ تم حذف جميع البيانات المؤقتة بنجاح');
+}
+
+// التحقق من وجود إصدار جديد
+function checkForNewVersion() {
+    const lastVersion = localStorage.getItem('app_version');
+    
+    if (lastVersion !== CACHE_VERSION) {
+        console.log('🆕 تم اكتشاف إصدار جديد:', CACHE_VERSION, 'الإصدار السابق:', lastVersion);
+        clearAllCache();
+        localStorage.setItem('app_version', CACHE_VERSION);
+        
+        // عرض رسالة للمستخدم عن التحديث
+        setTimeout(() => {
+            showNotification('🔄 تم تحديث التطبيق إلى الإصدار ' + CACHE_VERSION, 'success');
+        }, 1000);
+        
+        return true;
+    }
+    
+    console.log('✅ الإصدار الحالي هو الأحدث');
+    return false;
+}
+
 // ===== نظام حذف البيانات عند فتح الصفحة =====
 function clearPageData() {
+    console.log('🧹 بدء حذف بيانات الصفحة...');
+    
     // حذف بيانات الجلسة
     sessionStorage.clear();
     
     // حذف بيانات التخزين المحلي المتعلقة بالصفحة
-    const keysToKeep = ['visitorId', 'firstVisit', 'visitorData', 'visitorData_timestamp'];
+    const keysToKeep = ['visitorId', 'firstVisit', 'visitorData', 'visitorData_timestamp', 'app_version'];
     const allKeys = Object.keys(localStorage);
     
     allKeys.forEach(key => {
@@ -1404,7 +1474,48 @@ function clearPageData() {
         }
     });
     
-    console.log('🧹 تم حذف بيانات الصفحة بنجاح');
+    // إضافة طابع زمني لجميع الطلبات لمنع التخزين المؤقت
+    const timestamp = new Date().getTime();
+    const links = document.querySelectorAll('link[rel="stylesheet"], script[src]');
+    
+    links.forEach(link => {
+        const url = new URL(link.href || link.src, window.location.href);
+        url.searchParams.set('v', timestamp);
+        if (link.href) link.href = url.href;
+        if (link.src) link.src = url.href;
+    });
+    
+    console.log('✅ تم حذف بيانات الصفحة بنجاح');
+}
+
+// ===== نظام الإشعارات =====
+function showNotification(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    toastContainer.appendChild(toast);
+    toastContainer.style.display = 'block';
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+        if (toastContainer.children.length === 0) {
+            toastContainer.style.display = 'none';
+        }
+    }, 5000);
 }
 
 // ===== نظام مراقبة التجار غير النشطين =====
@@ -2148,7 +2259,7 @@ function downloadAppDirect() {
             window.URL.revokeObjectURL(url);
             
             setTimeout(() => {
-                alert('✅ تم تحميل التطبيق بنجاح! ابحث عن الملف في مجلد التنزيلات وقم بتثبيته.');
+                showNotification('✅ تم تحميل التطبيق بنجاح! ابحث عن الملف في مجلد التنزيلات وقم بتثبيته.', 'success');
             }, 1000);
         })
         .catch(error => {
@@ -2162,7 +2273,7 @@ function downloadAppDirect() {
             link.click();
             document.body.removeChild(link);
             
-            alert('📱 جاري تحميل التطبيق... ابحث عن الملف في مجلد التنزيلات بعد اكتمال التحميل.');
+            showNotification('📱 جاري تحميل التطبيق... ابحث عن الملف في مجلد التنزيلات بعد اكتمال التحميل.', 'info');
         });
 }
 
@@ -2235,12 +2346,12 @@ function setupInstallChoice() {
             const success = await installPWA();
             if (success) {
                 modal.classList.remove('show');
-                alert('✅ تم بدء تثبيت التطبيق بنجاح!');
+                showNotification('✅ تم بدء تثبيت التطبيق بنجاح!', 'success');
             } else {
-                alert('❌ تم إلغاء التثبيت. يرجى استخدام خيار التحميل بدلاً من ذلك.');
+                showNotification('❌ تم إلغاء التثبيت. يرجى استخدام خيار التحميل بدلاً من ذلك.', 'error');
             }
         } else {
-            alert('❌ التثبيت التلقائي غير متاح. يرجى استخدام خيار التحميل بدلاً من ذلك.');
+            showNotification('❌ التثبيت التلقائي غير متاح. يرجى استخدام خيار التحميل بدلاً من ذلك.', 'error');
         }
     });
     
@@ -2279,18 +2390,20 @@ function shareOnWhatsApp() {
     const url = `https://wa.me/?text=${encodeURIComponent('تطبيق AZ السوق الشامل - لتلبية احتياجك بالكامل\n\nقم بتحميل التطبيق الآن:\nhttps://e772299420-hue.github.io/Call/')}`;
     window.open(url, '_blank');
     console.log('📱 مشاركة عبر واتساب');
+    showNotification('📱 جاري فتح واتساب للمشاركة...', 'info');
 }
 
 function shareOnTelegram() {
     const url = `https://t.me/share/url?url=${encodeURIComponent('https://e772299420-hue.github.io/Call/')}&text=${encodeURIComponent('تطبيق AZ السوق الشامل - لتلبية احتياجك بالكامل')}`;
     window.open(url, '_blank');
     console.log('📢 مشاركة عبر تليجرام');
+    showNotification('📢 جاري فتح تليجرام للمشاركة...', 'info');
 }
 
 function copyAppLink() {
     const appLink = 'https://e772299420-hue.github.io/Call/';
     navigator.clipboard.writeText(appLink).then(() => {
-        alert('✅ تم نسخ رابط التطبيق! يمكنك مشاركته الآن.');
+        showNotification('✅ تم نسخ رابط التطبيق! يمكنك مشاركته الآن.', 'success');
         console.log('📋 نسخ الرابط');
     }).catch(() => {
         const tempInput = document.createElement('input');
@@ -2299,7 +2412,7 @@ function copyAppLink() {
         tempInput.select();
         document.execCommand('copy');
         document.body.removeChild(tempInput);
-        alert('✅ تم نسخ رابط التطبيق! يمكنك مشاركته الآن.');
+        showNotification('✅ تم نسخ رابط التطبيق! يمكنك مشاركته الآن.', 'success');
     });
 }
 
@@ -2309,6 +2422,7 @@ function shareViaEmail() {
     const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = url;
     console.log('📧 مشاركة عبر البريد الإلكتروني');
+    showNotification('📧 جاري فتح البريد الإلكتروني للمشاركة...', 'info');
 }
 
 function shareViaSMS() {
@@ -2316,21 +2430,26 @@ function shareViaSMS() {
     const url = `sms:?body=${encodeURIComponent(body)}`;
     window.location.href = url;
     console.log('💬 مشاركة عبر الرسائل النصية');
+    showNotification('💬 جاري فتح الرسائل النصية للمشاركة...', 'info');
 }
 
 function shareViaMessenger() {
     const url = `fb-messenger://share?link=${encodeURIComponent('https://e772299420-hue.github.io/Call/')}`;
     window.open(url, '_blank');
     console.log('💙 مشاركة عبر ماسنجر');
+    showNotification('💙 جاري فتح ماسنجر للمشاركة...', 'info');
 }
 
 // ===== وظائف التطبيق الأساسية =====
 function refreshPage() {
-    location.reload();
+    // إضافة طابع زمني لمنع التخزين المؤقت
+    const timestamp = new Date().getTime();
+    window.location.href = window.location.pathname + '?v=' + timestamp;
 }
 
 function openPage(pageUrl) {
-    const fullUrl = '/Call/' + pageUrl;
+    const timestamp = new Date().getTime();
+    const fullUrl = '/Call/' + pageUrl + '?v=' + timestamp;
     
     if (typeof visitorTracker !== 'undefined') {
         visitorTracker.updatePageExit().then(() => {
@@ -2497,6 +2616,13 @@ function setupAdminLogin() {
 
 // ===== أحداث تحميل الصفحة والتفاعل =====
 document.addEventListener('DOMContentLoaded', function() {
+    // التحقق من وجود إصدار جديد وحذف البيانات المؤقتة
+    const isNewVersion = checkForNewVersion();
+    
+    if (isNewVersion) {
+        console.log('🔄 تحميل الإصدار الجديد:', CACHE_VERSION);
+    }
+    
     // حذف بيانات الصفحة عند فتحها
     clearPageData();
     
