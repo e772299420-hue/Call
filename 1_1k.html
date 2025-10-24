@@ -53,6 +53,18 @@
             animation: slideAd 20s linear infinite;
         }
 
+        .top-ad-link {
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .top-ad-link:hover {
+            color: #ffeaa7;
+            text-decoration: underline;
+        }
+
         .ad-badge {
             background: rgba(255,255,255,0.2);
             padding: 4px 12px;
@@ -268,7 +280,7 @@
             flex: 1;
         }
 
-        /* الإعلانات - إخفاء جميع الإعلانات باستثناء الإعلان الأخير */
+        /* ✅ تحسينات الإعلانات */
         .ad-container {
             margin: 20px auto;
             text-align: center;
@@ -277,12 +289,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             background: white;
             padding: 10px;
-            display: none; /* إخفاء جميع الإعلانات افتراضياً */
-        }
-
-        /* إظهار الإعلان الأخير فقط */
-        .ad-container:last-of-type {
-            display: block;
+            display: block; /* ✅ إصلاح: إظهار جميع الإعلانات */
         }
 
         .ad-banner {
@@ -302,6 +309,60 @@
             color: #666;
             margin-bottom: 8px;
             text-align: center;
+        }
+
+        /* ✅ تذييلة الإعلانات */
+        .footer-ads {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            padding: 20px;
+            margin-top: 40px;
+            border-top: 3px solid #007bff;
+        }
+
+        .footer-ads-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-ad-item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .footer-ad-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .footer-ad-title {
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .footer-ad-description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .footer-ad-badge {
+            background: #007bff;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-top: 10px;
+            display: inline-block;
         }
 
         /* المنتجات */
@@ -983,6 +1044,10 @@
             .notification {
                 top: 70px;
             }
+
+            .footer-ads-container {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1026,7 +1091,9 @@
     <div class="top-ad-bar" id="top-ad-bar">
         <div class="top-ad-content" id="top-ad-content">
             <span class="ad-badge">إعلان</span>
-            <span id="ad-text">عروض خاصة على المنتجات المميزة - تسوق الآن واحصل على خصومات تصل إلى 50%</span>
+            <a href="#" class="top-ad-link" id="ad-link" target="_blank">
+                <span id="ad-text">عروض خاصة على المنتجات المميزة - تسوق الآن واحصل على خصومات تصل إلى 50%</span>
+            </a>
         </div>
         <div class="ad-timer" id="ad-timer">20s</div>
     </div>
@@ -1091,15 +1158,33 @@
     <!-- ✅ المنتجات -->
     <div id="products" class="products-container"></div>
 
-    <!-- ✅ إعلان في أسفل الصفحة فقط -->
+    <!-- ✅ إعلانات AdSense في وسط الصفحة -->
     <div class="ad-container">
-        <div class="ad-label">إعلان</div>
+        <div class="ad-label">إعلان - Google AdSense</div>
         <ins class="adsbygoogle ad-banner"
              style="display:block"
              data-ad-client="ca-pub-1154460052219362"
              data-ad-slot="5678901234"
              data-ad-format="auto"
              data-full-width-responsive="true"></ins>
+    </div>
+
+    <!-- ✅ إعلان AdSense مربع -->
+    <div class="ad-container">
+        <div class="ad-label">إعلان - Google AdSense</div>
+        <ins class="adsbygoogle ad-square"
+             style="display:block"
+             data-ad-client="ca-pub-1154460052219362"
+             data-ad-slot="9876543210"
+             data-ad-format="rectangle"
+             data-full-width-responsive="true"></ins>
+    </div>
+
+    <!-- ✅ تذييلة الإعلانات -->
+    <div class="footer-ads" id="footer-ads">
+        <div class="footer-ads-container" id="footer-ads-container">
+            <!-- سيتم تحميل الإعلانات هنا ديناميكياً -->
+        </div>
     </div>
 
     <!-- ✅ معرض الصور المحسن -->
@@ -1210,6 +1295,7 @@
         const merchantsRef = ref(db, "merchants");
         const governoratesRef = ref(db, "governorates");
         const regionsRef = ref(db, "regions");
+        const adsRef = ref(db, "ads"); // ✅ إضافة مرجع للإعلانات
         
         const categoriesBar = document.getElementById("categories");
         const productsContainer = document.getElementById("products");
@@ -1223,6 +1309,7 @@
         let allMerchants = {};
         let allGovernorates = {};
         let allRegions = {};
+        let allAds = []; // ✅ تخزين الإعلانات
         let categoryProductCounts = {};
         let merchantProductCounts = {};
         let currentMerchantFilter = '';
@@ -1249,25 +1336,147 @@
         let adInterval;
         let currentAdIndex = 0;
         let timerSeconds = 20;
-        const ads = [
-            "🚀 عروض خاصة على المنتجات المميزة - تسوق الآن واحصل على خصومات تصل إلى 50%",
-            "🛒 توصيل مجاني للطلبات فوق 100 ريال - استمتع بتجربة تسوق فريدة",
-            "⭐ منتجات جديدة وصلت للتو - اكتشف أحدث صيحات الموضة والتكنولوجيا",
-            "🎁 عروض نهاية الأسبوع - خصومات حصرية على جميع الفئات",
-            "📱 تطبيقنا الجديد - حمله الآن واحصل على كوبون خصم 20 ريال",
-            "🔥 الأكثر مبيعاً - تعرف على المنتجات الأكثر طلباً هذا الشهر",
-            "💎 تشكيلة المجوهرات الفاخرة - هدايا مثالية بأسعار منافسة",
-            "👗 موضة الصيف - استعد للصيف بأحدث تشكيلات الأزياء",
-            "🏠 ديكور المنزل - اجعل منزلك أنيقاً مع تشكيلتنا الحصرية",
-            "🎧 إلكترونيات - أحدث الأجهزة والتقنيات بأسعار مذهلة"
+        
+        // ✅ الإعلانات الافتراضية (إذا فشل التحميل من Firebase)
+        const defaultAds = [
+            {
+                text: "🚀 عروض خاصة على المنتجات المميزة - تسوق الآن واحصل على خصومات تصل إلى 50%",
+                link: "https://example.com/offers",
+                backgroundColor: "linear-gradient(135deg, #ff6b6b, #ee5a24)",
+                type: "external"
+            },
+            {
+                text: "🛒 التطبيق مجاني بشكل عام - استمتع بتجربة تسوق فريدة",
+                link: "https://example.com/app",
+                backgroundColor: "linear-gradient(135deg, #4834d4, #686de0)",
+                type: "external"
+            },
+            {
+                text: "⭐ منتجات جديدة وصلت للتو - اكتشف أحدث صيحات الموضة والتكنولوجيا",
+                link: "https://example.com/new-arrivals",
+                backgroundColor: "linear-gradient(135deg, #00d2d3, #54a0ff)",
+                type: "external"
+            },
+            {
+                text: "🎁 عروض نهاية الأسبوع - خصومات حصرية على جميع الفئات",
+                link: "https://example.com/weekend-offers",
+                backgroundColor: "linear-gradient(135deg, #f368e0, #ff9ff3)",
+                type: "external"
+            },
+            {
+                text: "📱 تطبيقنا الجديد AZ السوق الشامل - حمله الآن واحصل على كوبون خصم 40%",
+                link: "https://example.com/az-app",
+                backgroundColor: "linear-gradient(135deg, #ff9f43, #feca57)",
+                type: "external"
+            }
         ];
+
+        // ✅ الإعلانات الافتراضية للتذييلة
+        const defaultFooterAds = [
+            {
+                title: "🔥 الأكثر مبيعاً",
+                description: "تعرف على المنتجات الأكثر طلباً هذا الشهر",
+                link: "https://example.com/best-sellers",
+                badge: "مميز"
+            },
+            {
+                title: "💎 تشكيلة المجوهرات",
+                description: "هدايا مثالية بأسعار منافسة وجودة عالية",
+                link: "https://example.com/jewelry",
+                badge: "جديد"
+            },
+            {
+                title: "👗 موضة الصيف",
+                description: "استعد للصيف بأحدث تشكيلات الأزياء والموضة",
+                link: "https://example.com/summer-fashion",
+                badge: "حصري"
+            },
+            {
+                title: "🏠 ديكور المنزل",
+                description: "اجعل منزلك أنيقاً مع تشكيلتنا الحصرية للأثاث",
+                link: "https://example.com/home-decor",
+                badge: "عرض"
+            }
+        ];
+
+        // ✅ وظيفة تحميل الإعلانات من Firebase
+        async function loadAdsFromFirebase() {
+            try {
+                onValue(adsRef, (snapshot) => {
+                    const firebaseAds = snapshot.val();
+                    if (firebaseAds && Object.keys(firebaseAds).length > 0) {
+                        // تحويل كائن Firebase إلى مصفوفة
+                        allAds = Object.values(firebaseAds);
+                        console.log('تم تحميل الإعلانات من Firebase:', allAds.length);
+                    } else {
+                        // استخدام الإعلانات الافتراضية إذا لم توجد إعلانات في Firebase
+                        allAds = [...defaultAds];
+                        console.log('استخدام الإعلانات الافتراضية');
+                    }
+                    
+                    // بدء دوران الإعلانات
+                    startAdRotation();
+                    
+                    // تحميل إعلانات التذييلة
+                    loadFooterAds();
+                    
+                }, (error) => {
+                    console.error('خطأ في تحميل الإعلانات من Firebase:', error);
+                    // استخدام الإعلانات الافتراضية في حالة الخطأ
+                    allAds = [...defaultAds];
+                    startAdRotation();
+                    loadFooterAds();
+                });
+            } catch (error) {
+                console.error('خطأ في تحميل الإعلانات:', error);
+                allAds = [...defaultAds];
+                startAdRotation();
+                loadFooterAds();
+            }
+        }
+
+        // ✅ وظيفة تحميل إعلانات التذييلة
+        function loadFooterAds() {
+            const footerContainer = document.getElementById('footer-ads-container');
+            footerContainer.innerHTML = '';
+
+            const adsToShow = defaultFooterAds; // يمكن استبدالها بالإعلانات من Firebase
+
+            adsToShow.forEach(ad => {
+                const adElement = document.createElement('div');
+                adElement.className = 'footer-ad-item';
+                adElement.innerHTML = `
+                    <div class="footer-ad-title">${ad.title}</div>
+                    <div class="footer-ad-description">${ad.description}</div>
+                    <div class="footer-ad-badge">${ad.badge}</div>
+                `;
+                
+                adElement.addEventListener('click', () => {
+                    trackAdClick(ad.title, 'footer');
+                    window.open(ad.link, '_blank');
+                });
+                
+                footerContainer.appendChild(adElement);
+            });
+        }
+
+        // ✅ وظيفة تتبع النقرات على الإعلانات
+        function trackAdClick(adName, position) {
+            console.log(`تم النقر على الإعلان: ${adName} من位置: ${position}`);
+            // هنا يمكنك إضافة كود لتتبع النقرات وإرسالها إلى الخادم
+            // لاحتساب الأرباح
+        }
 
         // ✅ وظيفة تبديل الإعلانات كل 20 ثانية
         function startAdRotation() {
+            if (allAds.length === 0) {
+                allAds = [...defaultAds];
+            }
+            
             updateAd();
             
             adInterval = setInterval(() => {
-                currentAdIndex = (currentAdIndex + 1) % ads.length;
+                currentAdIndex = (currentAdIndex + 1) % allAds.length;
                 updateAd();
             }, 20000); // 20 ثانية
             
@@ -1277,25 +1486,24 @@
 
         function updateAd() {
             const adText = document.getElementById('ad-text');
+            const adLink = document.getElementById('ad-link');
             const adBar = document.getElementById('top-ad-bar');
             
-            // تغيير لون الخلفية بشكل عشوائي
-            const colors = [
-                'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-                'linear-gradient(135deg, #4834d4, #686de0)',
-                'linear-gradient(135deg, #00d2d3, #54a0ff)',
-                'linear-gradient(135deg, #f368e0, #ff9ff3)',
-                'linear-gradient(135deg, #ff9f43, #feca57)',
-                'linear-gradient(135deg, #10ac84, #1dd1a1)',
-                'linear-gradient(135deg, #ee5a6f, #ff7675)',
-                'linear-gradient(135deg, #3742fa, #5352ed)'
-            ];
+            if (allAds.length === 0) return;
             
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            adBar.style.background = randomColor;
+            const currentAd = allAds[currentAdIndex];
             
-            // تحديث نص الإعلان
-            adText.textContent = ads[currentAdIndex];
+            // تحديث لون الخلفية
+            adBar.style.background = currentAd.backgroundColor || 'linear-gradient(135deg, #ff6b6b, #ee5a24)';
+            
+            // تحديث نص الإعلان والرابط
+            adText.textContent = currentAd.text;
+            adLink.href = currentAd.link;
+            
+            // إضافة مستمع حدث للنقر
+            adLink.onclick = () => {
+                trackAdClick(currentAd.text, 'top-bar');
+            };
             
             // إعادة تعيين العداد
             timerSeconds = 20;
@@ -1350,15 +1558,15 @@
             // إعداد أزرار التمرير
             setupScrollButtons();
 
-            // ✅ بدء دوران الإعلانات
-            startAdRotation();
+            // ✅ تحميل الإعلانات من Firebase
+            loadAdsFromFirebase();
 
-            // تحميل الإعلانات بعد تحميل المحتوى
-            loadAds();
+            // تحميل إعلانات Google AdSense
+            loadGoogleAds();
         });
 
-        // تحميل إعلانات Google AdSense
-        function loadAds() {
+        // ✅ تحميل إعلانات Google AdSense
+        function loadGoogleAds() {
             try {
                 // إنشاء سكريبت AdSense
                 const adScript = document.createElement('script');
@@ -1381,7 +1589,7 @@
                     console.error('فشل في تحميل سكريبت AdSense');
                 };
             } catch (error) {
-                console.error('خطأ في تحميل الإعلانات:', error);
+                console.error('خطأ في تحميل إعلانات AdSense:', error);
             }
         }
 
