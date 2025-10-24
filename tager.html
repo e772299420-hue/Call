@@ -77,6 +77,7 @@
             display: flex;
             margin-bottom: 20px;
             border-bottom: 2px solid #eee;
+            flex-wrap: wrap;
         }
         
         .tab {
@@ -520,6 +521,49 @@
             outline: none;
         }
         
+        /* تنسيقات جديدة للتبويبات */
+        .simple-merchant-item {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .simple-merchant-info {
+            flex: 1;
+        }
+        
+        .simple-merchant-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .simple-merchant-details {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .simple-detail {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .simple-detail strong {
+            color: #333;
+        }
+        
+        .simple-action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -566,6 +610,16 @@
             .search-box, .sort-box {
                 min-width: 100%;
             }
+            
+            .simple-merchant-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .simple-action-buttons {
+                align-self: flex-end;
+            }
         }
     </style>
 </head>
@@ -582,7 +636,9 @@
     <div class="container">
         <div class="tabs">
             <div class="tab active" data-tab="add">إضافة تاجر جديد</div>
-            <div class="tab" data-tab="view">عرض التجار</div>
+            <div class="tab" data-tab="view">عرض التجار النشطين</div>
+            <div class="tab" data-tab="requests">طلبات الانضمام</div>
+            <div class="tab" data-tab="suspended">التجار الموقوفين</div>
         </div>
         
         <div class="tab-content active" id="addTab">
@@ -606,7 +662,10 @@
                 
                 <div class="form-group">
                     <label for="merchant-job" class="required">الوظيفة</label>
-                    <input type="text" id="merchant-job" placeholder="أدخل الوظيفة" required>
+                    <select id="merchant-job" required>
+                        <option value="تاجر">تاجر</option>
+                        <option value="مطعم">مطعم</option>
+                    </select>
                 </div>
             </div>
             
@@ -703,26 +762,72 @@
         <div class="tab-content" id="viewTab">
             <div class="search-sort-container">
                 <div class="search-box">
-                    <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن تاجر بالاسم، المستخدم، الوظيفة، المنطقة...">
+                    <input type="text" id="searchViewInput" class="search-input" placeholder="ابحث عن تاجر بالاسم، المستخدم، الوظيفة، المنطقة...">
                 </div>
                 <div class="sort-box">
-                    <select id="sortSelect" class="sort-select">
-                        <option value="name-asc">الاسم (أ-ي)</option>
-                        <option value="name-desc">الاسم (ي-أ)</option>
+                    <select id="sortViewSelect" class="sort-select">
                         <option value="date-desc">الأحدث أولاً</option>
                         <option value="date-asc">الأقدم أولاً</option>
-                        <option value="status-active">النشطون أولاً</option>
-                        <option value="status-inactive">الموقوفون أولاً</option>
+                        <option value="name-asc">الاسم (أ-ي)</option>
+                        <option value="name-desc">الاسم (ي-أ)</option>
                     </select>
                 </div>
             </div>
             
-            <div id="loadingIndicator" style="text-align: center; padding: 20px;">
+            <div id="viewLoadingIndicator" style="text-align: center; padding: 20px;">
                 <div class="loading-spinner"></div>
                 <p>جاري تحميل البيانات...</p>
             </div>
-            <div class="tree-view" id="merchantsTree" style="display: none;">
-                <!-- سيتم ملء هذه المنطقة بالتجار -->
+            <div class="tree-view" id="activeMerchantsList" style="display: none;">
+                <!-- سيتم ملء هذه المنطقة بالتجار النشطين -->
+            </div>
+        </div>
+        
+        <div class="tab-content" id="requestsTab">
+            <div class="search-sort-container">
+                <div class="search-box">
+                    <input type="text" id="searchRequestsInput" class="search-input" placeholder="ابحث عن طلب انضمام بالاسم، المستخدم، الجوال...">
+                </div>
+                <div class="sort-box">
+                    <select id="sortRequestsSelect" class="sort-select">
+                        <option value="date-desc">الأحدث أولاً</option>
+                        <option value="date-asc">الأقدم أولاً</option>
+                        <option value="name-asc">الاسم (أ-ي)</option>
+                        <option value="name-desc">الاسم (ي-أ)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="requestsLoadingIndicator" style="text-align: center; padding: 20px;">
+                <div class="loading-spinner"></div>
+                <p>جاري تحميل البيانات...</p>
+            </div>
+            <div class="tree-view" id="requestsList" style="display: none;">
+                <!-- سيتم ملء هذه المنطقة بطلبات الانضمام -->
+            </div>
+        </div>
+        
+        <div class="tab-content" id="suspendedTab">
+            <div class="search-sort-container">
+                <div class="search-box">
+                    <input type="text" id="searchSuspendedInput" class="search-input" placeholder="ابحث عن تاجر موقوف بالاسم، المستخدم، الجوال...">
+                </div>
+                <div class="sort-box">
+                    <select id="sortSuspendedSelect" class="sort-select">
+                        <option value="date-desc">الأحدث أولاً</option>
+                        <option value="date-asc">الأقدم أولاً</option>
+                        <option value="name-asc">الاسم (أ-ي)</option>
+                        <option value="name-desc">الاسم (ي-أ)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="suspendedLoadingIndicator" style="text-align: center; padding: 20px;">
+                <div class="loading-spinner"></div>
+                <p>جاري تحميل البيانات...</p>
+            </div>
+            <div class="tree-view" id="suspendedList" style="display: none;">
+                <!-- سيتم ملء هذه المنطقة بالتجار الموقوفين -->
             </div>
         </div>
     </div>
@@ -756,7 +861,10 @@
                 
                 <div class="form-group">
                     <label for="edit-merchant-job" class="required">الوظيفة</label>
-                    <input type="text" id="edit-merchant-job" required>
+                    <select id="edit-merchant-job" required>
+                        <option value="تاجر">تاجر</option>
+                        <option value="مطعم">مطعم</option>
+                    </select>
                 </div>
             </div>
             
@@ -851,6 +959,28 @@
         </div>
     </div>
     
+    <!-- نموذج تأكيد إرسال رسالة التفعيل -->
+    <div class="modal" id="activationModal">
+        <div class="modal-content">
+            <button class="close-modal" id="closeActivationModal">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <h2>إرسال رسالة تفعيل</h2>
+            
+            <p>هل ترغب بإرسال رسالة تفعيل إلى التاجر عبر الواتساب؟</p>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn" id="sendActivationBtn" style="flex: 1;">
+                    <span>نعم، إرسال</span>
+                </button>
+                <button class="btn btn-delete" id="cancelActivationBtn" style="flex: 1;">
+                    <span>لا، إلغاء</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <a href="mnjr_admin.html" class="back-btn">
         <i class="fas fa-arrow-right"></i> العودة إلى صفحة الإدارة
     </a>
@@ -892,12 +1022,8 @@
         const googleInput = document.getElementById('merchant-google');
         const getLocationBtn = document.getElementById('get-location-btn');
         const addMerchantBtn = document.getElementById('addMerchantBtn');
-        const merchantsTree = document.getElementById('merchantsTree');
-        const loadingIndicator = document.getElementById('loadingIndicator');
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
-        const searchInput = document.getElementById('searchInput');
-        const sortSelect = document.getElementById('sortSelect');
         
         // عناصر النماذج
         const editMerchantModal = document.getElementById('editMerchantModal');
@@ -927,10 +1053,17 @@
         const updateMerchantBtnText = document.getElementById('updateMerchantBtnText');
         const updateMerchantBtnLoading = document.getElementById('updateMerchantBtnLoading');
         
+        // عناصر النماذج الجديدة
+        const activationModal = document.getElementById('activationModal');
+        const closeActivationModal = document.getElementById('closeActivationModal');
+        const sendActivationBtn = document.getElementById('sendActivationBtn');
+        const cancelActivationBtn = document.getElementById('cancelActivationBtn');
+        
         // متغيرات التعديل
         let currentEditMerchantId = null;
         let governoratesData = {};
         let allMerchants = []; // لتخزين جميع التجار للبحث والترتيب
+        let lastAddedMerchant = null; // لتخزين بيانات آخر تاجر تم إضافته
         
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', function() {
@@ -938,9 +1071,17 @@
             setupEventListeners();
             setupManualLocationInput();
             
-            // الاستماع للتغييرات في تبويب العرض
+            // الاستماع للتغييرات في التبويبات
             document.querySelector('[data-tab="view"]').addEventListener('click', function() {
-                renderMerchantsTree();
+                renderActiveMerchants();
+            });
+            
+            document.querySelector('[data-tab="requests"]').addEventListener('click', function() {
+                renderJoinRequests();
+            });
+            
+            document.querySelector('[data-tab="suspended"]').addEventListener('click', function() {
+                renderSuspendedMerchants();
             });
         });
         
@@ -983,11 +1124,31 @@
                 if (e.target === editMerchantModal) {
                     editMerchantModal.style.display = 'none';
                 }
+                if (e.target === activationModal) {
+                    activationModal.style.display = 'none';
+                }
             });
             
-            // البحث والترتيب
-            searchInput.addEventListener('input', filterAndSortMerchants);
-            sortSelect.addEventListener('change', filterAndSortMerchants);
+            // البحث والترتيب في التبويبات المختلفة
+            document.getElementById('searchViewInput').addEventListener('input', filterAndSortActiveMerchants);
+            document.getElementById('sortViewSelect').addEventListener('change', filterAndSortActiveMerchants);
+            
+            document.getElementById('searchRequestsInput').addEventListener('input', filterAndSortRequests);
+            document.getElementById('sortRequestsSelect').addEventListener('change', filterAndSortRequests);
+            
+            document.getElementById('searchSuspendedInput').addEventListener('input', filterAndSortSuspended);
+            document.getElementById('sortSuspendedSelect').addEventListener('change', filterAndSortSuspended);
+            
+            // أحداث نموذج التفعيل
+            closeActivationModal.addEventListener('click', () => {
+                activationModal.style.display = 'none';
+            });
+            
+            sendActivationBtn.addEventListener('click', sendActivationMessage);
+            
+            cancelActivationBtn.addEventListener('click', () => {
+                activationModal.style.display = 'none';
+            });
         }
         
         // تحميل المحافظات إلى القوائم المنسدلة
@@ -1188,7 +1349,7 @@
             const username = usernameInput.value.trim();
             const password = passwordInput.value;
             const name = nameInput.value.trim();
-            const job = jobInput.value.trim();
+            const job = jobInput.value;
             const status = statusSelect.value;
             const governorate = governorateSelect.value;
             const area = areaSelect.value;
@@ -1245,11 +1406,22 @@
                     createdAt: Date.now()
                 });
                 
+                // حفظ بيانات التاجر المضافة
+                lastAddedMerchant = {
+                    id: merchantId,
+                    username: username,
+                    password: password,
+                    name: name,
+                    job: job,
+                    mobile: mobile,
+                    createdAt: Date.now()
+                };
+                
                 // مسح حقول الإدخال
                 usernameInput.value = '';
                 passwordInput.value = '';
                 nameInput.value = '';
-                jobInput.value = '';
+                jobInput.value = 'تاجر';
                 statusSelect.value = 'active';
                 governorateSelect.value = '';
                 areaSelect.innerHTML = '<option value="">اختر المنطقة</option>';
@@ -1264,6 +1436,12 @@
                 googleInput.value = '';
                 
                 showToast('تم إضافة التاجر بنجاح', 'success');
+                
+                // عرض نموذج إرسال رسالة التفعيل
+                setTimeout(() => {
+                    activationModal.style.display = 'flex';
+                }, 500);
+                
             } catch (error) {
                 console.error('خطأ في إضافة التاجر:', error);
                 showToast('حدث خطأ في إضافة التاجر', 'error');
@@ -1275,11 +1453,98 @@
             }
         }
         
-        // عرض التجار في قائمة
-        async function renderMerchantsTree() {
+        // إرسال رسالة التفعيل
+        function sendActivationMessage() {
+            if (!lastAddedMerchant) {
+                showToast('لا توجد بيانات للتاجر', 'error');
+                return;
+            }
+            
+            // إرسال رسالة الترحيب
+            sendWelcomeMessage(lastAddedMerchant);
+            activationModal.style.display = 'none';
+        }
+        
+        // إرسال رسالة ترحيب عبر الواتساب
+        function sendWelcomeMessage(merchant) {
+            let message = '';
+            const registerDate = new Date(merchant.createdAt).toLocaleDateString('ar-EG');
+            
+            if (merchant.job === 'مطعم') {
+                message = `عزيزنا العميل/ ${merchant.name} المحترم
+متجر AZ السوق الشامل لتلبية احتياجك بالكامل 
+يرحب بكم 
+تم تسجيل انضمامك بتاريخ : ${registerDate}
+
+رابط الموقع:
+https://e772299420-hue.github.io/Call/index.html
+
+لتسجيل الدخول وإضافة منتجاتك
+قم بالنقر على زر قسم الطلب والتوصيل السريع وانقر على زر تسجيل الدخول الموجود اعلى الشاشة 
+اسم المستخدم : ${merchant.username}
+كلمة المرور : ${merchant.password}
+
+من شاشة بيانات الأصناف 
+يمكنك إضافة وتعديل وتوقيف المنتجات الخاصة بك ليراها الاخرين
+
+من شاشه تعديل بيانات التاجر
+يمكنك تعديل بياناتك وإضافة موقعك علا خريطة المتجر
+كذلك يمكنك اخفاء رقم الهاتف الواتس عن الاخرين 
+
+نرجو أن تكون بداية طيبة
+للإستفسار تواصل معنا على الرقم : 772299420`;
+            } else {
+                message = `عزيزنا العميل/ ${merchant.name} المحترم
+متجر AZ السوق الشامل لتلبية احتياجك بالكامل 
+يرحب بكم 
+تم تسجيل انضمامك بتاريخ : ${registerDate}
+
+رابط الموقع:
+https://e772299420-hue.github.io/Call/index.html
+
+لتسجيل الدخول وإضافة منتجاتك
+قم بالنقر على زر قسم المنتجات الجديدة وانقر على زر تسجيل الدخول الموجود اعلى الشاشة 
+اسم المستخدم : ${merchant.username}
+كلمة المرور : ${merchant.password}
+
+من شاشة بيانات الأصناف 
+يمكنك إضافة وتعديل وتوقيف المنتجات الخاصة بك ليراها الاخرين
+
+من شاشه تعديل بيانات التاجر
+يمكنك تعديل بياناتك وإضافة موقعك علا خريطة المتجر
+كذلك يمكنك اخفاء رقم الهاتف الواتس عن الاخرين 
+
+نرجو أن تكون بداية طيبة
+للإستفسار تواصل معنا على الرقم: 772299420`;
+            }
+
+            const whatsappUrl = `https://wa.me/${merchant.mobile.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+            showToast('تم فتح محادثة الواتساب', 'success');
+        }
+        
+        // إرسال طلب دفع عبر الواتساب
+        function sendPaymentRequest(merchant) {
+            const message = `عزيزنا العميل ${merchant.name} المحترم
+
+متجر AZ السوق الشامل لتلبية احتياجك بالكامل يرحب بك
+نرجو دفع رسوم الاشتراك الشهرية خلال ثلاثة أيام من تاريخ استلام الإشعار لتجنب توقيف الخدمة
+
+للإستفسار تواصل معنا على الرقم: 772299420`;
+
+            const whatsappUrl = `https://wa.me/${merchant.mobile.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+            showToast('تم فتح محادثة الواتساب للدفع', 'success');
+        }
+        
+        // عرض التجار النشطين
+        async function renderActiveMerchants() {
+            const loadingIndicator = document.getElementById('viewLoadingIndicator');
+            const merchantsList = document.getElementById('activeMerchantsList');
+            
             loadingIndicator.style.display = 'block';
-            merchantsTree.style.display = 'none';
-            merchantsTree.innerHTML = '';
+            merchantsList.style.display = 'none';
+            merchantsList.innerHTML = '';
             
             try {
                 // جلب التجار من قاعدة البيانات
@@ -1287,9 +1552,9 @@
                 const merchants = merchantsSnapshot.val();
                 
                 if (!merchants) {
-                    merchantsTree.innerHTML = '<p>لا توجد تجار مسجلين</p>';
+                    merchantsList.innerHTML = '<p>لا توجد تجار مسجلين</p>';
                     loadingIndicator.style.display = 'none';
-                    merchantsTree.style.display = 'block';
+                    merchantsList.style.display = 'block';
                     return;
                 }
                 
@@ -1299,8 +1564,11 @@
                     ...merchants[key]
                 }));
                 
+                // تصفية التجار النشطين فقط
+                const activeMerchants = allMerchants.filter(merchant => merchant.status === 'active');
+                
                 // تطبيق البحث والترتيب
-                filterAndSortMerchants();
+                filterAndSortActiveMerchants(activeMerchants);
                 
             } catch (error) {
                 console.error('خطأ في تحميل البيانات:', error);
@@ -1309,12 +1577,13 @@
             }
         }
         
-        // تصفية وترتيب التجار
-        function filterAndSortMerchants() {
-            if (allMerchants.length === 0) return;
+        // تصفية وترتيب التجار النشطين
+        function filterAndSortActiveMerchants(merchantsToFilter = null) {
+            const merchantsList = document.getElementById('activeMerchantsList');
+            const loadingIndicator = document.getElementById('viewLoadingIndicator');
             
-            let filteredMerchants = [...allMerchants];
-            const searchTerm = searchInput.value.trim().toLowerCase();
+            let filteredMerchants = merchantsToFilter || allMerchants.filter(merchant => merchant.status === 'active');
+            const searchTerm = document.getElementById('searchViewInput').value.trim().toLowerCase();
             
             // تطبيق البحث
             if (searchTerm) {
@@ -1331,7 +1600,7 @@
             }
             
             // تطبيق الترتيب
-            const sortOption = sortSelect.value;
+            const sortOption = document.getElementById('sortViewSelect').value;
             switch (sortOption) {
                 case 'name-asc':
                     filteredMerchants.sort((a, b) => a.name?.localeCompare(b.name, 'ar'));
@@ -1345,73 +1614,272 @@
                 case 'date-asc':
                     filteredMerchants.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
                     break;
-                case 'status-active':
-                    filteredMerchants.sort((a, b) => {
-                        if (a.status === 'active' && b.status !== 'active') return -1;
-                        if (a.status !== 'active' && b.status === 'active') return 1;
-                        return 0;
-                    });
-                    break;
-                case 'status-inactive':
-                    filteredMerchants.sort((a, b) => {
-                        if (a.status === 'inactive' && b.status !== 'inactive') return -1;
-                        if (a.status !== 'inactive' && b.status === 'inactive') return 1;
-                        return 0;
-                    });
-                    break;
             }
             
             // عرض التجار المصفاة
-            displayMerchants(filteredMerchants);
+            displaySimpleMerchants(filteredMerchants, merchantsList, 'active');
+            
+            loadingIndicator.style.display = 'none';
+            merchantsList.style.display = 'block';
         }
         
-        // عرض التجار في القائمة
-        function displayMerchants(merchants) {
-            merchantsTree.innerHTML = '';
+        // عرض طلبات الانضمام
+        async function renderJoinRequests() {
+            const loadingIndicator = document.getElementById('requestsLoadingIndicator');
+            const requestsList = document.getElementById('requestsList');
+            
+            loadingIndicator.style.display = 'block';
+            requestsList.style.display = 'none';
+            requestsList.innerHTML = '';
+            
+            try {
+                // جلب التجار من قاعدة البيانات
+                const merchantsSnapshot = await database.ref('merchants').once('value');
+                const merchants = merchantsSnapshot.val();
+                
+                if (!merchants) {
+                    requestsList.innerHTML = '<p>لا توجد طلبات انضمام</p>';
+                    loadingIndicator.style.display = 'none';
+                    requestsList.style.display = 'block';
+                    return;
+                }
+                
+                // تحويل البيانات إلى مصفوفة
+                const allMerchants = Object.keys(merchants).map(key => ({
+                    id: key,
+                    ...merchants[key]
+                }));
+                
+                // تصفية التجار غير النشطين بكلمة مرور افتراضية
+                const defaultPassword = '123456'; // كلمة المرور الافتراضية
+                const requests = allMerchants.filter(merchant => 
+                    merchant.status === 'inactive' && merchant.password === defaultPassword
+                );
+                
+                // تطبيق البحث والترتيب
+                filterAndSortRequests(requests);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل البيانات:', error);
+                showToast('حدث خطأ في تحميل البيانات', 'error');
+                loadingIndicator.style.display = 'none';
+            }
+        }
+        
+        // تصفية وترتيب طلبات الانضمام
+        function filterAndSortRequests(requestsToFilter = null) {
+            const requestsList = document.getElementById('requestsList');
+            const loadingIndicator = document.getElementById('requestsLoadingIndicator');
+            
+            let filteredRequests = requestsToFilter || [];
+            const searchTerm = document.getElementById('searchRequestsInput').value.trim().toLowerCase();
+            
+            // تطبيق البحث
+            if (searchTerm) {
+                filteredRequests = filteredRequests.filter(merchant => {
+                    return (
+                        merchant.name?.toLowerCase().includes(searchTerm) ||
+                        merchant.username?.toLowerCase().includes(searchTerm) ||
+                        merchant.mobile?.includes(searchTerm)
+                    );
+                });
+            }
+            
+            // تطبيق الترتيب
+            const sortOption = document.getElementById('sortRequestsSelect').value;
+            switch (sortOption) {
+                case 'name-asc':
+                    filteredRequests.sort((a, b) => a.name?.localeCompare(b.name, 'ar'));
+                    break;
+                case 'name-desc':
+                    filteredRequests.sort((a, b) => b.name?.localeCompare(a.name, 'ar'));
+                    break;
+                case 'date-desc':
+                    filteredRequests.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    break;
+                case 'date-asc':
+                    filteredRequests.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+                    break;
+            }
+            
+            // عرض طلبات الانضمام المصفاة
+            displaySimpleMerchants(filteredRequests, requestsList, 'requests');
+            
+            loadingIndicator.style.display = 'none';
+            requestsList.style.display = 'block';
+        }
+        
+        // عرض التجار الموقوفين
+        async function renderSuspendedMerchants() {
+            const loadingIndicator = document.getElementById('suspendedLoadingIndicator');
+            const suspendedList = document.getElementById('suspendedList');
+            
+            loadingIndicator.style.display = 'block';
+            suspendedList.style.display = 'none';
+            suspendedList.innerHTML = '';
+            
+            try {
+                // جلب التجار من قاعدة البيانات
+                const merchantsSnapshot = await database.ref('merchants').once('value');
+                const merchants = merchantsSnapshot.val();
+                
+                if (!merchants) {
+                    suspendedList.innerHTML = '<p>لا توجد تجار موقوفين</p>';
+                    loadingIndicator.style.display = 'none';
+                    suspendedList.style.display = 'block';
+                    return;
+                }
+                
+                // تحويل البيانات إلى مصفوفة
+                const allMerchants = Object.keys(merchants).map(key => ({
+                    id: key,
+                    ...merchants[key]
+                }));
+                
+                // تصفية التجار غير النشطين بكلمة مرور غير افتراضية
+                const defaultPassword = '123456'; // كلمة المرور الافتراضية
+                const suspended = allMerchants.filter(merchant => 
+                    merchant.status === 'inactive' && merchant.password !== defaultPassword
+                );
+                
+                // تطبيق البحث والترتيب
+                filterAndSortSuspended(suspended);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل البيانات:', error);
+                showToast('حدث خطأ في تحميل البيانات', 'error');
+                loadingIndicator.style.display = 'none';
+            }
+        }
+        
+        // تصفية وترتيب التجار الموقوفين
+        function filterAndSortSuspended(suspendedToFilter = null) {
+            const suspendedList = document.getElementById('suspendedList');
+            const loadingIndicator = document.getElementById('suspendedLoadingIndicator');
+            
+            let filteredSuspended = suspendedToFilter || [];
+            const searchTerm = document.getElementById('searchSuspendedInput').value.trim().toLowerCase();
+            
+            // تطبيق البحث
+            if (searchTerm) {
+                filteredSuspended = filteredSuspended.filter(merchant => {
+                    return (
+                        merchant.name?.toLowerCase().includes(searchTerm) ||
+                        merchant.username?.toLowerCase().includes(searchTerm) ||
+                        merchant.mobile?.includes(searchTerm)
+                    );
+                });
+            }
+            
+            // تطبيق الترتيب
+            const sortOption = document.getElementById('sortSuspendedSelect').value;
+            switch (sortOption) {
+                case 'name-asc':
+                    filteredSuspended.sort((a, b) => a.name?.localeCompare(b.name, 'ar'));
+                    break;
+                case 'name-desc':
+                    filteredSuspended.sort((a, b) => b.name?.localeCompare(a.name, 'ar'));
+                    break;
+                case 'date-desc':
+                    filteredSuspended.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    break;
+                case 'date-asc':
+                    filteredSuspended.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+                    break;
+            }
+            
+            // عرض التجار الموقوفين المصفاة
+            displaySimpleMerchants(filteredSuspended, suspendedList, 'suspended');
+            
+            loadingIndicator.style.display = 'none';
+            suspendedList.style.display = 'block';
+        }
+        
+        // عرض قائمة مبسطة للتجار
+        function displaySimpleMerchants(merchants, container, type) {
+            container.innerHTML = '';
             
             if (merchants.length === 0) {
-                merchantsTree.innerHTML = '<p>لا توجد نتائج للبحث</p>';
-                loadingIndicator.style.display = 'none';
-                merchantsTree.style.display = 'block';
+                let message = '';
+                switch(type) {
+                    case 'active':
+                        message = 'لا توجد تجار نشطين';
+                        break;
+                    case 'requests':
+                        message = 'لا توجد طلبات انضمام';
+                        break;
+                    case 'suspended':
+                        message = 'لا توجد تجار موقوفين';
+                        break;
+                }
+                container.innerHTML = `<p>${message}</p>`;
                 return;
             }
             
             merchants.forEach(merchant => {
                 const merchantElement = document.createElement('div');
-                merchantElement.className = 'merchant-item';
+                merchantElement.className = 'simple-merchant-item';
                 
-                const merchantHeader = document.createElement('div');
-                merchantHeader.className = 'merchant-header';
+                const merchantInfo = document.createElement('div');
+                merchantInfo.className = 'simple-merchant-info';
                 
                 const merchantName = document.createElement('div');
-                merchantName.className = 'merchant-name';
+                merchantName.className = 'simple-merchant-name';
                 merchantName.textContent = merchant.name;
                 
-                const merchantStatus = document.createElement('span');
-                merchantStatus.className = `merchant-status status-${merchant.status || 'active'}`;
-                merchantStatus.textContent = merchant.status === 'active' ? 'نشط' : 'موقف';
+                const merchantDetails = document.createElement('div');
+                merchantDetails.className = 'simple-merchant-details';
                 
-                const merchantActions = document.createElement('div');
-                merchantActions.className = 'action-buttons';
+                const usernameDetail = document.createElement('div');
+                usernameDetail.className = 'simple-detail';
+                usernameDetail.innerHTML = `<strong>اسم المستخدم:</strong> ${merchant.username}`;
                 
-                // زر الواتساب
-                if (merchant.mobile) {
+                const mobileDetail = document.createElement('div');
+                mobileDetail.className = 'simple-detail';
+                mobileDetail.innerHTML = `<strong>رقم الجوال/واتساب:</strong> ${merchant.mobile || 'غير محدد'}`;
+                
+                const dateDetail = document.createElement('div');
+                dateDetail.className = 'simple-detail';
+                dateDetail.innerHTML = `<strong>تاريخ التسجيل:</strong> ${new Date(merchant.createdAt).toLocaleDateString('ar-EG')}`;
+                
+                merchantDetails.appendChild(usernameDetail);
+                merchantDetails.appendChild(mobileDetail);
+                merchantDetails.appendChild(dateDetail);
+                
+                merchantInfo.appendChild(merchantName);
+                merchantInfo.appendChild(merchantDetails);
+                
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'simple-action-buttons';
+                
+                // زر الواتساب للرسالة الترحيبية
+                if (merchant.mobile && type !== 'requests') {
                     const whatsappBtn = document.createElement('button');
                     whatsappBtn.className = 'btn btn-whatsapp btn-sm';
                     whatsappBtn.innerHTML = '<i class="fab fa-whatsapp"></i>';
                     whatsappBtn.title = 'إرسال رسالة ترحيب';
                     whatsappBtn.addEventListener('click', () => sendWelcomeMessage(merchant));
-                    merchantActions.appendChild(whatsappBtn);
+                    actionButtons.appendChild(whatsappBtn);
                 }
                 
-                // زر الدفع
-                if (merchant.mobile) {
+                // زر إرسال رسالة الدفع الشهرية
+                if (merchant.mobile && type !== 'requests') {
                     const paymentBtn = document.createElement('button');
                     paymentBtn.className = 'btn btn-payment btn-sm';
                     paymentBtn.innerHTML = '<i class="fas fa-credit-card"></i>';
                     paymentBtn.title = 'إرسال طلب دفع';
                     paymentBtn.addEventListener('click', () => sendPaymentRequest(merchant));
-                    merchantActions.appendChild(paymentBtn);
+                    actionButtons.appendChild(paymentBtn);
+                }
+                
+                // زر التفعيل لطلبات الانضمام
+                if (type === 'requests') {
+                    const activateBtn = document.createElement('button');
+                    activateBtn.className = 'btn btn-payment btn-sm';
+                    activateBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    activateBtn.title = 'تفعيل التاجر';
+                    activateBtn.addEventListener('click', () => activateMerchant(merchant.id));
+                    actionButtons.appendChild(activateBtn);
                 }
                 
                 // زر التعديل
@@ -1420,7 +1888,7 @@
                 editBtn.innerHTML = '<i class="fas fa-edit"></i>';
                 editBtn.title = 'تعديل البيانات';
                 editBtn.addEventListener('click', () => openEditMerchantModal(merchant));
-                merchantActions.appendChild(editBtn);
+                actionButtons.appendChild(editBtn);
                 
                 // زر الحذف
                 const deleteBtn = document.createElement('button');
@@ -1428,146 +1896,31 @@
                 deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
                 deleteBtn.title = 'حذف التاجر';
                 deleteBtn.addEventListener('click', () => deleteMerchant(merchant.id, merchant.name));
-                merchantActions.appendChild(deleteBtn);
+                actionButtons.appendChild(deleteBtn);
                 
-                merchantHeader.appendChild(merchantName);
-                merchantHeader.appendChild(merchantStatus);
-                merchantHeader.appendChild(merchantActions);
+                merchantElement.appendChild(merchantInfo);
+                merchantElement.appendChild(actionButtons);
                 
-                merchantElement.appendChild(merchantHeader);
-                
-                // عرض تفاصيل التاجر
-                const merchantDetails = document.createElement('div');
-                merchantDetails.className = 'merchant-details';
-                
-                const details = [
-                    { name: 'اسم المستخدم', value: merchant.username },
-                    { name: 'الوظيفة', value: merchant.job || 'غير محدد' },
-                    { name: 'المحافظة', value: governoratesData[merchant.governorate]?.name || merchant.governorate },
-                    { name: 'المنطقة', value: governoratesData[merchant.governorate]?.areas?.[merchant.area] || merchant.area },
-                    { name: 'رقم الهاتف', value: merchant.phone || 'غير محدد' },
-                    { name: 'الجوال/واتساب', value: merchant.mobile || 'غير محدد' },
-                    { name: 'أيبي الهاتف', value: merchant.ip || 'غير محدد' },
-                    { name: 'الموقع', value: merchant.location || 'غير محدد' },
-                    { name: 'تاريخ التسجيل', value: new Date(merchant.createdAt).toLocaleDateString('ar-EG') }
-                ];
-                
-                details.forEach(detail => {
-                    if (detail.value !== 'غير محدد') {
-                        const detailElement = document.createElement('div');
-                        detailElement.className = 'merchant-detail';
-                        
-                        const detailName = document.createElement('div');
-                        detailName.className = 'detail-name';
-                        detailName.textContent = detail.name;
-                        
-                        const detailValue = document.createElement('div');
-                        detailValue.className = 'detail-value';
-                        detailValue.textContent = detail.value;
-                        
-                        detailElement.appendChild(detailName);
-                        detailElement.appendChild(detailValue);
-                        merchantDetails.appendChild(detailElement);
-                    }
+                container.appendChild(merchantElement);
+            });
+        }
+        
+        // تفعيل التاجر
+        async function activateMerchant(id) {
+            try {
+                await database.ref(`merchants/${id}`).update({
+                    status: 'active'
                 });
                 
-                // الروابط الاجتماعية
-                const socialLinks = document.createElement('div');
-                socialLinks.className = 'social-links';
+                showToast('تم تفعيل التاجر بنجاح', 'success');
                 
-                if (merchant.facebook) {
-                    const facebookLink = document.createElement('a');
-                    facebookLink.className = 'social-link';
-                    facebookLink.href = merchant.facebook;
-                    facebookLink.target = '_blank';
-                    facebookLink.innerHTML = '<i class="fab fa-facebook"></i>';
-                    socialLinks.appendChild(facebookLink);
-                }
+                // إعادة تحميل العرض
+                renderJoinRequests();
                 
-                if (merchant.instagram) {
-                    const instagramLink = document.createElement('a');
-                    instagramLink.className = 'social-link';
-                    instagramLink.href = merchant.instagram;
-                    instagramLink.target = '_blank';
-                    instagramLink.innerHTML = '<i class="fab fa-instagram"></i>';
-                    socialLinks.appendChild(instagramLink);
-                }
-                
-                if (merchant.twitter) {
-                    const twitterLink = document.createElement('a');
-                    twitterLink.className = 'social-link';
-                    twitterLink.href = merchant.twitter;
-                    twitterLink.target = '_blank';
-                    twitterLink.innerHTML = '<i class="fab fa-twitter"></i>';
-                    socialLinks.appendChild(twitterLink);
-                }
-                
-                if (merchant.youtube) {
-                    const youtubeLink = document.createElement('a');
-                    youtubeLink.className = 'social-link';
-                    youtubeLink.href = merchant.youtube;
-                    youtubeLink.target = '_blank';
-                    youtubeLink.innerHTML = '<i class="fab fa-youtube"></i>';
-                    socialLinks.appendChild(youtubeLink);
-                }
-                
-                if (merchant.google) {
-                    const googleLink = document.createElement('a');
-                    googleLink.className = 'social-link';
-                    googleLink.href = merchant.google;
-                    googleLink.target = '_blank';
-                    googleLink.innerHTML = '<i class="fab fa-google"></i>';
-                    socialLinks.appendChild(googleLink);
-                }
-                
-                if (socialLinks.children.length > 0) {
-                    merchantDetails.appendChild(socialLinks);
-                }
-                
-                merchantElement.appendChild(merchantDetails);
-                merchantsTree.appendChild(merchantElement);
-            });
-            
-            loadingIndicator.style.display = 'none';
-            merchantsTree.style.display = 'block';
-        }
-        
-        // إرسال رسالة ترحيب عبر الواتساب
-        function sendWelcomeMessage(merchant) {
-            const message = `عزيزنا العميل ${merchant.name} المحترم
-
-متجر AZ المتجر الشامل لتلبية احتياجك بالكامل يرحب بك
-تم تسجيل انضمامك بتاريخ: ${new Date(merchant.createdAt).toLocaleDateString('ar-EG')}
-
-رابط الموقع:
-https://e772299420-hue.github.io/Call/index.html
-
-قم بالنقر على زر إعدادات المنتجات الجديدة:
-اسم المستخدم: ${merchant.username}
-كلمة المرور: ${merchant.password}
-
-ثم قم بإضافة الاصناف الخاصة بك
-نرجو أن تكون بداية طيبة
-
-للإستفسار تواصل معنا على الرقم: 772299420`;
-
-            const whatsappUrl = `https://wa.me/${merchant.mobile.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-            showToast('تم فتح محادثة الواتساب', 'success');
-        }
-        
-        // إرسال طلب دفع عبر الواتساب
-        function sendPaymentRequest(merchant) {
-            const message = `عزيزنا العميل ${merchant.name} المحترم
-
-متجر AZ المتجر الشامل لتلبية احتياجك بالكامل يرحب بك
-نرجو دفع رسوم الاشتراك الشهرية خلال ثلاثة أيام من تاريخ استلام الإشعار لتجنب توقيف الخدمة
-
-للإستفسار تواصل معنا على الرقم: 772299420`;
-
-            const whatsappUrl = `https://wa.me/${merchant.mobile.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-            showToast('تم فتح محادثة الواتساب للدفع', 'success');
+            } catch (error) {
+                console.error('خطأ في تفعيل التاجر:', error);
+                showToast('حدث خطأ في تفعيل التاجر', 'error');
+            }
         }
         
         // فتح نموذج تعديل التاجر
@@ -1578,7 +1931,7 @@ https://e772299420-hue.github.io/Call/index.html
             editUsernameInput.value = merchant.username || '';
             editPasswordInput.value = '';
             editNameInput.value = merchant.name || '';
-            editJobInput.value = merchant.job || '';
+            editJobInput.value = merchant.job || 'تاجر';
             editStatusSelect.value = merchant.status || 'active';
             editGovernorateSelect.value = merchant.governorate || '';
             
@@ -1606,7 +1959,7 @@ https://e772299420-hue.github.io/Call/index.html
             const username = editUsernameInput.value.trim();
             const password = editPasswordInput.value;
             const name = editNameInput.value.trim();
-            const job = editJobInput.value.trim();
+            const job = editJobInput.value;
             const status = editStatusSelect.value;
             const governorate = editGovernorateSelect.value;
             const area = editAreaSelect.value;
@@ -1672,7 +2025,11 @@ https://e772299420-hue.github.io/Call/index.html
                 await database.ref(`merchants/${currentEditMerchantId}`).update(updateData);
                 
                 // إعادة تحميل العرض
-                await renderMerchantsTree();
+                if (status === 'active') {
+                    await renderActiveMerchants();
+                } else {
+                    await renderSuspendedMerchants();
+                }
                 
                 showToast('تم تحديث بيانات التاجر بنجاح', 'success');
                 editMerchantModal.style.display = 'none';
@@ -1703,7 +2060,9 @@ https://e772299420-hue.github.io/Call/index.html
                     await database.ref(`merchants/${id}`).remove();
                     
                     // إعادة تحميل العرض
-                    await renderMerchantsTree();
+                    await renderActiveMerchants();
+                    await renderJoinRequests();
+                    await renderSuspendedMerchants();
                     
                     showToast('تم حذف التاجر بنجاح', 'success');
                 }
