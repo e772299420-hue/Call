@@ -927,11 +927,55 @@
             overflow: hidden;
             max-width: 100%;
             text-align: center;
+            position: relative;
         }
 
         .editor-canvas {
             max-width: 100%;
             display: block;
+        }
+
+        /* أنماط اقتصاص الصورة */
+        .crop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            display: none;
+        }
+
+        .crop-area {
+            position: absolute;
+            border: 2px dashed #fff;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: move;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+
+        .crop-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border: 1px solid #000;
+        }
+
+        .crop-handle.nw { top: -5px; left: -5px; cursor: nw-resize; }
+        .crop-handle.ne { top: -5px; right: -5px; cursor: ne-resize; }
+        .crop-handle.sw { bottom: -5px; left: -5px; cursor: sw-resize; }
+        .crop-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
+
+        .crop-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 11;
         }
 
         .sort-options {
@@ -1223,7 +1267,7 @@
         <div class="editor-content">
             <h3><i class="fas fa-edit"></i> تحرير الصورة</h3>
             <div class="editor-tools">
-                <button class="editor-tool-btn" onclick="cropImage()">
+                <button class="editor-tool-btn" onclick="startCrop()">
                     <i class="fas fa-crop"></i> اقتصاص
                 </button>
                 <button class="editor-tool-btn" onclick="rotateImage()">
@@ -1247,6 +1291,22 @@
             </div>
             <div class="editor-canvas-container">
                 <canvas id="editor-canvas" class="editor-canvas"></canvas>
+                <div class="crop-overlay" id="crop-overlay">
+                    <div class="crop-area" id="crop-area">
+                        <div class="crop-handle nw"></div>
+                        <div class="crop-handle ne"></div>
+                        <div class="crop-handle sw"></div>
+                        <div class="crop-handle se"></div>
+                    </div>
+                    <div class="crop-controls">
+                        <button class="editor-tool-btn" onclick="applyCrop()">
+                            <i class="fas fa-check"></i> تطبيق الاقتصاص
+                        </button>
+                        <button class="editor-tool-btn" onclick="cancelCrop()">
+                            <i class="fas fa-times"></i> إلغاء
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1294,6 +1354,14 @@
         let currentEditingImageIndex = -1;
         let originalImageData = null;
         const MAX_IMAGES = 2;
+
+        // متغيرات اقتصاص الصورة
+        let isCropping = false;
+        let cropArea = null;
+        let cropStartX = 0;
+        let cropStartY = 0;
+        let isResizing = false;
+        let resizeHandle = '';
 
         // ===== نظام الجلوبالات المحسن =====
         const globalUser = {
@@ -1432,6 +1500,68 @@
                     }, 300);
                 }
             }, 5000);
+        }
+
+        // ==========================================
+        // 🔥 إصلاح مشكلة عرض الصور من جوجل درايف
+        // ==========================================
+        function formatDriveUrl(url, mode = 'thumb') {
+            if (!url) return '';
+            
+            // إذا كان الرابط هو الصورة الافتراضية، نعيده كما هو
+            if (url.includes('1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC')) {
+                return url;
+            }
+            
+            // استخراج معرف الملف من رابط جوجل درايف
+            let id = '';
+            
+            // رابط مباشر للملف
+            if (url.includes('/d/')) {
+                id = url.split('/d/')[1].split('/')[0];
+            } 
+            // رابط مشاركة
+            else if (url.includes('id=')) {
+                try { 
+                    id = new URLSearchParams(url.split('?')[1]).get('id') || ''; 
+                } catch { 
+                    return url; 
+                }
+            }
+            // رابط عرض
+            else if (url.includes('/file/d/')) {
+                id = url.split('/file/d/')[1].split('/')[0];
+            }
+            // رابط مسبق التنسيق
+            else if (url.includes('drive.google.com/uc?id=')) {
+                id = url.split('drive.google.com/uc?id=')[1].split('&')[0];
+            }
+            
+            if (!id) return url;
+
+            // إصلاح مشكلة عرض الصور من جوجل درايف
+            // استخدام رابط العرض المباشر بدلاً من رابط التحميل
+            if (mode === 'thumb') {
+                // صورة مصغرة سريعة التحميل للسلايدر والمصغرات
+                return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
+            } else if (mode === 'main') {
+                // صورة كبيرة للمعرض
+                return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+            } else if (mode === 'raw') {
+                // العرض المباشر
+                return `https://drive.google.com/uc?export=view&id=${id}`;
+            }
+            return url;
+        }
+
+        // دالة محسنة لتحويل رابط Google Drive إلى رابط صورة مباشر
+        function getCorsImageUrl(url) {
+            return formatDriveUrl(url, 'thumb');
+        }
+
+        // دالة محسنة لعرض الصور في المعرض
+        function getGalleryImageUrl(url) {
+            return formatDriveUrl(url, 'main');
         }
 
         // دالة محسنة لتعيين التاريخ الحالي
@@ -1577,6 +1707,70 @@
             return uploadedImageUrls;
         }
 
+        // دالة محسنة لرفع الصور مع استبدال الصور القديمة
+        async function uploadAndReplaceImage(file, oldImageUrl = null) {
+            try {
+                const compressedFile = await compressImage(file);
+                const base64Data = await fileToBase64(compressedFile);
+                
+                const formData = new FormData();
+                formData.append('fileData', base64Data);
+                formData.append('fileName', compressedFile.name);
+                formData.append('mimeType', compressedFile.type);
+                formData.append('folderId', DRIVE_FOLDER_ID);
+                
+                // إذا كانت هناك صورة قديمة، أضف معرفها للحذف
+                if (oldImageUrl) {
+                    const oldFileId = extractFileIdFromUrl(oldImageUrl);
+                    if (oldFileId) {
+                        formData.append('oldFileId', oldFileId);
+                    }
+                }
+                
+                const response = await fetch(DRIVE_API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`خطأ HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success && data.fileId) {
+                    const imageUrl = `https://drive.google.com/uc?id=${data.fileId}`;
+                    return imageUrl;
+                } else {
+                    throw new Error(data.error || 'فشل رفع الصورة: استجابة غير صالحة');
+                }
+                
+            } catch (error) {
+                console.error('خطأ في رفع الصورة:', error);
+                throw new Error(`فشل رفع الصورة: ${error.message}`);
+            }
+        }
+
+        // استخراج معرف الملف من رابط جوجل درايف
+        function extractFileIdFromUrl(url) {
+            if (!url) return null;
+            
+            if (url.includes('drive.google.com') && url.includes('id=')) {
+                return url.split('id=')[1].split('&')[0];
+            }
+            
+            if (url.includes('drive.google.com/file/d/')) {
+                const parts = url.split('/');
+                return parts[parts.indexOf('d') + 1];
+            }
+            
+            if (url.includes('drive.google.com/uc?id=')) {
+                return url.split('drive.google.com/uc?id=')[1].split('&')[0];
+            }
+            
+            return null;
+        }
+
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -1589,51 +1783,66 @@
             });
         }
 
-        // عرض الصورة في نافذة مكبرة مع إمكانية التنقل
-        function showImageModal(images, startIndex = 0) {
-            const modal = document.getElementById('image-modal');
-            const modalImage = document.getElementById('modal-image');
-            const modalCounter = document.getElementById('modal-counter');
-            const modalPrev = document.getElementById('modal-prev');
-            const modalNext = document.getElementById('modal-next');
-            
-            currentModalImages = images;
+        // ==========================================
+        // 🖼️ وظائف معرض الصور المحسن - إصلاح مشكلة الخروج على الجوال
+        // ==========================================
+        function openImageGallery(images, productName, startIndex = 0, productId = null) {
+            galleryImages = images;
             currentModalIndex = startIndex;
             
-            function updateModal() {
-                modalImage.src = currentModalImages[currentModalIndex];
-                modalCounter.textContent = `${currentModalIndex + 1} / ${currentModalImages.length}`;
-                
-                modalPrev.style.display = currentModalImages.length > 1 ? 'flex' : 'none';
-                modalNext.style.display = currentModalImages.length > 1 ? 'flex' : 'none';
-                modalCounter.style.display = currentModalImages.length > 1 ? 'block' : 'none';
-            }
-            
-            modalPrev.onclick = function() {
-                currentModalIndex = (currentModalIndex - 1 + currentModalImages.length) % currentModalImages.length;
-                updateModal();
-            };
-            
-            modalNext.onclick = function() {
-                currentModalIndex = (currentModalIndex + 1) % currentModalImages.length;
-                updateModal();
-            };
-            
-            document.addEventListener('keydown', function handleKeydown(e) {
-                if (modal.style.display === 'flex') {
-                    if (e.key === 'ArrowRight') {
-                        modalNext.click();
-                    } else if (e.key === 'ArrowLeft') {
-                        modalPrev.click();
-                    } else if (e.key === 'Escape') {
-                        modal.style.display = 'none';
-                        document.removeEventListener('keydown', handleKeydown);
-                    }
-                }
-            });
-            
-            updateModal();
+            document.getElementById('gallery-product-name').textContent = productName;
+            showGalleryImage(startIndex);
+
+            const modal = document.getElementById('image-modal');
             modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageGallery() {
+            const modal = document.getElementById('image-modal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function showGalleryImage(index) {
+            if (galleryImages.length === 0) {
+                const mainImage = document.getElementById('modal-image');
+                mainImage.src = 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w1600';
+                mainImage.alt = 'لا توجد صورة';
+                document.getElementById('modal-counter').textContent = '0 من 0';
+                return;
+            }
+
+            if (index < 0) currentModalIndex = galleryImages.length - 1;
+            else if (index >= galleryImages.length) currentModalIndex = 0;
+            else currentModalIndex = index;
+
+            const mainImage = document.getElementById('modal-image');
+            // تحميل الصورة الكبيرة
+            mainImage.src = getGalleryImageUrl(galleryImages[currentModalIndex]);
+            mainImage.alt = `صورة ${currentModalIndex + 1}`;
+
+            document.getElementById('modal-counter').textContent = 
+                `${currentModalIndex + 1} من ${galleryImages.length}`;
+
+            // تحميل مسبق للصور المجاورة لتحسين الأداء
+            preloadAdjacentImages();
+        }
+
+        function navigateGallery(direction) {
+            showGalleryImage(currentModalIndex + direction);
+        }
+
+        function preloadAdjacentImages() {
+            const prevIndex = (currentModalIndex - 1 + galleryImages.length) % galleryImages.length;
+            const nextIndex = (currentModalIndex + 1) % galleryImages.length;
+
+            [prevIndex, nextIndex].forEach(i => {
+                const img = new Image();
+                img.decoding = 'async';
+                img.referrerPolicy = 'no-referrer';
+                img.src = getGalleryImageUrl(galleryImages[i]);
+            });
         }
 
         // معالجة اختيار الصور - محدثة للتحقق من الحد الأقصى
@@ -1680,7 +1889,7 @@
                     img.dataset.fileIndex = uploadedImageUrls.length;
                     
                     img.addEventListener('click', () => {
-                        showImageModal([e.target.result]);
+                        openImageGallery([e.target.result], file.name);
                     });
                     
                     const editOptions = document.createElement('div');
@@ -1734,7 +1943,200 @@
             });
         }
 
-        // فتح محرر الصور - محدث
+        // ==========================================
+        // ✂️ نظام اقتصاص الصورة المتقدم
+        // ==========================================
+        function startCrop() {
+            isCropping = true;
+            const cropOverlay = document.getElementById('crop-overlay');
+            cropArea = document.getElementById('crop-area');
+            
+            // إعداد حجم منطقة الاقتصاص الابتدائية
+            const canvas = document.getElementById('editor-canvas');
+            const cropWidth = canvas.width * 0.6;
+            const cropHeight = canvas.height * 0.6;
+            const cropX = (canvas.width - cropWidth) / 2;
+            const cropY = (canvas.height - cropHeight) / 2;
+            
+            cropArea.style.width = cropWidth + 'px';
+            cropArea.style.height = cropHeight + 'px';
+            cropArea.style.left = cropX + 'px';
+            cropArea.style.top = cropY + 'px';
+            
+            cropOverlay.style.display = 'block';
+            
+            // إضافة مستمعات الأحداث للسحب والتغيير
+            setupCropEvents();
+            
+            showToast('اسحب حواف منطقة الاقتصاص لتحديد المساحة المطلوبة', 'info');
+        }
+
+        function setupCropEvents() {
+            cropArea.addEventListener('mousedown', startCropMove);
+            cropArea.addEventListener('touchstart', startCropMove);
+            
+            const handles = cropArea.querySelectorAll('.crop-handle');
+            handles.forEach(handle => {
+                handle.addEventListener('mousedown', startResize);
+                handle.addEventListener('touchstart', startResize);
+            });
+        }
+
+        function startCropMove(e) {
+            e.preventDefault();
+            isResizing = false;
+            resizeHandle = '';
+            
+            const rect = cropArea.getBoundingClientRect();
+            cropStartX = (e.clientX || e.touches[0].clientX) - rect.left;
+            cropStartY = (e.clientY || e.touches[0].clientY) - rect.top;
+            
+            document.addEventListener('mousemove', moveCropArea);
+            document.addEventListener('touchmove', moveCropArea);
+            document.addEventListener('mouseup', stopCropMove);
+            document.addEventListener('touchend', stopCropMove);
+        }
+
+        function moveCropArea(e) {
+            if (!isCropping) return;
+            
+            const canvas = document.getElementById('editor-canvas');
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            if (isResizing) {
+                // تغيير حجم منطقة الاقتصاص
+                resizeCropArea(clientX, clientY);
+            } else {
+                // تحريك منطقة الاقتصاص
+                const newX = clientX - canvasRect.left - cropStartX;
+                const newY = clientY - canvasRect.top - cropStartY;
+                
+                // التأكد من بقاء منطقة الاقتصاص داخل حدود الصورة
+                const maxX = canvas.width - cropArea.offsetWidth;
+                const maxY = canvas.height - cropArea.offsetHeight;
+                
+                cropArea.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+                cropArea.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+            }
+        }
+
+        function startResize(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            isResizing = true;
+            resizeHandle = e.target.className.split(' ')[1]; // nw, ne, sw, se
+            
+            document.addEventListener('mousemove', moveCropArea);
+            document.addEventListener('touchmove', moveCropArea);
+            document.addEventListener('mouseup', stopCropMove);
+            document.addEventListener('touchend', stopCropMove);
+        }
+
+        function resizeCropArea(clientX, clientY) {
+            const canvas = document.getElementById('editor-canvas');
+            const canvasRect = canvas.getBoundingClientRect();
+            const rect = cropArea.getBoundingClientRect();
+            
+            const x = clientX - canvasRect.left;
+            const y = clientY - canvasRect.top;
+            
+            let newLeft = parseInt(cropArea.style.left);
+            let newTop = parseInt(cropArea.style.top);
+            let newWidth = rect.width;
+            let newHeight = rect.height;
+            
+            const minSize = 50; // الحد الأدنى لحجم منطقة الاقتصاص
+            
+            switch(resizeHandle) {
+                case 'nw':
+                    newWidth = rect.right - x;
+                    newHeight = rect.bottom - y;
+                    newLeft = x;
+                    newTop = y;
+                    break;
+                case 'ne':
+                    newWidth = x - rect.left;
+                    newHeight = rect.bottom - y;
+                    newTop = y;
+                    break;
+                case 'sw':
+                    newWidth = rect.right - x;
+                    newHeight = y - rect.top;
+                    newLeft = x;
+                    break;
+                case 'se':
+                    newWidth = x - rect.left;
+                    newHeight = y - rect.top;
+                    break;
+            }
+            
+            // التأكد من الحد الأدنى للحجم
+            if (newWidth < minSize) newWidth = minSize;
+            if (newHeight < minSize) newHeight = minSize;
+            
+            // التأكد من بقاء المنطقة داخل حدود الصورة
+            if (newLeft < 0) newLeft = 0;
+            if (newTop < 0) newTop = 0;
+            if (newLeft + newWidth > canvas.width) newWidth = canvas.width - newLeft;
+            if (newTop + newHeight > canvas.height) newHeight = canvas.height - newTop;
+            
+            cropArea.style.left = newLeft + 'px';
+            cropArea.style.top = newTop + 'px';
+            cropArea.style.width = newWidth + 'px';
+            cropArea.style.height = newHeight + 'px';
+        }
+
+        function stopCropMove() {
+            document.removeEventListener('mousemove', moveCropArea);
+            document.removeEventListener('touchmove', moveCropArea);
+            document.removeEventListener('mouseup', stopCropMove);
+            document.removeEventListener('touchend', stopCropMove);
+        }
+
+        function applyCrop() {
+            const canvas = document.getElementById('editor-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const rect = cropArea.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            // حساب إحداثيات الاقتصاص نسبة إلى canvas
+            const scaleX = canvas.width / canvasRect.width;
+            const scaleY = canvas.height / canvasRect.height;
+            
+            const cropX = (rect.left - canvasRect.left) * scaleX;
+            const cropY = (rect.top - canvasRect.top) * scaleY;
+            const cropWidth = rect.width * scaleX;
+            const cropHeight = rect.height * scaleY;
+            
+            // اقتصاص الصورة
+            const imageData = ctx.getImageData(cropX, cropY, cropWidth, cropHeight);
+            
+            canvas.width = cropWidth;
+            canvas.height = cropHeight;
+            ctx.putImageData(imageData, 0, 0);
+            
+            cancelCrop();
+            showToast('تم اقتصاص الصورة بنجاح', 'success');
+        }
+
+        function cancelCrop() {
+            isCropping = false;
+            const cropOverlay = document.getElementById('crop-overlay');
+            cropOverlay.style.display = 'none';
+            
+            // إزالة مستمعات الأحداث
+            document.removeEventListener('mousemove', moveCropArea);
+            document.removeEventListener('touchmove', moveCropArea);
+            document.removeEventListener('mouseup', stopCropMove);
+            document.removeEventListener('touchend', stopCropMove);
+        }
+
+        // فتح محرر الصور - محدث لمنع الحفظ التلقائي
         function openImageEditor(imageSrc, index) {
             const modal = document.getElementById('image-editor-modal');
             const canvas = document.getElementById('editor-canvas');
@@ -1759,28 +2161,8 @@
         function closeImageEditor() {
             const modal = document.getElementById('image-editor-modal');
             modal.style.display = 'none';
+            cancelCrop();
             // لا نقوم بحفظ الصورة تلقائياً عند الإغلاق
-        }
-
-        // اقتصاص الصورة - محدث للعمل الفعلي
-        function cropImage() {
-            const canvas = document.getElementById('editor-canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // في التطبيق الحقيقي، يمكن إضافة منطق اختيار منطقة الاقتصاص
-            // هنا نستخدم اقتصاص بسيط كنموذج
-            const cropWidth = canvas.width * 0.8;
-            const cropHeight = canvas.height * 0.8;
-            const cropX = (canvas.width - cropWidth) / 2;
-            const cropY = (canvas.height - cropHeight) / 2;
-            
-            const imageData = ctx.getImageData(cropX, cropY, cropWidth, cropHeight);
-            
-            canvas.width = cropWidth;
-            canvas.height = cropHeight;
-            ctx.putImageData(imageData, 0, 0);
-            
-            showToast('تم اقتصاص الصورة', 'success');
         }
 
         // تدوير الصورة - محدث للعمل الفعلي
@@ -1858,34 +2240,50 @@
             const ctx = canvas.getContext('2d');
             
             if (originalImageData) {
+                canvas.width = originalImageData.width;
+                canvas.height = originalImageData.height;
                 ctx.putImageData(originalImageData, 0, 0);
                 showToast('تم إعادة تعيين الصورة', 'success');
             }
         }
 
-        // حفظ الصورة المحررة - محدث
-        function saveEditedImage() {
+        // حفظ الصورة المحررة - محدث لاستبدال الصورة القديمة
+        async function saveEditedImage() {
             const canvas = document.getElementById('editor-canvas');
             
-            canvas.toBlob(function(blob) {
+            canvas.toBlob(async function(blob) {
                 const newFile = new File([blob], `edited_${Date.now()}.jpg`, { type: 'image/jpeg' });
                 
                 if (currentEditingImageIndex >= 0) {
-                    uploadedImageUrls[currentEditingImageIndex].file = newFile;
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
+                    try {
+                        showGlobalLoading(true);
+                        
+                        // الحصول على الصورة القديمة إذا كانت موجودة
+                        const oldImageUrl = uploadedImageUrls[currentEditingImageIndex].preview;
+                        
+                        // رفع الصورة الجديدة مع استبدال القديمة
+                        const newImageUrl = await uploadAndReplaceImage(newFile, oldImageUrl);
+                        
+                        // تحديث البيانات المحلية
+                        uploadedImageUrls[currentEditingImageIndex].file = newFile;
+                        uploadedImageUrls[currentEditingImageIndex].preview = newImageUrl;
+                        
+                        // تحديث العرض
                         const imgElements = document.querySelectorAll(`.uploaded-image[data-file-index="${currentEditingImageIndex}"]`);
                         imgElements.forEach(img => {
-                            img.src = e.target.result;
+                            img.src = newImageUrl;
                         });
-                        uploadedImageUrls[currentEditingImageIndex].preview = e.target.result;
-                    };
-                    reader.readAsDataURL(newFile);
+                        
+                        closeImageEditor();
+                        showToast('تم حفظ التعديلات على الصورة واستبدال الصورة القديمة', 'success');
+                        
+                    } catch (error) {
+                        console.error('خطأ في حفظ الصورة المحررة:', error);
+                        showToast('حدث خطأ في حفظ الصورة المحررة: ' + error.message, 'error');
+                    } finally {
+                        showGlobalLoading(false);
+                    }
                 }
-                
-                closeImageEditor();
-                showToast('تم حفظ التعديلات على الصورة', 'success');
             }, 'image/jpeg', 0.9);
         }
 
@@ -2042,26 +2440,6 @@
             displayProducts(filteredProducts);
         }
 
-        // دالة محسنة لتحويل رابط Google Drive إلى رابط صورة مباشر
-        function getCorsImageUrl(url) {
-            if (!url) return '';
-            
-            // إذا كان الرابط يحتوي على id، قم بتحويله إلى رابط مباشر
-            if (url.includes('drive.google.com') && url.includes('id=')) {
-                const fileId = url.split('id=')[1].split('&')[0];
-                return `https://drive.google.com/uc?id=${fileId}`;
-            }
-            
-            // إذا كان الرابط يحتوي على file/d/، قم بتحويله إلى رابط مباشر
-            if (url.includes('drive.google.com/file/d/')) {
-                const parts = url.split('/');
-                const fileId = parts[parts.indexOf('d') + 1];
-                return `https://drive.google.com/uc?id=${fileId}`;
-            }
-            
-            return url;
-        }
-
         // دالة محسنة لعرض التاريخ تأخذ بعين الاعتبار جميع الحالات
         function formatDate(timestamp) {
             if (!timestamp) return 'غير محدد';
@@ -2174,7 +2552,7 @@
                 if (hasImages) {
                     const img = listItem.querySelector('.product-list-image');
                     img.addEventListener('click', () => {
-                        showImageModal(product.imageUrls, 0);
+                        openImageGallery(product.imageUrls, product.name, 0);
                     });
                 }
             });
@@ -2390,7 +2768,7 @@
                     img.dataset.fileIndex = index;
                     
                     img.addEventListener('click', () => {
-                        showImageModal([getCorsImageUrl(url)]);
+                        openImageGallery([getGalleryImageUrl(url)], product.name);
                     });
                     
                     const editOptions = document.createElement('div');
@@ -2400,7 +2778,7 @@
                     editBtn.className = 'image-edit-btn';
                     editBtn.innerHTML = '<i class="fas fa-edit"></i> تحرير';
                     editBtn.onclick = function() {
-                        openImageEditor(getCorsImageUrl(url), index);
+                        openImageEditor(getGalleryImageUrl(url), index);
                     };
                     
                     const removeBtn = document.createElement('button');
@@ -2532,13 +2910,40 @@
                 document.getElementById('product-images').click();
             });
             
-            document.getElementById('modal-close').addEventListener('click', function() {
-                document.getElementById('image-modal').style.display = 'none';
+            document.getElementById('modal-close').addEventListener('click', closeImageGallery);
+            
+            document.getElementById('modal-prev').addEventListener('click', function() {
+                navigateGallery(-1);
+            });
+            
+            document.getElementById('modal-next').addEventListener('click', function() {
+                navigateGallery(1);
             });
             
             document.getElementById('image-modal').addEventListener('click', function(e) {
                 if (e.target === this) {
-                    this.style.display = 'none';
+                    closeImageGallery();
+                }
+            });
+            
+            // إضافة مستمعات الأحداث للأزرار في محرر الصور
+            document.addEventListener('keydown', function(e) {
+                const modal = document.getElementById('image-modal');
+                if (modal.style.display === 'flex') {
+                    if (e.key === 'Escape') {
+                        closeImageGallery();
+                    } else if (e.key === 'ArrowLeft') {
+                        navigateGallery(-1);
+                    } else if (e.key === 'ArrowRight') {
+                        navigateGallery(1);
+                    }
+                }
+                
+                const editorModal = document.getElementById('image-editor-modal');
+                if (editorModal.style.display === 'flex') {
+                    if (e.key === 'Escape') {
+                        closeImageEditor();
+                    }
                 }
             });
             
