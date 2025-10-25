@@ -1933,6 +1933,17 @@
         let adInterval = null;
         let currentAnimation = null;
 
+        // ==========================================
+        // 🔧 نظام تتبع الإجراءات المحسّن - الإصلاحات الجديدة
+        // ==========================================
+        
+        // تخزين إجراءات المستخدم الدائمة
+        let userActions = JSON.parse(localStorage.getItem('userActions')) || {
+            likes: {},
+            views: {},
+            comments: {}
+        };
+
         // عناصر الواجهة
         const productsContainer = document.getElementById('products-container');
         const governorateSelect = document.getElementById('governorate');
@@ -1967,22 +1978,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🏁 بدء تحميل التطبيق...');
             
-            // 1. تعيين القيمة الافتراضية للمستخدمين المتصلين
+            // 1. تهيئة معرف المستخدم المستقر أولاً
+            initializeStableUserId();
+            
+            // 2. تعيين القيمة الافتراضية للمستخدمين المتصلين
             updateOnlineUsersCount(0);
             
-            // 2. تهيئة نظام تتبع المستخدمين المتصلين أولاً
+            // 3. تهيئة نظام تتبع المستخدمين المتصلين
             initializeUserPresence();
             
-            // 3. تهيئة التعرف الصوتي
+            // 4. تهيئة التعرف الصوتي
             initializeSpeechRecognition();
             
-            // 4. تهيئة التطبيق
+            // 5. تهيئة التطبيق
             initializeApp();
             
-            // 5. إعداد مستمعي الأحداث
+            // 6. إعداد مستمعي الأحداث
             setupEventListeners();
             
-            // 6. تحميل البيانات
+            // 7. تحميل البيانات
             loadAllData().then(() => {
                 checkUrlForProduct();
                 displayPersonalizedProducts();
@@ -1991,22 +2005,41 @@
                 console.error('❌ خطأ في تحميل البيانات:', error);
             });
             
-            // 7. بدء تحديث المنتجات الجديدة تلقائياً
+            // 8. بدء تحديث المنتجات الجديدة تلقائياً
             startAutoUpdate();
             
-            // 8. بدء التحديث المتكرر للمستخدمين المتصلين
+            // 9. بدء التحديث المتكرر للمستخدمين المتصلين
             startOnlineUsersUpdate();
             
-            // 9. تحميل وعرض الإعلانات النصية
+            // 10. تحميل وعرض الإعلانات النصية
             loadAdvertisementTexts();
         });
+
+        // ==========================================
+        // 🔧 نظام معرف المستخدم المستقر - الإصلاح الجديد
+        // ==========================================
+        function initializeStableUserId() {
+            // إنشاء معرف مستقر للمستخدم يبقى ثابتاً بين الجلسات
+            let userId = localStorage.getItem('stableUserId');
+            
+            if (!userId) {
+                // إنشاء معرف فريد ومستقر
+                userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('stableUserId', userId);
+                console.log('🆔 تم إنشاء معرف مستقر جديد للمستخدم:', userId);
+            } else {
+                console.log('🆔 تم تحميل معرف المستخدم المستقر:', userId);
+            }
+            
+            currentUserId = userId;
+            return userId;
+        }
 
         // ==========================================
         // 👥 نظام تتبع المستخدمين المتصلين - تم الإصلاح بالكامل
         // ==========================================
         function initializeUserPresence() {
-            // إنشاء معرف فريد للمستخدم
-            currentUserId = generateUserId();
+            // استخدام المعرف المستقر بدلاً من إنشاء جديد
             console.log('🆔 معرف المستخدم الحالي:', currentUserId);
             
             // إنشاء مرجع لبيانات المستخدم المتصل
@@ -2084,15 +2117,6 @@
             setTimeout(() => {
                 onlineUsersEl.classList.remove('new-user');
             }, 1500);
-        }
-
-        function generateUserId() {
-            let userId = localStorage.getItem('userId');
-            if (!userId) {
-                userId = 'user_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('userId', userId);
-            }
-            return userId;
         }
 
         function updateOnlineUsersCount(count) {
@@ -2898,7 +2922,7 @@
                     default:
                         const dateA = new Date(a.publishDate || a.createdAt || a.date || 0);
                         const dateB = new Date(b.publishDate || b.createdAt || b.date || 0);
-                        result = dateB - dateA;
+                        result = dateB - aDate;
                         break;
                 }
                 
@@ -3675,14 +3699,16 @@
         }
 
         // ==========================================
-        // 👁️ تعديل وظيفة زيادة المشاهدات
+        // 👁️ تعديل وظيفة زيادة المشاهدات - الإصلاح الجديد
         // ==========================================
         function incrementViewCount(productId) {
-            const userId = getUserId();
-            const viewKey = `${productId}_${userId}`;
-
-            if (!sessionStorage.getItem(viewKey)) {
-                sessionStorage.setItem(viewKey, 'true');
+            // التحقق من أن المستخدم لم يشاهد هذا المنتج من قبل في هذه الجلسة
+            const viewKey = `view_${productId}`;
+            
+            if (!userActions.views[viewKey]) {
+                // تسجيل المشاهدة
+                userActions.views[viewKey] = Date.now();
+                localStorage.setItem('userActions', JSON.stringify(userActions));
                 
                 // زيادة العداد في Firebase
                 db.ref(`products_stats/${productId}/views`).transaction(current => (current || 0) + 1);
@@ -3700,6 +3726,10 @@
                     userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
                     localStorage.setItem('userInterests', JSON.stringify(userInterests));
                 }
+                
+                console.log('👁️ تم تسجيل مشاهدة جديدة للمنتج:', productId);
+            } else {
+                console.log('👁️ المستخدم قد شاهد هذا المنتج من قبل:', productId);
             }
         }
 
@@ -3727,31 +3757,72 @@
                 if (viewStatEl) viewStatEl.textContent = viewCount;
                 if (commentStatEl) commentStatEl.textContent = commentCount;
                 if (commentsCountEl) commentsCountEl.textContent = commentCount;
+
+                // تحديث حالة زر الإعجاب بناءً على إجراءات المستخدم السابقة
+                updateLikeButtonState(productId, stats.likes || []);
+                
             } catch (e) { 
                 console.error('خطأ في تحميل الإحصائيات:', e); 
             }
         }
 
+        // ==========================================
+        // ❤️ تحديث حالة زر الإعجاب بناءً على إجراءات المستخدم - الإصلاح الجديد
+        // ==========================================
+        function updateLikeButtonState(productId, likesArray) {
+            const likeButton = document.querySelector(`#product-${productId} .btn-like`);
+            if (!likeButton) return;
+            
+            // التحقق مما إذا كان المستخدم قد أعجب بهذا المنتج من قبل
+            const userLiked = likesArray.includes(currentUserId);
+            
+            if (userLiked) {
+                likeButton.style.color = 'var(--danger-color)';
+                likeButton.title = 'إلغاء الإعجاب';
+            } else {
+                likeButton.style.color = '';
+                likeButton.title = 'الإعجاب';
+            }
+        }
+
+        // ==========================================
+        // ❤️ تعديل وظيفة الإعجاب - الإصلاح الجديد
+        // ==========================================
         async function handleLike(productId, productName = '') {
-            const userId = getUserId();
             try {
                 const likesRef = db.ref(`products_stats/${productId}/likes`);
                 const snapshot = await likesRef.once('value');
                 let likes = snapshot.val() || [];
                 if (!Array.isArray(likes)) likes = [];
-                const idx = likes.indexOf(userId);
+                
+                const idx = likes.indexOf(currentUserId);
                 if (idx === -1) {
-                    likes.push(userId);
+                    // إضافة الإعجاب
+                    likes.push(currentUserId);
                     showNotification('تم الإعجاب بالمنتج', 'success');
+                    
+                    // تسجيل الإعجاب في إجراءات المستخدم
+                    userActions.likes[productId] = Date.now();
+                    localStorage.setItem('userActions', JSON.stringify(userActions));
                 } else {
+                    // إزالة الإعجاب
                     likes.splice(idx, 1);
                     showNotification('تم إلغاء الإعجاب بالمنتج', 'info');
+                    
+                    // إزالة الإعجاب من إجراءات المستخدم
+                    delete userActions.likes[productId];
+                    localStorage.setItem('userActions', JSON.stringify(userActions));
                 }
+                
                 await likesRef.set(likes);
                 
                 // تحديث العداد فوق زر الإعجاب
                 const likeStatEl = document.getElementById(`like-stat-${productId}`);
                 if (likeStatEl) likeStatEl.textContent = likes.length;
+                
+                // تحديث حالة زر الإعجاب
+                updateLikeButtonState(productId, likes);
+                
             } catch (e) { 
                 console.error('خطأ في معالجة الإعجاب:', e); 
             }
@@ -3901,15 +3972,6 @@
         function openMerchantPage() {
             // البيانات محفوظة مسبقاً في localStorage
             window.open('ard_tagr.html', '_blank');
-        }
-
-        function getUserId() {
-            let userId = localStorage.getItem('userId');
-            if (!userId) { 
-                userId = 'user_' + Math.random().toString(36).substr(2, 9); 
-                localStorage.setItem('userId', userId); 
-            }
-            return userId;
         }
 
         function formatDate(dateString) {
