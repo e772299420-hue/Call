@@ -519,6 +519,44 @@
             padding-top: 1rem;
         }
 
+        .btn-secondary {
+            background: var(--info-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-secondary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
         .no-products {
             text-align: center;
             padding: 3rem 1rem;
@@ -1962,19 +2000,23 @@
                     const editBtn = document.createElement('button');
                     editBtn.className = 'image-edit-btn';
                     editBtn.innerHTML = '<i class="fas fa-edit"></i> تحرير';
-                    editBtn.onclick = function() {
+                    editBtn.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
                         openImageEditor(e.target.result, uploadedImageUrls.length);
-                    };
+                    });
                     
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'image-edit-btn';
                     removeBtn.innerHTML = '<i class="fas fa-trash"></i> إزالة';
-                    removeBtn.onclick = function() {
+                    removeBtn.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
                         container.remove();
                         uploadedImageUrls.splice(parseInt(img.dataset.fileIndex), 1);
                         checkImageCount();
                         updateImageIndices();
-                    };
+                    });
                     
                     editOptions.appendChild(editBtn);
                     editOptions.appendChild(removeBtn);
@@ -2350,6 +2392,7 @@
 
         // فتح محرر الصور - محدث
         function openImageEditor(imageSrc, index) {
+            console.log('فتح محرر الصور:', index, imageSrc);
             const modal = document.getElementById('image-editor-modal');
             const canvas = document.getElementById('editor-canvas');
             const ctx = canvas.getContext('2d');
@@ -2374,6 +2417,7 @@
                 document.getElementById('adjustment-controls').style.display = 'none';
                 
                 modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
             };
             img.src = imageSrc;
         }
@@ -2382,6 +2426,7 @@
         function closeImageEditor() {
             const modal = document.getElementById('image-editor-modal');
             modal.style.display = 'none';
+            document.body.style.overflow = '';
             cancelCrop();
             
             // إعادة تعيين القيم
@@ -2392,7 +2437,6 @@
             // إخفاء أدوات التعديل
             document.getElementById('adjustment-controls').style.display = 'none';
             
-            // لا نقوم بإعادة تعيين النموذج هنا لمنع فقدان البيانات
             showToast('تم إغلاق محرر الصور', 'info');
         }
 
@@ -2690,13 +2734,17 @@
                 container.appendChild(listItem);
                 
                 const editBtn = listItem.querySelector('.edit-btn');
-                editBtn.addEventListener('click', function() {
+                editBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     const productId = this.dataset.id;
                     editProduct(productId);
                 });
                 
                 const deleteBtn = listItem.querySelector('.delete-btn');
-                deleteBtn.addEventListener('click', function() {
+                deleteBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     const productId = this.dataset.id;
                     confirmDeleteProduct(productId);
                 });
@@ -2931,19 +2979,23 @@
                     const editBtn = document.createElement('button');
                     editBtn.className = 'image-edit-btn';
                     editBtn.innerHTML = '<i class="fas fa-edit"></i> تحرير';
-                    editBtn.onclick = function() {
+                    editBtn.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
                         openImageEditor(getGalleryImageUrl(url), index);
-                    };
+                    });
                     
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'image-edit-btn';
                     removeBtn.innerHTML = '<i class="fas fa-trash"></i> إزالة';
-                    removeBtn.onclick = function() {
+                    removeBtn.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
                         container.remove();
                         uploadedImageUrls.splice(index, 1);
                         checkImageCount();
                         updateImageIndices();
-                    };
+                    });
                     
                     editOptions.appendChild(editBtn);
                     editOptions.appendChild(removeBtn);
@@ -3032,7 +3084,10 @@
             
             const addProductForm = document.getElementById('add-product-form');
             if (addProductForm) {
-                addProductForm.addEventListener('submit', addProduct);
+                addProductForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    addProduct(e);
+                });
             }
             
             // إضافة مستمعات الأحداث للحقول المطلوبة
@@ -3058,7 +3113,10 @@
             
             document.getElementById('confirm-delete').addEventListener('click', deleteProduct);
             
-            document.getElementById('saveButton').addEventListener('click', addProduct);
+            document.getElementById('saveButton').addEventListener('click', function(e) {
+                e.preventDefault();
+                addProduct(e);
+            });
             
             document.getElementById('upload-images-btn').addEventListener('click', function() {
                 document.getElementById('product-images').click();
