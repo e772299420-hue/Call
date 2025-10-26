@@ -86,11 +86,39 @@
             font-weight: bold;
             color: #666;
             transition: all 0.3s;
+            position: relative;
         }
         
         .tab.active {
             color: #6a11cb;
             border-bottom: 3px solid #6a11cb;
+        }
+        
+        .tab-badge {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            background: #ff5722;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        
+        .suspended-badge {
+            background: #f44336;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
         
         .tab-content {
@@ -199,6 +227,14 @@
         
         .btn-payment:hover {
             background: #45a049;
+        }
+        
+        .btn-activate {
+            background: #2196F3;
+        }
+        
+        .btn-activate:hover {
+            background: #0b7dda;
         }
         
         .btn-location {
@@ -637,8 +673,14 @@
         <div class="tabs">
             <div class="tab active" data-tab="add">إضافة تاجر جديد</div>
             <div class="tab" data-tab="view">عرض التجار النشطين</div>
-            <div class="tab" data-tab="requests">طلبات الانضمام</div>
-            <div class="tab" data-tab="suspended">التجار الموقوفين</div>
+            <div class="tab" data-tab="requests">
+                طلبات الانضمام
+                <span class="tab-badge" id="requestsBadge" style="display: none;">0</span>
+            </div>
+            <div class="tab" data-tab="suspended">
+                التجار الموقوفين
+                <span class="tab-badge suspended-badge" id="suspendedBadge" style="display: none;">0</span>
+            </div>
         </div>
         
         <div class="tab-content active" id="addTab">
@@ -706,10 +748,7 @@
                     <input type="tel" id="merchant-mobile" placeholder="أدخل رقم الجوال/واتساب" required>
                 </div>
                 
-                <div class="form-group">
-                    <label for="merchant-ip">أيبي هاتف العميل</label>
-                    <input type="text" id="merchant-ip" placeholder="أدخل أيبي الهاتف">
-                </div>
+                <!-- تم إخفاء حقل الأيبي -->
             </div>
             
             <div class="form-row">
@@ -848,8 +887,9 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="edit-merchant-password">كلمة المرور</label>
-                    <input type="password" id="edit-merchant-password" placeholder="اتركه فارغاً إذا لم ترد التغيير">
+                    <label for="edit-merchant-password" class="required">كلمة المرور</label>
+                    <input type="text" id="edit-merchant-password" required>
+                    <small style="color: #666; font-size: 12px;">كلمة المرور الحالية للتاجر</small>
                 </div>
             </div>
             
@@ -905,10 +945,7 @@
                     <input type="tel" id="edit-merchant-mobile" required>
                 </div>
                 
-                <div class="form-group">
-                    <label for="edit-merchant-ip">أيبي هاتف العميل</label>
-                    <input type="text" id="edit-merchant-ip">
-                </div>
+                <!-- تم إخفاء حقل الأيبي -->
             </div>
             
             <div class="form-row">
@@ -968,7 +1005,7 @@
             
             <h2>إرسال رسالة تفعيل</h2>
             
-            <p>هل ترغب بإرسال رسالة تفعيل إلى التاجر عبر الواتساب؟</p>
+            <p id="activationMessage">هل ترغب بإرسال رسالة تفعيل إلى التاجر عبر الواتساب؟</p>
             
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="btn" id="sendActivationBtn" style="flex: 1;">
@@ -1013,7 +1050,6 @@
         const areaSelect = document.getElementById('merchant-area');
         const phoneInput = document.getElementById('merchant-phone');
         const mobileInput = document.getElementById('merchant-mobile');
-        const ipInput = document.getElementById('merchant-ip');
         const locationInput = document.getElementById('merchant-location');
         const facebookInput = document.getElementById('merchant-facebook');
         const instagramInput = document.getElementById('merchant-instagram');
@@ -1024,6 +1060,8 @@
         const addMerchantBtn = document.getElementById('addMerchantBtn');
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
+        const requestsBadge = document.getElementById('requestsBadge');
+        const suspendedBadge = document.getElementById('suspendedBadge');
         
         // عناصر النماذج
         const editMerchantModal = document.getElementById('editMerchantModal');
@@ -1036,7 +1074,6 @@
         const editAreaSelect = document.getElementById('edit-merchant-area');
         const editPhoneInput = document.getElementById('edit-merchant-phone');
         const editMobileInput = document.getElementById('edit-merchant-mobile');
-        const editIpInput = document.getElementById('edit-merchant-ip');
         const editLocationInput = document.getElementById('edit-merchant-location');
         const editFacebookInput = document.getElementById('edit-merchant-facebook');
         const editInstagramInput = document.getElementById('edit-merchant-instagram');
@@ -1058,18 +1095,27 @@
         const closeActivationModal = document.getElementById('closeActivationModal');
         const sendActivationBtn = document.getElementById('sendActivationBtn');
         const cancelActivationBtn = document.getElementById('cancelActivationBtn');
+        const activationMessage = document.getElementById('activationMessage');
         
         // متغيرات التعديل
         let currentEditMerchantId = null;
         let governoratesData = {};
         let allMerchants = []; // لتخزين جميع التجار للبحث والترتيب
         let lastAddedMerchant = null; // لتخزين بيانات آخر تاجر تم إضافته
+        let merchantToActivate = null; // لتخزين بيانات التاجر المراد تفعيله
+        
+        // ثوابت
+        const DEFAULT_PASSWORD = 'default_password';
+        const NEW_PASSWORD = '123';
         
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', function() {
             loadGovernoratesToSelect();
             setupEventListeners();
             setupManualLocationInput();
+            
+            // بدء مراقبة طلبات الانضمام والتجار الموقوفين لتحديث العدادات
+            startMonitoring();
             
             // الاستماع للتغييرات في التبويبات
             document.querySelector('[data-tab="view"]').addEventListener('click', function() {
@@ -1149,6 +1195,77 @@
             cancelActivationBtn.addEventListener('click', () => {
                 activationModal.style.display = 'none';
             });
+        }
+        
+        // مراقبة طلبات الانضمام والتجار الموقوفين لتحديث العدادات
+        function startMonitoring() {
+            database.ref('merchants').on('value', (snapshot) => {
+                const merchants = snapshot.val();
+                updateRequestsBadge(merchants);
+                updateSuspendedBadge(merchants);
+            });
+        }
+        
+        // تحديث عداد طلبات الانضمام
+        function updateRequestsBadge(merchants) {
+            if (!merchants) {
+                requestsBadge.style.display = 'none';
+                return;
+            }
+            
+            let pendingRequestsCount = 0;
+            
+            Object.keys(merchants).forEach(key => {
+                const merchant = merchants[key];
+                
+                // شروط عرض التاجر في طلبات الانضمام:
+                // 1. الحالة غير نشط (inactive)
+                // 2. كلمة المرور هي الافتراضية (default_password)
+                const isInactive = merchant.status === 'inactive';
+                const hasDefaultPassword = merchant.password === DEFAULT_PASSWORD;
+                
+                if (isInactive && hasDefaultPassword) {
+                    pendingRequestsCount++;
+                }
+            });
+            
+            if (pendingRequestsCount > 0) {
+                requestsBadge.textContent = pendingRequestsCount;
+                requestsBadge.style.display = 'flex';
+            } else {
+                requestsBadge.style.display = 'none';
+            }
+        }
+        
+        // تحديث عداد التجار الموقوفين
+        function updateSuspendedBadge(merchants) {
+            if (!merchants) {
+                suspendedBadge.style.display = 'none';
+                return;
+            }
+            
+            let suspendedCount = 0;
+            
+            Object.keys(merchants).forEach(key => {
+                const merchant = merchants[key];
+                
+                // شروط عرض التاجر في التجار الموقوفين:
+                // 1. الحالة غير نشط (inactive)
+                // 2. كلمة المرور ليست الافتراضية (ليست default_password)
+                const isInactive = merchant.status === 'inactive';
+                const hasNonDefaultPassword = merchant.password !== DEFAULT_PASSWORD;
+                
+                if (isInactive && hasNonDefaultPassword) {
+                    suspendedCount++;
+                }
+            });
+            
+            if (suspendedCount > 0) {
+                suspendedBadge.textContent = suspendedCount;
+                suspendedBadge.style.display = 'flex';
+            } else {
+                suspendedBadge.style.display = 'none';
+            }
         }
         
         // تحميل المحافظات إلى القوائم المنسدلة
@@ -1355,7 +1472,6 @@
             const area = areaSelect.value;
             const phone = phoneInput.value.trim();
             const mobile = mobileInput.value.trim();
-            const ip = ipInput.value.trim();
             const location = locationInput.value.trim();
             const facebook = facebookInput.value.trim();
             const instagram = instagramInput.value.trim();
@@ -1396,7 +1512,6 @@
                     area: area,
                     phone: phone,
                     mobile: mobile,
-                    ip: ip,
                     location: location,
                     facebook: facebook,
                     instagram: instagram,
@@ -1427,7 +1542,6 @@
                 areaSelect.innerHTML = '<option value="">اختر المنطقة</option>';
                 phoneInput.value = '';
                 mobileInput.value = '';
-                ipInput.value = '';
                 locationInput.value = '';
                 facebookInput.value = '';
                 instagramInput.value = '';
@@ -1453,16 +1567,46 @@
             }
         }
         
+        // تفعيل التاجر
+        async function activateMerchant(merchant) {
+            merchantToActivate = merchant;
+            
+            // تحديث نص رسالة التأكيد
+            activationMessage.textContent = `هل ترغب بإرسال رسالة تفعيل إلى التاجر ${merchant.name} عبر الواتساب؟`;
+            
+            // عرض نموذج التأكيد
+            activationModal.style.display = 'flex';
+        }
+        
         // إرسال رسالة التفعيل
-        function sendActivationMessage() {
-            if (!lastAddedMerchant) {
+        async function sendActivationMessage() {
+            if (!merchantToActivate) {
                 showToast('لا توجد بيانات للتاجر', 'error');
                 return;
             }
             
-            // إرسال رسالة الترحيب
-            sendWelcomeMessage(lastAddedMerchant);
-            activationModal.style.display = 'none';
+            try {
+                // تحديث بيانات التاجر
+                await database.ref(`merchants/${merchantToActivate.id}`).update({
+                    status: 'active',
+                    password: NEW_PASSWORD
+                });
+                
+                showToast('تم تفعيل التاجر وتغيير كلمة المرور إلى 123', 'success');
+                
+                // إرسال رسالة الترحيب
+                sendWelcomeMessage(merchantToActivate);
+                
+                // إعادة تحميل العرض
+                renderJoinRequests();
+                
+            } catch (error) {
+                console.error('خطأ في تفعيل التاجر:', error);
+                showToast('حدث خطأ في تفعيل التاجر', 'error');
+            } finally {
+                activationModal.style.display = 'none';
+                merchantToActivate = null;
+            }
         }
         
         // إرسال رسالة ترحيب عبر الواتساب
@@ -1482,7 +1626,7 @@ https://e772299420-hue.github.io/Call/index.html
 لتسجيل الدخول وإضافة منتجاتك
 قم بالنقر على زر قسم الطلب والتوصيل السريع وانقر على زر تسجيل الدخول الموجود اعلى الشاشة 
 اسم المستخدم : ${merchant.username}
-كلمة المرور : ${merchant.password}
+كلمة المرور : ${NEW_PASSWORD}
 
 من شاشة بيانات الأصناف 
 يمكنك إضافة وتعديل وتوقيف المنتجات الخاصة بك ليراها الاخرين
@@ -1505,7 +1649,7 @@ https://e772299420-hue.github.io/Call/index.html
 لتسجيل الدخول وإضافة منتجاتك
 قم بالنقر على زر قسم المنتجات الجديدة وانقر على زر تسجيل الدخول الموجود اعلى الشاشة 
 اسم المستخدم : ${merchant.username}
-كلمة المرور : ${merchant.password}
+كلمة المرور : ${NEW_PASSWORD}
 
 من شاشة بيانات الأصناف 
 يمكنك إضافة وتعديل وتوقيف المنتجات الخاصة بك ليراها الاخرين
@@ -1650,11 +1794,16 @@ https://e772299420-hue.github.io/Call/index.html
                     ...merchants[key]
                 }));
                 
-                // تصفية التجار غير النشطين بكلمة مرور افتراضية
-                const defaultPassword = '123456'; // كلمة المرور الافتراضية
-                const requests = allMerchants.filter(merchant => 
-                    merchant.status === 'inactive' && merchant.password === defaultPassword
-                );
+                // تصفية طلبات الانضمام وفق الشروط المحددة
+                const requests = allMerchants.filter(merchant => {
+                    const isInactive = merchant.status === 'inactive';
+                    const hasDefaultPassword = merchant.password === DEFAULT_PASSWORD;
+                    
+                    // شروط عرض التاجر في طلبات الانضمام:
+                    // 1. الحالة غير نشط (inactive)
+                    // 2. كلمة المرور هي الافتراضية (default_password)
+                    return isInactive && hasDefaultPassword;
+                });
                 
                 // تطبيق البحث والترتيب
                 filterAndSortRequests(requests);
@@ -1736,11 +1885,16 @@ https://e772299420-hue.github.io/Call/index.html
                     ...merchants[key]
                 }));
                 
-                // تصفية التجار غير النشطين بكلمة مرور غير افتراضية
-                const defaultPassword = '123456'; // كلمة المرور الافتراضية
-                const suspended = allMerchants.filter(merchant => 
-                    merchant.status === 'inactive' && merchant.password !== defaultPassword
-                );
+                // تصفية التجار الموقوفين
+                const suspended = allMerchants.filter(merchant => {
+                    const isInactive = merchant.status === 'inactive';
+                    const hasNonDefaultPassword = merchant.password !== DEFAULT_PASSWORD;
+                    
+                    // شروط عرض التاجر في التجار الموقوفين:
+                    // 1. الحالة غير نشط (inactive)
+                    // 2. كلمة المرور ليست الافتراضية (ليست default_password)
+                    return isInactive && hasNonDefaultPassword;
+                });
                 
                 // تطبيق البحث والترتيب
                 filterAndSortSuspended(suspended);
@@ -1852,6 +2006,16 @@ https://e772299420-hue.github.io/Call/index.html
                 const actionButtons = document.createElement('div');
                 actionButtons.className = 'simple-action-buttons';
                 
+                // زر التفعيل لطلبات الانضمام
+                if (type === 'requests') {
+                    const activateBtn = document.createElement('button');
+                    activateBtn.className = 'btn btn-activate btn-sm';
+                    activateBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    activateBtn.title = 'تفعيل التاجر';
+                    activateBtn.addEventListener('click', () => activateMerchant(merchant));
+                    actionButtons.appendChild(activateBtn);
+                }
+                
                 // زر الواتساب للرسالة الترحيبية
                 if (merchant.mobile && type !== 'requests') {
                     const whatsappBtn = document.createElement('button');
@@ -1870,16 +2034,6 @@ https://e772299420-hue.github.io/Call/index.html
                     paymentBtn.title = 'إرسال طلب دفع';
                     paymentBtn.addEventListener('click', () => sendPaymentRequest(merchant));
                     actionButtons.appendChild(paymentBtn);
-                }
-                
-                // زر التفعيل لطلبات الانضمام
-                if (type === 'requests') {
-                    const activateBtn = document.createElement('button');
-                    activateBtn.className = 'btn btn-payment btn-sm';
-                    activateBtn.innerHTML = '<i class="fas fa-check"></i>';
-                    activateBtn.title = 'تفعيل التاجر';
-                    activateBtn.addEventListener('click', () => activateMerchant(merchant.id));
-                    actionButtons.appendChild(activateBtn);
                 }
                 
                 // زر التعديل
@@ -1905,31 +2059,13 @@ https://e772299420-hue.github.io/Call/index.html
             });
         }
         
-        // تفعيل التاجر
-        async function activateMerchant(id) {
-            try {
-                await database.ref(`merchants/${id}`).update({
-                    status: 'active'
-                });
-                
-                showToast('تم تفعيل التاجر بنجاح', 'success');
-                
-                // إعادة تحميل العرض
-                renderJoinRequests();
-                
-            } catch (error) {
-                console.error('خطأ في تفعيل التاجر:', error);
-                showToast('حدث خطأ في تفعيل التاجر', 'error');
-            }
-        }
-        
         // فتح نموذج تعديل التاجر
         function openEditMerchantModal(merchant) {
             currentEditMerchantId = merchant.id;
             
             // تعبئة جميع الحقول
             editUsernameInput.value = merchant.username || '';
-            editPasswordInput.value = '';
+            editPasswordInput.value = merchant.password || '';
             editNameInput.value = merchant.name || '';
             editJobInput.value = merchant.job || 'تاجر';
             editStatusSelect.value = merchant.status || 'active';
@@ -1943,7 +2079,6 @@ https://e772299420-hue.github.io/Call/index.html
             
             editPhoneInput.value = merchant.phone || '';
             editMobileInput.value = merchant.mobile || '';
-            editIpInput.value = merchant.ip || '';
             editLocationInput.value = merchant.location || '';
             editFacebookInput.value = merchant.facebook || '';
             editInstagramInput.value = merchant.instagram || '';
@@ -1965,7 +2100,6 @@ https://e772299420-hue.github.io/Call/index.html
             const area = editAreaSelect.value;
             const phone = editPhoneInput.value.trim();
             const mobile = editMobileInput.value.trim();
-            const ip = editIpInput.value.trim();
             const location = editLocationInput.value.trim();
             const facebook = editFacebookInput.value.trim();
             const instagram = editInstagramInput.value.trim();
@@ -2007,7 +2141,6 @@ https://e772299420-hue.github.io/Call/index.html
                     area: area,
                     phone: phone,
                     mobile: mobile,
-                    ip: ip,
                     location: location,
                     facebook: facebook,
                     instagram: instagram,
