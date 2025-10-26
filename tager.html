@@ -600,6 +600,19 @@
             gap: 10px;
         }
         
+        /* تنسيقات جديدة لعداد المنتجات */
+        .products-count {
+            display: inline-block;
+            background: #6a11cb;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -930,7 +943,7 @@
                     <label for="edit-merchant-area" class="required">المنطقة</label>
                     <select id="edit-merchant-area" required>
                         <option value="">اختر المنطقة</option>
-                    </select>
+                        </select>
                 </div>
                 
                 <div class="form-group">
@@ -1103,6 +1116,7 @@
         let allMerchants = []; // لتخزين جميع التجار للبحث والترتيب
         let lastAddedMerchant = null; // لتخزين بيانات آخر تاجر تم إضافته
         let merchantToActivate = null; // لتخزين بيانات التاجر المراد تفعيله
+        let productsData = {}; // لتخزين بيانات المنتجات
         
         // ثوابت
         const DEFAULT_PASSWORD = 'default_password';
@@ -1681,6 +1695,49 @@ https://e772299420-hue.github.io/Call/index.html
             showToast('تم فتح محادثة الواتساب للدفع', 'success');
         }
         
+        // ==========================================
+        // 🔥 التعديلات الجديدة لحساب عدد المنتجات
+        // ==========================================
+        
+        // جلب عدد المنتجات المرتبطة بالتاجر
+        async function getProductsCountForMerchant(merchantId) {
+            try {
+                // البحث عن المنتجات المرتبطة بالتاجر باستخدام userId
+                const productsSnapshot = await database.ref('products').orderByChild('userId').equalTo(merchantId).once('value');
+                const products = productsSnapshot.val();
+                return products ? Object.keys(products).length : 0;
+            } catch (error) {
+                console.error('خطأ في جلب عدد المنتجات:', error);
+                return 0;
+            }
+        }
+        
+        // جلب جميع المنتجات مرة واحدة لتحسين الأداء
+        async function loadAllProducts() {
+            try {
+                const snapshot = await database.ref('products').once('value');
+                productsData = snapshot.val() || {};
+                return productsData;
+            } catch (error) {
+                console.error('خطأ في تحميل المنتجات:', error);
+                return {};
+            }
+        }
+        
+        // حساب عدد المنتجات المرتبطة بالتاجر من البيانات المحملة مسبقاً
+        function calculateProductsCountForMerchant(merchantId) {
+            if (!productsData) return 0;
+            
+            let count = 0;
+            Object.keys(productsData).forEach(key => {
+                // البحث باستخدام userId الذي هو معرف التاجر
+                if (productsData[key].userId === merchantId) {
+                    count++;
+                }
+            });
+            return count;
+        }
+        
         // عرض التجار النشطين
         async function renderActiveMerchants() {
             const loadingIndicator = document.getElementById('viewLoadingIndicator');
@@ -1707,6 +1764,9 @@ https://e772299420-hue.github.io/Call/index.html
                     id: key,
                     ...merchants[key]
                 }));
+                
+                // تحميل جميع المنتجات لتحسين الأداء
+                await loadAllProducts();
                 
                 // تصفية التجار النشطين فقط
                 const activeMerchants = allMerchants.filter(merchant => merchant.status === 'active');
@@ -1979,7 +2039,19 @@ https://e772299420-hue.github.io/Call/index.html
                 
                 const merchantName = document.createElement('div');
                 merchantName.className = 'simple-merchant-name';
-                merchantName.textContent = merchant.name;
+                
+                // حساب عدد المنتجات المرتبطة بالتاجر
+                const productsCount = calculateProductsCountForMerchant(merchant.id);
+                
+                // إضافة عداد المنتجات بجانب اسم التاجر
+                if (type === 'active') {
+                    merchantName.innerHTML = `
+                        <span class="products-count">${productsCount}</span>
+                        ${merchant.name}
+                    `;
+                } else {
+                    merchantName.textContent = merchant.name;
+                }
                 
                 const merchantDetails = document.createElement('div');
                 merchantDetails.className = 'simple-merchant-details';
@@ -1995,6 +2067,14 @@ https://e772299420-hue.github.io/Call/index.html
                 const dateDetail = document.createElement('div');
                 dateDetail.className = 'simple-detail';
                 dateDetail.innerHTML = `<strong>تاريخ التسجيل:</strong> ${new Date(merchant.createdAt).toLocaleDateString('ar-EG')}`;
+                
+                // إضافة عدد المنتجات في تبويب التجار النشطين
+                if (type === 'active') {
+                    const productsDetail = document.createElement('div');
+                    productsDetail.className = 'simple-detail';
+                    productsDetail.innerHTML = `<strong>عدد المنتجات:</strong> ${productsCount}`;
+                    merchantDetails.appendChild(productsDetail);
+                }
                 
                 merchantDetails.appendChild(usernameDetail);
                 merchantDetails.appendChild(mobileDetail);
@@ -2180,8 +2260,8 @@ https://e772299420-hue.github.io/Call/index.html
         // حذف التاجر
         async function deleteMerchant(id, name) {
             try {
-                // التحقق من وجود منتجات مرتبطة بالتاجر
-                const productsSnapshot = await database.ref('products').orderByChild('merchantId').equalTo(id).once('value');
+                // التحقق من وجود منتجات مرتبطة بالتاجر باستخدام userId
+                const productsSnapshot = await database.ref('products').orderByChild('userId').equalTo(id).once('value');
                 const products = productsSnapshot.val();
                 
                 if (products) {
