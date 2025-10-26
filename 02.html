@@ -36,7 +36,7 @@
             background: linear-gradient(135deg,  #ffffff 100%);
             color: var(--text-color);
             min-height: 100vh;
-            padding: 180px 20px 100px 20px;
+            padding: 160px 20px 100px 20px;
             line-height: 1.6;
             transition: var(--transition);
         }
@@ -167,12 +167,18 @@
             border-bottom: 1px solid rgba(0,0,0,0.1);
         }
 
+        .merchant-label {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--dark-color);
+            margin-left: 15px;
+        }
+
         .merchant-select-container {
             display: flex;
             align-items: center;
             gap: 15px;
             flex: 1;
-            max-width: 600px;
         }
 
         .merchant-select {
@@ -408,7 +414,7 @@
 
         .products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 30px;
         }
 
@@ -1135,42 +1141,6 @@
         }
 
         /* ==========================================
-           🚀 زر إرسال الطلب الجديد
-           ========================================== */
-        .send-order-btn {
-            background: linear-gradient(135deg, #25D366, #128C7E);
-            color: white;
-            border: none;
-            padding: 16px 30px;
-            border-radius: var(--border-radius);
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin: 20px auto;
-            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
-            width: 100%;
-            max-width: 300px;
-        }
-
-        .send-order-btn:hover {
-            background: linear-gradient(135deg, #128C7E, #25D366);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.4);
-        }
-
-        .send-order-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        /* ==========================================
            🎯 نافذة تأكيد إرسال الطلب
            ========================================== */
         .order-confirmation-modal {
@@ -1502,7 +1472,7 @@
            ========================================== */
         @media (max-width: 768px) {
             body {
-                padding: 220px 15px 100px 15px;
+                padding: 200px 15px 100px 15px;
             }
 
             .header {
@@ -1541,6 +1511,11 @@
             .merchant-select-container {
                 flex-direction: column;
                 gap: 10px;
+            }
+
+            .merchant-label {
+                margin-left: 0;
+                text-align: center;
             }
 
             .control-bar {
@@ -1747,13 +1722,14 @@
        🏪 شريط التجار
        ========================================== -->
     <div class="merchant-bar" id="merchant-bar">
+        <span class="merchant-label">التاجر</span>
         <div class="merchant-select-container">
             <select class="merchant-select" id="merchant-select">
                 <option value="">جاري تحميل التجار...</option>
             </select>
             <button class="toggle-controls-btn" id="toggle-controls-btn">
                 <i class="fas fa-sliders-h"></i>
-                عرض المزيد
+                المزيد
             </button>
         </div>
     </div>
@@ -1834,14 +1810,6 @@
                 <p>جاري تحميل البيانات...</p>
             </div>
         </div>
-
-        <!-- ==========================================
-           🚀 زر إرسال الطلب عبر قاعدة البيانات
-           ========================================== -->
-        <button class="send-order-btn" id="send-order-btn" onclick="showOrderConfirmation()" disabled>
-            <i class="fas fa-database"></i>
-            إرسال الطلب إلى قاعدة البيانات
-        </button>
     </div>
 
     <!-- ==========================================
@@ -2086,10 +2054,6 @@
         const cancelCancelBtn = document.getElementById('cancel-cancel-btn');
         const footerMerchant = document.getElementById('footer-merchant');
         const footerMerchantName = document.getElementById('footer-merchant-name');
-        const sendOrderBtn = document.getElementById('send-order-btn');
-        const orderConfirmationModal = document.getElementById('order-confirmation-modal');
-        const confirmSendBtn = document.getElementById('confirm-send-btn');
-        const cancelSendBtn = document.getElementById('cancel-send-btn');
         const ordersModal = document.getElementById('orders-modal');
         const ordersGrid = document.getElementById('orders-grid');
         const closeOrders = document.getElementById('close-orders');
@@ -2290,11 +2254,9 @@
             
             if (hasProducts) {
                 actionBar.classList.add('active');
-                sendOrderBtn.disabled = false;
             } else {
                 actionBar.classList.remove('active');
                 orderSummaryModal.classList.remove('active');
-                sendOrderBtn.disabled = true;
             }
             
             whatsappOrderBtn.disabled = !(hasProducts && hasLocation);
@@ -2341,10 +2303,8 @@
             if (productKeys.length === 0) {
                 orderSummaryModal.classList.remove('active');
                 actionBar.classList.remove('active');
-                sendOrderBtn.disabled = true;
             } else {
                 actionBar.classList.add('active');
-                sendOrderBtn.disabled = false;
             }
             
             let total = 0;
@@ -2380,7 +2340,7 @@
                 toggleControlsBtn.innerHTML = '<i class="fas fa-times"></i> إغلاق';
             } else {
                 controlBar.classList.remove('active');
-                toggleControlsBtn.innerHTML = '<i class="fas fa-sliders-h"></i> عرض المزيد';
+                toggleControlsBtn.innerHTML = '<i class="fas fa-sliders-h"></i> المزيد';
             }
         }
 
@@ -2424,22 +2384,6 @@
         // ==========================================
         // 🚀 وظيفة إرسال الطلب إلى قاعدة البيانات
         // ==========================================
-        function showOrderConfirmation() {
-            const productKeys = Object.keys(selectedProducts);
-            
-            if (productKeys.length === 0) {
-                showMessage('لم تقم باختيار أي منتجات', 'error');
-                return;
-            }
-            
-            if (!userLocation) {
-                showMessage('يجب تحديد موقعك أولاً قبل إرسال الطلب', 'error');
-                return;
-            }
-            
-            orderConfirmationModal.classList.add('active');
-        }
-
         function sendOrderToDatabase() {
             const productKeys = Object.keys(selectedProducts);
             
@@ -3424,19 +3368,6 @@
             merchantModal.addEventListener('click', function(e) {
                 if (e.target === merchantModal) {
                     merchantModal.classList.remove('active');
-                }
-            });
-
-            // مستمعي الأحداث لنافذة تأكيد إرسال الطلب
-            confirmSendBtn.addEventListener('click', sendOrderToDatabase);
-            cancelSendBtn.addEventListener('click', function() {
-                orderConfirmationModal.classList.remove('active');
-                showMessage('تم التراجع عن إرسال الطلب', 'info');
-            });
-
-            orderConfirmationModal.addEventListener('click', function(e) {
-                if (e.target === orderConfirmationModal) {
-                    orderConfirmationModal.classList.remove('active');
                 }
             });
 
