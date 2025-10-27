@@ -685,7 +685,7 @@
                                 رقم السعر: <span id="price-number-display">1</span>
                             </div>
 
-                            <button type="submit" class="btn-secondary" id="price-submit-btn">
+                            <button type="submit" class="btn-secondary hidden" id="price-submit-btn">
                                 <i class="fas fa-plus"></i> إضافة السعر
                             </button>
                         </form>
@@ -1279,6 +1279,9 @@
             await updatePriceNumber(productId);
             await updateUnitsCount(productId);
             
+            // إخفاء زر إضافة السعر في البداية
+            hidePriceSubmitButton();
+            
             // إظهار قسم إدارة الأسعار
             document.getElementById('price-management-section').classList.remove('hidden');
             
@@ -1344,6 +1347,9 @@
             if (currentValue && allUnits.some(u => u.id === currentValue)) {
                 unitSelect.value = currentValue;
             }
+            
+            // التحقق من إظهار زر الإضافة
+            checkPriceFormValidity();
         }
 
         // تحديث عدد الوحدات المرتبطة بالمنتج
@@ -1564,6 +1570,9 @@
                 await updatePriceNumber(selectedProduct.id);
                 await updateUnitsCount(selectedProduct.id);
                 
+                // إخفاء زر إضافة السعر بعد النجاح
+                hidePriceSubmitButton();
+                
             } catch (error) {
                 console.error('خطأ في حفظ السعر:', error);
                 showToast('حدث خطأ في حفظ السعر', 'error');
@@ -1653,6 +1662,9 @@
                         const submitBtn = document.getElementById('price-submit-btn');
                         submitBtn.innerHTML = '<i class="fas fa-save"></i> تحديث السعر';
                         
+                        // إظهار زر الإضافة
+                        showPriceSubmitButton();
+                        
                         // التركيز على حقل السعر الرسمي
                         document.getElementById('official-price').focus();
                     }, 500);
@@ -1736,9 +1748,36 @@
             submitBtn.innerHTML = '<i class="fas fa-plus"></i> إضافة السعر';
             submitBtn.disabled = false;
             
+            // إخفاء زر الإضافة بعد الإعادة
+            hidePriceSubmitButton();
+            
             if (selectedProduct) {
                 await updatePriceNumber(selectedProduct.id);
                 await updateUnitsSelect(selectedProduct.id);
+            }
+        }
+
+        // إظهار زر إضافة السعر
+        function showPriceSubmitButton() {
+            const submitBtn = document.getElementById('price-submit-btn');
+            submitBtn.classList.remove('hidden');
+        }
+
+        // إخفاء زر إضافة السعر
+        function hidePriceSubmitButton() {
+            const submitBtn = document.getElementById('price-submit-btn');
+            submitBtn.classList.add('hidden');
+        }
+
+        // التحقق من صحة النموذج وإظهار/إخفاء زر الإضافة
+        function checkPriceFormValidity() {
+            const unitId = document.getElementById('price-unit-id').value;
+            const officialPrice = document.getElementById('official-price').value;
+            
+            if (unitId && officialPrice) {
+                showPriceSubmitButton();
+            } else {
+                hidePriceSubmitButton();
             }
         }
 
@@ -1831,6 +1870,11 @@
             // التنقل التلقائي بين الحقول
             document.getElementById('price-unit-id').addEventListener('change', function() {
                 document.getElementById('official-price').focus();
+                checkPriceFormValidity();
+            });
+            
+            document.getElementById('official-price').addEventListener('input', function() {
+                checkPriceFormValidity();
             });
             
             document.getElementById('official-price').addEventListener('keydown', function(e) {
