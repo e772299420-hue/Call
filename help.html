@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض الفيديوهات</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .video-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .video-card h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 */
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>الشرح والفيديوهات</h1>
+    <div id="videos"></div>
+
+    <script>
+        const firebaseUrl = 'https://chat-fat-free-default-rtdb.firebaseio.com/shrohat.json';
+
+        async function fetchVideos() {
+            try {
+                const response = await fetch(firebaseUrl);
+                const data = await response.json();
+                const container = document.getElementById('videos');
+
+                container.innerHTML = '';
+
+                if(data) {
+                    Object.keys(data).forEach(key => {
+                        const item = data[key];
+                        console.log(item); // لمراجعة جميع الحقول
+
+                        const card = document.createElement('div');
+                        card.classList.add('video-card');
+
+                        // العثور على أول حقل نصي ليكون اسم الشرح مع تجاهل الحقول "link" و"معرف" أو "id"
+                        let title = 'بدون عنوان';
+                        for (let field in item) {
+                            if (typeof item[field] === 'string' && field.toLowerCase() !== 'link' && field.toLowerCase() !== 'id' && field.toLowerCase() !== 'معرف') {
+                                title = item[field];
+                                break;
+                            }
+                        }
+
+                        let content = `<h2>${title}</h2>`;
+
+                        if(item.link) {
+                            // تعديل الرابط ليصبح صالح للعرض داخل iframe
+                            let embedLink = item.link.includes("youtube.com/watch") ? item.link.replace("watch?v=", "embed/") : item.link;
+                            embedLink = embedLink.includes("youtu.be/") ? embedLink.replace("youtu.be/", "www.youtube.com/embed/") : embedLink;
+
+                            content += `
+                                <div class="video-container">
+                                    <iframe src="${embedLink}" allowfullscreen loading="lazy"></iframe>
+                                </div>
+                            `;
+                        }
+
+                        card.innerHTML = content;
+                        container.appendChild(card);
+                    });
+                } else {
+                    container.innerHTML = '<p>لا توجد فيديوهات لعرضها</p>';
+                }
+
+            } catch (error) {
+                console.error('حدث خطأ أثناء جلب البيانات:', error);
+            }
+        }
+
+        fetchVideos();
+    </script>
+</body>
+</html>
