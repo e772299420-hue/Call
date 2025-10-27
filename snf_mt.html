@@ -491,6 +491,25 @@
             animation: spin 1s linear infinite;
         }
 
+        .product-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .units-count {
+            background: var(--info-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -624,6 +643,11 @@
                 </div>
 
                 <div id="price-management-section" class="hidden">
+                    <div class="product-info">
+                        <h4 id="selected-product-name"></h4>
+                        <span class="units-count" id="units-count">0 وحدة</span>
+                    </div>
+
                     <div class="price-section">
                         <h4><i class="fas fa-plus"></i> إضافة سعر ووحدة جديدة</h4>
                         <form id="price-form">
@@ -816,6 +840,7 @@
         let selectedProduct = null;
         let currentProductPriceNumbers = {};
         let isSubmittingPrice = false;
+        let currentEditingPriceId = null;
 
         // دالة لعرض الإشعارات
         function showToast(message, type = 'success') {
@@ -1172,6 +1197,7 @@
                 const option = document.createElement('option');
                 option.value = product.id;
                 option.textContent = product.name;
+                option.setAttribute('data-category', product.categoryId);
                 productSelect.appendChild(option);
             });
         }
@@ -1224,11 +1250,16 @@
             
             // تعبئة البيانات
             document.getElementById('price-product-select').value = productId;
+            document.getElementById('price-category-select').value = product.categoryId;
+            
+            // تحديث عرض معلومات المنتج
+            document.getElementById('selected-product-name').textContent = product.name;
             
             // تحميل الأسعار والوحدات
             await loadProductPrices(productId);
             await updateUnitsSelect(productId);
             await updatePriceNumber(productId);
+            await updateUnitsCount(productId);
             
             // إظهار قسم إدارة الأسعار
             document.getElementById('price-management-section').classList.remove('hidden');
@@ -1265,7 +1296,7 @@
             
             // الحصول على الوحدات المضافة مسبقاً لهذا المنتج (الحالة نشط)
             const usedUnitIds = currentProductPrices
-                .filter(price => price.status === 'نشط')
+                .filter(price => price.status === 'نشط' && price.id !== currentEditingPriceId)
                 .map(price => price.unitId);
             
             allUnits.forEach(unit => {
@@ -1276,6 +1307,24 @@
                     unitSelect.appendChild(option);
                 }
             });
+            
+            // إذا كنا في وضع التعديل، نضيف الوحدة الحالية للقائمة
+            if (currentEditingPriceId) {
+                const editingPrice = currentProductPrices.find(p => p.id === currentEditingPriceId);
+                if (editingPrice) {
+                    const option = document.createElement('option');
+                    option.value = editingPrice.unitId;
+                    option.textContent = getUnitName(editingPrice.unitId);
+                    option.selected = true;
+                    unitSelect.appendChild(option);
+                }
+            }
+        }
+
+        // تحديث عدد الوحدات المرتبطة بالمنتج
+        async function updateUnitsCount(productId) {
+            const activePricesCount = currentProductPrices.filter(price => price.status === 'نشط').length;
+            document.getElementById('units-count').textContent = `${activePricesCount} وحدة`;
         }
 
         // تحديث رقم السعر
@@ -1439,7 +1488,7 @@
                 return;
             }
             
-            const priceExists = await checkPriceExists(selectedProduct.id, unitId);
+            const priceExists = await checkPriceExists(selectedProduct.id, unitId, currentEditingPriceId);
             if (priceExists) {
                 showToast('هذا السعر مسجل مسبقاً لنفس الوجبة والوحدة', 'error');
                 return;
@@ -1467,14 +1516,23 @@
                     createdAt: Date.now()
                 };
                 
-                const priceId = `price_${Date.now()}`;
-                await database.ref(`rpt_snf_mt/${priceId}`).set(priceData);
+                if (currentEditingPriceId) {
+                    // تحديث السعر الموجود
+                    await database.ref(`rpt_snf_mt/${currentEditingPriceId}`).update(priceData);
+                    showToast('تم تعديل السعر بنجاح', 'success');
+                    currentEditingPriceId = null;
+                } else {
+                    // إضافة سعر جديد
+                    const priceId = `price_${Date.now()}`;
+                    await database.ref(`rpt_snf_mt/${priceId}`).set(priceData);
+                    showToast('تم إضافة السعر بنجاح', 'success');
+                }
                 
-                showToast('تم إضافة السعر بنجاح', 'success');
                 resetPriceForm();
                 await loadProductPrices(selectedProduct.id);
                 await updateUnitsSelect(selectedProduct.id);
                 await updatePriceNumber(selectedProduct.id);
+                await updateUnitsCount(selectedProduct.id);
                 
             } catch (error) {
                 console.error('خطأ في حفظ السعر:', error);
@@ -1539,6 +1597,8 @@
                     return;
                 }
                 
+                currentEditingPriceId = priceId;
+                
                 // البحث عن المنتج المرتبط بهذا السعر
                 const product = allProducts.find(p => p.id === price.productId);
                 if (product) {
@@ -1549,6 +1609,10 @@
                         document.getElementById('price-unit-id').value = price.unitId;
                         document.getElementById('official-price').value = price.officialPrice;
                         document.getElementById('price-status').value = price.status;
+                        
+                        // تحديث زر الإضافة ليصبح تحديث
+                        const submitBtn = document.getElementById('price-submit-btn');
+                        submitBtn.innerHTML = '<i class="fas fa-save"></i> تحديث السعر';
                         
                         // التركيز على حقل السعر الرسمي
                         document.getElementById('official-price').focus();
@@ -1604,6 +1668,7 @@
                 if (selectedProduct) {
                     await loadProductPrices(selectedProduct.id);
                     await updateUnitsSelect(selectedProduct.id);
+                    await updateUnitsCount(selectedProduct.id);
                 }
                 
             } catch (error) {
@@ -1625,8 +1690,15 @@
         // إعادة تعيين نموذج السعر
         async function resetPriceForm() {
             document.getElementById('price-form').reset();
+            currentEditingPriceId = null;
+            
+            // إعادة زر الإضافة إلى حالته الأصلية
+            const submitBtn = document.getElementById('price-submit-btn');
+            submitBtn.innerHTML = '<i class="fas fa-plus"></i> إضافة السعر';
+            
             if (selectedProduct) {
                 await updatePriceNumber(selectedProduct.id);
+                await updateUnitsSelect(selectedProduct.id);
             }
         }
 
@@ -1668,6 +1740,10 @@
             const categoryId = document.getElementById('price-category-select').value;
             const productSelect = document.getElementById('price-product-select');
             
+            // إعادة تعيين اختيار المنتج عند تغيير الفئة
+            productSelect.value = '';
+            document.getElementById('price-management-section').classList.add('hidden');
+            
             if (!categoryId) {
                 updateProductSelect(allProducts);
                 return;
@@ -1675,11 +1751,6 @@
             
             const filteredProducts = allProducts.filter(product => product.categoryId === categoryId);
             updateProductSelect(filteredProducts);
-            
-            // إخفاء قسم إدارة الأسعار إذا لم يتم اختيار منتج
-            if (!productSelect.value) {
-                document.getElementById('price-management-section').classList.add('hidden');
-            }
         }
 
         // تهيئة الصفحة
