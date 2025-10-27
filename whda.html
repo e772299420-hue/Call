@@ -79,6 +79,17 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .duplicate-name {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        .products-count {
+            background-color: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -111,6 +122,7 @@
                             <div class="mb-3">
                                 <label for="unitName" class="form-label">اسم الوحدة</label>
                                 <input type="text" class="form-control" id="unitName" required>
+                                <div class="form-text text-danger hidden" id="duplicateError">اسم الوحدة موجود مسبقاً</div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">الحالة</label>
@@ -149,7 +161,6 @@
                             <table class="table table-striped table-hover">
                                 <thead>
                                     <tr>
-                                        <th>رقم الوحدة</th>
                                         <th>اسم الوحدة</th>
                                         <th>الحالة</th>
                                         <th>الإجراءات</th>
@@ -157,7 +168,7 @@
                                 </thead>
                                 <tbody id="unitsTable">
                                     <tr>
-                                        <td colspan="4" class="text-center" id="loadingMessage">
+                                        <td colspan="3" class="text-center" id="loadingMessage">
                                             <div class="loading"></div> جاري تحميل البيانات...
                                         </td>
                                     </tr>
@@ -203,6 +214,7 @@
         const unitForm = document.getElementById('unitForm');
         const unitIdInput = document.getElementById('unitId');
         const unitNameInput = document.getElementById('unitName');
+        const duplicateError = document.getElementById('duplicateError');
         const saveBtn = document.getElementById('saveBtn');
         const saveText = document.getElementById('saveText');
         const saveLoading = document.getElementById('saveLoading');
@@ -218,23 +230,29 @@
         let units = [];
         let editingUnitId = null;
         let nextUnitId = 1;
+        let products = [];
         
         // مسار قاعدة البيانات
         const DB_PATH = 'whda/units';
+        const PRODUCTS_PATH = 'whda/products';
         
         // دالة لتحميل الوحدات من Firebase
         function loadUnits() {
             showLoading(true);
             
-            database.ref(DB_PATH).once('value').then((snapshot) => {
+            // تحميل الوحدات والمنتجات معاً
+            Promise.all([
+                database.ref(DB_PATH).once('value'),
+                database.ref(PRODUCTS_PATH).once('value')
+            ]).then(([unitsSnapshot, productsSnapshot]) => {
                 units = [];
-                const data = snapshot.val();
+                const unitsData = unitsSnapshot.val();
                 
-                if (data) {
-                    Object.keys(data).forEach(key => {
+                if (unitsData) {
+                    Object.keys(unitsData).forEach(key => {
                         units.push({
                             id: key,
-                            ...data[key]
+                            ...unitsData[key]
                         });
                     });
                     
@@ -243,6 +261,18 @@
                     nextUnitId = maxId + 1;
                 } else {
                     nextUnitId = 1;
+                }
+                
+                // تحميل المنتجات
+                products = [];
+                const productsData = productsSnapshot.val();
+                if (productsData) {
+                    Object.keys(productsData).forEach(key => {
+                        products.push({
+                            id: key,
+                            ...productsData[key]
+                        });
+                    });
                 }
                 
                 renderUnits();
@@ -275,21 +305,45 @@
             }
         }
         
+        // دالة للتحقق من تكرار اسم الوحدة
+        function isDuplicateUnitName(name, excludeId = null) {
+            return units.some(unit => 
+                unit.name.toLowerCase() === name.toLowerCase() && 
+                unit.id !== excludeId
+            );
+        }
+        
+        // دالة لحساب عدد المنتجات المرتبطة بالوحدة
+        function getProductsCountByUnit(unitId) {
+            return products.filter(product => product.unitId === unitId).length;
+        }
+        
         // دالة لعرض الوحدات في الجدول
         function renderUnits(filteredUnits = null) {
             const unitsToRender = filteredUnits || units;
             unitsTable.innerHTML = '';
             
             if (unitsToRender.length === 0) {
-                unitsTable.innerHTML = '<tr><td colspan="4" class="text-center">لا توجد وحدات</td></tr>';
+                unitsTable.innerHTML = '<tr><td colspan="3" class="text-center">لا توجد وحدات</td></tr>';
                 return;
             }
             
+            // حساب عدد التكرارات لكل اسم وحدة
+            const nameCounts = {};
+            unitsToRender.forEach(unit => {
+                nameCounts[unit.name] = (nameCounts[unit.name] || 0) + 1;
+            });
+            
             unitsToRender.forEach(unit => {
                 const row = document.createElement('tr');
+                const productsCount = getProductsCountByUnit(unit.id);
+                const isDuplicate = nameCounts[unit.name] > 1;
+                
                 row.innerHTML = `
-                    <td>${unit.unitId}</td>
-                    <td>${unit.name}</td>
+                    <td>
+                        <span class="${isDuplicate ? 'duplicate-name' : ''}">${unit.name}</span>
+                        ${productsCount > 0 ? `<span class="products-count">${productsCount} منتج</span>` : ''}
+                    </td>
                     <td><span class="${unit.status === 'active' ? 'status-active' : 'status-inactive'}">${unit.status === 'active' ? 'نشط' : 'موقف'}</span></td>
                     <td>
                         <button class="btn btn-sm btn-primary edit-btn" data-id="${unit.id}">تعديل</button>
@@ -325,6 +379,14 @@
             if (!unitName) {
                 alert('يرجى إدخال اسم الوحدة');
                 return;
+            }
+            
+            // التحقق من عدم تكرار اسم الوحدة
+            if (isDuplicateUnitName(unitName, editingUnitId)) {
+                duplicateError.classList.remove('hidden');
+                return;
+            } else {
+                duplicateError.classList.add('hidden');
             }
             
             showSaveLoading(true);
@@ -363,6 +425,16 @@
             }
         });
         
+        // التحقق من تكرار الاسم أثناء الكتابة
+        unitNameInput.addEventListener('input', (e) => {
+            const unitName = e.target.value.trim();
+            if (unitName && isDuplicateUnitName(unitName, editingUnitId)) {
+                duplicateError.classList.remove('hidden');
+            } else {
+                duplicateError.classList.add('hidden');
+            }
+        });
+        
         // دالة لتعديل وحدة
         function editUnit(unitId) {
             const unit = units.find(u => u.id === unitId);
@@ -380,6 +452,13 @@
                 saveBtn.textContent = 'تحديث الوحدة';
                 cancelEditBtn.classList.remove('hidden');
                 
+                // التحقق من التكرار عند التعديل
+                if (isDuplicateUnitName(unit.name, unitId)) {
+                    duplicateError.classList.remove('hidden');
+                } else {
+                    duplicateError.classList.add('hidden');
+                }
+                
                 // التبديل إلى تبويب الإضافة
                 document.getElementById('add-tab').click();
             }
@@ -387,6 +466,16 @@
         
         // دالة لحذف وحدة
         function deleteUnit(unitId) {
+            const unit = units.find(u => u.id === unitId);
+            if (!unit) return;
+            
+            const productsCount = getProductsCountByUnit(unitId);
+            
+            if (productsCount > 0) {
+                alert(`لا يمكن حذف الوحدة "${unit.name}" لأنها مرتبطة بـ ${productsCount} منتج`);
+                return;
+            }
+            
             if (confirm('هل أنت متأكد من رغبتك في حذف هذه الوحدة؟')) {
                 database.ref(`${DB_PATH}/${unitId}`).remove().then(() => {
                     alert('تم حذف الوحدة بنجاح');
@@ -407,6 +496,7 @@
             editingUnitId = null;
             saveBtn.textContent = 'حفظ الوحدة';
             cancelEditBtn.classList.add('hidden');
+            duplicateError.classList.add('hidden');
             document.getElementById('active').checked = true;
             showSaveLoading(false);
         }
