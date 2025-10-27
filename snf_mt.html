@@ -610,6 +610,13 @@
                 <h3><i class="fas fa-money-bill-wave"></i> إدارة الأسعار والوحدات</h3>
                 
                 <div class="form-group">
+                    <label for="price-category-select"><i class="fas fa-tags"></i> الفئة / القسم</label>
+                    <select id="price-category-select">
+                        <option value="">اختر الفئة...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
                     <label for="price-product-select"><i class="fas fa-box"></i> اختر الوجبة</label>
                     <select id="price-product-select">
                         <option value="">اختر الوجبة...</option>
@@ -633,11 +640,6 @@
                                     <input type="number" id="official-price" required step="0.01" min="0" placeholder="0.00">
                                 </div>
 
-                                <div class="form-group">
-                                    <label for="discount-price"><i class="fas fa-tags"></i> س . مخفض</label>
-                                    <input type="number" id="discount-price" step="0.01" min="0" placeholder="0.00">
-                                </div>
-
                                 <div class="form-group required">
                                     <label for="price-status"><i class="fas fa-check-circle"></i> الحالة</label>
                                     <select id="price-status" required>
@@ -652,7 +654,7 @@
                                 رقم السعر: <span id="price-number-display">1</span>
                             </div>
 
-                            <button type="submit" class="btn-secondary">
+                            <button type="submit" class="btn-secondary" id="price-submit-btn">
                                 <i class="fas fa-plus"></i> إضافة السعر
                             </button>
                         </form>
@@ -663,11 +665,9 @@
                         <table class="price-table" id="price-table">
                             <thead>
                                 <tr>
-                                    <th>اسم الوجبة</th>
                                     <th>الوحدة</th>
                                     <th>س . رسمي</th>
-                                    <th>س . مخفض</th>
-                                    <th>تاريخ الإنشاء</th>
+                                    <th>الحالة</th>
                                     <th>الإجراءات</th>
                                 </tr>
                             </thead>
@@ -805,7 +805,7 @@
         };
 
         // متغيرات التطبيق
-        let uploadedImageUrl = '';
+        let selectedImageFile = null;
         let currentEditProductId = null;
         let isEditing = false;
         let allProducts = [];
@@ -815,6 +815,7 @@
         let currentProductPrices = [];
         let selectedProduct = null;
         let currentProductPriceNumbers = {};
+        let isSubmittingPrice = false;
 
         // دالة لعرض الإشعارات
         function showToast(message, type = 'success') {
@@ -889,7 +890,7 @@
         }
 
         // معالجة اختيار الصورة
-        async function handleImageSelection(e) {
+        function handleImageSelection(e) {
             const file = e.target.files[0];
             if (!file) return;
             
@@ -905,23 +906,19 @@
                 return;
             }
             
-            try {
-                const imageUrl = await uploadImageToDrive(file);
-                
-                const uploadedImagesElement = document.getElementById('uploaded-images');
-                uploadedImagesElement.innerHTML = '';
-                const img = document.createElement('img');
-                img.className = 'uploaded-image';
-                img.src = imageUrl;
-                img.alt = file.name;
-                uploadedImagesElement.appendChild(img);
-                
-                uploadedImageUrl = imageUrl;
-                showToast('تم رفع الصورة بنجاح', 'success');
-                
-            } catch (error) {
-                showToast('حدث خطأ في رفع الصورة: ' + error.message, 'error');
-            }
+            // حفظ الملف المختار فقط دون رفعه فوراً
+            selectedImageFile = file;
+            
+            // عرض معاينة الصورة
+            const uploadedImagesElement = document.getElementById('uploaded-images');
+            uploadedImagesElement.innerHTML = '';
+            const img = document.createElement('img');
+            img.className = 'uploaded-image';
+            img.src = URL.createObjectURL(file);
+            img.alt = file.name;
+            uploadedImagesElement.appendChild(img);
+            
+            showToast('تم اختيار الصورة بنجاح، سيتم رفعها عند حفظ البيانات', 'success');
         }
 
         // توليد رقم منتج فريد يبدأ من 1 لكل تاجر
@@ -1010,9 +1007,11 @@
                 
                 const categorySelect = document.getElementById('category-id');
                 const categoryFilter = document.getElementById('category-filter');
+                const priceCategorySelect = document.getElementById('price-category-select');
                 
                 categorySelect.innerHTML = '<option value="">اختر الفئة</option>';
                 categoryFilter.innerHTML = '<option value="">جميع الفئات</option>';
+                priceCategorySelect.innerHTML = '<option value="">اختر الفئة</option>';
                 
                 allCategories.forEach(category => {
                     const option = document.createElement('option');
@@ -1022,7 +1021,16 @@
                     
                     const filterOption = option.cloneNode(true);
                     categoryFilter.appendChild(filterOption);
+                    
+                    const priceCategoryOption = option.cloneNode(true);
+                    priceCategorySelect.appendChild(priceCategoryOption);
                 });
+                
+                // استعادة الفئة المحفوظة إن وجدت
+                const savedCategoryId = localStorage.getItem('lastSelectedCategory');
+                if (savedCategoryId) {
+                    categorySelect.value = savedCategoryId;
+                }
                 
             } catch (error) {
                 console.error('خطأ في تحميل الفئات:', error);
@@ -1284,7 +1292,7 @@
             if (prices.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 20px;">
+                        <td colspan="4" style="text-align: center; padding: 20px;">
                             لا توجد أسعار مسجلة لهذه الوجبة
                         </td>
                     </tr>
@@ -1294,18 +1302,18 @@
             
             prices.forEach(price => {
                 const row = document.createElement('tr');
-                const createDate = price.createdAt ? new Date(price.createdAt).toLocaleDateString('ar-SA') : 'غير محدد';
                 const productNameClass = price.status === 'نشط' ? 'product-name-active' : 'product-name-inactive';
                 
                 row.innerHTML = `
-                    <td><span class="${productNameClass}">${selectedProduct ? selectedProduct.name : 'غير معروف'}</span></td>
                     <td>${getUnitName(price.unitId)}</td>
                     <td>${price.officialPrice}</td>
-                    <td>${price.discountPrice || '---'}</td>
-                    <td>${createDate}</td>
+                    <td><span class="${productNameClass}">${price.status}</span></td>
                     <td>
                         <button class="btn-edit" onclick="editPrice('${price.id}')" title="تعديل">
                             <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-delete" onclick="deletePrice('${price.id}')" title="حذف">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </td>
                 `;
@@ -1364,12 +1372,24 @@
                     return;
                 }
                 
+                let imageUrl = '';
+                // رفع الصورة فقط إذا تم اختيار صورة
+                if (selectedImageFile) {
+                    try {
+                        imageUrl = await uploadImageToDrive(selectedImageFile);
+                        showToast('تم رفع الصورة بنجاح', 'success');
+                    } catch (error) {
+                        showToast('حدث خطأ في رفع الصورة: ' + error.message, 'error');
+                        return;
+                    }
+                }
+                
                 const productData = {
                     productNumber: productNumber,
                     categoryId: categoryId,
                     name: productName,
                     description: productDescription,
-                    imageUrl: uploadedImageUrl,
+                    imageUrl: imageUrl,
                     merchantId: merchantId,
                     createdAt: Date.now(),
                     updatedAt: Date.now()
@@ -1383,6 +1403,9 @@
                     await database.ref(`snf_mt/${productId}`).set(productData);
                     showToast('تم إضافة الوجبة بنجاح', 'success');
                 }
+                
+                // حفظ الفئة المختارة
+                localStorage.setItem('lastSelectedCategory', categoryId);
                 
                 resetForm();
                 loadProducts();
@@ -1399,6 +1422,8 @@
         async function savePrice(e) {
             e.preventDefault();
             
+            if (isSubmittingPrice) return;
+            
             if (!selectedProduct) {
                 showToast('يرجى اختيار وجبة أولاً', 'warning');
                 return;
@@ -1407,7 +1432,6 @@
             const priceNumber = parseInt(document.getElementById('price-number-display').textContent);
             const unitId = document.getElementById('price-unit-id').value;
             const officialPrice = parseFloat(document.getElementById('official-price').value);
-            const discountPrice = document.getElementById('discount-price').value ? parseFloat(document.getElementById('discount-price').value) : null;
             const status = document.getElementById('price-status').value;
             
             if (!unitId || !officialPrice) {
@@ -1422,6 +1446,7 @@
             }
             
             try {
+                isSubmittingPrice = true;
                 showLoading(true);
                 
                 const merchantId = getCurrentMerchantId();
@@ -1437,7 +1462,6 @@
                     categoryId: selectedProduct.categoryId,
                     unitId: unitId,
                     officialPrice: officialPrice,
-                    discountPrice: discountPrice,
                     status: status,
                     merchantId: merchantId,
                     createdAt: Date.now()
@@ -1457,6 +1481,7 @@
                 showToast('حدث خطأ في حفظ السعر', 'error');
             } finally {
                 showLoading(false);
+                isSubmittingPrice = false;
             }
         }
 
@@ -1486,7 +1511,7 @@
                     img.alt = product.name;
                     uploadedImagesElement.appendChild(img);
                     
-                    uploadedImageUrl = product.imageUrl;
+                    selectedImageFile = null; // إعادة تعيين الملف المختار
                 }
                 
                 isEditing = true;
@@ -1519,12 +1544,14 @@
                 if (product) {
                     await manageProductPrices(product.id);
                     
-                    // يمكن هنا إضافة منطق لتحديث النموذج بقيم السعر المحدد
+                    // تعبئة النموذج بقيم السعر المحدد
                     setTimeout(() => {
                         document.getElementById('price-unit-id').value = price.unitId;
                         document.getElementById('official-price').value = price.officialPrice;
-                        document.getElementById('discount-price').value = price.discountPrice || '';
                         document.getElementById('price-status').value = price.status;
+                        
+                        // التركيز على حقل السعر الرسمي
+                        document.getElementById('official-price').focus();
                     }, 500);
                 }
                 
@@ -1549,11 +1576,47 @@
             }
         }
 
+        // حذف سعر
+        async function deletePrice(priceId) {
+            try {
+                if (!confirm('هل أنت متأكد من حذف هذا السعر؟')) return;
+                
+                // التحقق من وجود ارتباطات في قاعدة البيانات
+                const priceSnapshot = await database.ref(`rpt_snf_mt/${priceId}`).once('value');
+                const price = priceSnapshot.val();
+                
+                if (!price) {
+                    showToast('لم يتم العثور على السعر', 'error');
+                    return;
+                }
+                
+                // التحقق من وجود ارتباطات (هنا يمكن إضافة منطق للتحقق من وجود طلبات مرتبطة)
+                const hasOrders = false; // يمكن استبدال هذا بالتحقق الفعلي من قاعدة البيانات
+                
+                if (hasOrders) {
+                    showToast('لا يمكن حذف السعر الحالي بسبب ارتباطه بحركة طلبات', 'error');
+                    return;
+                }
+                
+                await database.ref(`rpt_snf_mt/${priceId}`).remove();
+                showToast('تم حذف السعر بنجاح', 'success');
+                
+                if (selectedProduct) {
+                    await loadProductPrices(selectedProduct.id);
+                    await updateUnitsSelect(selectedProduct.id);
+                }
+                
+            } catch (error) {
+                console.error('خطأ في حذف السعر:', error);
+                showToast('حدث خطأ في حذف السعر', 'error');
+            }
+        }
+
         // إعادة تعيين النموذج
         async function resetForm() {
             document.getElementById('product-form').reset();
             document.getElementById('uploaded-images').innerHTML = '';
-            uploadedImageUrl = '';
+            selectedImageFile = null;
             isEditing = false;
             currentEditProductId = null;
             await loadCategories();
@@ -1594,6 +1657,28 @@
             // تحميل البيانات إذا لزم الأمر
             if (tabName === 'view-products') {
                 loadProducts();
+            } else if (tabName === 'price-unit') {
+                // تحميل المنتجات عند فتح تبويب السعر/الوحدة
+                loadProducts();
+            }
+        }
+
+        // تصفية المنتجات حسب الفئة
+        function filterProductsByCategory() {
+            const categoryId = document.getElementById('price-category-select').value;
+            const productSelect = document.getElementById('price-product-select');
+            
+            if (!categoryId) {
+                updateProductSelect(allProducts);
+                return;
+            }
+            
+            const filteredProducts = allProducts.filter(product => product.categoryId === categoryId);
+            updateProductSelect(filteredProducts);
+            
+            // إخفاء قسم إدارة الأسعار إذا لم يتم اختيار منتج
+            if (!productSelect.value) {
+                document.getElementById('price-management-section').classList.add('hidden');
             }
         }
 
@@ -1601,7 +1686,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadMerchantData();
             
-            Promise.all([loadCategories(), loadUnits()]);
+            Promise.all([loadCategories(), loadUnits(), loadProducts()]);
             
             // إضافة أحداث النقر للتبويبات
             document.querySelectorAll('.tab').forEach(tab => {
@@ -1615,6 +1700,8 @@
             document.getElementById('product-form').addEventListener('submit', saveProduct);
             document.getElementById('price-form').addEventListener('submit', savePrice);
             
+            document.getElementById('price-category-select').addEventListener('change', filterProductsByCategory);
+            
             document.getElementById('price-product-select').addEventListener('change', function() {
                 const productId = this.value;
                 if (productId) {
@@ -1627,6 +1714,18 @@
             // البحث التلقائي
             document.getElementById('search-input').addEventListener('input', searchProducts);
             document.getElementById('category-filter').addEventListener('change', searchProducts);
+            
+            // التنقل التلقائي بين الحقول
+            document.getElementById('price-unit-id').addEventListener('change', function() {
+                document.getElementById('official-price').focus();
+            });
+            
+            document.getElementById('official-price').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('price-submit-btn').click();
+                }
+            });
         });
     </script>
 </body>
