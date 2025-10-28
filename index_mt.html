@@ -505,11 +505,11 @@
         }
 
         /* ==========================================
-           🖼️ حاوية الصورة الموسعة - التعديل الجديد
+           🖼️ حاوية الصورة الموسعة بشكل كامل - التعديل الجديد
            ========================================== */
         .product-image-container {
             width: 100%;
-            height: 220px;
+            height: 250px;
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -522,14 +522,13 @@
         .product-image {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             transition: var(--transition);
             cursor: pointer;
-            padding: 10px;
         }
 
         .product-image:hover {
-            transform: scale(1.08);
+            transform: scale(1.05);
         }
 
         .product-info {
@@ -1160,7 +1159,7 @@
             }
 
             .product-image-container {
-                height: 200px;
+                height: 220px;
             }
 
             .product-info {
@@ -2074,12 +2073,12 @@
                 productCard.className = 'product-card';
                 
                 const imageUrls = extractImageUrls(product);
-                const mainImageUrl = imageUrls.length > 0 ? formatDriveUrl(imageUrls[0], 'thumb') : 
+                const mainImageUrl = imageUrls.length > 0 ? getOptimizedDriveUrl(imageUrls[0]) : 
                     getDefaultProductImage(product.name, getCategoryName(product.categoryId));
                 
                 productCard.innerHTML = `
                     <div class="product-image-container">
-                        <img src="${mainImageUrl}" alt="${product.name}" class="product-image">
+                        <img src="${mainImageUrl}" alt="${product.name}" class="product-image" loading="lazy">
                     </div>
                     <div class="product-info">
                         <span class="product-category">${getCategoryName(product.categoryId)}</span>
@@ -2110,8 +2109,8 @@
             const color = colors[Math.floor(Math.random() * colors.length)];
             
             const canvas = document.createElement('canvas');
-            canvas.width = 300;
-            canvas.height = 200;
+            canvas.width = 400;
+            canvas.height = 250;
             const ctx = canvas.getContext('2d');
             
             // خلفية
@@ -2120,13 +2119,13 @@
             
             // نص المنتج
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 16px Arial';
+            ctx.font = 'bold 18px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(productName, canvas.width/2, canvas.height/2 - 10);
             
             // نص الفئة
-            ctx.font = '12px Arial';
-            ctx.fillText(categoryName, canvas.width/2, canvas.height/2 + 15);
+            ctx.font = '14px Arial';
+            ctx.fillText(categoryName, canvas.width/2, canvas.height/2 + 20);
             
             return canvas.toDataURL();
         }
@@ -2497,34 +2496,52 @@
         }
 
         // ==========================================
-        // 🖼️ وظائف تحجيم الصور من Google Drive - تم إرجاعها
+        // 🖼️ وظائف تحجيم الصور من Google Drive - محسنة وسريعة
         // ==========================================
-        function formatDriveUrl(url, mode = 'thumb') {
+        
+        // كاش لتخزين روابط الصور المحولة
+        const imageUrlCache = new Map();
+        
+        function getOptimizedDriveUrl(url) {
             if (!url) return '';
+            
+            // التحقق من الكاش أولاً
+            if (imageUrlCache.has(url)) {
+                return imageUrlCache.get(url);
+            }
+            
             let id = '';
             
+            // استخراج ID من رابط Google Drive بطرق مختلفة
             if (url.includes('/d/')) {
                 id = url.split('/d/')[1].split('/')[0];
             } else if (url.includes('id=')) {
                 try { 
                     id = new URLSearchParams(url.split('?')[1]).get('id') || ''; 
                 } catch { 
-                    return url; 
+                    // إذا فشل التحليل، استخدم الرابط الأصلي
+                    imageUrlCache.set(url, url);
+                    return url;
                 }
             } else if (url.includes('drive.google.com/file/d/')) {
                 id = url.split('/file/d/')[1].split('/')[0];
+            } else if (url.includes('drive.google.com/open?id=')) {
+                id = url.split('open?id=')[1];
             }
             
-            if (!id) return url;
-
-            if (mode === 'thumb') {
-                return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
-            } else if (mode === 'main') {
-                return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
-            } else if (mode === 'raw') {
-                return `https://drive.google.com/uc?export=view&id=${id}`;
+            if (!id) {
+                // إذا لم نتمكن من استخراج ID، استخدم الرابط الأصلي
+                imageUrlCache.set(url, url);
+                return url;
             }
-            return url;
+
+            // إنشاء رابط محسن للصورة المصغرة مع حجم مناسب للحاوية الموسعة
+            const optimizedUrl = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+            
+            // تخزين في الكاش
+            imageUrlCache.set(url, optimizedUrl);
+            
+            return optimizedUrl;
         }
 
         function extractImageUrls(product) {
