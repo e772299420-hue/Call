@@ -517,138 +517,94 @@
             font-weight: bold;
         }
 
-        /* زر الفحص العائم */
-        .floating-check-btn {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: linear-gradient(135deg, var(--warning-color), #e67e22);
+        /* زر تغيير الفئة */
+        .btn-category {
+            background: var(--info-color);
             color: white;
             border: none;
-            padding: 15px;
-            border-radius: 50px;
+            padding: 8px 12px;
+            border-radius: 5px;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
+            transition: all 0.3s ease;
+            font-size: 12px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-weight: bold;
-            transition: all 0.3s ease;
+            gap: 5px;
         }
 
-        .floating-check-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        .btn-category:hover {
+            background: #2980b9;
         }
 
-        /* نافذة نتائج الفحص */
-        .check-results-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: none;
-            justify-content: center;
+        .category-display {
+            display: flex;
             align-items: center;
-            z-index: 2000;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
         }
 
-        .check-results-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+        .category-name {
+            font-weight: 600;
+            color: var(--dark-color);
         }
 
-        .check-results-header {
+        .category-undefined {
+            color: var(--danger-color);
+            font-style: italic;
+        }
+
+        /* تنسيقات الوحدات والأسعار */
+        .units-prices-container {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .unit-price-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid var(--light-color);
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
         }
 
-        .check-results-header h3 {
-            color: var(--primary-color);
-            margin: 0;
+        .unit-price-item:last-child {
+            margin-bottom: 0;
         }
 
-        .close-check-results {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: var(--gray-color);
-        }
-
-        .check-result-item {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border-right: 4px solid var(--warning-color);
-        }
-
-        .check-result-item.error {
-            border-right-color: var(--danger-color);
-        }
-
-        .check-result-item.success {
-            border-right-color: var(--success-color);
-        }
-
-        .check-result-count {
-            font-size: 24px;
-            font-weight: bold;
+        .unit-name {
+            font-weight: 600;
             color: var(--dark-color);
-            margin: 10px 0;
         }
 
-        .check-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-fix {
-            background: var(--success-color);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
+        .unit-price {
+            color: var(--success-color);
             font-weight: bold;
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
         }
 
-        .btn-fix:hover {
-            background: #229954;
+        .unit-status-active {
+            color: var(--success-color);
+            font-size: 12px;
         }
 
-        .btn-cancel {
-            background: var(--gray-color);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            flex: 1;
+        .unit-status-inactive {
+            color: var(--danger-color);
+            font-size: 12px;
         }
 
-        .btn-cancel:hover {
-            background: #6c757d;
+        .no-units-message {
+            text-align: center;
+            color: var(--gray-color);
+            font-style: italic;
+            padding: 10px;
         }
 
         @keyframes spin {
@@ -689,11 +645,16 @@
                 height: 30px;
             }
 
-            .floating-check-btn {
-                bottom: 10px;
-                left: 10px;
-                padding: 12px;
+            .search-filters {
+                grid-template-columns: 1fr;
+            }
+
+            .products-table {
                 font-size: 14px;
+            }
+
+            .products-table th, .products-table td {
+                padding: 10px 8px;
             }
         }
     </style>
@@ -876,6 +837,7 @@
                         <tr>
                             <th>الفئة</th>
                             <th>اسم الوجبة</th>
+                            <th>الوحدات والأسعار</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
@@ -883,34 +845,6 @@
                         <!-- سيتم تعبئة الجدول بالبيانات -->
                     </tbody>
                 </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- زر الفحص العائم -->
-    <button class="floating-check-btn" id="floatingCheckBtn">
-        <i class="fas fa-search"></i>
-        فحص البيانات
-    </button>
-
-    <!-- نافذة نتائج الفحص -->
-    <div class="check-results-modal" id="checkResultsModal">
-        <div class="check-results-content">
-            <div class="check-results-header">
-                <h3><i class="fas fa-search"></i> نتائج فحص البيانات</h3>
-                <button class="close-check-results" id="closeCheckResults">&times;</button>
-            </div>
-            
-            <div id="checkResultsContent">
-                <!-- سيتم تعبئة نتائج الفحص هنا -->
-            </div>
-            
-            <div class="check-actions">
-                <button class="btn-fix" id="fixDataBtn">
-                    <i class="fas fa-wrench"></i>
-                    إصلاح البيانات
-                </button>
-                <button class="btn-cancel" id="closeResultsBtn">إغلاق</button>
             </div>
         </div>
     </div>
@@ -1018,16 +952,7 @@
         let isSubmittingPrice = false;
         let currentEditingPriceId = null;
         let lastSelectedProductId = null;
-
-        // نتائج فحص البيانات
-        let checkResults = {
-            productsWithCategory3: 0,
-            pricesWithCategory3: 0,
-            unitsWithCategory3: 0,
-            productsToFix: [],
-            pricesToFix: [],
-            unitsToFix: []
-        };
+        let productPricesMap = {}; // خريطة لتخزين أسعار كل منتج
 
         // دالة لعرض الإشعارات
         function showToast(message, type = 'success') {
@@ -1050,182 +975,6 @@
         function showLoading(show) {
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = show ? 'flex' : 'none';
-        }
-
-        // فحص البيانات - تم التعديل للبحث عن الرقم 3 في حقل الفئة
-        async function checkDataIntegrity() {
-            try {
-                showLoading(true);
-                
-                const merchantId = getCurrentMerchantId();
-                if (!merchantId) {
-                    showToast('يجب تسجيل الدخول أولاً', 'error');
-                    return;
-                }
-
-                // إعادة تهيئة نتائج الفحص
-                checkResults = {
-                    productsWithCategory3: 0,
-                    pricesWithCategory3: 0,
-                    unitsWithCategory3: 0,
-                    productsToFix: [],
-                    pricesToFix: [],
-                    unitsToFix: []
-                };
-
-                // فحص المنتجات (snf_mt) - البحث عن الرقم 3 في حقل الفئة
-                const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
-                const products = productsSnapshot.val() || {};
-                
-                Object.entries(products).forEach(([id, product]) => {
-                    if (product.categoryId && product.categoryId.toString().includes('3')) {
-                        checkResults.productsWithCategory3++;
-                        checkResults.productsToFix.push(id);
-                    }
-                });
-
-                // فحص الأسعار (rpt_snf_mt) - البحث عن الرقم 3 في حقل الفئة
-                const pricesSnapshot = await database.ref('rpt_snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
-                const prices = pricesSnapshot.val() || {};
-                
-                Object.entries(prices).forEach(([id, price]) => {
-                    if (price.categoryId && price.categoryId.toString().includes('3')) {
-                        checkResults.pricesWithCategory3++;
-                        checkResults.pricesToFix.push(id);
-                    }
-                });
-
-                // فحص الوحدات (whda/units) - البحث عن الرقم 3 في حقل الفئة
-                const unitsSnapshot = await database.ref('whda/units').once('value');
-                const units = unitsSnapshot.val() || {};
-                
-                Object.entries(units).forEach(([id, unit]) => {
-                    // نفترض أن حقل الفئة في الوحدات يسمى categoryId
-                    if (unit.categoryId && unit.categoryId.toString().includes('3')) {
-                        checkResults.unitsWithCategory3++;
-                        checkResults.unitsToFix.push(id);
-                    }
-                });
-
-                // عرض النتائج
-                showCheckResults();
-                
-            } catch (error) {
-                console.error('خطأ في فحص البيانات:', error);
-                showToast('حدث خطأ في فحص البيانات', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // عرض نتائج الفحص - تم التعديل لعرض البيانات التي تحتوي على الرقم 3
-        function showCheckResults() {
-            const resultsContent = document.getElementById('checkResultsContent');
-            const modal = document.getElementById('checkResultsModal');
-            
-            let html = '';
-            
-            if (checkResults.productsWithCategory3 === 0 && 
-                checkResults.pricesWithCategory3 === 0 && 
-                checkResults.unitsWithCategory3 === 0) {
-                
-                html = `
-                    <div class="check-result-item success">
-                        <h4><i class="fas fa-check-circle"></i> جميع البيانات سليمة</h4>
-                        <p>لا توجد بيانات تحتوي على الرقم 3 في حقل الفئة.</p>
-                    </div>
-                `;
-                
-                document.getElementById('fixDataBtn').style.display = 'none';
-            } else {
-                html = `
-                    <div class="check-result-item ${checkResults.productsWithCategory3 > 0 ? 'error' : 'success'}">
-                        <h4><i class="fas fa-utensils"></i> المنتجات والوجبات</h4>
-                        <p>عدد المنتجات التي تحتوي على الرقم 3 في حقل الفئة:</p>
-                        <div class="check-result-count">${checkResults.productsWithCategory3}</div>
-                    </div>
-                    
-                    <div class="check-result-item ${checkResults.pricesWithCategory3 > 0 ? 'error' : 'success'}">
-                        <h4><i class="fas fa-money-bill-wave"></i> بيانات الأسعار والوحدات</h4>
-                        <p>عدد بيانات الأسعار التي تحتوي على الرقم 3 في حقل الفئة:</p>
-                        <div class="check-result-count">${checkResults.pricesWithCategory3}</div>
-                    </div>
-                    
-                    <div class="check-result-item ${checkResults.unitsWithCategory3 > 0 ? 'error' : 'success'}">
-                        <h4><i class="fas fa-weight"></i> بيانات الوحدات</h4>
-                        <p>عدد بيانات الوحدات التي تحتوي على الرقم 3 في حقل الفئة:</p>
-                        <div class="check-result-count">${checkResults.unitsWithCategory3}</div>
-                    </div>
-                    
-                    <div class="check-result-item">
-                        <h4><i class="fas fa-info-circle"></i> ملاحظة</h4>
-                        <p>سيتم تعيين الفئة بالرقم 1 لجميع البيانات التي تحتوي على الرقم 3 في حقل الفئة.</p>
-                    </div>
-                `;
-                
-                document.getElementById('fixDataBtn').style.display = 'flex';
-            }
-            
-            resultsContent.innerHTML = html;
-            modal.style.display = 'flex';
-        }
-
-        // إصلاح البيانات التالفة - تم التعديل لتعيين القيمة "1" للبيانات التي تحتوي على الرقم 3
-        async function fixDataIssues() {
-            try {
-                showLoading(true);
-                
-                const merchantId = getCurrentMerchantId();
-                if (!merchantId) {
-                    showToast('يجب تسجيل الدخول أولاً', 'error');
-                    return;
-                }
-
-                let fixedCount = 0;
-
-                // إصلاح المنتجات التي تحتوي على الرقم 3 في حقل الفئة
-                for (const productId of checkResults.productsToFix) {
-                    await database.ref(`snf_mt/${productId}`).update({
-                        categoryId: "1"
-                    });
-                    fixedCount++;
-                }
-
-                // إصلاح الأسعار التي تحتوي على الرقم 3 في حقل الفئة
-                for (const priceId of checkResults.pricesToFix) {
-                    await database.ref(`rpt_snf_mt/${priceId}`).update({
-                        categoryId: "1"
-                    });
-                    fixedCount++;
-                }
-
-                // إصلاح الوحدات التي تحتوي على الرقم 3 في حقل الفئة
-                for (const unitId of checkResults.unitsToFix) {
-                    await database.ref(`whda/units/${unitId}`).update({
-                        categoryId: "1"
-                    });
-                    fixedCount++;
-                }
-
-                showToast(`تم إصلاح ${fixedCount} سجل بنجاح`, 'success');
-                closeCheckResults();
-                
-                // إعادة تحميل البيانات
-                await loadCategories();
-                await loadProducts();
-                
-            } catch (error) {
-                console.error('خطأ في إصلاح البيانات:', error);
-                showToast('حدث خطأ في إصلاح البيانات', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // إغلاق نافذة نتائج الفحص
-        function closeCheckResults() {
-            const modal = document.getElementById('checkResultsModal');
-            modal.style.display = 'none';
         }
 
         // تحويل الملف إلى Base64
@@ -1460,6 +1209,73 @@
             return unit ? unit.name : 'غير محدد';
         }
 
+        // تحميل جميع أسعار المنتجات للتاجر الحالي
+        async function loadAllProductPrices() {
+            try {
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) return;
+                
+                const pricesSnapshot = await database.ref('rpt_snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
+                const prices = pricesSnapshot.val() || {};
+                
+                // إعادة تهيئة الخريطة
+                productPricesMap = {};
+                
+                // تجميع الأسعار حسب المنتج
+                Object.values(prices).forEach(price => {
+                    if (!productPricesMap[price.productId]) {
+                        productPricesMap[price.productId] = [];
+                    }
+                    productPricesMap[price.productId].push(price);
+                });
+                
+            } catch (error) {
+                console.error('خطأ في تحميل أسعار المنتجات:', error);
+            }
+        }
+
+        // الحصول على أسعار منتج معين
+        function getProductPrices(productId) {
+            return productPricesMap[productId] || [];
+        }
+
+        // عرض الوحدات والأسعار لمنتج معين
+        function displayProductUnitsPrices(productId) {
+            const prices = getProductPrices(productId);
+            const activePrices = prices.filter(price => price.status === 'نشط');
+            
+            if (activePrices.length === 0) {
+                return `
+                    <div class="units-prices-container">
+                        <div class="no-units-message">
+                            <i class="fas fa-info-circle"></i>
+                            لا توجد وحدات مرتبطة
+                        </div>
+                    </div>
+                `;
+            }
+            
+            let html = '<div class="units-prices-container">';
+            
+            activePrices.forEach(price => {
+                const unitName = getUnitName(price.unitId);
+                const statusClass = price.status === 'نشط' ? 'unit-status-active' : 'unit-status-inactive';
+                
+                html += `
+                    <div class="unit-price-item">
+                        <span class="unit-name">${unitName}</span>
+                        <div>
+                            <span class="unit-price">${price.officialPrice} ر.س</span>
+                            <span class="${statusClass}">• ${price.status}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
         // التحقق من عدم تكرار اسم المنتج لنفس التاجر
         async function checkProductNameExists(productName, excludeProductId = null) {
             try {
@@ -1531,15 +1347,12 @@
                 const merchantId = getCurrentMerchantId();
                 if (!merchantId) return;
                 
-                const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
-                const products = productsSnapshot.val() || {};
+                // تحميل المنتجات وأسعارها معاً
+                await Promise.all([
+                    loadProductsData(),
+                    loadAllProductPrices()
+                ]);
                 
-                allProducts = Object.entries(products).map(([id, product]) => ({
-                    ...product,
-                    id: id
-                }));
-                
-                currentMerchantProducts = allProducts;
                 displayProducts(allProducts);
                 updateProductSelect(allProducts);
                 
@@ -1549,6 +1362,22 @@
             } finally {
                 showLoading(false);
             }
+        }
+
+        // تحميل بيانات المنتجات
+        async function loadProductsData() {
+            const merchantId = getCurrentMerchantId();
+            if (!merchantId) return;
+            
+            const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
+            const products = productsSnapshot.val() || {};
+            
+            allProducts = Object.entries(products).map(([id, product]) => ({
+                ...product,
+                id: id
+            }));
+            
+            currentMerchantProducts = allProducts;
         }
 
         // تحديث قائمة اختيار المنتجات
@@ -1582,7 +1411,7 @@
             if (products.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="3" style="text-align: center; padding: 20px;">
+                        <td colspan="4" style="text-align: center; padding: 20px;">
                             لا توجد وجبات مسجلة بعد
                         </td>
                     </tr>
@@ -1592,9 +1421,20 @@
             
             products.forEach(product => {
                 const row = document.createElement('tr');
+                const categoryName = getCategoryName(product.categoryId);
+                const isUndefined = categoryName === 'غير محدد';
+                const unitsPricesHtml = displayProductUnitsPrices(product.id);
+                
                 row.innerHTML = `
-                    <td>${getCategoryName(product.categoryId)}</td>
+                    <td>
+                        <div class="category-display">
+                            <span class="category-name ${isUndefined ? 'category-undefined' : ''}">
+                                ${categoryName}
+                            </span>
+                        </div>
+                    </td>
                     <td>${product.name}</td>
+                    <td>${unitsPricesHtml}</td>
                     <td>
                         <div class="action-buttons">
                             <button class="btn-price" onclick="manageProductPrices('${product.id}')" title="إدارة الأسعار">
@@ -1925,6 +1765,10 @@
                 await updatePriceNumber(selectedProduct.id);
                 await updateUnitsCount(selectedProduct.id);
                 
+                // إعادة تحميل جميع الأسعار لتحديث العرض
+                await loadAllProductPrices();
+                displayProducts(currentMerchantProducts);
+                
                 // إخفاء زر إضافة السعر بعد النجاح
                 hidePriceSubmitButton();
                 
@@ -2076,6 +1920,10 @@
                     await updateUnitsSelect(selectedProduct.id);
                     await updateUnitsCount(selectedProduct.id);
                 }
+                
+                // إعادة تحميل جميع الأسعار لتحديث العرض
+                await loadAllProductPrices();
+                displayProducts(currentMerchantProducts);
                 
             } catch (error) {
                 console.error('خطأ في حذف السعر:', error);
@@ -2238,12 +2086,6 @@
                     document.getElementById('price-submit-btn').click();
                 }
             });
-            
-            // أحداث زر الفحص العائم
-            document.getElementById('floatingCheckBtn').addEventListener('click', checkDataIntegrity);
-            document.getElementById('closeCheckResults').addEventListener('click', closeCheckResults);
-            document.getElementById('closeResultsBtn').addEventListener('click', closeCheckResults);
-            document.getElementById('fixDataBtn').addEventListener('click', fixDataIssues);
         });
     </script>
 </body>
