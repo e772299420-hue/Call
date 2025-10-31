@@ -261,6 +261,15 @@
             background-color: #fff;
             cursor: text;
         }
+        
+        .warning-message {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -787,8 +796,54 @@
             });
         }
         
+        // التحقق من وجود معرف الفئة للتاجر الحالي فقط
+        function isCategoryIdExistsForCurrentMerchant(categoryId) {
+            return new Promise((resolve, reject) => {
+                if (!currentMerchant) {
+                    resolve(false);
+                    return;
+                }
+                
+                // البحث عن الفئة بالمعرف المطلوب للتاجر الحالي فقط
+                database.ref('fah/categories').orderByChild('merchantId').equalTo(currentMerchant.id).once('value')
+                    .then(snapshot => {
+                        const categories = snapshot.val();
+                        let exists = false;
+                        
+                        if (categories) {
+                            // التحقق مما إذا كان المعرف موجوداً لأي فئة تابعة للتاجر الحالي
+                            Object.keys(categories).forEach(key => {
+                                if (key === categoryId.toString()) {
+                                    exists = true;
+                                }
+                            });
+                        }
+                        
+                        resolve(exists);
+                    })
+                    .catch(error => {
+                        reject(error);
+                    });
+            });
+        }
+        
+        // التحقق من وجود منتجات مرتبطة بالفئة
+        function hasLinkedProducts(categoryId) {
+            return new Promise((resolve, reject) => {
+                // البحث عن المنتجات المرتبطة بهذه الفئة
+                database.ref('fah/products').orderByChild('categoryId').equalTo(categoryId).once('value')
+                    .then(snapshot => {
+                        const products = snapshot.val();
+                        resolve(products !== null && Object.keys(products).length > 0);
+                    })
+                    .catch(error => {
+                        reject(error);
+                    });
+            });
+        }
+        
         // إضافة أو تعديل فئة
-        categoryForm.addEventListener('submit', (e) => {
+        categoryForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             if (!currentMerchant) {
@@ -816,37 +871,57 @@
                 return;
             }
             
-            if (isEditing && originalCategoryId !== categoryId) {
-                // إذا تم تغيير معرف الفئة أثناء التعديل
-                updateCategoryIdInDatabase(originalCategoryId, categoryId, {
-                    name: categoryName,
-                    status: categoryStatus,
-                    merchantId: merchantId,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    updatedBy: currentMerchant.username || currentMerchant.name
-                });
-            } else {
-                // حفظ عادي أو تعديل بدون تغيير المعرف
-                saveCategory(categoryId, {
-                    name: categoryName,
-                    status: categoryStatus,
-                    merchantId: merchantId,
-                    createdAt: new Date().toISOString(),
-                    ...(isEditing && {
+            try {
+                if (isEditing && originalCategoryId !== categoryId) {
+                    // التحقق من أن المعرف الجديد غير موجود للتاجر الحالي
+                    const idExists = await isCategoryIdExistsForCurrentMerchant(categoryId);
+                    if (idExists) {
+                        alert('معرف الفئة الجديد موجود مسبقاً للتاجر الحالي، يرجى اختيار معرف آخر');
+                        return;
+                    }
+                    
+                    // إذا تم تغيير معرف الفئة أثناء التعديل
+                    await updateCategoryIdInDatabase(originalCategoryId, categoryId, {
+                        name: categoryName,
+                        status: categoryStatus,
+                        merchantId: merchantId,
+                        createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                         updatedBy: currentMerchant.username || currentMerchant.name
-                    }),
-                    ...(!isEditing && {
-                        createdBy: currentMerchant.username || currentMerchant.name
-                    })
-                });
+                    });
+                } else {
+                    // التحقق من عدم وجود المعرف للتاجر الحالي (في حالة الإضافة فقط)
+                    if (!isEditing) {
+                        const idExists = await isCategoryIdExistsForCurrentMerchant(categoryId);
+                        if (idExists) {
+                            alert('معرف الفئة موجود مسبقاً للتاجر الحالي، يرجى اختيار معرف آخر');
+                            return;
+                        }
+                    }
+                    
+                    // حفظ عادي أو تعديل بدون تغيير المعرف
+                    await saveCategory(categoryId, {
+                        name: categoryName,
+                        status: categoryStatus,
+                        merchantId: merchantId,
+                        createdAt: new Date().toISOString(),
+                        ...(isEditing && {
+                            updatedAt: new Date().toISOString(),
+                            updatedBy: currentMerchant.username || currentMerchant.name
+                        }),
+                        ...(!isEditing && {
+                            createdBy: currentMerchant.username || currentMerchant.name
+                        })
+                    });
+                }
+            } catch (error) {
+                alert('حدث خطأ أثناء حفظ الفئة: ' + error.message);
             }
         });
         
         // حفظ الفئة في قاعدة البيانات
         function saveCategory(categoryId, categoryData) {
-            database.ref(`fah/categories/${categoryId}`).set(categoryData)
+            return database.ref(`fah/categories/${categoryId}`).set(categoryData)
                 .then(() => {
                     if (isEditing) {
                         alert('تم تعديل الفئة بنجاح');
@@ -865,56 +940,52 @@
         
         // تحديث معرف الفئة في قاعدة البيانات لجميع السجلات المرتبطة
         function updateCategoryIdInDatabase(oldId, newId, categoryData) {
-            // الحصول على البيانات القديمة أولاً
-            database.ref(`fah/categories/${oldId}`).once('value')
-                .then(snapshot => {
-                    const oldData = snapshot.val();
-                    
-                    if (!oldData) {
-                        alert('لم يتم العثور على الفئة القديمة');
-                        return;
-                    }
-                    
-                    // التحقق من عدم وجود فئة بالمعرف الجديد
-                    database.ref(`fah/categories/${newId}`).once('value')
-                        .then(newSnapshot => {
-                            if (newSnapshot.exists()) {
-                                alert('معرف الفئة الجديد موجود مسبقاً، يرجى اختيار معرف آخر');
-                                return;
-                            }
-                            
-                            // إنشاء الفئة الجديدة
-                            database.ref(`fah/categories/${newId}`).set(categoryData)
-                                .then(() => {
-                                    // حذف الفئة القديمة
-                                    database.ref(`fah/categories/${oldId}`).remove()
-                                        .then(() => {
-                                            // تحديث جميع المنتجات المرتبطة بهذه الفئة
-                                            updateProductsCategoryId(oldId, newId)
-                                                .then(() => {
-                                                    alert('تم تعديل الفئة بنجاح وتحديث جميع البيانات المرتبطة');
-                                                    resetForm();
-                                                })
-                                                .catch(error => {
-                                                    alert('تم تعديل الفئة ولكن حدث خطأ في تحديث المنتجات المرتبطة: ' + error.message);
-                                                    resetForm();
-                                                });
-                                        })
-                                        .catch(error => {
-                                            alert('حدث خطأ أثناء حذف الفئة القديمة: ' + error.message);
-                                        });
-                                })
-                                .catch(error => {
-                                    alert('حدث خطأ أثناء إنشاء الفئة الجديدة: ' + error.message);
-                                });
-                        })
-                        .catch(error => {
-                            alert('حدث خطأ أثناء التحقق من المعرف الجديد: ' + error.message);
-                        });
-                })
-                .catch(error => {
-                    alert('حدث خطأ أثناء جلب بيانات الفئة القديمة: ' + error.message);
-                });
+            return new Promise((resolve, reject) => {
+                // الحصول على البيانات القديمة أولاً
+                database.ref(`fah/categories/${oldId}`).once('value')
+                    .then(snapshot => {
+                        const oldData = snapshot.val();
+                        
+                        if (!oldData) {
+                            alert('لم يتم العثور على الفئة القديمة');
+                            reject(new Error('الفئة القديمة غير موجودة'));
+                            return;
+                        }
+                        
+                        // إنشاء الفئة الجديدة
+                        database.ref(`fah/categories/${newId}`).set(categoryData)
+                            .then(() => {
+                                // حذف الفئة القديمة
+                                database.ref(`fah/categories/${oldId}`).remove()
+                                    .then(() => {
+                                        // تحديث جميع المنتجات المرتبطة بهذه الفئة
+                                        updateProductsCategoryId(oldId, newId)
+                                            .then(() => {
+                                                alert('تم تعديل الفئة بنجاح وتحديث جميع البيانات المرتبطة');
+                                                resetForm();
+                                                resolve();
+                                            })
+                                            .catch(error => {
+                                                alert('تم تعديل الفئة ولكن حدث خطأ في تحديث المنتجات المرتبطة: ' + error.message);
+                                                resetForm();
+                                                reject(error);
+                                            });
+                                    })
+                                    .catch(error => {
+                                        alert('حدث خطأ أثناء حذف الفئة القديمة: ' + error.message);
+                                        reject(error);
+                                    });
+                            })
+                            .catch(error => {
+                                alert('حدث خطأ أثناء إنشاء الفئة الجديدة: ' + error.message);
+                                reject(error);
+                            });
+                    })
+                    .catch(error => {
+                        alert('حدث خطأ أثناء جلب بيانات الفئة القديمة: ' + error.message);
+                        reject(error);
+                    });
+            });
         }
         
         // تحديث معرف الفئة في جميع المنتجات المرتبطة
@@ -950,16 +1021,26 @@
             });
         }
         
-        // حذف فئة
-        function deleteCategory(categoryId) {
-            if (confirm('هل أنت متأكد من حذف هذه الفئة؟')) {
-                database.ref(`fah/categories/${categoryId}`).remove()
-                    .then(() => {
-                        alert('تم حذف الفئة بنجاح');
-                    })
-                    .catch(error => {
-                        alert('حدث خطأ أثناء حذف الفئة: ' + error.message);
-                    });
+        // حذف فئة مع التحقق من وجود منتجات مرتبطة
+        async function deleteCategory(categoryId) {
+            if (!confirm('هل أنت متأكد من حذف هذه الفئة؟')) {
+                return;
+            }
+            
+            try {
+                // التحقق من وجود منتجات مرتبطة بهذه الفئة
+                const hasProducts = await hasLinkedProducts(categoryId);
+                
+                if (hasProducts) {
+                    alert('⚠️ لا يمكن حذف هذه الفئة لأنها مرتبطة بمنتجات في قاعدة البيانات.\nيرجى نقل المنتجات إلى فئة أخرى أولاً ثم إعادة المحاولة.');
+                    return;
+                }
+                
+                // إذا لم تكن هناك منتجات مرتبطة، قم بالحذف
+                await database.ref(`fah/categories/${categoryId}`).remove();
+                alert('✅ تم حذف الفئة بنجاح');
+            } catch (error) {
+                alert('حدث خطأ أثناء حذف الفئة: ' + error.message);
             }
         }
         
