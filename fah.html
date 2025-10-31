@@ -112,14 +112,6 @@
             font-size: 12px;
         }
         
-        .delete-btn {
-            background-color: #f44336;
-        }
-        
-        .delete-btn:hover {
-            background-color: #d32f2f;
-        }
-        
         .status-active {
             color: #4CAF50;
             font-weight: bold;
@@ -238,38 +230,6 @@
         .form-group.hidden {
             display: none;
         }
-        
-        .category-id-info {
-            background-color: #f0f8ff;
-            padding: 8px;
-            border-radius: 4px;
-            border-left: 3px solid #2196F3;
-            margin-bottom: 10px;
-        }
-        
-        .category-id-label {
-            font-weight: bold;
-            color: #1976d2;
-        }
-        
-        .readonly-input {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
-        }
-        
-        .editable-input {
-            background-color: #fff;
-            cursor: text;
-        }
-        
-        .warning-message {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
     </style>
 </head>
 <body>
@@ -309,13 +269,10 @@
                         <input type="text" id="merchant-id" readonly>
                     </div>
                     
-                    <!-- عرض معرف الفئة وجعله قابل للتعديل -->
-                    <div class="form-group">
+                    <!-- تم إخفاء معرف الفئة -->
+                    <div class="form-group hidden">
                         <label for="category-id">رقم الفئة</label>
-                        <div class="category-id-info">
-                            <span class="category-id-label">ملاحظة:</span> يمكن تعديل رقم الفئة في وضع التعديل فقط. سيتم تحديث جميع البيانات المرتبطة بهذا الرقم في قاعدة البيانات.
-                        </div>
-                        <input type="number" id="category-id" class="readonly-input" readonly>
+                        <input type="number" id="category-id" readonly>
                     </div>
                     
                     <div class="form-group">
@@ -347,8 +304,6 @@
                 <table id="categories-table">
                     <thead>
                         <tr>
-                            <!-- تم إضافة معرف الفئة إلى الجدول -->
-                            <th>رقم الفئة</th>
                             <th>اسم الفئة</th>
                             <th>الحالة</th>
                             <th>الإجراءات</th>
@@ -489,7 +444,6 @@
         let isEditing = false;
         let currentEditId = null;
         let currentMerchant = null;
-        let originalCategoryId = null;
         
         // ===== دوال عرض بيانات الجلوبالات =====
         
@@ -717,25 +671,16 @@
                         categoryElement.innerHTML = `
                             <div class="category-info">
                                 <strong>${category.name}</strong> 
-                                - رقم الفئة: <strong>${key}</strong>
                                 - الحالة: <span class="status-${category.status === 'نشط' ? 'active' : 'inactive'}">${category.status}</span>
                             </div>
                             <div class="category-actions">
                                 <button class="edit-btn" data-id="${key}">تعديل</button>
-                                <button class="delete-btn" data-id="${key}">حذف</button>
                             </div>
                         `;
                         categoriesList.appendChild(categoryElement);
                     });
                     
-                    // إضافة أحداث للحذف والتعديل
-                    document.querySelectorAll('.delete-btn').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            const categoryId = e.target.getAttribute('data-id');
-                            deleteCategory(categoryId);
-                        });
-                    });
-                    
+                    // إضافة أحداث للتعديل فقط
                     document.querySelectorAll('.edit-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             const categoryId = e.target.getAttribute('data-id');
@@ -766,12 +711,10 @@
                         const category = categories[key];
                         const row = categoriesTable.insertRow();
                         
-                        const cellId = row.insertCell(0);
-                        const cellName = row.insertCell(1);
-                        const cellStatus = row.insertCell(2);
-                        const cellActions = row.insertCell(3);
+                        const cellName = row.insertCell(0);
+                        const cellStatus = row.insertCell(1);
+                        const cellActions = row.insertCell(2);
                         
-                        cellId.textContent = key;
                         cellName.textContent = category.name;
                         cellStatus.innerHTML = `<span class="status-${category.status === 'نشط' ? 'active' : 'inactive'}">${category.status}</span>`;
                         
@@ -789,61 +732,15 @@
                 } else {
                     const row = categoriesTable.insertRow();
                     const cell = row.insertCell(0);
-                    cell.colSpan = 4;
+                    cell.colSpan = 3;
                     cell.textContent = 'لا توجد فئات مضافة بعد.';
                     cell.style.textAlign = 'center';
                 }
             });
         }
         
-        // التحقق من وجود معرف الفئة للتاجر الحالي فقط
-        function isCategoryIdExistsForCurrentMerchant(categoryId) {
-            return new Promise((resolve, reject) => {
-                if (!currentMerchant) {
-                    resolve(false);
-                    return;
-                }
-                
-                // البحث عن الفئة بالمعرف المطلوب للتاجر الحالي فقط
-                database.ref('fah/categories').orderByChild('merchantId').equalTo(currentMerchant.id).once('value')
-                    .then(snapshot => {
-                        const categories = snapshot.val();
-                        let exists = false;
-                        
-                        if (categories) {
-                            // التحقق مما إذا كان المعرف موجوداً لأي فئة تابعة للتاجر الحالي
-                            Object.keys(categories).forEach(key => {
-                                if (key === categoryId.toString()) {
-                                    exists = true;
-                                }
-                            });
-                        }
-                        
-                        resolve(exists);
-                    })
-                    .catch(error => {
-                        reject(error);
-                    });
-            });
-        }
-        
-        // التحقق من وجود منتجات مرتبطة بالفئة
-        function hasLinkedProducts(categoryId) {
-            return new Promise((resolve, reject) => {
-                // البحث عن المنتجات المرتبطة بهذه الفئة
-                database.ref('fah/products').orderByChild('categoryId').equalTo(categoryId).once('value')
-                    .then(snapshot => {
-                        const products = snapshot.val();
-                        resolve(products !== null && Object.keys(products).length > 0);
-                    })
-                    .catch(error => {
-                        reject(error);
-                    });
-            });
-        }
-        
         // إضافة أو تعديل فئة
-        categoryForm.addEventListener('submit', async (e) => {
+        categoryForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
             if (!currentMerchant) {
@@ -871,178 +768,31 @@
                 return;
             }
             
-            try {
-                if (isEditing && originalCategoryId !== categoryId) {
-                    // التحقق من أن المعرف الجديد غير موجود للتاجر الحالي
-                    const idExists = await isCategoryIdExistsForCurrentMerchant(categoryId);
-                    if (idExists) {
-                        alert('معرف الفئة الجديد موجود مسبقاً للتاجر الحالي، يرجى اختيار معرف آخر');
-                        return;
-                    }
-                    
-                    // إذا تم تغيير معرف الفئة أثناء التعديل
-                    await updateCategoryIdInDatabase(originalCategoryId, categoryId, {
-                        name: categoryName,
-                        status: categoryStatus,
-                        merchantId: merchantId,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                        updatedBy: currentMerchant.username || currentMerchant.name
-                    });
-                } else {
-                    // التحقق من عدم وجود المعرف للتاجر الحالي (في حالة الإضافة فقط)
-                    if (!isEditing) {
-                        const idExists = await isCategoryIdExistsForCurrentMerchant(categoryId);
-                        if (idExists) {
-                            alert('معرف الفئة موجود مسبقاً للتاجر الحالي، يرجى اختيار معرف آخر');
-                            return;
-                        }
-                    }
-                    
-                    // حفظ عادي أو تعديل بدون تغيير المعرف
-                    await saveCategory(categoryId, {
-                        name: categoryName,
-                        status: categoryStatus,
-                        merchantId: merchantId,
-                        createdAt: new Date().toISOString(),
-                        ...(isEditing && {
-                            updatedAt: new Date().toISOString(),
-                            updatedBy: currentMerchant.username || currentMerchant.name
-                        }),
-                        ...(!isEditing && {
-                            createdBy: currentMerchant.username || currentMerchant.name
-                        })
-                    });
-                }
-            } catch (error) {
-                alert('حدث خطأ أثناء حفظ الفئة: ' + error.message);
-            }
-        });
-        
-        // حفظ الفئة في قاعدة البيانات
-        function saveCategory(categoryId, categoryData) {
-            return database.ref(`fah/categories/${categoryId}`).set(categoryData)
-                .then(() => {
-                    if (isEditing) {
-                        alert('تم تعديل الفئة بنجاح');
-                        resetForm();
-                    } else {
-                        alert('تم إضافة الفئة بنجاح');
-                        categoryForm.reset();
-                        merchantIdInput.value = currentMerchant.id;
-                        updateCategoryId();
-                    }
+            // حفظ في Firebase
+            database.ref(`fah/categories/${categoryId}`).set({
+                name: categoryName,
+                status: categoryStatus,
+                merchantId: merchantId,
+                createdAt: new Date().toISOString(),
+                createdBy: currentMerchant.username || currentMerchant.name,
+                ...(isEditing && {
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: currentMerchant.username || currentMerchant.name
                 })
-                .catch(error => {
-                    alert('حدث خطأ أثناء حفظ الفئة: ' + error.message);
-                });
-        }
-        
-        // تحديث معرف الفئة في قاعدة البيانات لجميع السجلات المرتبطة
-        function updateCategoryIdInDatabase(oldId, newId, categoryData) {
-            return new Promise((resolve, reject) => {
-                // الحصول على البيانات القديمة أولاً
-                database.ref(`fah/categories/${oldId}`).once('value')
-                    .then(snapshot => {
-                        const oldData = snapshot.val();
-                        
-                        if (!oldData) {
-                            alert('لم يتم العثور على الفئة القديمة');
-                            reject(new Error('الفئة القديمة غير موجودة'));
-                            return;
-                        }
-                        
-                        // إنشاء الفئة الجديدة
-                        database.ref(`fah/categories/${newId}`).set(categoryData)
-                            .then(() => {
-                                // حذف الفئة القديمة
-                                database.ref(`fah/categories/${oldId}`).remove()
-                                    .then(() => {
-                                        // تحديث جميع المنتجات المرتبطة بهذه الفئة
-                                        updateProductsCategoryId(oldId, newId)
-                                            .then(() => {
-                                                alert('تم تعديل الفئة بنجاح وتحديث جميع البيانات المرتبطة');
-                                                resetForm();
-                                                resolve();
-                                            })
-                                            .catch(error => {
-                                                alert('تم تعديل الفئة ولكن حدث خطأ في تحديث المنتجات المرتبطة: ' + error.message);
-                                                resetForm();
-                                                reject(error);
-                                            });
-                                    })
-                                    .catch(error => {
-                                        alert('حدث خطأ أثناء حذف الفئة القديمة: ' + error.message);
-                                        reject(error);
-                                    });
-                            })
-                            .catch(error => {
-                                alert('حدث خطأ أثناء إنشاء الفئة الجديدة: ' + error.message);
-                                reject(error);
-                            });
-                    })
-                    .catch(error => {
-                        alert('حدث خطأ أثناء جلب بيانات الفئة القديمة: ' + error.message);
-                        reject(error);
-                    });
-            });
-        }
-        
-        // تحديث معرف الفئة في جميع المنتجات المرتبطة
-        function updateProductsCategoryId(oldCategoryId, newCategoryId) {
-            return new Promise((resolve, reject) => {
-                // البحث عن جميع المنتجات المرتبطة بالفئة القديمة
-                database.ref('fah/products').orderByChild('categoryId').equalTo(oldCategoryId).once('value')
-                    .then(snapshot => {
-                        const products = snapshot.val();
-                        const updatePromises = [];
-                        
-                        if (products) {
-                            Object.keys(products).forEach(productId => {
-                                // تحديث معرف الفئة في كل منتج
-                                const updatePromise = database.ref(`fah/products/${productId}/categoryId`).set(newCategoryId);
-                                updatePromises.push(updatePromise);
-                            });
-                        }
-                        
-                        // انتظار اكتمال جميع عمليات التحديث
-                        Promise.all(updatePromises)
-                            .then(() => {
-                                console.log(`✅ تم تحديث ${updatePromises.length} منتج مرتبط بالفئة`);
-                                resolve();
-                            })
-                            .catch(error => {
-                                reject(error);
-                            });
-                    })
-                    .catch(error => {
-                        reject(error);
-                    });
-            });
-        }
-        
-        // حذف فئة مع التحقق من وجود منتجات مرتبطة
-        async function deleteCategory(categoryId) {
-            if (!confirm('هل أنت متأكد من حذف هذه الفئة؟')) {
-                return;
-            }
-            
-            try {
-                // التحقق من وجود منتجات مرتبطة بهذه الفئة
-                const hasProducts = await hasLinkedProducts(categoryId);
-                
-                if (hasProducts) {
-                    alert('⚠️ لا يمكن حذف هذه الفئة لأنها مرتبطة بمنتجات في قاعدة البيانات.\nيرجى نقل المنتجات إلى فئة أخرى أولاً ثم إعادة المحاولة.');
-                    return;
+            }).then(() => {
+                if (isEditing) {
+                    alert('تم تعديل الفئة بنجاح');
+                    resetForm();
+                } else {
+                    alert('تم إضافة الفئة بنجاح');
+                    categoryForm.reset();
+                    merchantIdInput.value = currentMerchant.id;
+                    updateCategoryId();
                 }
-                
-                // إذا لم تكن هناك منتجات مرتبطة، قم بالحذف
-                await database.ref(`fah/categories/${categoryId}`).remove();
-                alert('✅ تم حذف الفئة بنجاح');
-            } catch (error) {
-                alert('حدث خطأ أثناء حذف الفئة: ' + error.message);
-            }
-        }
+            }).catch(error => {
+                alert('حدث خطأ أثناء حفظ الفئة: ' + error.message);
+            });
+        });
         
         // تعديل فئة من التبويب الأول
         function editCategory(categoryId) {
@@ -1057,14 +807,8 @@
                     // تغيير وضع النموذج إلى التعديل
                     isEditing = true;
                     currentEditId = categoryId;
-                    originalCategoryId = categoryId;
                     saveBtn.textContent = 'تحديث الفئة';
                     cancelBtn.classList.remove('hidden');
-                    
-                    // جعل حقل معرف الفئة قابلاً للتعديل
-                    categoryIdInput.classList.remove('readonly-input');
-                    categoryIdInput.classList.add('editable-input');
-                    categoryIdInput.readOnly = false;
                 })
                 .catch(error => {
                     alert('حدث خطأ أثناء تحميل بيانات الفئة: ' + error.message);
@@ -1089,15 +833,8 @@
             categoryForm.reset();
             isEditing = false;
             currentEditId = null;
-            originalCategoryId = null;
             saveBtn.textContent = 'حفظ الفئة';
             cancelBtn.classList.add('hidden');
-            
-            // إعادة تعيين حقل معرف الفئة إلى وضع القراءة فقط
-            categoryIdInput.classList.remove('editable-input');
-            categoryIdInput.classList.add('readonly-input');
-            categoryIdInput.readOnly = true;
-            
             if (currentMerchant) {
                 merchantIdInput.value = currentMerchant.id;
             }
