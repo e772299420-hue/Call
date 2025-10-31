@@ -517,6 +517,140 @@
             font-weight: bold;
         }
 
+        /* زر الفحص العائم */
+        .floating-check-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, var(--warning-color), #e67e22);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .floating-check-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* نافذة نتائج الفحص */
+        .check-results-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .check-results-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .check-results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-color);
+        }
+
+        .check-results-header h3 {
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .close-check-results {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray-color);
+        }
+
+        .check-result-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-right: 4px solid var(--warning-color);
+        }
+
+        .check-result-item.error {
+            border-right-color: var(--danger-color);
+        }
+
+        .check-result-item.success {
+            border-right-color: var(--success-color);
+        }
+
+        .check-result-count {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark-color);
+            margin: 10px 0;
+        }
+
+        .check-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-fix {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-fix:hover {
+            background: #229954;
+        }
+
+        .btn-cancel {
+            background: var(--gray-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .btn-cancel:hover {
+            background: #6c757d;
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -553,6 +687,13 @@
             .btn-edit, .btn-delete, .btn-price {
                 width: 30px;
                 height: 30px;
+            }
+
+            .floating-check-btn {
+                bottom: 10px;
+                left: 10px;
+                padding: 12px;
+                font-size: 14px;
             }
         }
     </style>
@@ -746,6 +887,34 @@
         </div>
     </div>
 
+    <!-- زر الفحص العائم -->
+    <button class="floating-check-btn" id="floatingCheckBtn">
+        <i class="fas fa-search"></i>
+        فحص البيانات
+    </button>
+
+    <!-- نافذة نتائج الفحص -->
+    <div class="check-results-modal" id="checkResultsModal">
+        <div class="check-results-content">
+            <div class="check-results-header">
+                <h3><i class="fas fa-search"></i> نتائج فحص البيانات</h3>
+                <button class="close-check-results" id="closeCheckResults">&times;</button>
+            </div>
+            
+            <div id="checkResultsContent">
+                <!-- سيتم تعبئة نتائج الفحص هنا -->
+            </div>
+            
+            <div class="check-actions">
+                <button class="btn-fix" id="fixDataBtn">
+                    <i class="fas fa-wrench"></i>
+                    إصلاح البيانات
+                </button>
+                <button class="btn-cancel" id="closeResultsBtn">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
     <!-- نافذة التحميل -->
     <div class="loading-overlay" id="loading-overlay">
         <div class="loading-spinner"></div>
@@ -850,6 +1019,16 @@
         let currentEditingPriceId = null;
         let lastSelectedProductId = null;
 
+        // نتائج فحص البيانات
+        let checkResults = {
+            productsWithoutCategory: 0,
+            pricesWithoutCategory: 0,
+            unitsWithoutCategory: 0,
+            productsToFix: [],
+            pricesToFix: [],
+            unitsToFix: []
+        };
+
         // دالة لعرض الإشعارات
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
@@ -871,6 +1050,182 @@
         function showLoading(show) {
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = show ? 'flex' : 'none';
+        }
+
+        // فحص البيانات
+        async function checkDataIntegrity() {
+            try {
+                showLoading(true);
+                
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) {
+                    showToast('يجب تسجيل الدخول أولاً', 'error');
+                    return;
+                }
+
+                // إعادة تهيئة نتائج الفحص
+                checkResults = {
+                    productsWithoutCategory: 0,
+                    pricesWithoutCategory: 0,
+                    unitsWithoutCategory: 0,
+                    productsToFix: [],
+                    pricesToFix: [],
+                    unitsToFix: []
+                };
+
+                // فحص المنتجات (snf_mt)
+                const productsSnapshot = await database.ref('snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
+                const products = productsSnapshot.val() || {};
+                
+                Object.entries(products).forEach(([id, product]) => {
+                    if (!product.categoryId || product.categoryId === '') {
+                        checkResults.productsWithoutCategory++;
+                        checkResults.productsToFix.push(id);
+                    }
+                });
+
+                // فحص الأسعار (rpt_snf_mt)
+                const pricesSnapshot = await database.ref('rpt_snf_mt').orderByChild('merchantId').equalTo(merchantId).once('value');
+                const prices = pricesSnapshot.val() || {};
+                
+                Object.entries(prices).forEach(([id, price]) => {
+                    if (!price.categoryId || price.categoryId === '') {
+                        checkResults.pricesWithoutCategory++;
+                        checkResults.pricesToFix.push(id);
+                    }
+                });
+
+                // فحص الوحدات (whda/units)
+                const unitsSnapshot = await database.ref('whda/units').once('value');
+                const units = unitsSnapshot.val() || {};
+                
+                Object.entries(units).forEach(([id, unit]) => {
+                    // نفترض أن حقل الفئة في الوحدات يسمى categoryId
+                    if (!unit.categoryId || unit.categoryId === '') {
+                        checkResults.unitsWithoutCategory++;
+                        checkResults.unitsToFix.push(id);
+                    }
+                });
+
+                // عرض النتائج
+                showCheckResults();
+                
+            } catch (error) {
+                console.error('خطأ في فحص البيانات:', error);
+                showToast('حدث خطأ في فحص البيانات', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // عرض نتائج الفحص
+        function showCheckResults() {
+            const resultsContent = document.getElementById('checkResultsContent');
+            const modal = document.getElementById('checkResultsModal');
+            
+            let html = '';
+            
+            if (checkResults.productsWithoutCategory === 0 && 
+                checkResults.pricesWithoutCategory === 0 && 
+                checkResults.unitsWithoutCategory === 0) {
+                
+                html = `
+                    <div class="check-result-item success">
+                        <h4><i class="fas fa-check-circle"></i> جميع البيانات سليمة</h4>
+                        <p>لا توجد بيانات تالفة أو غير مرتبطة بالفئات.</p>
+                    </div>
+                `;
+                
+                document.getElementById('fixDataBtn').style.display = 'none';
+            } else {
+                html = `
+                    <div class="check-result-item ${checkResults.productsWithoutCategory > 0 ? 'error' : 'success'}">
+                        <h4><i class="fas fa-utensils"></i> المنتجات والوجبات</h4>
+                        <p>عدد المنتجات الغير مرتبطة بالفئات:</p>
+                        <div class="check-result-count">${checkResults.productsWithoutCategory}</div>
+                    </div>
+                    
+                    <div class="check-result-item ${checkResults.pricesWithoutCategory > 0 ? 'error' : 'success'}">
+                        <h4><i class="fas fa-money-bill-wave"></i> بيانات الأسعار والوحدات</h4>
+                        <p>عدد بيانات الأسعار الغير مرتبطة بالفئات:</p>
+                        <div class="check-result-count">${checkResults.pricesWithoutCategory}</div>
+                    </div>
+                    
+                    <div class="check-result-item ${checkResults.unitsWithoutCategory > 0 ? 'error' : 'success'}">
+                        <h4><i class="fas fa-weight"></i> بيانات الوحدات</h4>
+                        <p>عدد بيانات الوحدات الغير مرتبطة بالفئات:</p>
+                        <div class="check-result-count">${checkResults.unitsWithoutCategory}</div>
+                    </div>
+                    
+                    <div class="check-result-item">
+                        <h4><i class="fas fa-info-circle"></i> ملاحظة</h4>
+                        <p>سيتم تعيين الفئة بالرقم 1 لجميع البيانات التالفة الخاصة بالتاجر الحالي.</p>
+                    </div>
+                `;
+                
+                document.getElementById('fixDataBtn').style.display = 'flex';
+            }
+            
+            resultsContent.innerHTML = html;
+            modal.style.display = 'flex';
+        }
+
+        // إصلاح البيانات التالفة
+        async function fixDataIssues() {
+            try {
+                showLoading(true);
+                
+                const merchantId = getCurrentMerchantId();
+                if (!merchantId) {
+                    showToast('يجب تسجيل الدخول أولاً', 'error');
+                    return;
+                }
+
+                let fixedCount = 0;
+
+                // إصلاح المنتجات
+                for (const productId of checkResults.productsToFix) {
+                    await database.ref(`snf_mt/${productId}`).update({
+                        categoryId: "1"
+                    });
+                    fixedCount++;
+                }
+
+                // إصلاح الأسعار
+                for (const priceId of checkResults.pricesToFix) {
+                    await database.ref(`rpt_snf_mt/${priceId}`).update({
+                        categoryId: "1"
+                    });
+                    fixedCount++;
+                }
+
+                // إصلاح الوحدات
+                for (const unitId of checkResults.unitsToFix) {
+                    await database.ref(`whda/units/${unitId}`).update({
+                        categoryId: "1"
+                    });
+                    fixedCount++;
+                }
+
+                showToast(`تم إصلاح ${fixedCount} سجل بنجاح`, 'success');
+                closeCheckResults();
+                
+                // إعادة تحميل البيانات
+                await loadCategories();
+                await loadProducts();
+                
+            } catch (error) {
+                console.error('خطأ في إصلاح البيانات:', error);
+                showToast('حدث خطأ في إصلاح البيانات', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // إغلاق نافذة نتائج الفحص
+        function closeCheckResults() {
+            const modal = document.getElementById('checkResultsModal');
+            modal.style.display = 'none';
         }
 
         // تحويل الملف إلى Base64
@@ -1883,6 +2238,12 @@
                     document.getElementById('price-submit-btn').click();
                 }
             });
+            
+            // أحداث زر الفحص العائم
+            document.getElementById('floatingCheckBtn').addEventListener('click', checkDataIntegrity);
+            document.getElementById('closeCheckResults').addEventListener('click', closeCheckResults);
+            document.getElementById('closeResultsBtn').addEventListener('click', closeCheckResults);
+            document.getElementById('fixDataBtn').addEventListener('click', fixDataIssues);
         });
     </script>
 </body>
