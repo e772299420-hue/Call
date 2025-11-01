@@ -34,13 +34,13 @@
     <meta name="google-site-verification" content="Py26cVMd571vmKQo4rbXGAKTvCgiuTym5A9JfBGFqZQ" />
     
     <!-- PWA Manifest - محسن -->
-    <link rel="manifest" href="/Call/manifest.json?v=4">
+    <link rel="manifest" href="/Call/manifest.json?v=5">
     <meta name="theme-color" content="#3498db">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="AZ السوق الشامل">
-    <link rel="apple-touch-icon" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true&v=4">
-    <link rel="icon" type="image/png" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true&v=4">
+    <link rel="apple-touch-icon" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true&v=5">
+    <link rel="icon" type="image/png" href="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true&v=5">
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -1751,10 +1751,14 @@ class PWAInstallationDetector {
     setupEventListeners() {
         // استمع لحدث beforeinstallprompt
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('📱 حدث beforeinstallprompt تم تشغيله');
+            console.log('📱 حدث beforeinstallprompt تم تشغيله - PWA جاهز للتثبيت');
             e.preventDefault();
             deferredPrompt = e;
             this.updateInstallButtonState();
+            
+            // مسح حالة التثبيت القديمة عند ظهور deferredPrompt
+            localStorage.removeItem('appInstalled');
+            console.log('🧹 تم مسح حالة التثبيت القديمة');
         });
         
         // استمع لحدث appinstalled
@@ -1780,7 +1784,7 @@ class PWAInstallationDetector {
     // طريقة محسنة للتحقق من تثبيت PWA
     checkIfAppInstalled() {
         try {
-            // طريقة 1: التحقق من display-mode
+            // طريقة 1: التحقق من display-mode (الأكثر دقة)
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
             
             // طريقة 2: التحقق من navigator.standalone (لـ iOS)
@@ -1800,7 +1804,8 @@ class PWAInstallationDetector {
             });
 
             // إذا كان التطبيق يعمل في وضع standalone أو تم تخزين حالة التثبيت
-            const isInstalled = isStandalone || isInWebApp || isInstalledInStorage;
+            // ولا يوجد deferredPrompt (مما يعني أن التطبيق مثبت بالفعل)
+            const isInstalled = (isStandalone || isInWebApp || isInstalledInStorage) && !hasDeferredPrompt;
             
             return isInstalled;
             
@@ -1863,7 +1868,7 @@ class PWAInstaller {
             
             // إذا كان deferredPrompt متاحًا
             if (deferredPrompt) {
-                console.log('📱 استخدام deferredPrompt للتثبيت');
+                console.log('📱 استخدام deferredPrompt للتثبيت التلقائي');
                 return await this.installWithPrompt();
             } else {
                 // إذا لم يكن deferredPrompt متاحًا، استخدم الطرق البديلة
@@ -1880,16 +1885,21 @@ class PWAInstaller {
     
     async installWithPrompt() {
         try {
-            console.log('📋 عرض نافذة التثبيت');
+            console.log('📋 عرض نافذة التثبيت التلقائي');
+            
+            // عرض نافذة التثبيت
             deferredPrompt.prompt();
+            
+            // انتظر نتيجة المستخدم
             const { outcome } = await deferredPrompt.userChoice;
             
             console.log('📊 نتيجة التثبيت:', outcome);
             
             if (outcome === 'accepted') {
                 console.log('✅ تم قبول تثبيت التطبيق');
-                localStorage.setItem('appInstalled', 'true');
-                localStorage.setItem('appInstallationTime', new Date().toISOString());
+                
+                // مسح deferredPrompt بعد التثبيت الناجح
+                deferredPrompt = null;
                 
                 // تحديث حالة التثبيت
                 if (pwaDetector) {
@@ -1987,7 +1997,10 @@ class PWAInstaller {
             closeBtn.style.transform = 'translateY(0)';
         };
         
-        closeBtn.onclick = () => instructionModal.remove();
+        closeBtn.onclick = () => {
+            instructionModal.remove();
+            overlay.remove();
+        };
         
         instructionModal.appendChild(closeBtn);
         document.body.appendChild(instructionModal);
