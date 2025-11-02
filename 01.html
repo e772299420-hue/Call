@@ -1951,7 +1951,6 @@
                 <div class="secondary-category">
                     <label for="secondary-category-select">القسم:</label>
                     <div class="category-search-container">
-                        <input type="text" class="category-search-input" id="secondary-category-search" placeholder="ابحث في الأقسام...">
                         <select id="secondary-category-select">
                             <option value="">جميع الأقسام</option>
                         </select>
@@ -2232,7 +2231,6 @@
 
         // عناصر الشريط الجديد
         const secondaryCategorySelect = document.getElementById('secondary-category-select');
-        const secondaryCategorySearch = document.getElementById('secondary-category-search');
         const productsCountEl = document.getElementById('products-count');
         const showMoreBtn = document.getElementById('show-more-btn');
         const secondaryFavoritesBtn = document.getElementById('secondary-favorites');
@@ -2931,7 +2929,6 @@
             
             // أحداث الشريط الجديد
             secondaryCategorySelect.addEventListener('change', handleSecondaryCategoryChange);
-            secondaryCategorySearch.addEventListener('input', handleCategorySearch);
             showMoreBtn.addEventListener('click', toggleFilterBar);
             secondaryFavoritesBtn.addEventListener('click', toggleFavoritesView);
 
@@ -3028,56 +3025,6 @@
                 hideFilterBar();
                 showNotification('تم إخفاء شريط الفلاتر', 'info');
             }
-        }
-
-        // ==========================================
-        // 🔍 البحث الذكي في القائمة المنسدلة للأقسام
-        // ==========================================
-        function handleCategorySearch() {
-            const searchTerm = secondaryCategorySearch.value.trim();
-            const selectElement = secondaryCategorySelect;
-            
-            // إظهار جميع الخيارات إذا كان حقل البحث فارغاً
-            if (searchTerm === '') {
-                for (let i = 0; i < selectElement.options.length; i++) {
-                    selectElement.options[i].style.display = '';
-                }
-                return;
-            }
-            
-            // تطبيع النص للبحث الذكي (معالجة الأحرف المختلفة)
-            const normalizedSearch = normalizeArabicText(searchTerm);
-            
-            // تصفية الخيارات بناءً على نص البحث
-            for (let i = 0; i < selectElement.options.length; i++) {
-                const option = selectElement.options[i];
-                const optionText = option.textContent || option.innerText;
-                const normalizedOption = normalizeArabicText(optionText);
-                
-                if (normalizedOption.includes(normalizedSearch)) {
-                    option.style.display = '';
-                } else {
-                    option.style.display = 'none';
-                }
-            }
-        }
-
-        // دالة لتطبيع النص العربي للبحث الذكي
-        function normalizeArabicText(text) {
-            if (!text) return '';
-            
-            return text
-                .toLowerCase()
-                // معالجة الهمزات
-                .replace(/[أإآ]/g, 'ا')
-                // معالجة التاء المربوطة والهاء
-                .replace(/ة/g, 'ه')
-                // معالجة الألف المقصورة
-                .replace(/ى/g, 'ا')
-                // إزالة التشكيل
-                .replace(/[\u064B-\u065F]/g, '')
-                // إزالة المسافات الزائدة
-                .trim();
         }
 
         // فحص الرابط للمنتج المحدد
@@ -4249,7 +4196,6 @@
             categoryValueDisplay.textContent = '';
             currentCategoryFilter = '';
             secondaryCategorySelect.value = '';
-            secondaryCategorySearch.value = '';
             updateRegionOptions();
             displayProducts(allProducts);
             showNotification('تم إعادة تعيين جميع الفلاتر', 'success');
