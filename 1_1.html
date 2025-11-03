@@ -168,16 +168,28 @@
             animation: pulse 2s infinite;
         }
 
-        /* تأثير الوميض عند دخول مستخدم جديد */
-        .header-online-users.new-user {
-            animation: flashGreen 1.5s ease-in-out;
+        /* تأثير الوميض عند تغير العدد */
+        .header-online-users.increase {
+            animation: flashGreen 1s ease-in-out;
+        }
+
+        .header-online-users.decrease {
+            animation: flashRed 1s ease-in-out;
         }
 
         @keyframes flashGreen {
             0% { background: rgba(255, 255, 255, 0.2); }
-            25% { background: var(--success-color); transform: scale(1.1); }
+            25% { background: var(--success-color); transform: scale(1.05); }
             50% { background: rgba(255, 255, 255, 0.2); }
-            75% { background: var(--success-color); transform: scale(1.1); }
+            75% { background: var(--success-color); transform: scale(1.05); }
+            100% { background: rgba(255, 255, 255, 0.2); transform: scale(1); }
+        }
+
+        @keyframes flashRed {
+            0% { background: rgba(255, 255, 255, 0.2); }
+            25% { background: var(--danger-color); transform: scale(1.05); }
+            50% { background: rgba(255, 255, 255, 0.2); }
+            75% { background: var(--danger-color); transform: scale(1.05); }
             100% { background: rgba(255, 255, 255, 0.2); transform: scale(1); }
         }
 
@@ -1716,7 +1728,7 @@
                 <!-- عدد المتصلين في الشريط العلوي - تم تعديل موقعه ليصبح تحت زر تسجيل الدخول -->
                 <div class="header-online-users" id="header-online-users">
                     <i class="fas fa-users"></i>
-                    <span id="header-users-count">130</span> متصل الآن
+                    <span id="header-users-count">300</span> متصل الآن
                 </div>
             </div>
         </div>
@@ -1868,7 +1880,7 @@
             <!-- تم إخفاء عدد المتصلين من الفوتر -->
             <div class="online-users" id="online-users" style="display: none;">
                 <i class="fas fa-users"></i>
-                <span id="users-count">130</span> موجد الآن
+                <span id="users-count">300</span> موجد الآن
             </div>
         </div>
     </footer>
@@ -1905,13 +1917,7 @@
         let userInterests = JSON.parse(localStorage.getItem('userInterests')) || {};
         let showFavoritesOnly = false;
         let isCommentsOpen = false;
-        let onlineUsersCount = 0;
-        let currentCategoryFilter = '';
         
-        // القيمة الافتراضية للمستخدمين المتصلين - تم التعديل إلى 130
-        const DEFAULT_ONLINE_USERS = 130;
-        let onlineUsersUpdateInterval = null;
-
         // متغيرات نظام تتبع المستخدمين المتصلين
         let currentUserId = null;
         let onlineUsersRef = null;
@@ -1933,6 +1939,19 @@
         let adInterval = null;
         let currentAnimation = null;
 
+        // ==========================================
+        // 🔄 نظام العداد العشوائي للمتصلين والمشاهدات
+        // ==========================================
+        
+        // متغيرات عداد المتصلين العشوائي
+        let onlineUsersCount = 0;
+        let onlineUsersInterval = null;
+        let onlineUsersDirection = 1; // 1 للزيادة, -1 للنقصان
+        let consecutiveChanges = 0;
+        
+        // متغيرات عداد المشاهدات التلقائي
+        let autoViewInterval = null;
+        
         // ==========================================
         // 🔧 نظام تتبع الإجراءات المحسّن - الإصلاحات الجديدة
         // ==========================================
@@ -1981,22 +2000,25 @@
             // 1. تهيئة معرف المستخدم المستقر أولاً
             initializeStableUserId();
             
-            // 2. تعيين القيمة الافتراضية للمستخدمين المتصلين
-            updateOnlineUsersCount(0);
+            // 2. بدء نظام العداد العشوائي للمتصلين
+            startRandomOnlineUsers();
             
-            // 3. تهيئة نظام تتبع المستخدمين المتصلين
+            // 3. بدء نظام زيادة المشاهدات التلقائي
+            startAutoViewIncrement();
+            
+            // 4. تهيئة نظام تتبع المستخدمين المتصلين
             initializeUserPresence();
             
-            // 4. تهيئة التعرف الصوتي
+            // 5. تهيئة التعرف الصوتي
             initializeSpeechRecognition();
             
-            // 5. تهيئة التطبيق
+            // 6. تهيئة التطبيق
             initializeApp();
             
-            // 6. إعداد مستمعي الأحداث
+            // 7. إعداد مستمعي الأحداث
             setupEventListeners();
             
-            // 7. تحميل البيانات
+            // 8. تحميل البيانات
             loadAllData().then(() => {
                 checkUrlForProduct();
                 displayPersonalizedProducts();
@@ -2005,15 +2027,113 @@
                 console.error('❌ خطأ في تحميل البيانات:', error);
             });
             
-            // 8. بدء تحديث المنتجات الجديدة تلقائياً
+            // 9. بدء تحديث المنتجات الجديدة تلقائياً
             startAutoUpdate();
-            
-            // 9. بدء التحديث المتكرر للمستخدمين المتصلين
-            startOnlineUsersUpdate();
             
             // 10. تحميل وعرض الإعلانات النصية
             loadAdvertisementTexts();
         });
+
+        // ==========================================
+        // 🔄 نظام العداد العشوائي للمتصلين
+        // ==========================================
+        function startRandomOnlineUsers() {
+            // تحميل القيمة المحفوظة أو البدء بقيمة عشوائية بين 200 و 800
+            const savedCount = localStorage.getItem('randomOnlineUsersCount');
+            onlineUsersCount = savedCount ? parseInt(savedCount) : getRandomInt(200, 800);
+            
+            // تحديث العداد في الواجهة
+            updateOnlineUsersCount(onlineUsersCount);
+            
+            // بدء التحديث كل 5 ثواني
+            onlineUsersInterval = setInterval(() => {
+                updateRandomOnlineUsers();
+            }, 5000);
+        }
+
+        function updateRandomOnlineUsers() {
+            const oldCount = onlineUsersCount;
+            
+            // تحديد إذا كان سنزيد أو ننقص (5-7 مرات زيادة ثم نقصان)
+            if (consecutiveChanges >= getRandomInt(5, 7)) {
+                onlineUsersDirection = -1;
+                consecutiveChanges = 0;
+            } else if (consecutiveChanges <= -getRandomInt(3, 5)) {
+                onlineUsersDirection = 1;
+                consecutiveChanges = 0;
+            }
+            
+            // تحديد مقدار التغيير (1-8)
+            const changeAmount = getRandomInt(1, 8) * onlineUsersDirection;
+            
+            // حساب القيمة الجديدة مع التأكد من بقائها بين 200 و 800
+            let newCount = onlineUsersCount + changeAmount;
+            newCount = Math.max(200, Math.min(800, newCount));
+            
+            // تحديث العداد
+            onlineUsersCount = newCount;
+            consecutiveChanges += onlineUsersDirection;
+            
+            // حفظ القيمة الجديدة في localStorage
+            localStorage.setItem('randomOnlineUsersCount', onlineUsersCount.toString());
+            
+            // تحديث الواجهة مع تأثير الوميض
+            updateOnlineUsersCount(onlineUsersCount, oldCount);
+        }
+
+        function updateOnlineUsersCount(newCount, oldCount = null) {
+            const onlineUsersEl = document.getElementById('header-online-users');
+            
+            // إضافة تأثير الوميض بناءً على التغيير
+            if (oldCount !== null) {
+                if (newCount > oldCount) {
+                    onlineUsersEl.classList.add('increase');
+                    setTimeout(() => onlineUsersEl.classList.remove('increase'), 1000);
+                } else if (newCount < oldCount) {
+                    onlineUsersEl.classList.add('decrease');
+                    setTimeout(() => onlineUsersEl.classList.remove('decrease'), 1000);
+                }
+            }
+            
+            // تحديث النص
+            usersCountEl.textContent = newCount;
+            headerUsersCountEl.textContent = newCount;
+        }
+
+        // ==========================================
+        // 🔄 نظام زيادة المشاهدات التلقائي
+        // ==========================================
+        function startAutoViewIncrement() {
+            // بدء التحديث كل 10 ثواني
+            autoViewInterval = setInterval(() => {
+                incrementRandomProductViews();
+            }, 10000);
+        }
+
+        function incrementRandomProductViews() {
+            if (allProducts.length === 0) return;
+            
+            // اختيار منتج عشوائي
+            const randomIndex = getRandomInt(0, allProducts.length - 1);
+            const product = allProducts[randomIndex];
+            
+            if (!product || !product.id) return;
+            
+            // زيادة عداد المشاهدات بمقدار 2
+            const productId = product.id;
+            const viewStatEl = document.getElementById(`view-stat-${productId}`);
+            
+            if (viewStatEl) {
+                const currentViews = parseInt(viewStatEl.textContent) || 150;
+                const newViews = currentViews + 2;
+                viewStatEl.textContent = newViews;
+                
+                // تحديث في Firebase
+                db.ref(`products_stats/${productId}/views`).transaction(current => (current || 0) + 2);
+                
+                console.log(`🔄 تم زيادة مشاهدات المنتج ${productId} إلى ${newViews}`);
+            }
+        }
 
         // ==========================================
         // 🔧 نظام معرف المستخدم المستقر - الإصلاح الجديد
@@ -2079,110 +2199,6 @@
                         exitTime: exitTime,
                         duration: Math.floor((new Date(exitTime) - new Date(userVisitData.entryTime)) / 1000) // المدة بالثواني
                     });
-                }
-            });
-            
-            // مراقبة التغييرات في قائمة المستخدمين المتصلين
-            onlineUsersRef.on('value', function(snapshot) {
-                const users = snapshot.val();
-                const userCount = users ? Object.keys(users).length : 0;
-                
-                console.log('👥 عدد المستخدمين المتصلين:', userCount);
-                
-                // التحقق من وجود مستخدم جديد
-                const previousCount = onlineUsersCount;
-                const isNewUser = userCount > previousCount;
-                
-                // تحديث العداد في الواجهة مع إضافة القيمة الافتراضية
-                updateOnlineUsersCount(userCount);
-                
-                // إضافة تأثير الوميض إذا كان هناك مستخدم جديد
-                if (isNewUser && previousCount > 0) {
-                    flashOnlineUsersCounter();
-                }
-                
-                // تنظيف المستخدمين غير النشطين (أكثر من 5 دقائق)
-                cleanupInactiveUsers(users);
-            });
-        }
-
-        // ==========================================
-        // ✨ تأثير الوميض عند دخول مستخدم جديد
-        // ==========================================
-        function flashOnlineUsersCounter() {
-            const onlineUsersEl = document.getElementById('header-online-users');
-            onlineUsersEl.classList.add('new-user');
-            
-            // إزالة الفئة بعد انتهاء التأثير
-            setTimeout(() => {
-                onlineUsersEl.classList.remove('new-user');
-            }, 1500);
-        }
-
-        function updateOnlineUsersCount(count) {
-            onlineUsersCount = count;
-            
-            // حساب المجموع الكلي (القيمة الافتراضية + المستخدمين المتصلين فعلياً)
-            const totalUsers = DEFAULT_ONLINE_USERS + count;
-            
-            usersCountEl.textContent = totalUsers;
-            headerUsersCountEl.textContent = totalUsers;
-        }
-
-        // ==========================================
-        // 🔄 نظام التحديث المتكرر للمستخدمين المتصلين
-        // ==========================================
-        function startOnlineUsersUpdate() {
-            // تحديث عدد المستخدمين المتصلين كل 10 ثواني
-            onlineUsersUpdateInterval = setInterval(() => {
-                forceOnlineUsersUpdate();
-            }, 10000); // 10 ثواني
-        }
-
-        function forceOnlineUsersUpdate() {
-            // تحديث وقت المستخدم الحالي للتأكد من أنه لا يزال متصلاً
-            if (userPresenceRef) {
-                userPresenceRef.update({
-                    lastOnline: firebase.database.ServerValue.TIMESTAMP
-                }).then(() => {
-                    console.log('🔄 تم تحديث حالة المستخدم:', currentUserId);
-                }).catch(error => {
-                    console.error('❌ خطأ في تحديث حالة المستخدم:', error);
-                });
-            }
-            
-            // إعادة تحميل عدد المستخدمين المتصلين
-            if (onlineUsersRef) {
-                onlineUsersRef.once('value').then(snapshot => {
-                    const users = snapshot.val();
-                    const userCount = users ? Object.keys(users).length : 0;
-                    
-                    console.log('🔄 التحديث المتكرر - عدد المستخدمين المتصلين:', userCount);
-                    
-                    // تحديث العداد في الواجهة مع إضافة القيمة الافتراضية
-                    updateOnlineUsersCount(userCount);
-                    
-                    // تنظيف المستخدمين غير النشطين
-                    cleanupInactiveUsers(users);
-                }).catch(error => {
-                    console.error('❌ خطأ في التحديث المتكرر للمستخدمين:', error);
-                });
-            }
-        }
-
-        function cleanupInactiveUsers(users) {
-            if (!users) return;
-            
-            const now = Date.now();
-            const FIVE_MINUTES = 5 * 60 * 1000; // 5 دقائق
-            
-            Object.keys(users).forEach(userId => {
-                const user = users[userId];
-                if (user.lastOnline && (now - user.lastOnline) > FIVE_MINUTES) {
-                    // حذف المستخدم غير النشط
-                    db.ref('online_users/' + userId).remove()
-                        .then(() => console.log('🧹 تم تنظيف مستخدم غير نشط:', userId))
-                        .catch(err => console.error('خطأ في تنظيف المستخدم:', err));
                 }
             });
         }
@@ -4024,6 +4040,13 @@
             });
         }
 
+        // ==========================================
+        // 🎲 دوال مساعدة للأرقام العشوائية
+        // ==========================================
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
         // اتصال الشبكة
         window.addEventListener('online', () => { 
             console.log('الاتصال متوفر - تحديث البيانات'); 
@@ -4038,6 +4061,12 @@
         window.addEventListener('beforeunload', () => {
             if (adInterval) {
                 clearInterval(adInterval);
+            }
+            if (onlineUsersInterval) {
+                clearInterval(onlineUsersInterval);
+            }
+            if (autoViewInterval) {
+                clearInterval(autoViewInterval);
             }
         });
     </script>
