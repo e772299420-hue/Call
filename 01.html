@@ -536,75 +536,80 @@
             background: rgba(0, 0, 0, 0.9);
         }
 
-        /* عرض المنتجات الموسع */
-        .products-fullview {
+        /* عرض المنتجات المعدل */
+        .products-container-expanded {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
             padding: 1rem;
+            max-width: 100%;
+            margin: 0 auto;
         }
 
-        .product-full-item {
-            position: relative;
-            width: 100%;
-            margin-bottom: 1rem;
+        .product-card-simple {
+            background: white;
             border-radius: var(--border-radius);
             overflow: hidden;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
             transition: var(--transition);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border: 2px solid #667eea;
         }
 
-        .product-full-item:hover {
+        .product-card-simple:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
         }
 
-        .product-full-image {
+        .product-image-simple {
             width: 100%;
-            height: 400px;
+            height: 250px;
             object-fit: cover;
             cursor: pointer;
         }
 
-        .product-full-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            color: white;
+        .product-info-simple {
             padding: 1.5rem;
-            transform: translateY(100%);
-            transition: var(--transition);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        .product-full-item:hover .product-full-info {
-            transform: translateY(0);
-        }
-
-        .product-full-name {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .product-full-price {
+        .product-name-simple {
             font-size: 1.3rem;
-            font-weight: 700;
+            font-weight: 600;
+            color: var(--dark-color);
             margin-bottom: 0.5rem;
         }
 
-        .product-full-details {
+        .product-actions-simple {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding-top: 1rem;
+            justify-content: space-between;
         }
 
-        .product-full-actions {
-            display: flex;
-            gap: 1rem;
-            padding-top: 1rem;
+        .product-status {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 500;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-available {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-unavailable {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
         }
 
         .no-products {
@@ -784,6 +789,10 @@
                 flex-direction: column;
                 padding: 4rem 2rem 0;
             }
+            
+            .products-container-expanded {
+                grid-template-columns: 1fr;
+            }
 
             .control-buttons {
                 top: 65px;
@@ -798,6 +807,18 @@
             .save-button {
                 padding: 8px 12px;
                 font-size: 0.9rem;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .products-container-expanded {
+                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .products-container-expanded {
+                grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
             }
         }
 
@@ -1115,7 +1136,7 @@
                         <input type="text" id="search-products" placeholder="ابحث عن صنف...">
                     </div>
 
-                    <div id="products-container" class="products-fullview">
+                    <div id="products-container" class="products-container-expanded">
                         <div class="no-products">
                             <i class="fas fa-spinner fa-spin"></i>
                             <p>جاري تحميل الأصناف...</p>
@@ -1156,6 +1177,9 @@
             </button>
             <button class="editor-tool-btn" id="reset-image">
                 <i class="fas fa-sync"></i> إعادة تعيين
+            </button>
+            <button class="editor-tool-btn" id="save-edited-image">
+                <i class="fas fa-check"></i> حفظ التعديلات
             </button>
         </div>
     </div>
@@ -1227,6 +1251,7 @@
         let currentModalIndex = 0;
         let currentEditingImageIndex = -1;
         let currentRotation = 0;
+        let originalImageData = null; // لتخزين الصورة الأصلية
 
         // ===== نظام الجلوبالات المحسن =====
         const globalUser = {
@@ -1634,6 +1659,7 @@
         function openImageEditor(index, imageData) {
             currentEditingImageIndex = index;
             currentRotation = 0;
+            originalImageData = imageData; // حفظ الصورة الأصلية
             
             const editor = document.getElementById('image-editor');
             const canvas = document.getElementById('editor-canvas');
@@ -1692,7 +1718,7 @@
             ctx.restore();
         }
 
-        // حفظ الصورة المعدلة تلقائياً عند إغلاق المحرر
+        // حفظ الصورة المعدلة
         function saveEditedImage() {
             if (currentEditingImageIndex === -1) return;
             
@@ -1713,6 +1739,8 @@
                 img.src = dataURL;
             }
             
+            // إغلاق المحرر
+            document.getElementById('image-editor').style.display = 'none';
             showToast('تم حفظ التعديلات على الصورة', 'success');
         }
 
@@ -1790,7 +1818,7 @@
             }
         }
 
-        // تحميل المنتجات الخاصة بالمستخدم الحالي فقط مع الترتيب حسب التاريخ
+        // تحميل المنتجات الخاصة بالمستخدم الحالي فقط مع الترتيب حسب التاريخ (الأحدث أولاً)
         async function loadProducts() {
             try {
                 showGlobalLoading(true);
@@ -1819,7 +1847,7 @@
                 allProducts.sort((a, b) => {
                     const dateA = a.createdAt || a.date || 0;
                     const dateB = b.createdAt || b.date || 0;
-                    return dateB - dateA;
+                    return dateB - dateA; // الأحدث أولاً
                 });
                 
                 displayProducts(allProducts);
@@ -1836,41 +1864,7 @@
             return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
         }
 
-        // دالة محسنة لعرض التاريخ تأخذ بعين الاعتبار جميع الحالات
-        function formatDate(timestamp) {
-            if (!timestamp) return 'غير محدد';
-            
-            try {
-                const date = new Date(timestamp);
-                if (isNaN(date.getTime())) {
-                    return 'غير محدد';
-                }
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const year = date.getFullYear();
-                
-                return `${year}-${month}-${day}`;
-            } catch (error) {
-                console.error('خطأ في تنسيق التاريخ:', error);
-                return 'غير محدد';
-            }
-        }
-
-        // دالة مساعدة للحصول على التاريخ من المنتج بأفضل طريقة ممكنة
-        function getProductDate(product) {
-            // الأولوية للتاريخ المخصص (date)
-            if (product.date) {
-                return product.date;
-            }
-            // ثم التاريخ من createdAt
-            if (product.createdAt) {
-                return formatDate(product.createdAt);
-            }
-            // إذا لم يكن هناك أي تاريخ
-            return 'غير محدد';
-        }
-
-        // عرض المنتجات - باستخدام العرض الموسع الكامل
+        // عرض المنتجات - باستخدام العرض المبسط
         function displayProducts(products) {
             const container = document.getElementById('products-container');
             
@@ -1892,33 +1886,26 @@
             container.innerHTML = '';
             
             products.forEach(product => {
-                const item = document.createElement('div');
-                item.className = 'product-full-item';
+                const card = document.createElement('div');
+                card.className = 'product-card-simple';
                 
                 const hasImages = product.imageUrls && product.imageUrls.length > 0;
-                const productDate = getProductDate(product);
                 
-                item.innerHTML = `
-                    ${hasImages ? 
-                        `<img src="${getCorsImageUrl(product.imageUrls[0])}" class="product-full-image" alt="${product.name}">` : 
-                        `<div class="product-full-image" style="background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b;">
-                            <i class="fas fa-image" style="font-size: 3rem;"></i>
-                        </div>`
-                    }
-                    <div class="product-full-info">
-                        <h3 class="product-full-name">${product.name}</h3>
-                        <div class="product-full-price">${product.price} ${product.currency || 'د.ع'}</div>
-                        <div class="product-full-details">
-                            <span class="product-category">${getCategoryName(product.category) || 'غير مصنف'}</span>
-                            <span class="product-availability ${product.availability}">
-                                ${product.availability === 'available' ? 'متوفر' : 'غير متوفر'}
-                            </span>
-                            <span class="product-date">
-                                <i class="fas fa-calendar"></i>
-                                ${productDate}
-                            </span>
-                        </div>
-                        <div class="product-full-actions">
+                card.innerHTML = `
+                    <div class="product-image-container">
+                        ${hasImages ? 
+                            `<img src="${getCorsImageUrl(product.imageUrls[0])}" class="product-image-simple" alt="${product.name}">` : 
+                            `<div style="height: 250px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                                <i class="fas fa-image" style="font-size: 3rem;"></i>
+                            </div>`
+                        }
+                    </div>
+                    <div class="product-info-simple">
+                        <h3 class="product-name-simple">${product.name}</h3>
+                        <span class="product-status ${product.availability === 'available' ? 'status-available' : 'status-unavailable'}">
+                            ${product.availability === 'available' ? 'متوفر' : 'غير متوفر'}
+                        </span>
+                        <div class="product-actions-simple">
                             <button class="btn-secondary edit-btn" data-id="${product.id}">
                                 <i class="fas fa-edit"></i> تعديل
                             </button>
@@ -1931,21 +1918,21 @@
                 
                 // إضافة حدث النقر على الصورة لعرضها مكبرة
                 if (hasImages) {
-                    const imageElement = item.querySelector('.product-full-image');
+                    const imageElement = card.querySelector('.product-image-simple');
                     imageElement.addEventListener('click', () => {
                         showImageModal(product.imageUrls, 0);
                     });
                 }
                 
-                container.appendChild(item);
+                container.appendChild(card);
                 
-                const editBtn = item.querySelector('.edit-btn');
+                const editBtn = card.querySelector('.edit-btn');
                 editBtn.addEventListener('click', function() {
                     const productId = this.dataset.id;
                     editProduct(productId);
                 });
                 
-                const deleteBtn = item.querySelector('.delete-btn');
+                const deleteBtn = card.querySelector('.delete-btn');
                 deleteBtn.addEventListener('click', function() {
                     const productId = this.dataset.id;
                     confirmDeleteProduct(productId);
@@ -2290,8 +2277,9 @@
             
             // أحداث محرر الصور
             document.getElementById('editor-close').addEventListener('click', function() {
-                saveEditedImage(); // حفظ الصورة المعدلة تلقائياً عند الإغلاق
+                // إغلاق المحرر دون حفظ التعديلات
                 document.getElementById('image-editor').style.display = 'none';
+                showToast('تم إغلاق المحرر دون حفظ التعديلات', 'info');
             });
             
             document.getElementById('rotate-left').addEventListener('click', function() {
@@ -2302,25 +2290,29 @@
                 rotateImage(90);
             });
             
+            document.getElementById('save-edited-image').addEventListener('click', saveEditedImage);
+            
             document.getElementById('reset-image').addEventListener('click', function() {
                 // إعادة تحميل الصورة الأصلية
-                if (currentEditingImageIndex !== -1) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const canvas = document.getElementById('editor-canvas');
-                        const ctx = canvas.getContext('2d');
-                        const img = new Image();
+                if (currentEditingImageIndex !== -1 && originalImageData) {
+                    const canvas = document.getElementById('editor-canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    img.onload = function() {
+                        // تعيين حجم الكانفاس بناءً على حجم الصورة
+                        const maxWidth = Math.min(800, img.width);
+                        const maxHeight = Math.min(600, img.height);
                         
-                        img.onload = function() {
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            currentRotation = 0;
-                        };
+                        canvas.width = maxWidth;
+                        canvas.height = maxHeight;
                         
-                        img.src = e.target.result;
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, maxWidth, maxHeight);
+                        currentRotation = 0;
                     };
                     
-                    reader.readAsDataURL(selectedImages[currentEditingImageIndex]);
+                    img.src = originalImageData;
                 }
             });
             
