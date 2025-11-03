@@ -456,86 +456,6 @@
             transform: scale(1.05);
         }
 
-        /* حاوية تحرير الصور */
-        .image-editor-container {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 10003;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .editor-tools {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .editor-tool-btn {
-            background: var(--info-color);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .editor-tool-btn:hover {
-            background: #2563eb;
-            transform: translateY(-2px);
-        }
-
-        .editor-canvas-container {
-            position: relative;
-            max-width: 90%;
-            max-height: 70vh;
-            background: white;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-        }
-
-        .editor-canvas {
-            max-width: 100%;
-            max-height: 100%;
-            display: block;
-        }
-
-        .editor-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-            z-index: 10;
-        }
-
-        .editor-close:hover {
-            background: rgba(0, 0, 0, 0.9);
-        }
-
         /* عرض المنتجات المعدل */
         .products-container-expanded {
             display: grid;
@@ -1160,30 +1080,6 @@
         </div>
     </div>
 
-    <!-- محرر الصور -->
-    <div class="image-editor-container" id="image-editor">
-        <button class="editor-close" id="editor-close">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="editor-canvas-container">
-            <canvas id="editor-canvas"></canvas>
-        </div>
-        <div class="editor-tools">
-            <button class="editor-tool-btn" id="rotate-left">
-                <i class="fas fa-undo"></i> تدوير لليسار
-            </button>
-            <button class="editor-tool-btn" id="rotate-right">
-                <i class="fas fa-redo"></i> تدوير لليمين
-            </button>
-            <button class="editor-tool-btn" id="reset-image">
-                <i class="fas fa-sync"></i> إعادة تعيين
-            </button>
-            <button class="editor-tool-btn" id="save-edited-image">
-                <i class="fas fa-check"></i> حفظ التعديلات
-            </button>
-        </div>
-    </div>
-
     <!-- إشعار الرفع -->
     <div class="upload-notification" id="upload-notification">
         <i class="fas fa-cloud-upload-alt"></i>
@@ -1249,9 +1145,6 @@
         let productToDelete = null;
         let currentModalImages = [];
         let currentModalIndex = 0;
-        let currentEditingImageIndex = -1;
-        let currentRotation = 0;
-        let originalImageData = null; // لتخزين الصورة الأصلية
 
         // ===== نظام الجلوبالات المحسن =====
         const globalUser = {
@@ -1407,10 +1300,11 @@
             return todayFormatted;
         }
 
-        // ضغط الصور مع الإعدادات المتوازنة
+        // ضغط الصور مع دقة منخفضة لتحسين السرعة
         function compressImage(file) {
             return new Promise((resolve) => {
-                if (file.size < 1024 * 1024) {
+                // إذا كانت الصورة صغيرة، لا نحتاج لضغطها
+                if (file.size < 500 * 1024) { // أقل من 500KB
                     resolve(file);
                     return;
                 }
@@ -1423,7 +1317,8 @@
                         let width = img.width;
                         let height = img.height;
                         
-                        const maxWidth = 1000;
+                        // تقليل الحجم إلى 800px كحد أقصى للعرض مع الحفاظ على التناسب
+                        const maxWidth = 800;
                         if (width > maxWidth) {
                             height = (height * maxWidth) / width;
                             width = maxWidth;
@@ -1435,12 +1330,13 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
+                        // استخدام جودة منخفضة لتحسين السرعة (0.7 بدلاً من 0.85)
                         canvas.toBlob((blob) => {
                             resolve(new File([blob], file.name, {
                                 type: 'image/jpeg',
                                 lastModified: Date.now()
                             }));
-                        }, 'image/jpeg', 0.85);
+                        }, 'image/jpeg', 0.7);
                     };
                     img.src = e.target.result;
                 };
@@ -1470,6 +1366,7 @@
                     progressFill.style.width = `${progressPercent}%`;
                     progressText.textContent = `جاري رفع الصورة ${i + 1} من ${totalFiles}: ${file.name}`;
                     
+                    // ضغط الصورة بسرعة وجودة مناسبة
                     const compressedFile = await compressImage(file);
                     
                     const base64Data = await fileToBase64(compressedFile);
@@ -1619,30 +1516,14 @@
                     img.className = 'uploaded-image';
                     img.src = e.target.result;
                     img.alt = file.name;
-                    img.title = 'انقر للتكبير أو التعديل';
+                    img.title = 'انقر للتكبير';
                     
                     // إضافة حدث النقر لعرض الصورة مكبرة
                     img.addEventListener('click', () => {
-                        openImageEditor(index, e.target.result);
-                    });
-                    
-                    // زر التعديل
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'btn-secondary';
-                    editBtn.style.position = 'absolute';
-                    editBtn.style.top = '5px';
-                    editBtn.style.right = '5px';
-                    editBtn.style.padding = '5px';
-                    editBtn.style.fontSize = '0.7rem';
-                    editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-                    editBtn.title = 'تعديل الصورة';
-                    editBtn.addEventListener('click', (event) => {
-                        event.stopPropagation();
-                        openImageEditor(index, e.target.result);
+                        showImageModal([e.target.result]);
                     });
                     
                     container.appendChild(img);
-                    container.appendChild(editBtn);
                     uploadedImagesElement.appendChild(container);
                     
                     // تخزين الصورة في المصفوفة
@@ -1653,109 +1534,6 @@
             
             // إظهار زر الحفظ إذا كانت هناك صور
             checkRequiredFields();
-        }
-
-        // فتح محرر الصور
-        function openImageEditor(index, imageData) {
-            currentEditingImageIndex = index;
-            currentRotation = 0;
-            originalImageData = imageData; // حفظ الصورة الأصلية
-            
-            const editor = document.getElementById('image-editor');
-            const canvas = document.getElementById('editor-canvas');
-            const ctx = canvas.getContext('2d');
-            
-            const img = new Image();
-            img.onload = function() {
-                // تعيين حجم الكانفاس بناءً على حجم الصورة
-                const maxWidth = Math.min(800, img.width);
-                const maxHeight = Math.min(600, img.height);
-                
-                canvas.width = maxWidth;
-                canvas.height = maxHeight;
-                
-                // رسم الصورة على الكانفاس
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, maxWidth, maxHeight);
-                
-                // إظهار المحرر
-                editor.style.display = 'flex';
-            };
-            img.src = imageData;
-        }
-
-        // تدوير الصورة
-        function rotateImage(degrees) {
-            const canvas = document.getElementById('editor-canvas');
-            const ctx = canvas.getContext('2d');
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            // حفظ الصورة الحالية
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            tempCtx.drawImage(canvas, 0, 0);
-            
-            // تدوير الكانفاس
-            currentRotation += degrees;
-            if (currentRotation >= 360) currentRotation = 0;
-            if (currentRotation < 0) currentRotation = 270;
-            
-            // إعادة تعيين حجم الكانفاس للدوران
-            if (currentRotation === 90 || currentRotation === 270) {
-                canvas.width = tempCanvas.height;
-                canvas.height = tempCanvas.width;
-            } else {
-                canvas.width = tempCanvas.width;
-                canvas.height = tempCanvas.height;
-            }
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate(currentRotation * Math.PI / 180);
-            ctx.drawImage(tempCanvas, -tempCanvas.width / 2, -tempCanvas.height / 2);
-            ctx.restore();
-        }
-
-        // حفظ الصورة المعدلة
-        function saveEditedImage() {
-            if (currentEditingImageIndex === -1) return;
-            
-            const canvas = document.getElementById('editor-canvas');
-            const dataURL = canvas.toDataURL('image/jpeg', 0.9);
-            
-            // تحويل DataURL إلى ملف
-            const blob = dataURLToBlob(dataURL);
-            const file = new File([blob], `edited_image_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            
-            // تحديث الصورة في المصفوفة
-            selectedImages[currentEditingImageIndex] = file;
-            
-            // تحديث العرض المصغر
-            const uploadedImages = document.getElementById('uploaded-images').children;
-            if (uploadedImages[currentEditingImageIndex]) {
-                const img = uploadedImages[currentEditingImageIndex].querySelector('img');
-                img.src = dataURL;
-            }
-            
-            // إغلاق المحرر
-            document.getElementById('image-editor').style.display = 'none';
-            showToast('تم حفظ التعديلات على الصورة', 'success');
-        }
-
-        // تحويل DataURL إلى Blob
-        function dataURLToBlob(dataURL) {
-            const parts = dataURL.split(';base64,');
-            const contentType = parts[0].split(':')[1];
-            const raw = window.atob(parts[1]);
-            const uInt8Array = new Uint8Array(raw.length);
-            
-            for (let i = 0; i < raw.length; ++i) {
-                uInt8Array[i] = raw.charCodeAt(i);
-            }
-            
-            return new Blob([uInt8Array], { type: contentType });
         }
 
         // التحقق من إدخال البيانات المطلوبة
@@ -2272,47 +2050,6 @@
             document.getElementById('image-modal').addEventListener('click', function(e) {
                 if (e.target === this) {
                     this.style.display = 'none';
-                }
-            });
-            
-            // أحداث محرر الصور
-            document.getElementById('editor-close').addEventListener('click', function() {
-                // إغلاق المحرر دون حفظ التعديلات أو رفع الصور
-                document.getElementById('image-editor').style.display = 'none';
-                // لا نقوم بعمل أي شيء آخر
-            });
-            
-            document.getElementById('rotate-left').addEventListener('click', function() {
-                rotateImage(-90);
-            });
-            
-            document.getElementById('rotate-right').addEventListener('click', function() {
-                rotateImage(90);
-            });
-            
-            document.getElementById('save-edited-image').addEventListener('click', saveEditedImage);
-            
-            document.getElementById('reset-image').addEventListener('click', function() {
-                // إعادة تحميل الصورة الأصلية
-                if (currentEditingImageIndex !== -1 && originalImageData) {
-                    const canvas = document.getElementById('editor-canvas');
-                    const ctx = canvas.getContext('2d');
-                    const img = new Image();
-                    
-                    img.onload = function() {
-                        // تعيين حجم الكانفاس بناءً على حجم الصورة
-                        const maxWidth = Math.min(800, img.width);
-                        const maxHeight = Math.min(600, img.height);
-                        
-                        canvas.width = maxWidth;
-                        canvas.height = maxHeight;
-                        
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0, maxWidth, maxHeight);
-                        currentRotation = 0;
-                    };
-                    
-                    img.src = originalImageData;
                 }
             });
             
