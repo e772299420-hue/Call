@@ -90,6 +90,13 @@
             font-size: 0.8rem;
             margin-right: 5px;
         }
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .action-buttons {
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -123,6 +130,7 @@
                                 <label for="unitName" class="form-label">اسم الوحدة</label>
                                 <input type="text" class="form-control" id="unitName" required>
                                 <div class="form-text text-danger hidden" id="duplicateError">اسم الوحدة موجود مسبقاً</div>
+                                <div class="form-text text-warning" id="duplicateWarning">يجب التأكد من عدم تكرار اسم الوحدة</div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">الحالة</label>
@@ -178,14 +186,11 @@
                     </div>
                 </div>
                 
-                <!-- قسم استيراد وتصدير البيانات -->
+                <!-- قسم استيراد البيانات فقط -->
                 <div class="export-section">
-                    <h5>استيراد وتصدير البيانات</h5>
+                    <h5>استيراد البيانات</h5>
                     <div class="row">
-                        <div class="col-md-6">
-                            <button class="btn btn-success" id="exportData">تصدير البيانات إلى ملف</button>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="input-group">
                                 <input type="file" class="form-control" id="importFile" accept=".json">
                                 <button class="btn btn-info" id="importData">استيراد البيانات</button>
@@ -222,7 +227,6 @@
         const unitsTable = document.getElementById('unitsTable');
         const loadingMessage = document.getElementById('loadingMessage');
         const searchInput = document.getElementById('searchInput');
-        const exportBtn = document.getElementById('exportData');
         const importBtn = document.getElementById('importData');
         const importFile = document.getElementById('importFile');
         
@@ -343,29 +347,15 @@
                     <td>
                         <span class="${isDuplicate ? 'duplicate-name' : ''}">${unit.name}</span>
                         ${productsCount > 0 ? `<span class="products-count">${productsCount} منتج</span>` : ''}
+                        ${isDuplicate ? '<span class="badge bg-danger">مكرر</span>' : ''}
                     </td>
                     <td><span class="${unit.status === 'active' ? 'status-active' : 'status-inactive'}">${unit.status === 'active' ? 'نشط' : 'موقف'}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-primary edit-btn" data-id="${unit.id}">تعديل</button>
-                        <button class="btn btn-sm btn-danger delete-btn" data-id="${unit.id}">حذف</button>
+                    <td class="action-buttons">
+                        <button class="btn btn-sm btn-primary edit-btn btn-disabled" data-id="${unit.id}" disabled>تعديل</button>
+                        <button class="btn btn-sm btn-danger delete-btn btn-disabled" data-id="${unit.id}" disabled>حذف</button>
                     </td>
                 `;
                 unitsTable.appendChild(row);
-            });
-            
-            // إضافة مستمعي الأحداث لأزرار التعديل والحذف
-            document.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const unitId = e.target.getAttribute('data-id');
-                    editUnit(unitId);
-                });
-            });
-            
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const unitId = e.target.getAttribute('data-id');
-                    deleteUnit(unitId);
-                });
             });
         }
         
@@ -384,6 +374,7 @@
             // التحقق من عدم تكرار اسم الوحدة
             if (isDuplicateUnitName(unitName, editingUnitId)) {
                 duplicateError.classList.remove('hidden');
+                alert('⚠️ لا يمكن حفظ الوحدة: اسم الوحدة مكرر! يرجى استخدام اسم مختلف.');
                 return;
             } else {
                 duplicateError.classList.add('hidden');
@@ -414,7 +405,7 @@
                 };
                 
                 database.ref(DB_PATH).push(newUnit).then(() => {
-                    alert('تم إضافة الوحدة بنجاح');
+                    alert('✅ تم إضافة الوحدة بنجاح');
                     resetForm();
                     loadUnits();
                 }).catch((error) => {
@@ -430,8 +421,10 @@
             const unitName = e.target.value.trim();
             if (unitName && isDuplicateUnitName(unitName, editingUnitId)) {
                 duplicateError.classList.remove('hidden');
+                unitNameInput.classList.add('is-invalid');
             } else {
                 duplicateError.classList.add('hidden');
+                unitNameInput.classList.remove('is-invalid');
             }
         });
         
@@ -455,8 +448,10 @@
                 // التحقق من التكرار عند التعديل
                 if (isDuplicateUnitName(unit.name, unitId)) {
                     duplicateError.classList.remove('hidden');
+                    unitNameInput.classList.add('is-invalid');
                 } else {
                     duplicateError.classList.add('hidden');
+                    unitNameInput.classList.remove('is-invalid');
                 }
                 
                 // التبديل إلى تبويب الإضافة
@@ -497,6 +492,7 @@
             saveBtn.textContent = 'حفظ الوحدة';
             cancelEditBtn.classList.add('hidden');
             duplicateError.classList.add('hidden');
+            unitNameInput.classList.remove('is-invalid');
             document.getElementById('active').checked = true;
             showSaveLoading(false);
         }
@@ -509,28 +505,6 @@
                 unit.unitId.toString().includes(searchTerm)
             );
             renderUnits(filteredUnits);
-        });
-        
-        // دالة لتصدير البيانات إلى ملف JSON
-        exportBtn.addEventListener('click', () => {
-            if (units.length === 0) {
-                alert('لا توجد بيانات للتصدير');
-                return;
-            }
-            
-            const dataStr = JSON.stringify(units, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            
-            const url = URL.createObjectURL(dataBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'whda_units_data.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            alert('تم تصدير البيانات بنجاح');
         });
         
         // دالة لاستيراد البيانات من ملف JSON إلى Firebase
@@ -560,6 +534,19 @@
                         throw new Error('هيكل البيانات في الملف غير صحيح');
                     }
                     
+                    // التحقق من التكرار قبل الاستيراد
+                    const duplicateNames = [];
+                    importedData.forEach(unit => {
+                        if (isDuplicateUnitName(unit.name)) {
+                            duplicateNames.push(unit.name);
+                        }
+                    });
+                    
+                    if (duplicateNames.length > 0) {
+                        alert('⚠️ لا يمكن استيراد البيانات بسبب وجود أسماء وحدات مكررة: ' + duplicateNames.join(', '));
+                        return;
+                    }
+                    
                     if (confirm('هل تريد استيراد البيانات إلى قاعدة البيانات؟ سيتم إضافة البيانات الجديدة إلى البيانات الحالية.')) {
                         showSaveLoading(true);
                         
@@ -571,7 +558,7 @@
                         });
                         
                         Promise.all(importPromises).then(() => {
-                            alert('تم استيراد البيانات بنجاح');
+                            alert('✅ تم استيراد البيانات بنجاح');
                             loadUnits();
                             importFile.value = ''; // مسح حقل الملف
                         }).catch((error) => {
