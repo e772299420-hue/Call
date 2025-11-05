@@ -102,6 +102,11 @@
             align-items: center;
         }
         
+        .shared-category {
+            background-color: #e3f2fd;
+            border-color: #bbdefb;
+        }
+        
         .category-info {
             flex-grow: 1;
         }
@@ -230,18 +235,35 @@
         .form-group.hidden {
             display: none;
         }
+        
+        .category-id-display {
+            background-color: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            font-family: monospace;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .info-message {
+            background-color: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- تم إخفاء معلومات التاجر -->
         <div class="merchant-info hidden">
             <h3 style="margin: 0 0 10px 0; color: #2e7d32;">معلومات التاجر</h3>
             <div id="merchant-details">
                 <p>جارٍ تحميل معلومات التاجر...</p>
             </div>
             
-            <!-- تم إخفاء بيانات الجلوبالات -->
             <div id="global-data-display" class="global-data-info hidden">
                 <div class="global-data-title">بيانات الجلوبالات:</div>
                 <div id="global-data-content"></div>
@@ -254,6 +276,10 @@
         </div>
         
         <div id="main-content">
+            <div class="info-message">
+                <strong>ملاحظة هامة:</strong> هذا الإصدار يحافظ على جميع الفئات والبيانات السابقة ولا يؤثر على الوجبات والوحدات المرتبطة.
+            </div>
+            
             <div class="tabs">
                 <div class="tab active" data-tab="categories">إدارة الفئات</div>
                 <div class="tab" data-tab="view">عرض الفئات</div>
@@ -263,16 +289,16 @@
                 <h2>إدارة الفئات</h2>
                 
                 <form id="category-form">
-                    <!-- تم إخفاء معرف التاجر -->
                     <div class="form-group hidden">
                         <label for="merchant-id">معرف التاجر</label>
                         <input type="text" id="merchant-id" readonly>
                     </div>
                     
-                    <!-- تم إخفاء معرف الفئة -->
-                    <div class="form-group hidden">
-                        <label for="category-id">رقم الفئة</label>
-                        <input type="number" id="category-id" readonly>
+                    <div class="form-group">
+                        <label>معرف الفئة</label>
+                        <div id="new-category-id" class="category-id-display">
+                            سيتم إنشاء معرف تلقائيًا
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -306,6 +332,8 @@
                         <tr>
                             <th>اسم الفئة</th>
                             <th>الحالة</th>
+                            <th>معرف الفئة</th>
+                            <th>النوع</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
@@ -320,27 +348,22 @@
     <script>
         // ===== نظام تخزين بيانات التاجر في الجلوبال =====
         const merchantGlobal = {
-            // الحصول على اسم التاجر من sessionStorage
             getMerchantName: function() {
                 return sessionStorage.getItem('merchantName') || '';
             },
             
-            // الحصول على رقم الجوال/الواتساب من sessionStorage
             getMerchantPhone: function() {
                 return sessionStorage.getItem('merchantPhone') || '';
             },
             
-            // الحصول على معرف التاجر من sessionStorage
             getMerchantId: function() {
                 return sessionStorage.getItem('merchantId') || '';
             },
             
-            // التحقق من وجود بيانات التاجر
             hasMerchantData: function() {
                 return this.getMerchantName() !== '' && this.getMerchantId() !== '';
             },
             
-            // إفراغ جميع بيانات التاجر
             clearAll: function() {
                 sessionStorage.removeItem('merchantName');
                 sessionStorage.removeItem('merchantPhone');
@@ -348,7 +371,6 @@
                 console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
             },
             
-            // دالة جديدة: الحصول على جميع بيانات التاجر ككائن
             getAllMerchantData: function() {
                 return {
                     name: this.getMerchantName(),
@@ -363,7 +385,6 @@
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
         };
         
-        // تهيئة Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
@@ -413,7 +434,6 @@
                 console.log('🚪 تم تسجيل الخروج');
             },
             
-            // دالة جديدة لمسح البيانات  
             clearUserData: function() {  
                 this.data = null;  
                 localStorage.removeItem('globalUserData');  
@@ -426,7 +446,7 @@
         const tabContents = document.querySelectorAll('.tab-content');
         const categoryForm = document.getElementById('category-form');
         const merchantIdInput = document.getElementById('merchant-id');
-        const categoryIdInput = document.getElementById('category-id');
+        const newCategoryIdDisplay = document.getElementById('new-category-id');
         const categoryNameInput = document.getElementById('category-name');
         const categoryStatusSelect = document.getElementById('category-status');
         const categoriesList = document.getElementById('categories-list');
@@ -440,14 +460,12 @@
         const globalDataContent = document.getElementById('global-data-content');
         
         // متغيرات التطبيق
-        let nextCategoryId = 1;
         let isEditing = false;
         let currentEditId = null;
         let currentMerchant = null;
         
         // ===== دوال عرض بيانات الجلوبالات =====
         
-        // عرض بيانات الجلوبالات
         function displayGlobalData() {
             const globalData = merchantGlobal.getAllMerchantData();
             
@@ -468,7 +486,6 @@
             }
         }
         
-        // التحقق من صحة بيانات التاجر من الجلوبالات
         function validateGlobalMerchantData() {
             if (!merchantGlobal.hasMerchantData()) {
                 console.warn('❌ بيانات التاجر غير موجودة في الجلوبالات');
@@ -480,7 +497,6 @@
             return true;
         }
         
-        // دالة لاستخدام بيانات الجلوبالات كبديل إذا لم تكن هناك بيانات من globalUser
         function loadMerchantFromGlobal() {
             if (merchantGlobal.hasMerchantData()) {
                 const globalData = merchantGlobal.getAllMerchantData();
@@ -497,12 +513,10 @@
             return null;
         }
         
-        // تحميل بيانات التاجر من globalUser أو الجلوبالات
         function loadMerchantData() {
             const userData = globalUser.getUserData();
             const globalMerchantData = loadMerchantFromGlobal();
             
-            // إعطاء الأولوية لـ globalUser، ثم الجلوبالات
             if (userData && globalUser.isMerchant()) {
                 currentMerchant = userData;
                 console.log('👤 استخدام بيانات التاجر من globalUser');
@@ -510,30 +524,18 @@
                 currentMerchant = globalMerchantData;
                 console.log('🌐 استخدام بيانات التاجر من الجلوبالات');
             } else {
-                // إذا لم يكن المستخدم مسجل الدخول كتاجر ولا توجد بيانات في الجلوبالات
                 showLoginWarning();
                 return;
             }
             
-            // عرض معلومات التاجر بشكل مفصل
             displayMerchantInfo();
-            
-            // عرض بيانات الجلوبالات
             displayGlobalData();
-            
-            // تعبئة حقل معرف التاجر في النموذج
             merchantIdInput.value = currentMerchant.id;
-            
-            // إخفاء التحذير وإظهار المحتوى الرئيسي
             loginWarning.classList.add('hidden');
             mainContent.style.display = 'block';
-            
-            // تحميل الفئات بعد تحميل بيانات التاجر
             loadCategories();
-            updateCategoryId();
         }
         
-        // عرض معلومات التاجر
         function displayMerchantInfo() {
             merchantDetails.innerHTML = `
                 <div class="merchant-details-grid">
@@ -583,16 +585,6 @@
                     </div>
                     ` : ''}
                     
-                    ${currentMerchant.loginTime ? `
-                    <div class="merchant-detail-item">
-                        <i class="fas fa-clock"></i>
-                        <div>
-                            <div class="detail-label">آخر دخول</div>
-                            <div class="detail-value">${new Date(currentMerchant.loginTime).toLocaleString('ar-SA')}</div>
-                        </div>
-                    </div>
-                    ` : ''}
-                    
                     <div class="merchant-detail-item">
                         <i class="fas fa-database"></i>
                         <div>
@@ -604,16 +596,10 @@
             `;
         }
         
-        // عرض تحذير تسجيل الدخول
         function showLoginWarning() {
             merchantDetails.innerHTML = '<p>لم يتم تسجيل الدخول كتاجر</p>';
             loginWarning.classList.remove('hidden');
             mainContent.style.display = 'none';
-            
-            // التحقق من وجود بيانات في الجلوبالات وعرض رسالة مناسبة
-            if (merchantGlobal.hasMerchantData()) {
-                console.log('⚠️ يوجد بيانات في الجلوبالات ولكن لم يتم تحميلها تلقائياً');
-            }
         }
         
         // إدارة التبويبات
@@ -623,116 +609,134 @@
                 
                 const tabId = tab.getAttribute('data-tab');
                 
-                // إزالة النشاط من جميع التبويبات والمحتويات
                 tabs.forEach(t => t.classList.remove('active'));
                 tabContents.forEach(tc => tc.classList.remove('active'));
                 
-                // إضافة النشاط للتبويب والمحتوى المحدد
                 tab.classList.add('active');
                 document.getElementById(`${tabId}-tab`).classList.add('active');
                 
-                // إذا كان التبويب النشط هو "عرض الفئات"، قم بتحديث الجدول
                 if (tabId === 'view') {
                     loadCategoriesTable();
                 }
             });
         });
         
-        // توليد رقم فئة تلقائي يبدأ من 1
-        function generateNextCategoryId() {
-            return nextCategoryId;
+        // إنشاء معرف فريد مع بادئة التاجر لمنع التعارض
+        function generateCategoryId() {
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 1000);
+            return `merchant_${currentMerchant.id}_${timestamp}_${random}`;
         }
         
-        // تحديث رقم الفئة التلقائي
-        function updateCategoryId() {
+        function updateNewCategoryIdDisplay() {
             if (!isEditing) {
-                categoryIdInput.value = generateNextCategoryId();
+                const newId = generateCategoryId();
+                newCategoryIdDisplay.textContent = newId;
+                newCategoryIdDisplay.setAttribute('data-new-id', newId);
             }
         }
         
-        // تحميل الفئات من Firebase للتبويب الأول
+        // تحميل الفئات مع الحفاظ على البيانات القديمة
         function loadCategories() {
             if (!currentMerchant) return;
             
-            // جلب الفئات الخاصة بالتاجر الحالي فقط
-            database.ref('fah/categories').orderByChild('merchantId').equalTo(currentMerchant.id).on('value', (snapshot) => {
+            // جلب جميع الفئات مع دعم الفئات القديمة والجديدة
+            database.ref('fah/categories').on('value', (snapshot) => {
                 const categories = snapshot.val();
                 categoriesList.innerHTML = '';
                 
                 if (categories) {
-                    // تحديث nextCategoryId ليكون أكبر من أعلى ID موجود
-                    const ids = Object.keys(categories).map(id => parseInt(id));
-                    nextCategoryId = ids.length > 0 ? Math.max(...ids) + 1 : 1;
+                    let hasCategories = false;
                     
                     Object.keys(categories).forEach(key => {
                         const category = categories[key];
-                        const categoryElement = document.createElement('div');
-                        categoryElement.className = 'category-item';
-                        categoryElement.innerHTML = `
-                            <div class="category-info">
-                                <strong>${category.name}</strong> 
-                                - الحالة: <span class="status-${category.status === 'نشط' ? 'active' : 'inactive'}">${category.status}</span>
-                            </div>
-                            <div class="category-actions">
-                                <button class="edit-btn" data-id="${key}">تعديل</button>
-                            </div>
-                        `;
-                        categoriesList.appendChild(categoryElement);
+                        const isSharedCategory = !category.merchantId;
+                        const isCurrentMerchantCategory = category.merchantId === currentMerchant.id;
+                        
+                        // عرض الفئة إذا كانت مشتركة أو تابعة للتاجر الحالي
+                        if (isSharedCategory || isCurrentMerchantCategory) {
+                            hasCategories = true;
+                            
+                            const categoryElement = document.createElement('div');
+                            categoryElement.className = `category-item ${isSharedCategory ? 'shared-category' : ''}`;
+                            categoryElement.innerHTML = `
+                                <div class="category-info">
+                                    <strong>${category.name}</strong> 
+                                    - الحالة: <span class="status-${category.status === 'نشط' ? 'active' : 'inactive'}">${category.status}</span>
+                                    ${isSharedCategory ? '<br><span style="color: #1976d2;">🔗 فئة مشتركة</span>' : ''}
+                                    <br><small>المعرف: ${key}</small>
+                                </div>
+                                <div class="category-actions">
+                                    <button class="edit-btn" data-id="${key}">تعديل</button>
+                                </div>
+                            `;
+                            categoriesList.appendChild(categoryElement);
+                        }
                     });
                     
-                    // إضافة أحداث للتعديل فقط
+                    if (!hasCategories) {
+                        categoriesList.innerHTML = '<p>لا توجد فئات مضافة بعد.</p>';
+                    }
+                    
                     document.querySelectorAll('.edit-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             const categoryId = e.target.getAttribute('data-id');
                             editCategory(categoryId);
                         });
                     });
+                    
                 } else {
                     categoriesList.innerHTML = '<p>لا توجد فئات مضافة بعد.</p>';
-                    nextCategoryId = 1;
                 }
                 
-                // تحديث ID التالي في النموذج
-                updateCategoryId();
+                updateNewCategoryIdDisplay();
             });
         }
         
-        // تحميل الفئات في الجدول (للتبويب الثاني)
         function loadCategoriesTable() {
             if (!currentMerchant) return;
             
-            // جلب الفئات الخاصة بالتاجر الحالي فقط
-            database.ref('fah/categories').orderByChild('merchantId').equalTo(currentMerchant.id).once('value').then((snapshot) => {
+            database.ref('fah/categories').once('value').then((snapshot) => {
                 const categories = snapshot.val();
                 categoriesTable.innerHTML = '';
                 
                 if (categories) {
                     Object.keys(categories).forEach(key => {
                         const category = categories[key];
-                        const row = categoriesTable.insertRow();
+                        const isSharedCategory = !category.merchantId;
+                        const isCurrentMerchantCategory = category.merchantId === currentMerchant.id;
                         
-                        const cellName = row.insertCell(0);
-                        const cellStatus = row.insertCell(1);
-                        const cellActions = row.insertCell(2);
-                        
-                        cellName.textContent = category.name;
-                        cellStatus.innerHTML = `<span class="status-${category.status === 'نشط' ? 'active' : 'inactive'}">${category.status}</span>`;
-                        
-                        const editButton = document.createElement('button');
-                        editButton.textContent = 'تعديل';
-                        editButton.className = 'edit-btn';
-                        editButton.setAttribute('data-id', key);
-                        
-                        editButton.addEventListener('click', () => {
-                            editCategoryFromTable(key);
-                        });
-                        
-                        cellActions.appendChild(editButton);
+                        // عرض الفئات المشتركة وفئات التاجر الحالي فقط
+                        if (isSharedCategory || isCurrentMerchantCategory) {
+                            const row = categoriesTable.insertRow();
+                            
+                            const cellName = row.insertCell(0);
+                            const cellStatus = row.insertCell(1);
+                            const cellId = row.insertCell(2);
+                            const cellType = row.insertCell(3);
+                            const cellActions = row.insertCell(4);
+                            
+                            cellName.textContent = category.name;
+                            cellStatus.innerHTML = `<span class="status-${category.status === 'نشط' ? 'active' : 'inactive'}">${category.status}</span>`;
+                            cellId.textContent = key;
+                            cellType.textContent = isSharedCategory ? 'مشتركة' : 'خاصة';
+                            
+                            const editButton = document.createElement('button');
+                            editButton.textContent = 'تعديل';
+                            editButton.className = 'edit-btn';
+                            editButton.setAttribute('data-id', key);
+                            
+                            editButton.addEventListener('click', () => {
+                                editCategoryFromTable(key);
+                            });
+                            
+                            cellActions.appendChild(editButton);
+                        }
                     });
                 } else {
                     const row = categoriesTable.insertRow();
                     const cell = row.insertCell(0);
-                    cell.colSpan = 3;
+                    cell.colSpan = 5;
                     cell.textContent = 'لا توجد فئات مضافة بعد.';
                     cell.style.textAlign = 'center';
                 }
@@ -749,7 +753,6 @@
             }
             
             const merchantId = merchantIdInput.value;
-            const categoryId = categoryIdInput.value;
             const categoryName = categoryNameInput.value;
             const categoryStatus = categoryStatusSelect.value;
             
@@ -758,53 +761,51 @@
                 return;
             }
             
-            if (!categoryId) {
-                alert('رقم الفئة غير صالح');
-                return;
-            }
-            
-            if (!merchantId) {
-                alert('معرف التاجر غير موجود');
-                return;
-            }
-            
-            // حفظ في Firebase
-            database.ref(`fah/categories/${categoryId}`).set({
-                name: categoryName,
-                status: categoryStatus,
-                merchantId: merchantId,
-                createdAt: new Date().toISOString(),
-                createdBy: currentMerchant.username || currentMerchant.name,
-                ...(isEditing && {
+            if (isEditing) {
+                // التعديل على فئة موجودة - لا نغير المفتاح!
+                database.ref(`fah/categories/${currentEditId}`).update({
+                    name: categoryName,
+                    status: categoryStatus,
+                    merchantId: merchantId, // نضمن بقاء نفس merchantId
                     updatedAt: new Date().toISOString(),
                     updatedBy: currentMerchant.username || currentMerchant.name
-                })
-            }).then(() => {
-                if (isEditing) {
+                }).then(() => {
                     alert('تم تعديل الفئة بنجاح');
                     resetForm();
-                } else {
+                }).catch(error => {
+                    alert('حدث خطأ أثناء تعديل الفئة: ' + error.message);
+                });
+            } else {
+                // إضافة فئة جديدة بمفتاح فريد
+                const newCategoryId = generateCategoryId();
+                
+                database.ref(`fah/categories/${newCategoryId}`).set({
+                    name: categoryName,
+                    status: categoryStatus,
+                    merchantId: merchantId,
+                    id: newCategoryId,
+                    createdAt: new Date().toISOString(),
+                    createdBy: currentMerchant.username || currentMerchant.name
+                }).then(() => {
                     alert('تم إضافة الفئة بنجاح');
                     categoryForm.reset();
-                    merchantIdInput.value = currentMerchant.id;
-                    updateCategoryId();
-                }
-            }).catch(error => {
-                alert('حدث خطأ أثناء حفظ الفئة: ' + error.message);
-            });
+                    updateNewCategoryIdDisplay();
+                }).catch(error => {
+                    alert('حدث خطأ أثناء حفظ الفئة: ' + error.message);
+                });
+            }
         });
         
-        // تعديل فئة من التبويب الأول
         function editCategory(categoryId) {
             database.ref(`fah/categories/${categoryId}`).once('value')
                 .then(snapshot => {
                     const category = snapshot.val();
-                    merchantIdInput.value = category.merchantId;
-                    categoryIdInput.value = categoryId;
+                    merchantIdInput.value = category.merchantId || currentMerchant.id;
                     categoryNameInput.value = category.name;
                     categoryStatusSelect.value = category.status;
                     
-                    // تغيير وضع النموذج إلى التعديل
+                    newCategoryIdDisplay.textContent = categoryId;
+                    
                     isEditing = true;
                     currentEditId = categoryId;
                     saveBtn.textContent = 'تحديث الفئة';
@@ -815,20 +816,16 @@
                 });
         }
         
-        // تعديل فئة من التبويب الثاني (الجدول)
         function editCategoryFromTable(categoryId) {
-            // التبديل إلى تبويب إدارة الفئات
             tabs.forEach(t => t.classList.remove('active'));
             tabContents.forEach(tc => tc.classList.remove('active'));
             
             document.querySelector('.tab[data-tab="categories"]').classList.add('active');
             document.getElementById('categories-tab').classList.add('active');
             
-            // تحميل بيانات الفئة في النموذج
             editCategory(categoryId);
         }
         
-        // إعادة تعيين النموذج
         function resetForm() {
             categoryForm.reset();
             isEditing = false;
@@ -838,21 +835,16 @@
             if (currentMerchant) {
                 merchantIdInput.value = currentMerchant.id;
             }
-            updateCategoryId();
+            updateNewCategoryIdDisplay();
         }
         
-        // حدث زر الإلغاء
         cancelBtn.addEventListener('click', resetForm);
         
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', () => {
-            // التحقق من بيانات الجلوبالات أولاً
             validateGlobalMerchantData();
-            
-            // تحميل بيانات التاجر
             loadMerchantData();
             
-            // تسجيل بيانات الجلوبالات في الكونسول للفحص
             console.log('🔍 فحص بيانات الجلوبالات:');
             console.log('- اسم التاجر:', merchantGlobal.getMerchantName());
             console.log('- رقم الجوال:', merchantGlobal.getMerchantPhone());
