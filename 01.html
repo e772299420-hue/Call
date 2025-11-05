@@ -1487,6 +1487,9 @@
         let searchVisible = false;
         let isDataLoaded = false;
 
+        // تعريف المتغير العام لحفظ بيانات التاجر
+        window.currentMerchantData = null;
+
         // ==========================================
         // 🎯 وظائف الموقع المحسنة مع الحفظ
         // ==========================================
@@ -1888,8 +1891,18 @@
                         currentMerchantMobile = firstActiveMerchant.mobile;
                         currentMerchantLocation = firstActiveMerchant.location;
                         
+                        // تحديث المتغير العام ببيانات التاجر
+                        window.currentMerchantData = {
+                            id: currentMerchantId,
+                            name: currentMerchantName,
+                            mobile: currentMerchantMobile,
+                            location: currentMerchantLocation,
+                            productsCount: merchantProductsCount[currentMerchantId] || 0
+                        };
+                        
                         // تحميل الفئات والمنتجات فوراً
                         loadCategories();
+                        displayProducts(allProducts);
                     }
                 }
                 
@@ -1914,19 +1927,36 @@
                     allCategories = [];
                 }
                 
-                if (currentMerchantId) {
-                    const merchantCategories = allCategories.filter(cat => cat.merchantId === currentMerchantId);
-                    categorySelect.innerHTML = '<option value="">جميع الفئات</option>';
-                    merchantCategories.forEach(category => {
-                        const option = document.createElement('option');
-                        option.value = category.id;
-                        option.textContent = category.name;
-                        categorySelect.appendChild(option);
-                    });
-                }
+                // تحديث قائمة الفئات بناءً على التاجر المختار
+                updateCategorySelect();
                 
             } catch (error) {
                 console.error('خطأ في تحميل الفئات:', error);
+            }
+        }
+
+        function updateCategorySelect() {
+            categorySelect.innerHTML = '<option value="">جميع الفئات</option>';
+            
+            if (currentMerchantId) {
+                const merchantCategories = allCategories.filter(cat => 
+                    cat.merchantId === currentMerchantId || cat.merchantId === 'default'
+                );
+                
+                merchantCategories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    categorySelect.appendChild(option);
+                });
+            } else {
+                // إذا لم يكن هناك تاجر محدد، عرض جميع الفئات
+                allCategories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    categorySelect.appendChild(option);
+                });
             }
         }
 
@@ -2307,30 +2337,26 @@
         // ==========================================
         // 🎯 وظائف التاجر المحسنة
         // ==========================================
-        function showMerchantInfo() {
+        function openMerchantPage() {
             if (!currentMerchantId) {
                 showMessage('يرجى اختيار تاجر أولاً', 'warning');
                 return;
             }
 
-            const selectedMerchant = allMerchants.find(m => m.id === currentMerchantId);
-            if (!selectedMerchant) {
-                showMessage('بيانات التاجر غير متوفرة', 'error');
-                return;
-            }
+            // حفظ بيانات التاجر في المتغير العام
+            window.currentMerchantData = {
+                id: currentMerchantId,
+                name: currentMerchantName,
+                mobile: currentMerchantMobile,
+                location: currentMerchantLocation,
+                productsCount: merchantProductsCount[currentMerchantId] || 0
+            };
 
-            const productsCount = merchantProductsCount[currentMerchantId] || 0;
+            // حفظ بيانات التاجر في localStorage لنقلها للصفحة الأخرى
+            localStorage.setItem('currentMerchantData', JSON.stringify(window.currentMerchantData));
             
-            const merchantInfo = `
-🏪 <strong>${selectedMerchant.name}</strong>
-
-📞 <strong>رقم الجوال:</strong> ${selectedMerchant.mobile || 'غير متوفر'}
-📱 <strong>رقم الواتساب:</strong> ${selectedMerchant.mobile || 'غير متوفر'}
-📍 <strong>الموقع:</strong> ${selectedMerchant.location || 'غير محدد'}
-🍽️ <strong>عدد الوجبات:</strong> ${productsCount} وجبة
-            `.trim();
-
-            showMessage(merchantInfo, 'info', 8000);
+            // فتح صفحة التاجر
+            window.open('ard_tagr.html', '_blank');
         }
 
         // ==========================================
@@ -2519,14 +2545,25 @@
                 if (selectedMerchant) {
                     currentMerchantMobile = selectedMerchant.mobile;
                     currentMerchantLocation = selectedMerchant.location;
+                    
+                    // تحديث المتغير العام ببيانات التاجر
+                    window.currentMerchantData = {
+                        id: currentMerchantId,
+                        name: currentMerchantName,
+                        mobile: currentMerchantMobile,
+                        location: currentMerchantLocation,
+                        productsCount: merchantProductsCount[currentMerchantId] || 0
+                    };
                 } else {
                     currentMerchantMobile = '';
                     currentMerchantLocation = '';
+                    window.currentMerchantData = null;
                 }
                 
                 if (currentMerchantId) {
-                    // تحميل الفئات والمنتجات فوراً
-                    loadCategories();
+                    // تحديث قائمة الفئات تلقائياً
+                    updateCategorySelect();
+                    // عرض المنتجات تلقائياً
                     displayProducts(allProducts);
                 } else {
                     productsContainer.innerHTML = `
@@ -2539,6 +2576,7 @@
                     currentMerchantName = '';
                     currentMerchantMobile = '';
                     currentMerchantLocation = '';
+                    window.currentMerchantData = null;
                 }
                 
                 updateOrderButtons();
@@ -2552,7 +2590,7 @@
             
             searchToggleBtn.addEventListener('click', toggleSearch);
             
-            merchantToggleBtn.addEventListener('click', showMerchantInfo);
+            merchantToggleBtn.addEventListener('click', openMerchantPage);
             
             searchInput.addEventListener('input', function() {
                 if (currentMerchantId) {
