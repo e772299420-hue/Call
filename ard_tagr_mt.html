@@ -190,39 +190,6 @@
 
     <footer>جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة</footer>
 
-    <!-- Modals (Bootstrap) -->
-    <!-- تعديل رسالة واتساب -->
-    <div class="modal fade" id="whatsappMsgModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">تعديل رسالة واتساب</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <textarea id="whatsappMsgInput" class="form-control" rows="5"></textarea>
-                    <div class="form-text mt-2">استخدم ${'{'}globalProductName{'}'} لإظهار اسم المنتج داخل الرسالة.</div>
-                </div>
-                <div class="modal-footer">
-                    <button id="saveMsgBtn" class="btn btn-primary">حفظ</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- قائمة المنتجات -->
-    <div class="modal fade" id="productsModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">قائمة منتجات التاجر</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="productsList">جارٍ التحميل...</div>
-            </div>
-        </div>
-    </div>
-
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -312,13 +279,6 @@
             console.log('تم تحميل بيانات التاجر من النافذة الأم:', merchantData);
         }
 
-        // إظهار إشعار بمصدر البيانات
-        if (merchantData) {
-            setTimeout(() => {
-                showNotification(`تم تحميل بيانات التاجر من ${dataSource === 'localStorage' ? 'التخزين المحلي' : 'النافذة الأم'}`, 'info');
-            }, 500);
-        }
-
         // ====== تصحيح قراءة البيانات من localStorage ======
         // قراءة جميع المفاتيح المحتملة من localStorage
         function getLocalStorageData() {
@@ -389,9 +349,6 @@
             selectedMerchantId, 
             globalProductName
         });
-        
-        // تحديث الاسم في الهيدر
-        document.getElementById('globalMerchantName').textContent = selectedMerchantName;
         
         let defaultWhatsAppMsg = localStorage.getItem('whatsappMsg') || `مرحباً، أنا مهتم بـ ${globalProductName} من تطبيق AZ.`;
 
@@ -528,6 +485,9 @@
             currentMerchantData = merchant;
             const showDistanceField = hasValidPhoneNumber(merchant);
             
+            // تحديث اسم التاجر في الشريط العلوي ليكون مطابقاً للاسم في التفاصيل
+            document.getElementById('globalMerchantName').textContent = merchant.name || 'غير محدد';
+            
             // التحقق من إعدادات عرض الرقم
             const shouldShowPhone = shouldShowPhoneNumber(merchant);
 
@@ -612,10 +572,6 @@
                     ${phoneContent}
 
                     <div class="detail-item"><div class="detail-icon"><i class="fas fa-mobile-alt"></i></div><div class="detail-content"><div class="detail-label">رقم الجوال / واتساب</div><div class="detail-value">${mobileContent}</div></div></div>
-
-                    <div class="action-buttons" style="margin-top:8px">
-                        <button class="action-btn secondary-btn" id="showProductsBtn"><i class="fas fa-box-open"></i> عرض منتجات التاجر</button>
-                    </div>
                 </div>
 
                 <div class="details-section">
@@ -647,25 +603,6 @@
             if(finalShareBtn){ 
                 finalShareBtn.addEventListener('click', ()=>{ shareMerchantDetails(merchant); }); 
             }
-
-            // ====== تحديث مستمع زر عرض المنتجات ======
-            document.getElementById('showProductsBtn').addEventListener('click', ()=>{ 
-                // حفظ بيانات التاجر في الجلوبال (sessionStorage و localStorage)
-                merchantGlobal.setMerchantData(merchant);
-                
-                console.log('📦 تم حفظ بيانات التاجر في الجلوبال:', {
-                    name: merchantGlobal.getMerchantName(),
-                    id: merchantGlobal.getMerchantId(),
-                    phone: merchantGlobal.getMerchantPhone()
-                });
-                
-                showNotification('تم حفظ بيانات التاجر، جاري فتح صفحة المنتجات...', 'info');
-                
-                // فتح صفحة mntg_tagr.html بعد تأخير بسيط
-                setTimeout(() => {
-                    window.location.href = 'mntg_tagr.html';
-                }, 1000);
-            });
 
             document.getElementById('calcRouteBtn').addEventListener('click', ()=>{ calculateRoute(); });
 
@@ -755,19 +692,6 @@
             } else {
                 alert('تعذر حساب المسار. تأكد من تفعيل موقعك أو وجود موقع التاجر.');
             }
-        }
-
-        // ====== إظهار قائمة المنتجات (Modal) ======
-        function showProductsModal(merchant){
-            const box = document.getElementById('productsList'); box.innerHTML = '';
-            if(merchant.products){
-                Object.values(merchant.products).forEach(p=>{
-                    const el = document.createElement('div'); el.className='p-2 mb-2 border rounded';
-                    el.innerHTML = `<strong>${p.name||p.title||'بدون اسم'}</strong> ${p.price?('<span style="float:left">'+p.price+'</span>'):''}<div style=\"clear:both\"></div>`;
-                    box.appendChild(el);
-                });
-            } else { box.innerHTML = '<div class="text-muted">لا توجد منتجات</div>'; }
-            new bootstrap.Modal(document.getElementById('productsModal')).show();
         }
 
         // ====== الحصول على موقع المستخدم ======
@@ -883,4 +807,4 @@
         });
     </script>
 </body>
-  </html>
+</html>
