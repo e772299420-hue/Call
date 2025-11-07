@@ -1,4 +1,3 @@
-تت
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1312,15 +1311,6 @@ const merchantGlobal = {
             }));
             console.log('💾 تم حفظ بيانات التاجر للانتقال بين الصفحات');
         }
-    },
-    
-    // إفراغ جميع بيانات التاجر
-    clearAll: function() {
-        sessionStorage.removeItem('merchantName');
-        sessionStorage.removeItem('merchantPhone');
-        sessionStorage.removeItem('merchantId');
-        localStorage.removeItem('merchantDataForNavigation');
-        console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
     }
 };
 
@@ -1374,13 +1364,6 @@ const merchantExitManager = {
             }
         }
         return false;
-    },
-    
-    // حذف بيانات التاجر عند الخروج من الصفحة
-    clearDataOnExit: function() {
-        console.log('🧹 جاري حذف بيانات التاجر عند الخروج من الصفحة');
-        merchantGlobal.clearAll();
-        notificationSystem.show('تم الخروج', 'تم حذف بيانات التاجر بنجاح', 'success', 3000);
     }
 };
 
@@ -1495,13 +1478,8 @@ function navigateToTest() {
 
 // دالة لإغلاق الصفحة الحالية والعودة للصفحة السابقة
 function closePage() {
-    // حذف بيانات التاجر عند الخروج
-    merchantExitManager.clearDataOnExit();
-    
     // عرض شاشة تسجيل الدخول مرة أخرى
-    setTimeout(() => {
-        showMerchantLogin();
-    }, 500);
+    showMerchantLogin();
 }
 
 // دالة لنقل البيانات من حقل nam_usr إلى الجلوبال
@@ -1920,9 +1898,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     setupMerchantLogin();
     
     // التحقق من حالة تسجيل الدخول
-    if (!globalUser.isLoggedIn()) {
-        // عرض شاشة تسجيل الدخول مباشرة بدون تسجيل تلقائي
-        console.log('🔐 المستخدم غير مسجل الدخول، جاري عرض شاشة التسجيل...');
+    if (!globalUser.isLoggedIn() || document.referrer.includes('1_1.html')) {
+        // عرض شاشة تسجيل الدخول مباشرة إذا لم يكن المستخدم مسجلاً أو إذا كان قادماً من صفحة 1_1.html
+        console.log('🔐 عرض شاشة تسجيل الدخول...');
         showMerchantLogin();
         loadSavedMerchantCredentials();
     } else {
@@ -1942,15 +1920,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // تحديث واجهة المستخدم
     updateUserDisplay();
     
-    // إعداد معالجة الخروج من الصفحة
-    window.addEventListener('beforeunload', function() {
-        // حذف بيانات التاجر عند الخروج من الصفحة
-        merchantExitManager.clearDataOnExit();
-        
-        // عرض شاشة تسجيل الدخول مرة أخرى
-        showMerchantLogin();
-    });
-    
     console.log('✅ تم تحميل الصفحة بنجاح');
 });
 
@@ -1967,4 +1936,4 @@ window.addEventListener('unhandledrejection', (event) => {
 </script>
 
 </body>
-    </html>
+</html>
