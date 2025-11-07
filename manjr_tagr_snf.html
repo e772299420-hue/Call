@@ -27,19 +27,24 @@
     align-items: center;
     padding: 0 20px;
     z-index: 1000;
-    flex-direction: row-reverse;
 }
 
 .app-info {
     display: flex;
     align-items: center;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.app-info:hover {
+    transform: scale(1.05);
 }
 
 .app-logo {
     width: 40px;
     height: 40px;
     border-radius: 8px;
-    margin-right: 10px;
+    margin-left: 10px;
     overflow: hidden;
     background-color: white;
     padding: 3px;
@@ -62,7 +67,7 @@
 .merchant-section {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-end;
 }
 
 .management-name {
@@ -811,6 +816,11 @@ body {
     transform: translateY(-2px);
 }
 
+/* ===== إخفاء البطاقات ===== */
+.hidden {
+    display: none;
+}
+
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modalSlideIn {
@@ -1053,7 +1063,7 @@ body {
 
 <!-- الشريط العلوي -->
 <header class="top-header">
-    <div class="app-info">
+    <div class="app-info" id="appInfo">
         <div class="app-logo">
             <img src="https://github.com/e772299420-hue/Call/blob/main/icon-512x512.png?raw=true" alt="شعار Az التسوق الشامل">
         </div>
@@ -1111,8 +1121,20 @@ body {
         </div>
     </div>
 
+    <!-- إحصائيات المنتجات -->
+    <div class="card" onclick="navigateToStatistics()">
+        <div class="card-header">
+            <i class="fas fa-chart-bar"></i>
+            <h2>إحصائيات المنتجات</h2>
+        </div>
+        <div class="card-body">
+            <p>عرض إحصائيات ومؤشرات أداء المنتجات</p>
+            <button class="btn">فتح الصفحة</button>
+        </div>
+    </div>
+
     <!-- زر الاختبار الجديد -->
-    <div class="card" onclick="navigateToTest()">
+    <div class="card hidden" id="testCard" onclick="navigateToTest()">
         <div class="card-header">
             <i class="fas fa-vial"></i>
             <h2>اختبار</h2>
@@ -1378,6 +1400,28 @@ function navigateToCategories() {
     window.location.href = 'snf.html';
 }
 
+// دالة للانتقال إلى صفحة الإحصائيات
+function navigateToStatistics() {
+    // التحقق من تسجيل الدخول أولاً
+    if (!checkLoginBeforeNavigation('ahs_snf_tagr.html')) {
+        return;
+    }
+    
+    // نقل بيانات التاجر إلى الصفحة الجديدة
+    const merchantData = {
+        name: merchantGlobal.getMerchantName(),
+        phone: merchantGlobal.getMerchantPhone(),
+        id: merchantGlobal.getMerchantId(),
+        username: globalUser.getUsername()
+    };
+    
+    // تخزين بيانات التاجر في sessionStorage
+    sessionStorage.setItem('merchantStatisticsData', JSON.stringify(merchantData));
+    
+    // الانتقال إلى صفحة الإحصائيات
+    window.location.href = 'ahs_snf_tagr.html';
+}
+
 // دالة للانتقال إلى صفحة الاختبار
 function navigateToTest() {
     // التحقق من تسجيل الدخول أولاً
@@ -1403,13 +1447,9 @@ function closePage() {
         3000
     );
     
-    // إغلاق النافذة بعد تأخير قصير
+    // الانتقال إلى صفحة 1_1.html بعد تأخير قصير
     setTimeout(() => {
-        window.close(); // إغلاق النافذة الحالية
-        // إذا لم تنجح طريقة window.close()، نستخدم الرجوع للخلف
-        if (!window.closed) {
-            window.history.back();
-        }
+        window.location.href = '1_1.html';
     }, 1500);
 }
 
@@ -1588,6 +1628,10 @@ function setupMerchantLogin() {
     const welcomeModal = document.getElementById('welcomeModal');
     const welcomeCloseBtn = document.getElementById('welcomeCloseBtn');
     
+    // إعداد النقر على الشعار لإظهار/إخفاء زر الاختبار
+    const appInfo = document.getElementById('appInfo');
+    const testCard = document.getElementById('testCard');
+    
     // إغلاق نافذة تسجيل الدخول
     closeBtn.addEventListener('click', () => {
         modal.classList.remove('show');
@@ -1644,6 +1688,16 @@ function setupMerchantLogin() {
     welcomeModal.addEventListener('click', (e) => {
         if (e.target === welcomeModal) {
             hideWelcomeScreen();
+        }
+    });
+    
+    // النقر على الشعار لإظهار/إخفاء زر الاختبار
+    appInfo.addEventListener('click', () => {
+        testCard.classList.toggle('hidden');
+        if (testCard.classList.contains('hidden')) {
+            notificationSystem.show('تم إخفاء الاختبار', 'تم إخفاء زر الاختبار بنجاح', 'info', 2000);
+        } else {
+            notificationSystem.show('تم إظهار الاختبار', 'تم إظهار زر الاختبار بنجاح', 'success', 2000);
         }
     });
     
