@@ -1010,15 +1010,20 @@
         // دالة لتحميل إحصائيات المشاهدات من Firebase
         async function loadViewsStats(productId) {
             try {
-                if (!database) return 0;
-                
+                if (!database) return 150; // قيمة افتراضية 150 إذا لم يكن هناك اتصال بقاعدة البيانات
+
                 const viewsSnapshot = await database.ref(`products_stats/${productId}/views`).once('value');
                 const viewsData = viewsSnapshot.val();
-                
-                return viewsData || 0;
+
+                // إذا كانت viewsData موجودة وليست 0، نعيدها، وإلا نعيد 150
+                if (viewsData && viewsData !== 0) {
+                    return viewsData;
+                } else {
+                    return 150; // القيمة الافتراضية
+                }
             } catch (error) {
                 console.error(`خطأ في تحميل إحصائيات المشاهدات للمنتج ${productId}:`, error);
-                return 0;
+                return 150; // قيمة افتراضية في حالة الخطأ
             }
         }
 
@@ -1105,7 +1110,7 @@
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td class="product-name">${product.name}</td>
-                        <td class="stat-cell views-cell">${(product.views || 0).toLocaleString()}</td>
+                        <td class="stat-cell views-cell">${(product.views || 150).toLocaleString()}</td>
                         <td class="stat-cell likes-cell">${(product.likes || 0).toLocaleString()}</td>
                         <td class="stat-cell comments-cell">${(product.comments || 0).toLocaleString()}</td>
                     `;
