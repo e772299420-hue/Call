@@ -531,6 +531,11 @@
             background: rgba(239, 68, 68, 0.1);
             color: var(--danger-color);
         }
+        
+        .status-offer {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
 
         .no-products {
             text-align: center;
@@ -927,6 +932,102 @@
             padding-top: 1rem;
             border-top: 1px dashed #e2e8f0;
         }
+        
+        /* أنماط الحقول الجديدة */
+        .offer-date-fields {
+            display: none;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #e2e8f0;
+        }
+        
+        .offer-date-fields.active {
+            display: block;
+        }
+        
+        .offer-badge {
+            background: var(--warning-color);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .offer-dates {
+            font-size: 0.8rem;
+            color: var(--warning-color);
+            margin-top: 0.3rem;
+        }
+
+        /* أنماط جديدة للصور الحالية ومسار الصورة */
+        .current-images-section {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: var(--border-radius);
+            border: 2px solid #e2e8f0;
+            display: none;
+        }
+
+        .current-images-section.active {
+            display: block;
+        }
+
+        .current-images-section h4 {
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .current-images-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .image-path-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px dashed #cbd5e1;
+            display: none;
+        }
+
+        .image-path-section.active {
+            display: block;
+        }
+
+        .image-path-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .image-path-item {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: #f1f5f9;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-color);
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .no-images-message {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray-color);
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -987,6 +1088,27 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="product-type"><i class="fas fa-tags"></i> نوع المنتج</label>
+                            <select id="product-type" required>
+                                <option value="منتج">منتج</option>
+                                <option value="عرض">عرض</option>
+                            </select>
+                        </div>
+
+                        <!-- حقول تواريخ العرض (تظهر فقط عندما يتم اختيار "عرض") -->
+                        <div id="offer-date-fields" class="offer-date-fields">
+                            <div class="form-group">
+                                <label for="start-date"><i class="fas fa-calendar-alt"></i> تاريخ بداية العرض</label>
+                                <input type="date" id="start-date" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="end-date"><i class="fas fa-calendar-times"></i> تاريخ نهاية العرض</label>
+                                <input type="date" id="end-date" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
                             <label for="product-price"><i class="fas fa-money-bill-wave"></i> السعر</label>
                             <input type="number" id="product-price" required placeholder="أدخل السعر" min="0" step="0.01">
                         </div>
@@ -1017,6 +1139,22 @@
                                     <span class="progress-text">جاري رفع الصور...</span>
                                 </div>
                                 <div class="uploaded-images" id="uploaded-images"></div>
+                            </div>
+                        </div>
+
+                        <!-- قسم الصور الحالية (يظهر فقط في وضع التعديل) -->
+                        <div id="current-images-section" class="current-images-section">
+                            <h4><i class="fas fa-images"></i> الصور الحالية للمنتج</h4>
+                            <div class="current-images-container" id="current-images-container">
+                                <!-- سيتم إضافة الصور الحالية هنا عند التعديل -->
+                            </div>
+                            
+                            <!-- قسم مسارات الصور (يظهر فقط في وضع التعديل) -->
+                            <div id="image-path-section" class="image-path-section">
+                                <h4><i class="fas fa-link"></i> مسارات الصور الحالية</h4>
+                                <div class="image-path-container" id="image-path-container">
+                                    <!-- سيتم إضافة مسارات الصور هنا عند التعديل -->
+                                </div>
                             </div>
                         </div>
 
@@ -1145,6 +1283,7 @@
         let productToDelete = null;
         let currentModalImages = [];
         let currentModalIndex = 0;
+        let currentProductImages = []; // الصور الحالية للمنتج عند التعديل
 
         // ===== نظام الجلوبالات المحسن =====
         const globalUser = {
@@ -1541,10 +1680,22 @@
             const name = document.getElementById('product-name').value.trim();
             const price = document.getElementById('product-price').value;
             const category = document.getElementById('product-category').value;
+            const productType = document.getElementById('product-type').value;
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
             const saveBtn = document.getElementById('saveButton');
             
             if (name && price && category) {
-                saveBtn.classList.remove('hidden');
+                // إذا كان المنتج من نوع "عرض"، يجب التأكد من توفر تواريخ البداية والنهاية
+                if (productType === 'عرض') {
+                    if (startDate && endDate) {
+                        saveBtn.classList.remove('hidden');
+                    } else {
+                        saveBtn.classList.add('hidden');
+                    }
+                } else {
+                    saveBtn.classList.remove('hidden');
+                }
             } else {
                 saveBtn.classList.add('hidden');
             }
@@ -1669,6 +1820,13 @@
                 
                 const hasImages = product.imageUrls && product.imageUrls.length > 0;
                 
+                // التحقق من نوع المنتج وعرض التواريخ إذا كان منتج عرض
+                const isOfferProduct = product.productType === 'عرض';
+                const offerDates = isOfferProduct && product.startDate && product.endDate ? 
+                    `<div class="offer-dates">
+                        <i class="fas fa-calendar-alt"></i> ${product.startDate} - ${product.endDate}
+                    </div>` : '';
+                
                 card.innerHTML = `
                     <div class="product-image-container">
                         ${hasImages ? 
@@ -1680,9 +1838,11 @@
                     </div>
                     <div class="product-info-simple">
                         <h3 class="product-name-simple">${product.name}</h3>
+                        ${isOfferProduct ? '<div class="offer-badge">عرض</div>' : ''}
                         <span class="product-status ${product.availability === 'available' ? 'status-available' : 'status-unavailable'}">
                             ${product.availability === 'available' ? 'متوفر' : 'غير متوفر'}
                         </span>
+                        ${isOfferProduct ? offerDates : ''}
                         <div class="product-actions-simple">
                             <button class="btn-secondary edit-btn" data-id="${product.id}">
                                 <i class="fas fa-edit"></i> تعديل
@@ -1767,6 +1927,107 @@
             }
         }
 
+        // عرض الصور الحالية ومساراتها عند التعديل
+        function displayCurrentImages(imageUrls) {
+            const currentImagesContainer = document.getElementById('current-images-container');
+            const imagePathContainer = document.getElementById('image-path-container');
+            
+            currentImagesContainer.innerHTML = '';
+            imagePathContainer.innerHTML = '';
+            
+            if (imageUrls && imageUrls.length > 0) {
+                imageUrls.forEach((url, index) => {
+                    // عرض الصورة
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'uploaded-image-container';
+                    
+                    const img = document.createElement('img');
+                    img.className = 'uploaded-image';
+                    img.src = getCorsImageUrl(url);
+                    img.alt = `صورة المنتج ${index + 1}`;
+                    img.title = 'انقر للتكبير';
+                    
+                    img.addEventListener('click', () => {
+                        showImageModal([url]);
+                    });
+                    
+                    imageContainer.appendChild(img);
+                    currentImagesContainer.appendChild(imageContainer);
+                    
+                    // عرض مسار الصورة
+                    const pathItem = document.createElement('div');
+                    pathItem.className = 'image-path-item';
+                    pathItem.textContent = url;
+                    imagePathContainer.appendChild(pathItem);
+                });
+            } else {
+                currentImagesContainer.innerHTML = '<div class="no-images-message">لا توجد صور حالية للمنتج</div>';
+                imagePathContainer.innerHTML = '<div class="no-images-message">لا توجد مسارات صور حالية</div>';
+            }
+        }
+
+        // تعديل منتج - محسنة لعرض الصور الحالية ومساراتها
+        function editProduct(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            
+            if (!product) {
+                showToast('لم يتم العثور على المنتج', 'error');
+                return;
+            }
+            
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-description').value = product.description || '';
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-currency').value = product.currency || 'ريال يمني';
+            document.getElementById('product-category').value = product.category;
+            document.getElementById('product-availability').value = product.availability;
+            document.getElementById('product-type').value = product.productType || 'منتج';
+            
+            // التحقق من وجود تاريخ وعرضه
+            if (product.date) {
+                document.getElementById('product-date').value = product.date;
+            } else if (product.createdAt) {
+                // إذا لم يكن هناك date ولكن هناك createdAt، نعرض منه
+                const dateFromTimestamp = new Date(product.createdAt);
+                const year = dateFromTimestamp.getFullYear();
+                const month = String(dateFromTimestamp.getMonth() + 1).padStart(2, '0');
+                const day = String(dateFromTimestamp.getDate()).padStart(2, '0');
+                document.getElementById('product-date').value = `${year}-${month}-${day}`;
+            } else {
+                // إذا لم يكن هناك أي تاريخ، نعرض تاريخ اليوم
+                setCurrentDate();
+            }
+            
+            // إذا كان المنتج من نوع عرض، نعرض تواريخ البداية والنهاية
+            if (product.productType === 'عرض') {
+                document.getElementById('start-date').value = product.startDate || '';
+                document.getElementById('end-date').value = product.endDate || '';
+                document.getElementById('offer-date-fields').classList.add('active');
+            } else {
+                document.getElementById('offer-date-fields').classList.remove('active');
+            }
+            
+            // عرض الصور الحالية ومساراتها
+            currentProductImages = product.imageUrls || [];
+            displayCurrentImages(currentProductImages);
+            
+            // إظهار أقسام الصور الحالية ومساراتها
+            document.getElementById('current-images-section').classList.add('active');
+            document.getElementById('image-path-section').classList.add('active');
+            
+            const uploadedImagesElement = document.getElementById('uploaded-images');
+            uploadedImagesElement.innerHTML = '';
+            selectedImages = [];
+            
+            isEditing = true;
+            currentEditProductId = productId;
+            
+            switchTab('add-product-tab');
+            checkRequiredFields();
+            
+            showToast('يمكنك الآن تعديل بيانات المنتج. الصور الحالية معروضة أدناه.', 'info');
+        }
+
         // إضافة منتج - محسنة لرفع الصور فقط عند الحفظ
         async function addProduct(e) {
             if (e) e.preventDefault();
@@ -1778,10 +2039,19 @@
             const currency = document.getElementById('product-currency').value;
             const availability = document.getElementById('product-availability').value;
             const date = document.getElementById('product-date').value;
+            const productType = document.getElementById('product-type').value;
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
             
             // التحقق من البيانات المطلوبة
             if (!name || isNaN(price) || !category) {
                 showToast('يرجى ملء جميع الحقول المطلوبة', 'warning');
+                return;
+            }
+            
+            // إذا كان المنتج من نوع "عرض"، يجب التأكد من توفر تواريخ البداية والنهاية
+            if (productType === 'عرض' && (!startDate || !endDate)) {
+                showToast('يرجى إدخال تاريخ بداية ونهاية العرض', 'warning');
                 return;
             }
             
@@ -1808,7 +2078,7 @@
                     return;
                 }
                 
-                // رفع الصور إلى جوجل درايف فقط عند الحفظ
+                // رفع الصور الجديدة إلى جوجل درايف فقط عند الحفظ
                 let imageUrls = [];
                 if (selectedImages.length > 0) {
                     try {
@@ -1819,6 +2089,9 @@
                         showGlobalLoading(false);
                         return;
                     }
+                } else if (isEditing) {
+                    // إذا لم يتم رفع صور جديدة في وضع التعديل، نستخدم الصور الحالية
+                    imageUrls = currentProductImages;
                 }
                 
                 let productId;
@@ -1833,11 +2106,22 @@
                         currency: currency,
                         category: category,
                         availability: availability,
+                        productType: productType,
                         imageUrls: imageUrls,
                         userId: currentUser.id,
                         updatedAt: Date.now(),
                         date: date
                     };
+                    
+                    // إضافة تواريخ العرض إذا كان المنتج من نوع عرض
+                    if (productType === 'عرض') {
+                        productData.startDate = startDate;
+                        productData.endDate = endDate;
+                    } else {
+                        // إذا تم تغيير النوع من عرض إلى منتج، نحذف تواريخ العرض
+                        productData.startDate = null;
+                        productData.endDate = null;
+                    }
                 } else {
                     productId = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                     productData = {
@@ -1847,11 +2131,18 @@
                         currency: currency,
                         category: category,
                         availability: availability,
+                        productType: productType,
                         imageUrls: imageUrls,
                         userId: currentUser.id,
                         createdAt: Date.now(),
                         date: date
                     };
+                    
+                    // إضافة تواريخ العرض إذا كان المنتج من نوع عرض
+                    if (productType === 'عرض') {
+                        productData.startDate = startDate;
+                        productData.endDate = endDate;
+                    }
                 }
                 
                 if (firebaseDebugMode) {
@@ -1864,11 +2155,17 @@
                 // إعادة تعيين النموذج وإخفاء زر الحفظ
                 document.getElementById('add-product-form').reset();
                 document.getElementById('uploaded-images').innerHTML = '';
+                document.getElementById('current-images-section').classList.remove('active');
+                document.getElementById('image-path-section').classList.remove('active');
                 document.getElementById('saveButton').classList.add('hidden');
                 selectedImages = [];
                 uploadedImageUrls = [];
+                currentProductImages = [];
                 isEditing = false;
                 currentEditProductId = null;
+                
+                // إخفاء حقول تواريخ العرض
+                document.getElementById('offer-date-fields').classList.remove('active');
                 
                 setCurrentDate();
                 
@@ -1882,77 +2179,6 @@
             } finally {
                 showGlobalLoading(false);
             }
-        }
-
-        // تعديل منتج - محسنة لعرض وحفظ التاريخ
-        function editProduct(productId) {
-            const product = allProducts.find(p => p.id === productId);
-            
-            if (!product) {
-                showToast('لم يتم العثور على المنتج', 'error');
-                return;
-            }
-            
-            document.getElementById('product-name').value = product.name;
-            document.getElementById('product-description').value = product.description || '';
-            document.getElementById('product-price').value = product.price;
-            document.getElementById('product-currency').value = product.currency || 'ريال يمني';
-            document.getElementById('product-category').value = product.category;
-            document.getElementById('product-availability').value = product.availability;
-            
-            // التحقق من وجود تاريخ وعرضه
-            if (product.date) {
-                document.getElementById('product-date').value = product.date;
-            } else if (product.createdAt) {
-                // إذا لم يكن هناك date ولكن هناك createdAt، نعرض منه
-                const dateFromTimestamp = new Date(product.createdAt);
-                const year = dateFromTimestamp.getFullYear();
-                const month = String(dateFromTimestamp.getMonth() + 1).padStart(2, '0');
-                const day = String(dateFromTimestamp.getDate()).padStart(2, '0');
-                document.getElementById('product-date').value = `${year}-${month}-${day}`;
-            } else {
-                // إذا لم يكن هناك أي تاريخ، نعرض تاريخ اليوم
-                setCurrentDate();
-            }
-            
-            const uploadedImagesElement = document.getElementById('uploaded-images');
-            
-            uploadedImagesElement.innerHTML = '';
-            selectedImages = [];
-            
-            if (product.imageUrls && product.imageUrls.length > 0) {
-                uploadedImageUrls = product.imageUrls;
-                
-                // في حالة التعديل، لا يمكننا تحرير الصور الموجودة مسبقًا
-                // ولكن يمكن إضافة صور جديدة
-                product.imageUrls.forEach((url, index) => {
-                    const container = document.createElement('div');
-                    container.className = 'uploaded-image-container';
-                    
-                    const img = document.createElement('img');
-                    img.className = 'uploaded-image';
-                    img.src = url;
-                    img.alt = `صورة المنتج`;
-                    img.title = 'انقر للتكبير';
-                    
-                    img.addEventListener('click', () => {
-                        showImageModal([url]);
-                    });
-                    
-                    container.appendChild(img);
-                    uploadedImagesElement.appendChild(container);
-                });
-            } else {
-                uploadedImageUrls = [];
-            }
-            
-            isEditing = true;
-            currentEditProductId = productId;
-            
-            switchTab('add-product-tab');
-            checkRequiredFields();
-            
-            showToast('يمكنك الآن تعديل بيانات المنتج', 'info');
         }
 
         // التبديل بين التبويبات
@@ -2003,6 +2229,29 @@
             }
         }
 
+        // التحكم في إظهار وإخفاء حقول تواريخ العرض
+        function toggleOfferDateFields() {
+            const productType = document.getElementById('product-type').value;
+            const offerDateFields = document.getElementById('offer-date-fields');
+            const startDate = document.getElementById('start-date');
+            const endDate = document.getElementById('end-date');
+            
+            if (productType === 'عرض') {
+                offerDateFields.classList.add('active');
+                startDate.required = true;
+                endDate.required = true;
+            } else {
+                offerDateFields.classList.remove('active');
+                startDate.required = false;
+                endDate.required = false;
+                // إفراغ حقول التواريخ عند اختيار "منتج"
+                startDate.value = '';
+                endDate.value = '';
+            }
+            
+            checkRequiredFields();
+        }
+
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', function() {
             updateUserDisplay();
@@ -2029,6 +2278,9 @@
             document.getElementById('product-name').addEventListener('input', checkRequiredFields);
             document.getElementById('product-price').addEventListener('input', checkRequiredFields);
             document.getElementById('product-category').addEventListener('change', checkRequiredFields);
+            document.getElementById('product-type').addEventListener('change', toggleOfferDateFields);
+            document.getElementById('start-date').addEventListener('change', checkRequiredFields);
+            document.getElementById('end-date').addEventListener('change', checkRequiredFields);
             
             document.getElementById('cancel-delete').addEventListener('click', function() {
                 document.getElementById('delete-confirm-dialog').style.display = 'none';
