@@ -64,21 +64,28 @@
     text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
-.merchant-section {
+.dashboard-title {
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* ===== شريط التاجر ===== */
+.merchant-bar {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    background-color: #f5f5f5;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-}
-
-.management-name {
-    font-size: 14px;
-    color: white;
-}
-
-.merchant-name {
-    font-size: 16px;
-    color: white;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+    z-index: 999;
+    color: #666;
     font-weight: 500;
+    font-size: 16px;
 }
 
 /* ===== شريط الجلوبلات - مخفي ===== */
@@ -94,7 +101,7 @@
 /* ===== الإشعارات ===== */
 .notifications-container {
     position: fixed;
-    top: 80px;
+    top: 130px;
     left: 20px;
     z-index: 997;
     display: flex;
@@ -361,47 +368,57 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 100px 20px 70px 20px;
+    padding: 140px 20px 70px 20px;
     position: relative;
 }
 
-/* ===== البطاقات ===== */
+/* ===== الأزرار الرئيسية ===== */
 .container {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 25px;
-    max-width: 1000px;
+    max-width: 1200px;
     width: 100%;
 }
 
-.card {
+.action-button {
     background: white;
     border-radius: 16px;
     overflow: hidden;
-    width: 300px;
+    width: 280px;
     text-align: center;
     box-shadow: 0 8px 20px rgba(0,0,0,0.08);
     transition: transform 0.3s, box-shadow 0.3s;
     cursor: pointer;
     position: relative;
     border: 1px solid #eaeaea;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
 }
 
-.card:hover {
+.action-button:hover {
     transform: translateY(-8px);
     box-shadow: 0 15px 30px rgba(0,0,0,0.15);
 }
 
-.card-header {
+.button-icon {
     background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
     color: white;
     padding: 25px 20px;
     position: relative;
     overflow: hidden;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.card-header::before {
+.button-icon::before {
     content: '';
     position: absolute;
     top: -50%;
@@ -413,37 +430,36 @@ body {
     transition: all 0.5s ease;
 }
 
-.card:hover .card-header::before {
+.action-button:hover .button-icon::before {
     left: 100%;
 }
 
-.card-header i {
+.button-icon i {
     font-size: 48px;
-    margin-bottom: 15px;
     position: relative;
     z-index: 1;
     text-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-.card-header h2 {
+.button-content {
+    padding: 20px;
+    width: 100%;
+}
+
+.button-title {
     font-size: 1.5rem;
-    margin-bottom: 8px;
-    position: relative;
-    z-index: 1;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #000;
 }
 
-.card-body {
-    padding: 25px 20px;
-}
-
-.card-body p {
-    color: #555;
+.button-description {
+    color: #d32f2f;
     line-height: 1.6;
-    margin-bottom: 20px;
     font-size: 1rem;
 }
 
-/* ===== الأزرار ===== */
+/* ===== الأزرار المساعدة ===== */
 .btn, .home-btn {
     display: inline-block;
     color: white;
@@ -816,7 +832,7 @@ body {
     transform: translateY(-2px);
 }
 
-/* ===== إخفاء البطاقات ===== */
+/* ===== إخفاء الأزرار ===== */
 .hidden {
     display: none;
 }
@@ -836,7 +852,7 @@ body {
         gap: 15px;
     }
     
-    .card {
+    .action-button {
         width: 90%;
     }
     
@@ -853,18 +869,16 @@ body {
         max-width: none;
     }
     
-    .merchant-section {
-        flex-direction: row;
-        align-items: center;
-        font-size: 12px;
-    }
-    
     .app-name {
         font-size: 16px;
     }
     
+    .dashboard-title {
+        font-size: 14px;
+    }
+    
     body {
-        padding-top: 100px;
+        padding-top: 140px;
     }
     
     .login-container {
@@ -1069,10 +1083,13 @@ body {
         </div>
         <div class="app-name">Az التسوق الشامل</div>
     </div>
-    <div class="merchant-section">
-        <div class="merchant-name" id="user-display-name">تسجيل الدخول مطلوب</div>
-    </div>
+    <div class="dashboard-title">لوحة التحكم المنتجات التجارية</div>
 </header>
+
+<!-- شريط التاجر -->
+<div class="merchant-bar" id="merchantBar">
+    <div class="merchant-name" id="user-display-name">تسجيل الدخول مطلوب</div>
+</div>
 
 <!-- شريط الجلوبلات - مخفي -->
 <div class="globals-bar" id="globals-bar" style="display: none;">
@@ -1095,53 +1112,49 @@ body {
     </button>
 </div>
 
-<!-- الحاوية الرئيسية للبطاقات -->
+<!-- الحاوية الرئيسية للأزرار -->
 <div class="container">
     <!-- تعديل بيانات التاجر -->
-    <div class="card" onclick="navigateToEditMerchant()">
-        <div class="card-header">
+    <div class="action-button" onclick="navigateToEditMerchant()">
+        <div class="button-icon">
             <i class="fas fa-user-edit"></i>
-            <h2>تعديل بيانات التاجر</h2>
         </div>
-        <div class="card-body">
-            <p>تعديل معلومات التاجر والبيانات الشخصية والمتجر</p>
-            <button class="btn">فتح الصفحة</button>
+        <div class="button-content">
+            <div class="button-title">تعديل بيانات التاجر</div>
+            <div class="button-description">تعديل معلومات التاجر والبيانات الشخصية والمتجر</div>
         </div>
     </div>
 
     <!-- بيانات الأصناف -->
-    <div class="card" onclick="navigateToCategories()">
-        <div class="card-header">
+    <div class="action-button" onclick="navigateToCategories()">
+        <div class="button-icon">
             <i class="fas fa-boxes"></i>
-            <h2>بيانات الأصناف</h2>
         </div>
-        <div class="card-body">
-            <p>إدارة الأصناف والتصنيفات الخاصة بالمنتجات</p>
-            <button class="btn">فتح الصفحة</button>
+        <div class="button-content">
+            <div class="button-title">بيانات الأصناف</div>
+            <div class="button-description">إدارة الأصناف والتصنيفات الخاصة بالمنتجات</div>
         </div>
     </div>
 
     <!-- إحصائيات المنتجات -->
-    <div class="card" onclick="navigateToStatistics()">
-        <div class="card-header">
+    <div class="action-button" onclick="navigateToStatistics()">
+        <div class="button-icon">
             <i class="fas fa-chart-bar"></i>
-            <h2>إحصائيات المنتجات</h2>
         </div>
-        <div class="card-body">
-            <p>عرض إحصائيات ومؤشرات أداء المنتجات</p>
-            <button class="btn">فتح الصفحة</button>
+        <div class="button-content">
+            <div class="button-title">إحصائيات المنتجات</div>
+            <div class="button-description">عرض إحصائيات ومؤشرات أداء المنتجات</div>
         </div>
     </div>
 
     <!-- زر الاختبار الجديد -->
-    <div class="card hidden" id="testCard" onclick="navigateToTest()">
-        <div class="card-header">
+    <div class="action-button hidden" id="testButton" onclick="navigateToTest()">
+        <div class="button-icon">
             <i class="fas fa-vial"></i>
-            <h2>اختبار</h2>
         </div>
-        <div class="card-body">
-            <p>صفحة الاختبار للتجارب والميزات الجديدة</p>
-            <button class="btn">فتح الصفحة</button>
+        <div class="button-content">
+            <div class="button-title">اختبار</div>
+            <div class="button-description">صفحة الاختبار للتجارب والميزات الجديدة</div>
         </div>
     </div>
 </div>
@@ -1239,17 +1252,17 @@ const globalUser = {
     
     setUserData: function(userData) {
         this.data = userData;
-        // استخدام sessionStorage للتخزين المؤقت
-        sessionStorage.setItem('globalUserData', JSON.stringify(userData));
-        console.log('✅ تم تخزين بيانات المستخدم في الجلسة:', userData);
+        // استخدام localStorage للتخزين الدائم
+        localStorage.setItem('globalUserData', JSON.stringify(userData));
+        console.log('✅ تم تخزين بيانات المستخدم في localStorage:', userData);
         updateUserDisplay();
     },
     
     getUserData: function() {
         if (this.data) return this.data;
         
-        // البحث في sessionStorage أولاً
-        const storedData = sessionStorage.getItem('globalUserData');
+        // البحث في localStorage أولاً
+        const storedData = localStorage.getItem('globalUserData');
         if (storedData) {
             this.data = JSON.parse(storedData);
             return this.data;
@@ -1274,7 +1287,7 @@ const globalUser = {
     
     logout: function() {
         this.data = null;
-        sessionStorage.removeItem('globalUserData');
+        localStorage.removeItem('globalUserData');
         console.log('🚪 تم تسجيل الخروج');
         updateUserDisplay();
     }
@@ -1284,39 +1297,39 @@ const globalUser = {
 const merchantGlobal = {
     // حفظ اسم التاجر
     setMerchantName: function(name) {
-        sessionStorage.setItem('merchantName', name);
+        localStorage.setItem('merchantName', name);
         console.log('✅ تم حفظ اسم التاجر في الجلوبال:', name);
     },
     
     getMerchantName: function() {
-        return sessionStorage.getItem('merchantName') || '';
+        return localStorage.getItem('merchantName') || '';
     },
     
     // حفظ رقم الجوال/الواتساب
     setMerchantPhone: function(phone) {
-        sessionStorage.setItem('merchantPhone', phone);
+        localStorage.setItem('merchantPhone', phone);
         console.log('✅ تم حفظ رقم التاجر في الجلوبال:', phone);
     },
     
     getMerchantPhone: function() {
-        return sessionStorage.getItem('merchantPhone') || '';
+        return localStorage.getItem('merchantPhone') || '';
     },
     
     // حفظ معرف التاجر
     setMerchantId: function(merchantId) {
-        sessionStorage.setItem('merchantId', merchantId);
+        localStorage.setItem('merchantId', merchantId);
         console.log('✅ تم حفظ معرف التاجر في الجلوبال:', merchantId);
     },
     
     getMerchantId: function() {
-        return sessionStorage.getItem('merchantId') || '';
+        return localStorage.getItem('merchantId') || '';
     },
     
     // إفراغ جميع بيانات التاجر
     clearAll: function() {
-        sessionStorage.removeItem('merchantName');
-        sessionStorage.removeItem('merchantPhone');
-        sessionStorage.removeItem('merchantId');
+        localStorage.removeItem('merchantName');
+        localStorage.removeItem('merchantPhone');
+        localStorage.removeItem('merchantId');
         console.log('🧹 تم إفراغ جميع بيانات التاجر من الجلوبال');
     }
 };
@@ -1347,13 +1360,19 @@ function updateUserDisplay() {
         // استخدام بيانات من globalUser أولاً
         const displayName = userData.name || userData.username || userData.commercialName || 'تاجر';
         userDisplayElement.textContent = `تاجر: ${displayName}`;
+        userDisplayElement.style.color = '#2575fc';
+        userDisplayElement.style.fontWeight = 'bold';
     } else {
         // استخدام بيانات من merchantGlobal كبديل
         const merchantName = merchantGlobal.getMerchantName();
         if (merchantName) {
             userDisplayElement.textContent = `تاجر: ${merchantName}`;
+            userDisplayElement.style.color = '#2575fc';
+            userDisplayElement.style.fontWeight = 'bold';
         } else {
             userDisplayElement.textContent = 'تسجيل الدخول مطلوب';
+            userDisplayElement.style.color = '#666';
+            userDisplayElement.style.fontWeight = 'normal';
         }
     }
 }
@@ -1381,9 +1400,9 @@ function navigateToEditMerchant() {
         return;
     }
     
-    // تخزين اسم التاجر في sessionStorage لنقله للصفحة الأخرى
+    // تخزين اسم التاجر في localStorage لنقله للصفحة الأخرى
     const merchantName = merchantGlobal.getMerchantName() || globalUser.getUsername();
-    sessionStorage.setItem('merchantToEdit', merchantName);
+    localStorage.setItem('merchantToEdit', merchantName);
     
     // الانتقال إلى صفحة تعديل بيانات التاجر
     window.location.href = 'ub_tager.html';
@@ -1415,8 +1434,8 @@ function navigateToStatistics() {
         username: globalUser.getUsername()
     };
     
-    // تخزين بيانات التاجر في sessionStorage
-    sessionStorage.setItem('merchantStatisticsData', JSON.stringify(merchantData));
+    // تخزين بيانات التاجر في localStorage
+    localStorage.setItem('merchantStatisticsData', JSON.stringify(merchantData));
     
     // الانتقال إلى صفحة الإحصائيات
     window.location.href = 'ahs_snf_tagr.html';
@@ -1601,6 +1620,57 @@ async function validateMerchantCredentials(username, password) {
     }
 }
 
+// تحميل بيانات تسجيل الدخول للتاجر
+function loadSavedMerchantCredentials() {
+    const savedUsername = localStorage.getItem('savedMerchantUsername');
+    const savedPassword = localStorage.getItem('savedMerchantPassword');
+    const rememberMe = localStorage.getItem('rememberMerchant') === 'true';
+    
+    if (rememberMe && savedUsername && savedPassword) {
+        document.getElementById('merchantUsername').value = savedUsername;
+        document.getElementById('merchantPassword').value = savedPassword;
+        document.getElementById('rememberMerchant').checked = true;
+        
+        // تسجيل الدخول التلقائي إذا كانت البيانات محفوظة
+        autoLogin(savedUsername, savedPassword);
+    }
+}
+
+// تسجيل الدخول التلقائي
+async function autoLogin(username, password) {
+    try {
+        console.log('🔄 جاري تسجيل الدخول التلقائي...');
+        
+        const { merchantData, merchantId } = await validateMerchantCredentials(username, password);
+        
+        // حفظ بيانات التاجر في الجلوبال
+        merchantGlobal.setMerchantName(merchantData.commercialName || merchantData.name || username);
+        merchantGlobal.setMerchantPhone(merchantData.mobile || merchantData.whatsapp || '');
+        merchantGlobal.setMerchantId(merchantId);
+        
+        const userDataToStore = {
+            id: merchantId,
+            username: username,
+            name: merchantData.name || username,
+            commercialName: merchantData.commercialName || '',
+            email: merchantData.email || '',
+            mobile: merchantData.mobile || '',
+            job: merchantData.job || 'تاجر',
+            type: 'merchant',
+            loginTime: new Date().toISOString()
+        };
+        
+        globalUser.setUserData(userDataToStore);
+        
+        console.log('✅ تم تسجيل الدخول التلقائي بنجاح');
+        
+    } catch (error) {
+        console.error('❌ فشل تسجيل الدخول التلقائي:', error);
+        // في حالة فشل تسجيل الدخول التلقائي، نظهر شاشة تسجيل الدخول العادية
+        showMerchantLogin();
+    }
+}
+
 // إعداد تسجيل الدخول للتاجر
 function setupMerchantLogin() {
     const modal = document.getElementById('merchantLoginModal');
@@ -1630,7 +1700,7 @@ function setupMerchantLogin() {
     
     // إعداد النقر على الشعار لإظهار/إخفاء زر الاختبار
     const appInfo = document.getElementById('appInfo');
-    const testCard = document.getElementById('testCard');
+    const testButton = document.getElementById('testButton');
     
     // إغلاق نافذة تسجيل الدخول
     closeBtn.addEventListener('click', () => {
@@ -1693,8 +1763,8 @@ function setupMerchantLogin() {
     
     // النقر على الشعار لإظهار/إخفاء زر الاختبار
     appInfo.addEventListener('click', () => {
-        testCard.classList.toggle('hidden');
-        if (testCard.classList.contains('hidden')) {
+        testButton.classList.toggle('hidden');
+        if (testButton.classList.contains('hidden')) {
             notificationSystem.show('تم إخفاء الاختبار', 'تم إخفاء زر الاختبار بنجاح', 'info', 2000);
         } else {
             notificationSystem.show('تم إظهار الاختبار', 'تم إظهار زر الاختبار بنجاح', 'success', 2000);
@@ -1838,19 +1908,6 @@ function setupMerchantLogin() {
     });
 }
 
-// تحميل بيانات تسجيل الدخول للتاجر
-function loadSavedMerchantCredentials() {
-    const savedUsername = localStorage.getItem('savedMerchantUsername');
-    const savedPassword = localStorage.getItem('savedMerchantPassword');
-    const rememberMe = localStorage.getItem('rememberMerchant') === 'true';
-    
-    if (rememberMe && savedUsername && savedPassword) {
-        document.getElementById('merchantUsername').value = savedUsername;
-        document.getElementById('merchantPassword').value = savedPassword;
-        document.getElementById('rememberMerchant').checked = true;
-    }
-}
-
 // ===== تهيئة الصفحة =====
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 بدء تحميل الصفحة...');
@@ -1858,9 +1915,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // إعداد نظام تسجيل الدخول
     setupMerchantLogin();
     
-    // عرض شاشة تسجيل الدخول مباشرة (بدون تسجيل تلقائي)
-    console.log('🔐 عرض شاشة تسجيل الدخول...');
-    showMerchantLogin();
+    // تحميل بيانات تسجيل الدخول المحفوظة
     loadSavedMerchantCredentials();
     
     // تحديث واجهة المستخدم
