@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>إدارة بيانات المتبرعين</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: "Cairo", sans-serif;
+      background: #f6f8fa;
+      margin: 0;
+      padding: 0;
+      direction: rtl;
+    }
+    header {
+      background: #2980b9;
+      color: #fff;
+      text-align: center;
+      padding: 15px 0;
+      font-size: 20px;
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    header img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+    .marquee-container {
+      background: #e8f4fc;
+      padding: 10px 0;
+      overflow: hidden;
+      position: relative;
+      border-bottom: 1px solid #d1e7f7;
+    }
+    .marquee {
+      white-space: nowrap;
+      animation: marquee 25s linear infinite;
+      font-size: 16px;
+      color: #2980b9;
+      font-weight: bold;
+      padding-right: 100%;
+    }
+    @keyframes marquee {
+      0% { 
+        transform: translateX(100%);
+      }
+      100% { 
+        transform: translateX(-100%);
+      }
+    }
+    .tabs {
+      display: flex;
+      background: #fff;
+      border-bottom: 2px solid #ddd;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      border-bottom: 3px solid transparent;
+    }
+    .tab.active {
+      border-color: #2980b9;
+      color: #2980b9;
+    }
+    .tab-content {
+      display: none;
+      padding: 20px;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-family: inherit;
+    }
+    button {
+      background: #2980b9;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #1c6da8;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+    th {
+      background: #f2f2f2;
+    }
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .search-box input {
+      flex: 1;
+    }
+    .hidden {
+      display: none;
+    }
+    .required::after {
+      content: " *";
+      color: red;
+    }
+    .form-section {
+      margin-bottom: 20px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 15px;
+    }
+    .form-section:last-child {
+      border-bottom: none;
+    }
+    .error {
+      border-color: red !important;
+    }
+    .error-message {
+      color: red;
+      font-size: 12px;
+      margin-top: -10px;
+      margin-bottom: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- الشريط العلوي -->
+  <header>
+    <img src="https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true" alt="شعار">
+    <span>AZ السوق الشامل - نظام إدارة بيانات المتبرعين 🩸</span>
+  </header>
+
+  <!-- الشريط النصي المتحرك -->
+  <div class="marquee-container">
+    <div class="marquee" id="marqueeText">
+      قال تعالى ﴿وَمَنْ أَحْيَاهَا فَكَأَنَّمَا أَحْيَا النَّاسَ جَمِيعًا﴾  سورة المائدة: 32
+    </div>
+  </div>
+
+  <!-- التبويبات -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(0)">إدخال البيانات 📝</div>
+    <div class="tab" onclick="showTab(1)">عرض المتبرعين 👥</div>
+  </div>
+
+  <!-- التبويب الأول -->
+  <div class="tab-content active" id="tab1">
+    <form id="donorForm">
+      <div class="hidden">
+        <label>معرف المتبرع / رقم تسلسلي</label>
+        <input type="text" id="donorId" placeholder="يُملأ تلقائياً عند الحفظ" disabled>
+      </div>
+
+      <div class="form-section">
+        <label class="required">اسم المتبرع 👤</label>
+        <input type="text" id="donorName" required placeholder="يجب أن يكون الاسم ثلاثيًا على الأقل (مثال: مروان محمد الذماري)">
+        <div class="error-message" id="nameError">يجب أن يكون الاسم ثلاثيًا على الأقل</div>
+      </div>
+
+      <div class="form-section">
+        <label class="required">الجنس 🚻</label>
+        <select id="gender" required>
+          <option value="">اختر الجنس</option>
+          <option value="ذكر">ذكر</option>
+          <option value="أنثى">أنثى</option>
+        </select>
+        <div class="error-message" id="genderError">يجب اختيار الجنس</div>
+      </div>
+
+      <div class="form-section">
+        <label>العمر 🎂</label>
+        <input type="number" id="age" min="18" max="65" inputmode="numeric">
+      </div>
+
+      <div class="form-section">
+        <label class="required">فصيلة الدم (بالإنجليزية) 🅰️🅱️</label>
+        <input type="text" id="bloodType" placeholder="مثلاً: A+, O-, B+" required inputmode="text" dir="ltr">
+        <div class="error-message" id="bloodTypeError">يجب إدخال فصيلة الدم</div>
+      </div>
+
+      <div class="form-section">
+        <label>عنوان السكن 🏠</label>
+        <input type="text" id="address">
+      </div>
+
+      <div class="form-section">
+        <label class="required">رقم الجوال 1 📱</label>
+        <input type="tel" id="phone1" required inputmode="tel" dir="ltr">
+        <div class="error-message" id="phone1Error">يجب إدخال رقم الجوال</div>
+      </div>
+
+      <div class="form-section">
+        <label>رقم الجوال 2 📞</label>
+        <input type="tel" id="phone2" inputmode="tel" dir="ltr">
+      </div>
+
+      <div class="form-section">
+        <label>ملاحظات المتبرع 📝</label>
+        <textarea id="notes" rows="3"></textarea>
+      </div>
+
+      <button type="submit">💾 حفظ البيانات</button>
+    </form>
+  </div>
+
+  <!-- التبويب الثاني -->
+  <div class="tab-content" id="tab2">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="🔍 ابحث بالاسم أو فصيلة الدم..." oninput="searchDonors()">
+    </div>
+    <table id="donorsTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>الاسم</th>
+          <th>الجنس</th>
+          <th>العمر</th>
+          <th>فصيلة الدم</th>
+          <th>الجوال 1</th>
+          <th>الجوال 2</th>
+          <th>العنوان</th>
+          <th>ملاحظات</th>
+        </tr>
+      </thead>
+      <tbody id="donorsList"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const DB_URL = "https://chat-fat-free-default-rtdb.firebaseio.com/fah/categories/merchant_bdyh_lmshwr_1762375576678_78/blood_donors.json";
+
+    let donorsData = {};
+    let marqueeIndex = 0;
+    const marqueeTexts = [
+      'قال تعالى ﴿وَمَنْ أَحْيَاهَا فَكَأَنَّمَا أَحْيَا النَّاسَ جَمِيعًا﴾  سورة المائدة: 32',
+      'قال النبي ﷺ "من فرّج عن مسلم كربةً من كُرَب الدنيا فرّج الله عنه كربةً من كُرَب يوم القيامة" (رواه مسلم)',
+      'التبرع بالدم عمل إنساني عظيم وأجره كبير، وهو من باب إنقاذ النفس والإحسان إلى الخلق، ويعد صدقة جارية ما دام الدم يُستخدم في إنقاذ حياة الآخرين'
+    ];
+
+    // تبديل التبويبات
+    function showTab(index) {
+      document.querySelectorAll('.tab').forEach((tab, i) => {
+        tab.classList.toggle('active', i === index);
+        document.querySelectorAll('.tab-content')[i].classList.toggle('active', i === index);
+      });
+      if (index === 1) loadDonors();
+    }
+
+    // تغيير النص المتحرك
+    function changeMarqueeText() {
+      const marqueeElement = document.getElementById('marqueeText');
+      marqueeElement.style.animation = 'none';
+      setTimeout(() => {
+        marqueeElement.textContent = marqueeTexts[marqueeIndex];
+        marqueeElement.style.animation = 'marquee 25s linear infinite';
+      }, 10);
+      marqueeIndex = (marqueeIndex + 1) % marqueeTexts.length;
+    }
+
+    // جلب بيانات المتبرعين عند بدء الصفحة
+    async function fetchDonors() {
+      try {
+        const res = await fetch(DB_URL);
+        donorsData = await res.json() || {};
+      } catch (error) {
+        console.error('Error fetching donors:', error);
+        donorsData = {};
+      }
+    }
+
+    // التحقق من صحة الاسم
+    function validateName(name) {
+      const nameParts = name.split(' ').filter(part => part.length > 0);
+      return nameParts.length >= 3;
+    }
+
+    // إظهار/إخفاء رسالة الخطأ
+    function showError(fieldId, errorId, show) {
+      const field = document.getElementById(fieldId);
+      const error = document.getElementById(errorId);
+      
+      if (show) {
+        field.classList.add('error');
+        error.style.display = 'block';
+      } else {
+        field.classList.remove('error');
+        error.style.display = 'none';
+      }
+    }
+
+    // التحقق من صحة النموذج
+    function validateForm() {
+      let isValid = true;
+      
+      // التحقق من الاسم
+      const donorName = document.getElementById('donorName').value.trim();
+      if (!validateName(donorName)) {
+        showError('donorName', 'nameError', true);
+        isValid = false;
+      } else {
+        showError('donorName', 'nameError', false);
+      }
+      
+      // التحقق من الجنس
+      const gender = document.getElementById('gender').value;
+      if (!gender) {
+        showError('gender', 'genderError', true);
+        isValid = false;
+      } else {
+        showError('gender', 'genderError', false);
+      }
+      
+      // التحقق من فصيلة الدم
+      const bloodType = document.getElementById('bloodType').value.trim();
+      if (!bloodType) {
+        showError('bloodType', 'bloodTypeError', true);
+        isValid = false;
+      } else {
+        showError('bloodType', 'bloodTypeError', false);
+      }
+      
+      // التحقق من رقم الجوال
+      const phone1 = document.getElementById('phone1').value.trim();
+      if (!phone1) {
+        showError('phone1', 'phone1Error', true);
+        isValid = false;
+      } else {
+        showError('phone1', 'phone1Error', false);
+      }
+      
+      return isValid;
+    }
+
+    // حفظ البيانات
+    document.getElementById('donorForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (!validateForm()) {
+        return;
+      }
+      
+      await fetchDonors();
+
+      const donorName = document.getElementById('donorName').value.trim();
+      const phone1 = document.getElementById('phone1').value.trim();
+      const gender = document.getElementById('gender').value;
+      const bloodType = document.getElementById('bloodType').value.trim().toUpperCase();
+
+      // تحقق من التكرار
+      for (const id in donorsData) {
+        const d = donorsData[id];
+        if (d.donorName === donorName) {
+          alert("⚠️ الاسم المدخل مسجل مسبقاً، يرجى التأكد.");
+          return;
+        }
+        if (d.phone1 === phone1) {
+          alert("⚠️ رقم الجوال 1 مسجل مسبقاً، يرجى التأكد.");
+          return;
+        }
+      }
+
+      const donor = {
+        donorName,
+        gender,
+        age: document.getElementById('age').value,
+        bloodType,
+        address: document.getElementById('address').value,
+        phone1,
+        phone2: document.getElementById('phone2').value.trim(),
+        notes: document.getElementById('notes').value,
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        const response = await fetch(DB_URL.replace(".json", "") + ".json", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(donor)
+        });
+
+        if (response.ok) {
+          alert("✅ تم حفظ بيانات المتبرع بنجاح");
+          document.getElementById('donorForm').reset();
+          fetchDonors();
+        } else {
+          alert("❌ حدث خطأ أثناء الحفظ");
+        }
+      } catch (error) {
+        console.error('Error saving donor:', error);
+        alert("❌ حدث خطأ أثناء الحفظ");
+      }
+    });
+
+    // تحميل وعرض المتبرعين
+    async function loadDonors() {
+      try {
+        const res = await fetch(DB_URL);
+        donorsData = await res.json() || {};
+        const tbody = document.getElementById('donorsList');
+        tbody.innerHTML = "";
+        let counter = 1;
+        for (const id in donorsData) {
+          const d = donorsData[id];
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${counter++}</td>
+            <td>${d.donorName || ''}</td>
+            <td>${d.gender || ''}</td>
+            <td>${d.age || ''}</td>
+            <td>${d.bloodType || ''}</td>
+            <td>${d.phone1 || ''}</td>
+            <td>${d.phone2 || ''}</td>
+            <td>${d.address || ''}</td>
+            <td>${d.notes || ''}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+        window.donorsData = donorsData;
+      } catch (error) {
+        console.error('Error loading donors:', error);
+      }
+    }
+
+    // البحث بالاسم أو الفصيلة
+    function searchDonors() {
+      const term = document.getElementById('searchInput').value.toLowerCase();
+      const tbody = document.getElementById('donorsList');
+      tbody.innerHTML = "";
+      let counter = 1;
+      for (const id in window.donorsData || {}) {
+        const d = window.donorsData[id];
+        if (
+          (d.donorName && d.donorName.toLowerCase().includes(term)) ||
+          (d.bloodType && d.bloodType.toLowerCase().includes(term))
+        ) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${counter++}</td>
+            <td>${d.donorName}</td>
+            <td>${d.gender || ''}</td>
+            <td>${d.age || ''}</td>
+            <td>${d.bloodType}</td>
+            <td>${d.phone1}</td>
+            <td>${d.phone2 || ''}</td>
+            <td>${d.address || ''}</td>
+            <td>${d.notes || ''}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      }
+    }
+
+    // تحميل البيانات عند فتح الصفحة لأول مرة
+    fetchDonors();
+    
+    // تغيير النص المتحرك كل 10 ثوان
+    setInterval(changeMarqueeText, 10000);
+    
+    // إضافة مستمعين للأحداث للتحقق أثناء الكتابة
+    document.getElementById('donorName').addEventListener('input', function() {
+      showError('donorName', 'nameError', !validateName(this.value.trim()));
+    });
+    
+    document.getElementById('gender').addEventListener('change', function() {
+      showError('gender', 'genderError', !this.value);
+    });
+    
+    document.getElementById('bloodType').addEventListener('input', function() {
+      showError('bloodType', 'bloodTypeError', !this.value.trim());
+    });
+    
+    document.getElementById('phone1').addEventListener('input', function() {
+      showError('phone1', 'phone1Error', !this.value.trim());
+    });
+  </script>
+
+</body>
+</html>
