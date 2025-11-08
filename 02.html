@@ -1671,6 +1671,10 @@ body {
                     <i class="fas fa-user-plus"></i>
                     <span>طلب الانضمام</span>
                 </div>
+                <div class="menu-item" onclick="openPage('dm.html')">
+                    <i class="fas fa-tint" style="color: #e74c3c;"></i>
+                    <span>قسم الدم والمتبرعين</span>
+                </div>
                 <div class="menu-item" onclick="openPage('help.html')">
                     <i class="fas fa-question-circle"></i>
                     <span>الشرح والتعليم</span>
@@ -2396,6 +2400,7 @@ async function installPWA() {
     if (!deferredPrompt) {
         console.log('❌ PWA غير متاح للتثبيت');
         showNotification('❌ التثبيت التلقائي غير متاح. يرجى استخدام خيار التحميل.', 'error');
+        showPWAInstallInstructions();
         return false;
     }
     
@@ -2411,40 +2416,65 @@ async function installPWA() {
             return true;
         } else {
             console.log('❌ تم رفض تثبيت التطبيق');
+            showPWAInstallInstructions();
             return false;
         }
     } catch (error) {
         console.error('❌ خطأ في تثبيت PWA:', error);
-        showNotification('❌ فشل في التثبيت التلقائي. جاري فتح خيار التحميل...', 'error');
+        showPWAInstallInstructions();
         return false;
     }
 }
 
+function showPWAInstallInstructions() {
+    showNotification(`
+لتجربة أفضل:
+يُرجى الضغط على
+ ⋮ الثلاث النقاط أعلى المتصفح، 
+ثم اختيار "إضافة إلى الشاشة الرئيسية" أو "تثبيت التطبيق"
+ لتثبيت الموقع واستخدامه بسهولة في أي وقت.
+    `, 'info', 8000);
+}
+
+function showAPKDownloadInstructions() {
+    showNotification(`
+سنأخذك الآن إلى صفحة تحميل تطبيق AZ السوق الشامل.
+⚠️ تنويه أمني:
+يظهر لك إشعار من Google Drive بأن "يتعذّر فحص هذا الملف بحثًا عن فيروسات" أو "هذا الملف تنفيذي وقد يضرّ الكمبيوتر".
+لا تقلق، هذه إجراءات أمنية قياسية.
+✅ قم بالنقر على "تحميل على أي حال".
+بعد انتهاء التنزيل، افتح مجلد التحميل (Download) وابحث عن التطبيق، ثم قم بتثبيته.
+واستمتع معنا بتجربة التسويق الكامل مع تطبيق AZ السوق الشامل! 🎉
+    `, 'warning', 10000);
+}
+
 function downloadAppDirect() {
-    const downloadUrl = 'https://drive.google.com/uc?export=download&id=1iPwYBIEvs-RvXryeDNOHZVpbZrcm6q-9';
-    
-    showNotification('📱 جاري تحميل التطبيق...', 'info');
-    
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = 'AZالسوق الشامل.apk';
-    link.target = '_blank';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    showAPKDownloadInstructions();
     
     setTimeout(() => {
-        window.open(downloadUrl, '_blank');
-    }, 1000);
-    
-    const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
-    if (visitorData.visitorNumber) {
-        database.ref('visitors').child(visitorData.visitorNumber).update({
-            lastAppDownload: new Date().toISOString(),
-            downloadCount: (visitorData.downloadCount || 0) + 1
-        });
-    }
+        const downloadUrl = 'https://drive.google.com/uc?export=download&id=1iPwYBIEvs-RvXryeDNOHZVpbZrcm6q-9';
+        
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = 'AZالسوق الشامل.apk';
+        link.target = '_blank';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setTimeout(() => {
+            window.open(downloadUrl, '_blank');
+        }, 1000);
+        
+        const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+        if (visitorData.visitorNumber) {
+            database.ref('visitors').child(visitorData.visitorNumber).update({
+                lastAppDownload: new Date().toISOString(),
+                downloadCount: (visitorData.downloadCount || 0) + 1
+            });
+        }
+    }, 3000);
 }
 
 // ===== نظام تثبيت التطبيق الجديد =====
@@ -2531,7 +2561,7 @@ function setupInstallChoice() {
 }
 
 // ===== نظام الإشعارات العلوية المحسّن =====
-function showNotification(message, type = 'info') {
+function showNotification(message, type = 'info', duration = 5000) {
     const notificationContainer = document.getElementById('notificationTopContainer');
     if (!notificationContainer) return;
     
@@ -2539,7 +2569,7 @@ function showNotification(message, type = 'info') {
     toast.className = `toast-top ${type}`;
     toast.innerHTML = `
         <div class="toast-content">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
             <span>${message}</span>
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()">
@@ -2553,7 +2583,7 @@ function showNotification(message, type = 'info') {
         if (toast.parentElement) {
             toast.remove();
         }
-    }, 5000);
+    }, duration);
 }
 
 // ===== نظام مشاركة التطبيق المحسن =====
