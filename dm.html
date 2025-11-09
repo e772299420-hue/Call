@@ -5,6 +5,7 @@
   <title>إدارة بيانات المتبرعين</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body {
       font-family: "Cairo", sans-serif;
@@ -24,7 +25,13 @@
       top: 0;
       z-index: 1000;
       display: flex;
+      flex-direction: column;
       justify-content: center;
+      align-items: center;
+      gap: 5px;
+    }
+    .logo-container {
+      display: flex;
       align-items: center;
       gap: 10px;
     }
@@ -32,6 +39,13 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
+      background: white;
+      padding: 2px;
+    }
+    .subtitle {
+      font-size: 16px;
+      font-weight: normal;
+      margin-top: 5px;
     }
     .marquee-container {
       background: #e8f4fc;
@@ -159,14 +173,115 @@
       margin-bottom: 10px;
       display: none;
     }
+    
+    /* نافذة عرض البيانات */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+    .modal-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #2980b9;
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #666;
+    }
+    .modal-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .modal-field {
+      margin-bottom: 10px;
+    }
+    .modal-label {
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 5px;
+    }
+    .modal-value {
+      padding: 8px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      min-height: 20px;
+    }
+    .phone-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .call-btn {
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+    .call-btn:hover {
+      background: #219653;
+    }
+    .view-btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .view-btn:hover {
+      background: #2980b9;
+    }
+    
+    /* إخفاء الأعمدة في الجدول */
+    .hidden-column {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
   <!-- الشريط العلوي -->
   <header>
-    <img src="https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true" alt="شعار">
-    <span>AZ السوق الشامل - نظام إدارة بيانات المتبرعين 🩸</span>
+    <div class="logo-container">
+      <img src="https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true" alt="شعار">
+      <span>AZ السوق الشامل</span>
+    </div>
+    <div class="subtitle">نظام إدارة بيانات المتبرعين 🩸</div>
   </header>
 
   <!-- الشريط النصي المتحرك -->
@@ -178,12 +293,12 @@
 
   <!-- التبويبات -->
   <div class="tabs">
-    <div class="tab active" onclick="showTab(0)">إدخال البيانات 📝</div>
-    <div class="tab" onclick="showTab(1)">عرض المتبرعين 👥</div>
+    <div class="tab" onclick="showTab(0)">إدخال البيانات 📝</div>
+    <div class="tab active" onclick="showTab(1)">عرض المتبرعين 👥</div>
   </div>
 
   <!-- التبويب الأول -->
-  <div class="tab-content active" id="tab1">
+  <div class="tab-content" id="tab1">
     <form id="donorForm">
       <div class="hidden">
         <label>معرف المتبرع / رقم تسلسلي</label>
@@ -243,26 +358,69 @@
   </div>
 
   <!-- التبويب الثاني -->
-  <div class="tab-content" id="tab2">
+  <div class="tab-content active" id="tab2">
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="🔍 ابحث بالاسم أو فصيلة الدم..." oninput="searchDonors()">
     </div>
     <table id="donorsTable">
       <thead>
         <tr>
-          <th>#</th>
+          <th class="hidden-column">#</th>
           <th>الاسم</th>
-          <th>الجنس</th>
-          <th>العمر</th>
+          <th class="hidden-column">الجنس</th>
+          <th class="hidden-column">العمر</th>
           <th>فصيلة الدم</th>
           <th>الجوال 1</th>
           <th>الجوال 2</th>
           <th>العنوان</th>
-          <th>ملاحظات</th>
+          <th class="hidden-column">ملاحظات</th>
+          <th>الإجراءات</th>
         </tr>
       </thead>
       <tbody id="donorsList"></tbody>
     </table>
+  </div>
+
+  <!-- نافذة عرض بيانات المتبرع -->
+  <div id="donorModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="modalDonorName"></div>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field">
+          <div class="modal-label">الجنس</div>
+          <div class="modal-value" id="modalGender"></div>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">العمر</div>
+          <div class="modal-value" id="modalAge"></div>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">الجوال 1</div>
+          <div class="phone-container">
+            <div class="modal-value" id="modalPhone1"></div>
+            <button class="call-btn" id="callPhone1Btn" onclick="callPhone('phone1')">
+              <i class="fas fa-phone"></i>
+            </button>
+          </div>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">الجوال 2</div>
+          <div class="phone-container">
+            <div class="modal-value" id="modalPhone2"></div>
+            <button class="call-btn" id="callPhone2Btn" onclick="callPhone('phone2')" style="display: none;">
+              <i class="fas fa-phone"></i>
+            </button>
+          </div>
+        </div>
+        <div class="modal-field" style="grid-column: span 2;">
+          <div class="modal-label">ملاحظات</div>
+          <div class="modal-value" id="modalNotes"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -270,6 +428,7 @@
 
     let donorsData = {};
     let marqueeIndex = 0;
+    let currentDonorData = {};
     const marqueeTexts = [
       'قال تعالى ﴿وَمَنْ أَحْيَاهَا فَكَأَنَّمَا أَحْيَا النَّاسَ جَمِيعًا﴾  سورة المائدة: 32',
       'قال النبي ﷺ "من فرّج عن مسلم كربةً من كُرَب الدنيا فرّج الله عنه كربةً من كُرَب يوم القيامة" (رواه مسلم)',
@@ -442,15 +601,16 @@
           const d = donorsData[id];
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${counter++}</td>
+            <td class="hidden-column">${counter++}</td>
             <td>${d.donorName || ''}</td>
-            <td>${d.gender || ''}</td>
-            <td>${d.age || ''}</td>
+            <td class="hidden-column">${d.gender || ''}</td>
+            <td class="hidden-column">${d.age || ''}</td>
             <td>${d.bloodType || ''}</td>
             <td>${d.phone1 || ''}</td>
             <td>${d.phone2 || ''}</td>
             <td>${d.address || ''}</td>
-            <td>${d.notes || ''}</td>
+            <td class="hidden-column">${d.notes || ''}</td>
+            <td><button class="view-btn" onclick="showDonorDetails('${id}')">عرض</button></td>
           `;
           tbody.appendChild(tr);
         }
@@ -474,18 +634,56 @@
         ) {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${counter++}</td>
+            <td class="hidden-column">${counter++}</td>
             <td>${d.donorName}</td>
-            <td>${d.gender || ''}</td>
-            <td>${d.age || ''}</td>
+            <td class="hidden-column">${d.gender || ''}</td>
+            <td class="hidden-column">${d.age || ''}</td>
             <td>${d.bloodType}</td>
             <td>${d.phone1}</td>
             <td>${d.phone2 || ''}</td>
             <td>${d.address || ''}</td>
-            <td>${d.notes || ''}</td>
+            <td class="hidden-column">${d.notes || ''}</td>
+            <td><button class="view-btn" onclick="showDonorDetails('${id}')">عرض</button></td>
           `;
           tbody.appendChild(tr);
         }
+      }
+    }
+
+    // عرض تفاصيل المتبرع في النافذة
+    function showDonorDetails(donorId) {
+      const donor = window.donorsData[donorId];
+      currentDonorData = donor;
+      
+      document.getElementById('modalDonorName').textContent = donor.donorName || '';
+      document.getElementById('modalGender').textContent = donor.gender || '';
+      document.getElementById('modalAge').textContent = donor.age || '';
+      document.getElementById('modalPhone1').textContent = donor.phone1 || '';
+      document.getElementById('modalPhone2').textContent = donor.phone2 || '';
+      document.getElementById('modalNotes').textContent = donor.notes || '';
+      
+      // إظهار أو إخفاء زر الاتصال للجوال 2
+      const callPhone2Btn = document.getElementById('callPhone2Btn');
+      if (donor.phone2 && donor.phone2.trim() !== '') {
+        callPhone2Btn.style.display = 'flex';
+      } else {
+        callPhone2Btn.style.display = 'none';
+      }
+      
+      // عرض النافذة
+      document.getElementById('donorModal').style.display = 'flex';
+    }
+
+    // إغلاق النافذة
+    function closeModal() {
+      document.getElementById('donorModal').style.display = 'none';
+    }
+
+    // الاتصال بالرقم
+    function callPhone(phoneType) {
+      const phoneNumber = currentDonorData[phoneType];
+      if (phoneNumber) {
+        window.open(`tel:${phoneNumber}`, '_self');
       }
     }
 
