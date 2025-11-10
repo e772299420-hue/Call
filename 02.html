@@ -154,6 +154,11 @@
             background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
         }
 
+        .ip-info-card.user {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: var(--dark-color);
+        }
+
         .ip-info-icon {
             font-size: 30px;
             margin-bottom: 10px;
@@ -365,6 +370,15 @@
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 12px;
+        }
+
+        .user-id {
+            font-family: monospace;
+            background: #e8f4fd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--primary-color);
         }
 
         .pagination {
@@ -676,7 +690,7 @@
         <div class="visitor-ip-section">
             <div class="ip-section-title">
                 <i class="fas fa-network-wired"></i>
-                <span>معلومات IP الزائر الحالي</span>
+                <span>معلومات الزائر الحالي</span>
             </div>
             <div class="ip-info-grid" id="ipInfoGrid">
                 <!-- سيتم ملؤها بالبيانات -->
@@ -842,6 +856,7 @@
         let currentSort = { field: 'number', direction: 'asc' };
         let charts = {};
         let currentIPData = {};
+        let visitorId = generateVisitorId(); // إنشاء معرف فريد للزائر
 
         // عناصر DOM
         const elements = {
@@ -865,6 +880,14 @@
             window.history.back();
         }
 
+        // إنشاء معرف فريد للزائر
+        function generateVisitorId() {
+            // استخدام timestamp ورقم عشوائي لإنشاء معرف فريد
+            const timestamp = Date.now().toString(36);
+            const randomNum = Math.random().toString(36).substr(2, 5);
+            return `visitor_${timestamp}_${randomNum}`;
+        }
+
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', function() {
             initializeTabs();
@@ -885,7 +908,7 @@
                         <div class="ip-info-icon">
                             <i class="fas fa-spinner fa-spin"></i>
                         </div>
-                        <div class="ip-info-label">جاري استخراج معلومات IP</div>
+                        <div class="ip-info-label">جاري استخراج معلومات الزائر</div>
                         <div class="ip-info-value">يرجى الانتظار...</div>
                     </div>
                 `;
@@ -942,6 +965,7 @@
                 
                 currentIPData = {
                     ip: ip,
+                    visitorId: visitorId,
                     timestamp: new Date().toISOString(),
                     geolocation: {
                         country: ipInfo.country_name || 'غير معروف',
@@ -955,10 +979,10 @@
                 };
                 
                 displayIPInfo();
-                console.log('✅ تم استخراج معلومات IP بنجاح:', currentIPData);
+                console.log('✅ تم استخراج معلومات الزائر بنجاح:', currentIPData);
                 
             } catch (error) {
-                console.error('❌ خطأ في استخراج معلومات IP:', error);
+                console.error('❌ خطأ في استخراج معلومات الزائر:', error);
                 displayIPInfoError();
             }
         }
@@ -1029,9 +1053,9 @@
             }
         }
 
-        // عرض معلومات IP
+        // عرض معلومات الزائر
         function displayIPInfo() {
-            const { ip, geolocation, device, network } = currentIPData;
+            const { ip, visitorId, geolocation, device, network } = currentIPData;
             
             elements.ipInfoGrid.innerHTML = `
                 <div class="ip-info-card">
@@ -1041,6 +1065,17 @@
                     <div class="ip-info-label">عنوان IP</div>
                     <div class="ip-info-value">${ip}</div>
                     <button class="ip-copy-btn" onclick="copyToClipboard('${ip}')">
+                        <i class="fas fa-copy"></i> نسخ
+                    </button>
+                </div>
+                
+                <div class="ip-info-card user">
+                    <div class="ip-info-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="ip-info-label">معرف الزائر</div>
+                    <div class="ip-info-value">${visitorId}</div>
+                    <button class="ip-copy-btn" onclick="copyToClipboard('${visitorId}')">
                         <i class="fas fa-copy"></i> نسخ
                     </button>
                 </div>
@@ -1081,7 +1116,7 @@
                     <div class="ip-info-icon">
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                    <div class="ip-info-label">تعذر استخراج معلومات IP</div>
+                    <div class="ip-info-label">تعذر استخراج معلومات الزائر</div>
                     <div class="ip-info-value">يرجى التحقق من اتصال الإنترنت</div>
                     <button class="ip-copy-btn" onclick="loadCurrentIPInfo()">
                         <i class="fas fa-redo"></i> إعادة المحاولة
@@ -1093,12 +1128,12 @@
         // نسخ النص إلى الحافظة
         function copyToClipboard(text) {
             if (text === 'غير معروف') {
-                showNotification('❌ لا يوجد IP لنسخه', 'error');
+                showNotification('❌ لا يوجد نص لنسخه', 'error');
                 return;
             }
             
             navigator.clipboard.writeText(text).then(() => {
-                showNotification('✅ تم نسخ IP إلى الحافظة', 'success');
+                showNotification('✅ تم نسخ النص إلى الحافظة', 'success');
             }).catch(() => {
                 // طريقة بديلة للنسخ
                 const textArea = document.createElement('textarea');
@@ -1107,7 +1142,7 @@
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                showNotification('✅ تم نسخ IP إلى الحافظة', 'success');
+                showNotification('✅ تم نسخ النص إلى الحافظة', 'success');
             });
         }
 
