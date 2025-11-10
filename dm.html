@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
     body {
       font-family: "Cairo", sans-serif;
@@ -56,18 +58,18 @@
     }
     .marquee {
       white-space: nowrap;
-      animation: marquee 25s linear infinite;
+      animation: marquee 40s linear infinite;
       font-size: 16px;
-      color: #2980b9;
+      color: #000000;
       font-weight: bold;
-      padding-right: 100%;
+      padding-left: 100%;
     }
     @keyframes marquee {
       0% { 
-        transform: translateX(100%);
+        transform: translateX(-100%);
       }
       100% { 
-        transform: translateX(-100%);
+        transform: translateX(100%);
       }
     }
     .tabs {
@@ -145,7 +147,7 @@
       gap: 10px;
       margin-bottom: 15px;
     }
-    .search-box input {
+    .search-box input, .search-box select {
       flex: 1;
     }
     .hidden {
@@ -250,9 +252,11 @@
       justify-content: center;
       align-items: center;
       cursor: pointer;
+      transition: all 0.3s ease;
     }
     .call-btn:hover {
       background: #219653;
+      transform: scale(1.1);
     }
     .view-btn {
       background: #3498db;
@@ -262,15 +266,71 @@
       padding: 5px 10px;
       cursor: pointer;
       font-size: 14px;
+      transition: all 0.3s ease;
     }
     .view-btn:hover {
       background: #2980b9;
+      transform: scale(1.05);
     }
     
     /* إخفاء الأعمدة في الجدول */
     .hidden-column {
       display: none;
     }
+    
+    /* فلتر البحث */
+    .filter-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 15px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* تخطيط النموذج الجديد */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .form-full-width {
+      grid-column: 1 / -1;
+    }
+
+    /* تحسينات للشاشات الصغيرة */
+    @media (max-width: 768px) {
+      .filter-container {
+        grid-template-columns: 1fr;
+      }
+      .modal-body {
+        grid-template-columns: 1fr;
+      }
+      .modal-field[style*="grid-column: span 2"] {
+        grid-column: span 1;
+      }
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* أيقونات ملونة */
+    .icon-user { color: #3498db; }
+    .icon-venus-mars { color: #e74c3c; }
+    .icon-birthday { color: #f39c12; }
+    .icon-tint { color: #e74c3c; }
+    .icon-map-marker { color: #27ae60; }
+    .icon-mobile { color: #2980b9; }
+    .icon-address-card { color: #8e44ad; }
+    .icon-sticky-note { color: #f39c12; }
+    .icon-save { color: #27ae60; }
+    .icon-search { color: #3498db; }
+    .icon-users { color: #2980b9; }
+    .icon-pencil { color: #f39c12; }
+    .icon-phone { color: #27ae60; }
+    .icon-eye { color: #3498db; }
   </style>
 </head>
 <body>
@@ -293,8 +353,8 @@
 
   <!-- التبويبات -->
   <div class="tabs">
-    <div class="tab" onclick="showTab(0)">إدخال البيانات 📝</div>
-    <div class="tab active" onclick="showTab(1)">عرض المتبرعين 👥</div>
+    <div class="tab" onclick="showTab(0)">إدخال البيانات <i class="fas fa-pencil-alt icon-pencil"></i></div>
+    <div class="tab active" onclick="showTab(1)">عرض المتبرعين <i class="fas fa-users icon-users"></i></div>
   </div>
 
   <!-- التبويب الأول -->
@@ -305,63 +365,118 @@
         <input type="text" id="donorId" placeholder="يُملأ تلقائياً عند الحفظ" disabled>
       </div>
 
+      <!-- المحافظة والمنطقة -->
       <div class="form-section">
-        <label class="required">اسم المتبرع 👤</label>
+        <div class="form-grid">
+          <div>
+            <label class="required">المحافظة <i class="fas fa-map-marker-alt icon-map-marker"></i></label>
+            <select id="governorate" required onchange="updateRegions()">
+              <option value="">اختر المحافظة</option>
+              <!-- سيتم تعبئة المحافظات من قاعدة البيانات -->
+            </select>
+            <div class="error-message" id="governorateError">يجب اختيار المحافظة</div>
+          </div>
+          <div>
+            <label class="required">المنطقة <i class="fas fa-map-marker-alt icon-map-marker"></i></label>
+            <select id="region" required>
+              <option value="">اختر المنطقة</option>
+              <!-- سيتم تعبئة المناطق من قاعدة البيانات -->
+            </select>
+            <div class="error-message" id="regionError">يجب اختيار المنطقة</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- اسم المتبرع -->
+      <div class="form-section">
+        <label class="required">اسم المتبرع <i class="fas fa-user icon-user"></i></label>
         <input type="text" id="donorName" required placeholder="يجب أن يكون الاسم ثلاثيًا على الأقل (مثال: مروان محمد الذماري)">
         <div class="error-message" id="nameError">يجب أن يكون الاسم ثلاثيًا على الأقل</div>
       </div>
 
+      <!-- الجنس والعمر -->
       <div class="form-section">
-        <label class="required">الجنس 🚻</label>
-        <select id="gender" required>
-          <option value="">اختر الجنس</option>
-          <option value="ذكر">ذكر</option>
-          <option value="أنثى">أنثى</option>
-        </select>
-        <div class="error-message" id="genderError">يجب اختيار الجنس</div>
+        <div class="form-grid">
+          <div>
+            <label class="required">الجنس <i class="fas fa-venus-mars icon-venus-mars"></i></label>
+            <select id="gender" required>
+              <option value="">اختر الجنس</option>
+              <option value="ذكر">ذكر</option>
+              <option value="أنثى">أنثى</option>
+            </select>
+            <div class="error-message" id="genderError">يجب اختيار الجنس</div>
+          </div>
+          <div>
+            <label>العمر <i class="fas fa-birthday-cake icon-birthday"></i></label>
+            <input type="number" id="age" min="18" max="65" inputmode="numeric" placeholder="من 18 إلى 65">
+          </div>
+        </div>
       </div>
 
+      <!-- فصيلة الدم -->
       <div class="form-section">
-        <label>العمر 🎂</label>
-        <input type="number" id="age" min="18" max="65" inputmode="numeric">
-      </div>
-
-      <div class="form-section">
-        <label class="required">فصيلة الدم (بالإنجليزية) 🅰️🅱️</label>
-        <input type="text" id="bloodType" placeholder="مثلاً: A+, O-, B+" required inputmode="text" dir="ltr">
+        <label class="required">فصيلة الدم (بالإنجليزية) <i class="fas fa-tint icon-tint"></i></label>
+        <input type="text" id="bloodType" placeholder="مثلاً: A+, O-, B+" required inputmode="text">
         <div class="error-message" id="bloodTypeError">يجب إدخال فصيلة الدم</div>
       </div>
 
+      <!-- أرقام الجوال -->
       <div class="form-section">
-        <label>عنوان السكن 🏠</label>
-        <input type="text" id="address">
+        <div class="form-grid">
+          <div>
+            <label class="required">رقم الجوال 1 <i class="fas fa-mobile-alt icon-mobile"></i></label>
+            <input type="tel" id="phone1" required inputmode="tel" placeholder="771234567" maxlength="9" minlength="9">
+            <div class="error-message" id="phone1Error">يجب إدخال رقم الجوال (9 أرقام)</div>
+          </div>
+          <div>
+            <label>رقم الجوال 2 <i class="fas fa-mobile-alt icon-mobile"></i></label>
+            <input type="tel" id="phone2" inputmode="tel" placeholder="رقم احتياطي (اختياري)" maxlength="9" minlength="9">
+            <div class="error-message" id="phone2Error">يجب أن يكون الرقم 9 أرقام</div>
+          </div>
+        </div>
       </div>
 
+      <!-- العنوان -->
       <div class="form-section">
-        <label class="required">رقم الجوال 1 📱</label>
-        <input type="tel" id="phone1" required inputmode="tel" dir="ltr">
-        <div class="error-message" id="phone1Error">يجب إدخال رقم الجوال</div>
+        <label>عنوان السكن <i class="fas fa-address-card icon-address-card"></i></label>
+        <input type="text" id="address" placeholder="العنوان التفصيلي">
       </div>
 
+      <!-- الملاحظات -->
       <div class="form-section">
-        <label>رقم الجوال 2 📞</label>
-        <input type="tel" id="phone2" inputmode="tel" dir="ltr">
+        <label>ملاحظات المتبرع <i class="fas fa-sticky-note icon-sticky-note"></i></label>
+        <textarea id="notes" rows="3" placeholder="أي معلومات إضافية عن المتبرع..."></textarea>
       </div>
 
-      <div class="form-section">
-        <label>ملاحظات المتبرع 📝</label>
-        <textarea id="notes" rows="3"></textarea>
-      </div>
-
-      <button type="submit">💾 حفظ البيانات</button>
+      <button type="submit"><i class="fas fa-save icon-save"></i> حفظ البيانات</button>
     </form>
   </div>
 
   <!-- التبويب الثاني -->
   <div class="tab-content active" id="tab2">
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 ابحث بالاسم أو فصيلة الدم..." oninput="searchDonors()">
+    <!-- فلتر البحث -->
+    <div class="filter-container">
+      <div>
+        <label>المحافظة <i class="fas fa-map-marker-alt icon-map-marker"></i></label>
+        <select id="filterGovernorate" onchange="updateFilterRegions()">
+          <option value="">جميع المحافظات</option>
+          <!-- سيتم تعبئة المحافظات من قاعدة البيانات -->
+        </select>
+      </div>
+      <div>
+        <label>المنطقة <i class="fas fa-map-marker-alt icon-map-marker"></i></label>
+        <select id="filterRegion">
+          <option value="">جميع المناطق</option>
+          <!-- سيتم تعبئة المناطق من قاعدة البيانات -->
+        </select>
+      </div>
     </div>
+
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="ابحث بالاسم أو فصيلة الدم..." oninput="searchDonors()">
+      <button style="padding: 8px 12px;"><i class="fas fa-search icon-search"></i></button>
+    </div>
+    
     <table id="donorsTable">
       <thead>
         <tr>
@@ -370,9 +485,11 @@
           <th class="hidden-column">الجنس</th>
           <th class="hidden-column">العمر</th>
           <th>فصيلة الدم</th>
-          <th>الجوال 1</th>
-          <th>الجوال 2</th>
-          <th>العنوان</th>
+          <th class="hidden-column">المحافظة</th>
+          <th class="hidden-column">المنطقة</th>
+          <th class="hidden-column">الجوال 1</th>
+          <th class="hidden-column">الجوال 2</th>
+          <th class="hidden-column">العنوان</th>
           <th class="hidden-column">ملاحظات</th>
           <th>الإجراءات</th>
         </tr>
@@ -386,37 +503,53 @@
     <div class="modal-content">
       <div class="modal-header">
         <div class="modal-title" id="modalDonorName"></div>
-        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <button class="close-btn" onclick="closeModal()">×</button>
       </div>
       <div class="modal-body">
         <div class="modal-field">
-          <div class="modal-label">الجنس</div>
+          <div class="modal-label">الجنس <i class="fas fa-venus-mars icon-venus-mars"></i></div>
           <div class="modal-value" id="modalGender"></div>
         </div>
         <div class="modal-field">
-          <div class="modal-label">العمر</div>
+          <div class="modal-label">العمر <i class="fas fa-birthday-cake icon-birthday"></i></div>
           <div class="modal-value" id="modalAge"></div>
         </div>
         <div class="modal-field">
-          <div class="modal-label">الجوال 1</div>
+          <div class="modal-label">فصيلة الدم <i class="fas fa-tint icon-tint"></i></div>
+          <div class="modal-value" id="modalBloodType"></div>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">المحافظة <i class="fas fa-map-marker-alt icon-map-marker"></i></div>
+          <div class="modal-value" id="modalGovernorate"></div>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">المنطقة <i class="fas fa-map-marker-alt icon-map-marker"></i></div>
+          <div class="modal-value" id="modalRegion"></div>
+        </div>
+        <div class="modal-field" style="grid-column: span 2;">
+          <div class="modal-label">العنوان <i class="fas fa-address-card icon-address-card"></i></div>
+          <div class="modal-value" id="modalAddress"></div>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">الجوال 1 <i class="fas fa-mobile-alt icon-mobile"></i></div>
           <div class="phone-container">
             <div class="modal-value" id="modalPhone1"></div>
             <button class="call-btn" id="callPhone1Btn" onclick="callPhone('phone1')">
-              <i class="fas fa-phone"></i>
+              <i class="fas fa-phone icon-phone"></i>
             </button>
           </div>
         </div>
         <div class="modal-field">
-          <div class="modal-label">الجوال 2</div>
+          <div class="modal-label">الجوال 2 <i class="fas fa-mobile-alt icon-mobile"></i></div>
           <div class="phone-container">
             <div class="modal-value" id="modalPhone2"></div>
             <button class="call-btn" id="callPhone2Btn" onclick="callPhone('phone2')" style="display: none;">
-              <i class="fas fa-phone"></i>
+              <i class="fas fa-phone icon-phone"></i>
             </button>
           </div>
         </div>
         <div class="modal-field" style="grid-column: span 2;">
-          <div class="modal-label">ملاحظات</div>
+          <div class="modal-label">ملاحظات <i class="fas fa-sticky-note icon-sticky-note"></i></div>
           <div class="modal-value" id="modalNotes"></div>
         </div>
       </div>
@@ -424,15 +557,37 @@
   </div>
 
   <script>
-    const DB_URL = "https://chat-fat-free-default-rtdb.firebaseio.com/fah/categories/merchant_bdyh_lmshwr_1762375576678_78/blood_donors.json";
+    // تهيئة Firebase
+    const firebaseConfig = {
+      databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+    };
+    
+    // تهيئة Firebase
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+        console.log('✅ Firebase initialized successfully');
+      }
+    } catch (error) {
+      console.error("❌ خطأ في تهيئة Firebase:", error);
+    }
+    
+    const db = firebase.database();
+
+    const DONORS_DB_URL = "https://chat-fat-free-default-rtdb.firebaseio.com/fah/categories/merchant_bdyh_lmshwr_1762375576678_78/blood_donors.json";
 
     let donorsData = {};
     let marqueeIndex = 0;
     let currentDonorData = {};
+    let allGovernorates = [];
+    let allRegions = [];
+    let regionsData = {};
+
     const marqueeTexts = [
       'قال تعالى ﴿وَمَنْ أَحْيَاهَا فَكَأَنَّمَا أَحْيَا النَّاسَ جَمِيعًا﴾  سورة المائدة: 32',
       'قال النبي ﷺ "من فرّج عن مسلم كربةً من كُرَب الدنيا فرّج الله عنه كربةً من كُرَب يوم القيامة" (رواه مسلم)',
-      'التبرع بالدم عمل إنساني عظيم وأجره كبير، وهو من باب إنقاذ النفس والإحسان إلى الخلق، ويعد صدقة جارية ما دام الدم يُستخدم في إنقاذ حياة الآخرين'
+      'التبرع بالدم عمل إنساني عظيم وأجره كبير، وهو من باب إنقاذ النفس والإحسان إلى الخلق، ويعد صدقة جارية ما دام الدم يُستخدم في إنقاذ حياة الآخرين',
+      'هذا العمل اهداء إلى روح والدي المنتقل الى رحمة الله الوالد محمد عبد الله الذماري'
     ];
 
     // تبديل التبويبات
@@ -441,7 +596,151 @@
         tab.classList.toggle('active', i === index);
         document.querySelectorAll('.tab-content')[i].classList.toggle('active', i === index);
       });
-      if (index === 1) loadDonors();
+      if (index === 1) {
+        loadDonors();
+      }
+    }
+
+    // تحميل المحافظات والمناطق من Firebase
+    async function loadGovernoratesAndRegions() {
+      try {
+        console.log('🔄 جاري تحميل المحافظات والمناطق...');
+        
+        // جلب المحافظات
+        const governoratesSnapshot = await db.ref("governorates").once("value");
+        const governoratesData = governoratesSnapshot.val();
+        
+        if (governoratesData) {
+          allGovernorates = Object.entries(governoratesData).map(([id, data]) => ({
+            id: id,
+            name: data.name || data.id,
+            areas: data.areas || {}
+          }));
+          
+          console.log('✅ تم تحميل المحافظات:', allGovernorates.length);
+          
+          // تعبئة قائمة المحافظات في النموذج
+          const governorateSelect = document.getElementById('governorate');
+          const filterGovernorateSelect = document.getElementById('filterGovernorate');
+          
+          governorateSelect.innerHTML = '<option value="">اختر المحافظة</option>';
+          filterGovernorateSelect.innerHTML = '<option value="">جميع المحافظات</option>';
+          
+          allGovernorates.forEach(gov => {
+            const option = document.createElement('option');
+            option.value = gov.id;
+            option.textContent = gov.name;
+            governorateSelect.appendChild(option);
+            
+            const filterOption = document.createElement('option');
+            filterOption.value = gov.id;
+            filterOption.textContent = gov.name;
+            filterGovernorateSelect.appendChild(filterOption);
+          });
+          
+          // بناء بيانات المناطق
+          regionsData = {};
+          allGovernorates.forEach(gov => {
+            if (gov.areas && typeof gov.areas === 'object') {
+              regionsData[gov.id] = Object.values(gov.areas);
+            }
+          });
+          
+          console.log('🗺️ بيانات المناطق المحملة:', regionsData);
+        } else {
+          console.warn('⚠️ لا توجد بيانات للمحافظات في قاعدة البيانات');
+          // استخدام بيانات افتراضية في حالة عدم وجود بيانات
+          loadDefaultGovernorates();
+        }
+      } catch (error) {
+        console.error('❌ خطأ في تحميل المحافظات:', error);
+        // استخدام بيانات افتراضية في حالة الخطأ
+        loadDefaultGovernorates();
+      }
+    }
+
+    // تحميل بيانات افتراضية للمحافظات والمناطق
+    function loadDefaultGovernorates() {
+      console.log('🔄 استخدام البيانات الافتراضية للمحافظات...');
+      
+      allGovernorates = [
+        { id: "sanaa", name: "صنعاء", areas: ["الروضة", "التحرير", "السبعين", "الوحدة", "معين"] },
+        { id: "aden", name: "عدن", areas: ["خور مكسر", "التواهي", "المعلا", "الشيخ عثمان"] },
+        { id: "taiz", name: "تعز", areas: ["المدينة", "القاهرة", "صالة", "المظفر"] },
+        { id: "hodeidah", name: "الحديدة", areas: ["الميناء", "الحالي", "النخيل", "الحوك"] }
+      ];
+      
+      const governorateSelect = document.getElementById('governorate');
+      const filterGovernorateSelect = document.getElementById('filterGovernorate');
+      
+      governorateSelect.innerHTML = '<option value="">اختر المحافظة</option>';
+      filterGovernorateSelect.innerHTML = '<option value="">جميع المحافظات</option>';
+      
+      allGovernorates.forEach(gov => {
+        const option = document.createElement('option');
+        option.value = gov.id;
+        option.textContent = gov.name;
+        governorateSelect.appendChild(option);
+        
+        const filterOption = document.createElement('option');
+        filterOption.value = gov.id;
+        filterOption.textContent = gov.name;
+        filterGovernorateSelect.appendChild(filterOption);
+      });
+      
+      // بناء بيانات المناطق
+      regionsData = {};
+      allGovernorates.forEach(gov => {
+        regionsData[gov.id] = gov.areas;
+      });
+    }
+
+    // تحديث المناطق بناءً على المحافظة المختارة
+    function updateRegions() {
+      const governorateId = document.getElementById('governorate').value;
+      const regionSelect = document.getElementById('region');
+      
+      regionSelect.innerHTML = '<option value="">اختر المنطقة</option>';
+      
+      if (governorateId && regionsData[governorateId]) {
+        regionsData[governorateId].forEach(region => {
+          const option = document.createElement('option');
+          option.value = region;
+          option.textContent = region;
+          regionSelect.appendChild(option);
+        });
+      }
+    }
+
+    // تحديث المناطق في فلتر البحث
+    function updateFilterRegions() {
+      const governorateId = document.getElementById('filterGovernorate').value;
+      const regionSelect = document.getElementById('filterRegion');
+      
+      regionSelect.innerHTML = '<option value="">جميع المناطق</option>';
+      
+      if (governorateId && regionsData[governorateId]) {
+        regionsData[governorateId].forEach(region => {
+          const option = document.createElement('option');
+          option.value = region;
+          option.textContent = region;
+          regionSelect.appendChild(option);
+        });
+      }
+    }
+
+    // الحصول على اسم المحافظة من المعرف
+    function getGovernorateName(governorateId) {
+      const gov = allGovernorates.find(g => g.id === governorateId);
+      return gov ? gov.name : governorateId;
+    }
+
+    // التحقق من صحة رقم الجوال
+    function validatePhone(phone) {
+      if (!phone) return false;
+      // التحقق من أن الرقم يتكون من 9 أرقام فقط
+      const phoneRegex = /^\d{9}$/;
+      return phoneRegex.test(phone);
     }
 
     // تغيير النص المتحرك
@@ -450,7 +749,7 @@
       marqueeElement.style.animation = 'none';
       setTimeout(() => {
         marqueeElement.textContent = marqueeTexts[marqueeIndex];
-        marqueeElement.style.animation = 'marquee 25s linear infinite';
+        marqueeElement.style.animation = 'marquee 40s linear infinite';
       }, 10);
       marqueeIndex = (marqueeIndex + 1) % marqueeTexts.length;
     }
@@ -458,7 +757,7 @@
     // جلب بيانات المتبرعين عند بدء الصفحة
     async function fetchDonors() {
       try {
-        const res = await fetch(DB_URL);
+        const res = await fetch(DONORS_DB_URL);
         donorsData = await res.json() || {};
       } catch (error) {
         console.error('Error fetching donors:', error);
@@ -517,13 +816,40 @@
         showError('bloodType', 'bloodTypeError', false);
       }
       
-      // التحقق من رقم الجوال
+      // التحقق من المحافظة
+      const governorate = document.getElementById('governorate').value;
+      if (!governorate) {
+        showError('governorate', 'governorateError', true);
+        isValid = false;
+      } else {
+        showError('governorate', 'governorateError', false);
+      }
+      
+      // التحقق من المنطقة
+      const region = document.getElementById('region').value;
+      if (!region) {
+        showError('region', 'regionError', true);
+        isValid = false;
+      } else {
+        showError('region', 'regionError', false);
+      }
+      
+      // التحقق من رقم الجوال 1
       const phone1 = document.getElementById('phone1').value.trim();
-      if (!phone1) {
+      if (!validatePhone(phone1)) {
         showError('phone1', 'phone1Error', true);
         isValid = false;
       } else {
         showError('phone1', 'phone1Error', false);
+      }
+      
+      // التحقق من رقم الجوال 2 (إذا تم إدخاله)
+      const phone2 = document.getElementById('phone2').value.trim();
+      if (phone2 && !validatePhone(phone2)) {
+        showError('phone2', 'phone2Error', true);
+        isValid = false;
+      } else {
+        showError('phone2', 'phone2Error', false);
       }
       
       return isValid;
@@ -541,8 +867,12 @@
 
       const donorName = document.getElementById('donorName').value.trim();
       const phone1 = document.getElementById('phone1').value.trim();
+      const phone2 = document.getElementById('phone2').value.trim();
       const gender = document.getElementById('gender').value;
       const bloodType = document.getElementById('bloodType').value.trim().toUpperCase();
+      const governorate = document.getElementById('governorate').value;
+      const governorateName = getGovernorateName(governorate);
+      const region = document.getElementById('region').value;
 
       // تحقق من التكرار
       for (const id in donorsData) {
@@ -555,6 +885,10 @@
           alert("⚠️ رقم الجوال 1 مسجل مسبقاً، يرجى التأكد.");
           return;
         }
+        if (phone2 && d.phone2 === phone2) {
+          alert("⚠️ رقم الجوال 2 مسجل مسبقاً، يرجى التأكد.");
+          return;
+        }
       }
 
       const donor = {
@@ -562,15 +896,18 @@
         gender,
         age: document.getElementById('age').value,
         bloodType,
+        governorate: governorateName, // حفظ اسم المحافظة
+        governorateId: governorate, // حفظ معرف المحافظة للفلترة
+        region,
         address: document.getElementById('address').value,
         phone1,
-        phone2: document.getElementById('phone2').value.trim(),
+        phone2: phone2 || '', // حفظ رقم الجوال 2 فقط إذا تم إدخاله
         notes: document.getElementById('notes').value,
         createdAt: new Date().toISOString()
       };
 
       try {
-        const response = await fetch(DB_URL.replace(".json", "") + ".json", {
+        const response = await fetch(DONORS_DB_URL.replace(".json", "") + ".json", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(donor)
@@ -580,6 +917,7 @@
           alert("✅ تم حفظ بيانات المتبرع بنجاح");
           document.getElementById('donorForm').reset();
           fetchDonors();
+          loadDonors(); // تحديث قائمة المتبرعين
         } else {
           alert("❌ حدث خطأ أثناء الحفظ");
         }
@@ -592,10 +930,22 @@
     // تحميل وعرض المتبرعين
     async function loadDonors() {
       try {
-        const res = await fetch(DB_URL);
+        const res = await fetch(DONORS_DB_URL);
         donorsData = await res.json() || {};
         const tbody = document.getElementById('donorsList');
         tbody.innerHTML = "";
+        
+        if (Object.keys(donorsData).length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="12" style="text-align: center; padding: 20px; color: #666;">
+                <i class="fas fa-info-circle" style="color: #3498db;"></i> لا توجد بيانات متبرعين مسجلة حالياً
+              </td>
+            </tr>
+          `;
+          return;
+        }
+        
         let counter = 1;
         for (const id in donorsData) {
           const d = donorsData[id];
@@ -606,32 +956,64 @@
             <td class="hidden-column">${d.gender || ''}</td>
             <td class="hidden-column">${d.age || ''}</td>
             <td>${d.bloodType || ''}</td>
-            <td>${d.phone1 || ''}</td>
-            <td>${d.phone2 || ''}</td>
-            <td>${d.address || ''}</td>
+            <td class="hidden-column">${d.governorate || ''}</td>
+            <td class="hidden-column">${d.region || ''}</td>
+            <td class="hidden-column">${d.phone1 || ''}</td>
+            <td class="hidden-column">${d.phone2 || ''}</td>
+            <td class="hidden-column">${d.address || ''}</td>
             <td class="hidden-column">${d.notes || ''}</td>
-            <td><button class="view-btn" onclick="showDonorDetails('${id}')">عرض</button></td>
+            <td><button class="view-btn" onclick="showDonorDetails('${id}')"><i class="fas fa-eye icon-eye"></i> عرض</button></td>
           `;
           tbody.appendChild(tr);
         }
         window.donorsData = donorsData;
       } catch (error) {
         console.error('Error loading donors:', error);
+        const tbody = document.getElementById('donorsList');
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="12" style="text-align: center; padding: 20px; color: #e74c3c;">
+              <i class="fas fa-exclamation-triangle"></i> حدث خطأ في تحميل البيانات
+            </td>
+          </tr>
+        `;
       }
     }
 
-    // البحث بالاسم أو الفصيلة
+    // البحث بالاسم أو الفصيلة مع الفلاتر
     function searchDonors() {
       const term = document.getElementById('searchInput').value.toLowerCase();
+      const filterGovernorate = document.getElementById('filterGovernorate').value;
+      const filterRegion = document.getElementById('filterRegion').value;
+      
       const tbody = document.getElementById('donorsList');
       tbody.innerHTML = "";
       let counter = 1;
+      
+      let hasResults = false;
+      
       for (const id in window.donorsData || {}) {
         const d = window.donorsData[id];
+        
+        // تطبيق فلتر المحافظة
+        if (filterGovernorate && d.governorateId !== filterGovernorate) {
+          continue;
+        }
+        
+        // تطبيق فلتر المنطقة
+        if (filterRegion && d.region !== filterRegion) {
+          continue;
+        }
+        
+        // تطبيق البحث النصي
         if (
           (d.donorName && d.donorName.toLowerCase().includes(term)) ||
-          (d.bloodType && d.bloodType.toLowerCase().includes(term))
+          (d.bloodType && d.bloodType.toLowerCase().includes(term)) ||
+          (d.governorate && d.governorate.toLowerCase().includes(term)) ||
+          (d.region && d.region.toLowerCase().includes(term)) ||
+          (d.address && d.address.toLowerCase().includes(term))
         ) {
+          hasResults = true;
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="hidden-column">${counter++}</td>
@@ -639,14 +1021,26 @@
             <td class="hidden-column">${d.gender || ''}</td>
             <td class="hidden-column">${d.age || ''}</td>
             <td>${d.bloodType}</td>
-            <td>${d.phone1}</td>
-            <td>${d.phone2 || ''}</td>
-            <td>${d.address || ''}</td>
+            <td class="hidden-column">${d.governorate || ''}</td>
+            <td class="hidden-column">${d.region || ''}</td>
+            <td class="hidden-column">${d.phone1}</td>
+            <td class="hidden-column">${d.phone2 || ''}</td>
+            <td class="hidden-column">${d.address || ''}</td>
             <td class="hidden-column">${d.notes || ''}</td>
-            <td><button class="view-btn" onclick="showDonorDetails('${id}')">عرض</button></td>
+            <td><button class="view-btn" onclick="showDonorDetails('${id}')"><i class="fas fa-eye icon-eye"></i> عرض</button></td>
           `;
           tbody.appendChild(tr);
         }
+      }
+      
+      if (!hasResults) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="12" style="text-align: center; padding: 20px; color: #666;">
+              <i class="fas fa-search icon-search"></i> لا توجد نتائج تطابق معايير البحث
+            </td>
+          </tr>
+        `;
       }
     }
 
@@ -658,9 +1052,13 @@
       document.getElementById('modalDonorName').textContent = donor.donorName || '';
       document.getElementById('modalGender').textContent = donor.gender || '';
       document.getElementById('modalAge').textContent = donor.age || '';
+      document.getElementById('modalBloodType').textContent = donor.bloodType || '';
+      document.getElementById('modalGovernorate').textContent = donor.governorate || '';
+      document.getElementById('modalRegion').textContent = donor.region || '';
+      document.getElementById('modalAddress').textContent = donor.address || 'لا يوجد عنوان';
       document.getElementById('modalPhone1').textContent = donor.phone1 || '';
       document.getElementById('modalPhone2').textContent = donor.phone2 || '';
-      document.getElementById('modalNotes').textContent = donor.notes || '';
+      document.getElementById('modalNotes').textContent = donor.notes || 'لا توجد ملاحظات';
       
       // إظهار أو إخفاء زر الاتصال للجوال 2
       const callPhone2Btn = document.getElementById('callPhone2Btn');
@@ -683,31 +1081,60 @@
     function callPhone(phoneType) {
       const phoneNumber = currentDonorData[phoneType];
       if (phoneNumber) {
-        window.open(`tel:${phoneNumber}`, '_self');
+        // تنظيف الرقم من أي مسافات أو أحرف غير رقمية
+        const cleanNumber = phoneNumber.replace(/\D/g, '');
+        window.open(`tel:${cleanNumber}`, '_self');
       }
     }
 
-    // تحميل البيانات عند فتح الصفحة لأول مرة
-    fetchDonors();
-    
-    // تغيير النص المتحرك كل 10 ثوان
-    setInterval(changeMarqueeText, 10000);
-    
-    // إضافة مستمعين للأحداث للتحقق أثناء الكتابة
-    document.getElementById('donorName').addEventListener('input', function() {
-      showError('donorName', 'nameError', !validateName(this.value.trim()));
-    });
-    
-    document.getElementById('gender').addEventListener('change', function() {
-      showError('gender', 'genderError', !this.value);
-    });
-    
-    document.getElementById('bloodType').addEventListener('input', function() {
-      showError('bloodType', 'bloodTypeError', !this.value.trim());
-    });
-    
-    document.getElementById('phone1').addEventListener('input', function() {
-      showError('phone1', 'phone1Error', !this.value.trim());
+    // تهيئة التطبيق عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+      // فتح تبويب عرض المتبرعين تلقائياً
+      showTab(1);
+      
+      // تحميل المحافظات والمناطق أولاً
+      loadGovernoratesAndRegions();
+      
+      // ثم تحميل بيانات المتبرعين
+      fetchDonors().then(() => {
+        loadDonors();
+      });
+      
+      // تغيير النص المتحرك كل 10 ثوان
+      setInterval(changeMarqueeText, 10000);
+      
+      // إضافة مستمعين للأحداث للتحقق أثناء الكتابة
+      document.getElementById('donorName').addEventListener('input', function() {
+        showError('donorName', 'nameError', !validateName(this.value.trim()));
+      });
+      
+      document.getElementById('gender').addEventListener('change', function() {
+        showError('gender', 'genderError', !this.value);
+      });
+      
+      document.getElementById('bloodType').addEventListener('input', function() {
+        showError('bloodType', 'bloodTypeError', !this.value.trim());
+      });
+      
+      document.getElementById('governorate').addEventListener('change', function() {
+        showError('governorate', 'governorateError', !this.value);
+      });
+      
+      document.getElementById('region').addEventListener('change', function() {
+        showError('region', 'regionError', !this.value);
+      });
+      
+      document.getElementById('phone1').addEventListener('input', function() {
+        showError('phone1', 'phone1Error', !validatePhone(this.value.trim()));
+      });
+      
+      document.getElementById('phone2').addEventListener('input', function() {
+        if (this.value.trim()) {
+          showError('phone2', 'phone2Error', !validatePhone(this.value.trim()));
+        } else {
+          showError('phone2', 'phone2Error', false);
+        }
+      });
     });
   </script>
 
