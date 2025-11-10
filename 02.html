@@ -650,6 +650,75 @@
         .notification.info {
             background: var(--primary-color);
         }
+
+        /* تحسينات إضافية */
+        .advanced-controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .advanced-controls label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .advanced-controls input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .auto-refresh-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auto-refresh-input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .ip-services-status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .service-status {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .service-success {
+            background: rgba(39, 174, 96, 0.2);
+            color: var(--success-color);
+        }
+
+        .service-failed {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger-color);
+        }
+
+        .service-pending {
+            background: rgba(241, 196, 15, 0.2);
+            color: var(--warning-color);
+        }
     </style>
 </head>
 <body>
@@ -695,6 +764,32 @@
             <div class="ip-info-grid" id="ipInfoGrid">
                 <!-- سيتم ملؤها بالبيانات -->
             </div>
+            <div class="ip-services-status" id="ipServicesStatus">
+                <!-- سيتم ملؤها بحالة خدمات الـ IP -->
+            </div>
+        </div>
+
+        <!-- عناصر التحكم المتقدمة -->
+        <div class="advanced-controls">
+            <div class="auto-refresh-controls">
+                <label>
+                    <input type="checkbox" id="autoRefreshCheckbox" checked>
+                    التحديث التلقائي
+                </label>
+                <span>كل</span>
+                <input type="number" id="autoRefreshInterval" class="auto-refresh-input" value="5" min="1" max="60">
+                <span>ثواني</span>
+            </div>
+            
+            <label>
+                <input type="checkbox" id="detailedInfoCheckbox" checked>
+                عرض معلومات تفصيلية
+            </label>
+            
+            <button class="refresh-btn" id="manualRefreshBtn" style="padding: 8px 15px;">
+                <i class="fas fa-sync-alt"></i>
+                تحديث يدوي
+            </button>
         </div>
 
         <!-- عناصر التحكم -->
@@ -857,22 +952,30 @@
         let charts = {};
         let currentIPData = {};
         let visitorId = generateVisitorId(); // إنشاء معرف فريد للزائر
+        let autoRefreshInterval = null;
+        let autoRefreshEnabled = true;
+        let autoRefreshTime = 5000; // 5 ثواني
 
         // عناصر DOM
         const elements = {
             headerStats: document.getElementById('headerStats'),
             ipInfoGrid: document.getElementById('ipInfoGrid'),
+            ipServicesStatus: document.getElementById('ipServicesStatus'),
             visitorsTableBody: document.getElementById('visitorsTableBody'),
             sessionsTableBody: document.getElementById('sessionsTableBody'),
             searchInput: document.getElementById('searchInput'),
             statusFilter: document.getElementById('statusFilter'),
             dateFilter: document.getElementById('dateFilter'),
             refreshBtn: document.getElementById('refreshBtn'),
+            manualRefreshBtn: document.getElementById('manualRefreshBtn'),
             prevPage: document.getElementById('prevPage'),
             nextPage: document.getElementById('nextPage'),
             pageInfo: document.getElementById('pageInfo'),
             visitorModal: document.getElementById('visitorModal'),
-            modalBody: document.getElementById('modalBody')
+            modalBody: document.getElementById('modalBody'),
+            autoRefreshCheckbox: document.getElementById('autoRefreshCheckbox'),
+            autoRefreshInterval: document.getElementById('autoRefreshInterval'),
+            detailedInfoCheckbox: document.getElementById('detailedInfoCheckbox')
         };
 
         // دالة العودة
@@ -895,6 +998,7 @@
             loadAllData();
             setupEventListeners();
             initializeCharts();
+            setupAutoRefresh();
         });
 
         // ===== نظام استخراج IP الزائر المحسّن =====
@@ -915,36 +1019,65 @@
                 
                 // استخدام خدمات متعددة لاستخراج IP
                 const ipServices = [
-                    "https://api.ipify.org?format=json",
-                    "https://api64.ipify.org?format=json",
-                    "https://jsonip.com/",
-                    "https://api.myip.com/"
+                    { name: "ipify.org", url: "https://api.ipify.org?format=json" },
+                    { name: "ipify.org (IPv6)", url: "https://api64.ipify.org?format=json" },
+                    { name: "jsonip.com", url: "https://jsonip.com/" },
+                    { name: "myip.com", url: "https://api.myip.com/" },
+                    { name: "ip-api.com", url: "http://ip-api.com/json/" },
+                    { name: "ipinfo.io", url: "https://ipinfo.io/json" },
+                    { name: "geolocation-db.com", url: "https://geolocation-db.com/json/" },
+                    { name: "extreme-ip-lookup.com", url: "https://extreme-ip-lookup.com/json/" }
                 ];
                 
                 let ip = "غير معروف";
                 let ipInfo = {};
+                let serviceStatus = [];
                 
                 // محاولة استخراج IP من الخدمات المختلفة
                 for (let service of ipServices) {
                     try {
-                        console.log(`🔄 محاولة الخدمة: ${service}`);
-                        const response = await fetchWithTimeout(service, { timeout: 5000 });
+                        console.log(`🔄 محاولة الخدمة: ${service.name}`);
+                        const response = await fetchWithTimeout(service.url, { timeout: 5000 });
                         if (response.ok) {
                             const data = await response.json();
-                            ip = data.ip || data.query || 'غير معروف';
-                            console.log(`✅ تم استخراج IP: ${ip}`);
-                            if (ip !== 'غير معروف') break;
+                            ip = data.ip || data.query || data.IPv4 || 'غير معروف';
+                            console.log(`✅ تم استخراج IP من ${service.name}: ${ip}`);
+                            
+                            serviceStatus.push({
+                                name: service.name,
+                                status: 'success',
+                                ip: ip
+                            });
+                            
+                            if (ip !== 'غير معروف') {
+                                // حفظ معلومات إضافية من الخدمة
+                                if (service.name === 'ip-api.com' || service.name === 'ipinfo.io' || 
+                                    service.name === 'geolocation-db.com' || service.name === 'extreme-ip-lookup.com') {
+                                    ipInfo = { ...data };
+                                }
+                                break;
+                            }
                         } else {
-                            console.warn(`❌ فشل الاستجابة من ${service}: ${response.status}`);
+                            console.warn(`❌ فشل الاستجابة من ${service.name}: ${response.status}`);
+                            serviceStatus.push({
+                                name: service.name,
+                                status: 'failed',
+                                error: `HTTP ${response.status}`
+                            });
                         }
                     } catch (error) {
-                        console.warn(`⚠️ فشل الخدمة ${service}:`, error.message);
+                        console.warn(`⚠️ فشل الخدمة ${service.name}:`, error.message);
+                        serviceStatus.push({
+                            name: service.name,
+                            status: 'failed',
+                            error: error.message
+                        });
                         continue;
                     }
                 }
                 
-                // الحصول على معلومات إضافية عن IP
-                if (ip !== 'غير معروف') {
+                // الحصول على معلومات إضافية عن IP إذا لم نحصل عليها من الخدمات السابقة
+                if (ip !== 'غير معروف' && Object.keys(ipInfo).length === 0) {
                     try {
                         console.log(`🌍 جلب معلومات الموقع لـ IP: ${ip}`);
                         const response = await fetchWithTimeout(`https://ipapi.co/${ip}/json/`, { timeout: 8000 });
@@ -968,17 +1101,20 @@
                     visitorId: visitorId,
                     timestamp: new Date().toISOString(),
                     geolocation: {
-                        country: ipInfo.country_name || 'غير معروف',
+                        country: ipInfo.country_name || ipInfo.country || 'غير معروف',
                         city: ipInfo.city || 'غير معروف',
-                        region: ipInfo.region || 'غير معروف',
+                        region: ipInfo.region || ipInfo.regionName || 'غير معروف',
                         timezone: ipInfo.timezone || 'غير معروف',
-                        isp: ipInfo.org || 'غير معروف'
+                        isp: ipInfo.org || ipInfo.isp || ipInfo.organization || 'غير معروف',
+                        latitude: ipInfo.lat || 'غير معروف',
+                        longitude: ipInfo.lon || 'غير معروف'
                     },
                     device: deviceInfo,
                     network: networkInfo
                 };
                 
                 displayIPInfo();
+                displayServiceStatus(serviceStatus);
                 console.log('✅ تم استخراج معلومات الزائر بنجاح:', currentIPData);
                 
             } catch (error) {
@@ -1012,6 +1148,7 @@
         function getDeviceInfo() {
             const ua = navigator.userAgent;
             let platform = 'غير معروف';
+            let deviceType = 'غير معروف';
             
             if (ua.includes('Windows')) platform = 'Windows';
             else if (ua.includes('Mac')) platform = 'Mac';
@@ -1019,13 +1156,38 @@
             else if (ua.includes('Android')) platform = 'Android';
             else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) platform = 'iOS';
             
+            // تحديد نوع الجهاز
+            if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+                deviceType = 'جهاز لوحي';
+            } else if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
+                deviceType = 'هاتف محمول';
+            } else {
+                deviceType = 'كمبيوتر';
+            }
+            
             return {
                 platform: platform,
+                deviceType: deviceType,
                 language: navigator.language || 'غير معروف',
                 screenResolution: `${screen.width}x${screen.height}`,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'غير معروف',
-                userAgent: ua.substring(0, 100) + '...' // تقصير userAgent للعرض
+                userAgent: ua.substring(0, 100) + '...', // تقصير userAgent للعرض
+                browser: getBrowserInfo(ua),
+                cores: navigator.hardwareConcurrency || 'غير معروف'
             };
+        }
+
+        // الحصول على معلومات المتصفح
+        function getBrowserInfo(ua) {
+            let browser = 'غير معروف';
+            
+            if (ua.includes('Chrome')) browser = 'Chrome';
+            else if (ua.includes('Firefox')) browser = 'Firefox';
+            else if (ua.includes('Safari')) browser = 'Safari';
+            else if (ua.includes('Edge')) browser = 'Edge';
+            else if (ua.includes('Opera')) browser = 'Opera';
+            
+            return browser;
         }
 
         // الحصول على معلومات الشبكة
@@ -1034,15 +1196,22 @@
                 const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
                 
                 let effectiveType = 'غير معروف';
+                let downlink = 'غير معروف';
+                let rtt = 'غير معروف';
+                let saveData = false;
+                
                 if (connection) {
                     effectiveType = connection.effectiveType || 'غير معروف';
+                    downlink = connection.downlink ? `${connection.downlink} Mbps` : 'غير معروف';
+                    rtt = connection.rtt ? `${connection.rtt} ms` : 'غير معروف';
+                    saveData = connection.saveData || false;
                 }
                 
                 return {
                     effectiveType: effectiveType,
-                    downlink: connection ? (connection.downlink || 'غير معروف') : 'غير معروف',
-                    rtt: connection ? (connection.rtt || 'غير معروف') : 'غير معروف',
-                    saveData: connection ? connection.saveData : false,
+                    downlink: downlink,
+                    rtt: rtt,
+                    saveData: saveData,
                     online: navigator.onLine
                 };
             } catch (error) {
@@ -1056,8 +1225,9 @@
         // عرض معلومات الزائر
         function displayIPInfo() {
             const { ip, visitorId, geolocation, device, network } = currentIPData;
+            const detailedInfo = elements.detailedInfoCheckbox.checked;
             
-            elements.ipInfoGrid.innerHTML = `
+            let ipInfoHTML = `
                 <div class="ip-info-card">
                     <div class="ip-info-icon">
                         <i class="fas fa-globe"></i>
@@ -1079,34 +1249,75 @@
                         <i class="fas fa-copy"></i> نسخ
                     </button>
                 </div>
-                
-                <div class="ip-info-card geo">
-                    <div class="ip-info-icon">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </div>
-                    <div class="ip-info-label">الموقع الجغرافي</div>
-                    <div class="ip-info-value">${geolocation.country}</div>
-                    <div class="ip-info-label">${geolocation.city}, ${geolocation.region}</div>
-                </div>
-                
-                <div class="ip-info-card device">
-                    <div class="ip-info-icon">
-                        <i class="fas fa-desktop"></i>
-                    </div>
-                    <div class="ip-info-label">معلومات الجهاز</div>
-                    <div class="ip-info-value">${device.platform}</div>
-                    <div class="ip-info-label">${device.screenResolution}</div>
-                </div>
-                
-                <div class="ip-info-card network">
-                    <div class="ip-info-icon">
-                        <i class="fas fa-wifi"></i>
-                    </div>
-                    <div class="ip-info-label">معلومات الشبكة</div>
-                    <div class="ip-info-value">${network.effectiveType}</div>
-                    <div class="ip-info-label">${network.online ? 'متصل' : 'غير متصل'}</div>
-                </div>
             `;
+            
+            if (detailedInfo) {
+                ipInfoHTML += `
+                    <div class="ip-info-card geo">
+                        <div class="ip-info-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="ip-info-label">الموقع الجغرافي</div>
+                        <div class="ip-info-value">${geolocation.country}</div>
+                        <div class="ip-info-label">${geolocation.city}, ${geolocation.region}</div>
+                        ${geolocation.isp !== 'غير معروف' ? `<div class="ip-info-label">مزود الخدمة: ${geolocation.isp}</div>` : ''}
+                    </div>
+                    
+                    <div class="ip-info-card device">
+                        <div class="ip-info-icon">
+                            <i class="fas fa-desktop"></i>
+                        </div>
+                        <div class="ip-info-label">معلومات الجهاز</div>
+                        <div class="ip-info-value">${device.deviceType}</div>
+                        <div class="ip-info-label">${device.platform} - ${device.browser}</div>
+                        <div class="ip-info-label">الدقة: ${device.screenResolution}</div>
+                    </div>
+                    
+                    <div class="ip-info-card network">
+                        <div class="ip-info-icon">
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <div class="ip-info-label">معلومات الشبكة</div>
+                        <div class="ip-info-value">${network.effectiveType}</div>
+                        <div class="ip-info-label">${network.online ? 'متصل' : 'غير متصل'}</div>
+                        ${network.downlink !== 'غير معروف' ? `<div class="ip-info-label">السرعة: ${network.downlink}</div>` : ''}
+                    </div>
+                `;
+            } else {
+                ipInfoHTML += `
+                    <div class="ip-info-card" style="grid-column: 1 / -1; text-align: center;">
+                        <div class="ip-info-icon">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div class="ip-info-label">تم تفعيل الوضع المبسط</div>
+                        <div class="ip-info-value">لرؤية المزيد من المعلومات، قم بتفعيل "عرض معلومات تفصيلية"</div>
+                    </div>
+                `;
+            }
+            
+            elements.ipInfoGrid.innerHTML = ipInfoHTML;
+        }
+
+        // عرض حالة خدمات الـ IP
+        function displayServiceStatus(serviceStatus) {
+            let statusHTML = '';
+            
+            serviceStatus.forEach(service => {
+                let statusClass = 'service-pending';
+                let statusText = 'جارٍ المعالجة';
+                
+                if (service.status === 'success') {
+                    statusClass = 'service-success';
+                    statusText = `نجح - ${service.ip}`;
+                } else if (service.status === 'failed') {
+                    statusClass = 'service-failed';
+                    statusText = `فشل - ${service.error}`;
+                }
+                
+                statusHTML += `<span class="service-status ${statusClass}">${service.name}: ${statusText}</span>`;
+            });
+            
+            elements.ipServicesStatus.innerHTML = statusHTML;
         }
 
         // عرض رسالة خطأ في حالة فشل استخراج IP
@@ -1117,7 +1328,7 @@
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
                     <div class="ip-info-label">تعذر استخراج معلومات الزائر</div>
-                    <div class="ip-info-value">يرجى التحقق من اتصال الإنترنت</div>
+                    <div class="ip-info-value">يرجى التحقق من اتصال الإنترنت أو إعدادات CORS</div>
                     <button class="ip-copy-btn" onclick="loadCurrentIPInfo()">
                         <i class="fas fa-redo"></i> إعادة المحاولة
                     </button>
@@ -1179,14 +1390,78 @@
             elements.statusFilter.addEventListener('change', filterVisitors);
             elements.dateFilter.addEventListener('change', filterVisitors);
             elements.refreshBtn.addEventListener('click', loadAllData);
+            elements.manualRefreshBtn.addEventListener('click', loadAllData);
             elements.prevPage.addEventListener('click', goToPrevPage);
             elements.nextPage.addEventListener('click', goToNextPage);
+            elements.autoRefreshCheckbox.addEventListener('change', toggleAutoRefresh);
+            elements.autoRefreshInterval.addEventListener('change', updateAutoRefreshTime);
+            elements.detailedInfoCheckbox.addEventListener('change', displayIPInfo);
+            
+            // إغلاق المودال عند النقر خارج المحتوى
+            window.addEventListener('click', function(event) {
+                if (event.target === elements.visitorModal) {
+                    closeModal();
+                }
+            });
+        }
+
+        // إعداد التحديث التلقائي
+        function setupAutoRefresh() {
+            autoRefreshEnabled = elements.autoRefreshCheckbox.checked;
+            autoRefreshTime = parseInt(elements.autoRefreshInterval.value) * 1000;
+            
+            if (autoRefreshEnabled) {
+                startAutoRefresh();
+            }
+        }
+
+        function toggleAutoRefresh() {
+            autoRefreshEnabled = elements.autoRefreshCheckbox.checked;
+            
+            if (autoRefreshEnabled) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        }
+
+        function updateAutoRefreshTime() {
+            autoRefreshTime = parseInt(elements.autoRefreshInterval.value) * 1000;
+            
+            if (autoRefreshEnabled) {
+                stopAutoRefresh();
+                startAutoRefresh();
+            }
+        }
+
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            
+            autoRefreshInterval = setInterval(() => {
+                if (autoRefreshEnabled) {
+                    loadAllData();
+                }
+            }, autoRefreshTime);
+            
+            console.log(`🔄 تم تفعيل التحديث التلقائي كل ${autoRefreshTime/1000} ثواني`);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+            
+            console.log('⏹️ تم إيقاف التحديث التلقائي');
         }
 
         // تحميل جميع البيانات
         async function loadAllData() {
             try {
                 elements.refreshBtn.innerHTML = '<div class="loading"></div> جاري التحديث...';
+                elements.manualRefreshBtn.innerHTML = '<div class="loading"></div> جاري التحديث...';
                 
                 await Promise.all([
                     loadVisitorsData(),
@@ -1195,11 +1470,12 @@
                 ]);
                 
                 elements.refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث البيانات';
-                showNotification('✅ تم تحديث البيانات بنجاح', 'success');
+                elements.manualRefreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث يدوي';
                 
             } catch (error) {
                 console.error('❌ خطأ في تحميل البيانات:', error);
                 elements.refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث البيانات';
+                elements.manualRefreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث يدوي';
                 showNotification('❌ فشل في تحميل البيانات', 'error');
             }
         }
@@ -1799,10 +2075,10 @@
             }, 3000);
         }
 
-        // تحديث تلقائي كل 3 ثواني
-        setInterval(() => {
-            loadAllData();
-        }, 3000);
+        // إغلاق الصفحة وإيقاف التحديث التلقائي
+        window.addEventListener('beforeunload', function() {
+            stopAutoRefresh();
+        });
     </script>
 </body>
 </html>
