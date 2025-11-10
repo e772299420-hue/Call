@@ -3,264 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>عرض عنوان IP</title>
+    <title>تحليل بصمة المتصفح</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: #333;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        
-        .container {
-            width: 100%;
-            max-width: 600px;
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(to right, #4b6cb7, #182848);
-            color: white;
-            padding: 25px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-        
-        .content {
-            padding: 30px;
-        }
-        
-        .ip-display {
-            background-color: #f8f9fa;
-            border: 2px dashed #4b6cb7;
-            border-radius: 10px;
-            padding: 25px;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        
-        .ip-address {
-            font-size: 32px;
-            font-weight: bold;
-            color: #182848;
-            margin: 15px 0;
-            direction: ltr;
-        }
-        
-        .info-section {
-            margin-top: 25px;
-        }
-        
-        .info-title {
-            font-size: 18px;
-            color: #4b6cb7;
-            margin-bottom: 15px;
-            border-bottom: 1px solid #eaeaea;
-            padding-bottom: 8px;
-        }
-        
-        .info-list {
-            list-style-type: none;
-        }
-        
-        .info-list li {
-            padding: 12px 0;
-            border-bottom: 1px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            color: #555;
-        }
-        
-        .info-value {
-            color: #182848;
-            direction: ltr;
-            text-align: left;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-        
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #4b6cb7;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(to right, #4b6cb7, #182848);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 20px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .footer {
-            text-align: center;
-            padding: 20px;
-            font-size: 14px;
-            color: #777;
-            border-top: 1px solid #eaeaea;
-            background-color: #f8f9fa;
-        }
-        
-        @media (max-width: 480px) {
-            .header h1 {
-                font-size: 22px;
-            }
-            
-            .ip-address {
-                font-size: 26px;
-            }
-            
-            .content {
-                padding: 20px;
-            }
-        }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        .info-item { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+        .fingerprint { font-family: monospace; word-break: break-all; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>عرض عنوان IP</h1>
-            <p>هذه الصفحة تعرض عنوان IP الخاص بك ومعلومات إضافية عنه</p>
-        </div>
-        
-        <div class="content">
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>جاري جلب معلومات عنوان IP...</p>
-            </div>
-            
-            <div class="ip-display">
-                <h2>عنوان IP الخاص بك هو:</h2>
-                <div class="ip-address" id="ipAddress">--.--.--.--</div>
-                <p>هذا هو عنوان الإنترنت الخاص بجهازك الحالي</p>
-            </div>
-            
-            <div class="info-section">
-                <h3 class="info-title">معلومات إضافية:</h3>
-                <ul class="info-list">
-                    <li>
-                        <span class="info-label">المدينة:</span>
-                        <span class="info-value" id="city">--</span>
-                    </li>
-                    <li>
-                        <span class="info-label">المنطقة:</span>
-                        <span class="info-value" id="region">--</span>
-                    </li>
-                    <li>
-                        <span class="info-label">الدولة:</span>
-                        <span class="info-value" id="country">--</span>
-                    </li>
-                    <li>
-                        <span class="info-label">مزود الخدمة:</span>
-                        <span class="info-value" id="isp">--</span>
-                    </li>
-                </ul>
-            </div>
-            
-            <button class="btn" id="refreshBtn">تحديث المعلومات</button>
-        </div>
-        
-        <div class="footer">
-            <p>تم التطوير باستخدام تقنيات الويب الحديثة | &copy; 2023</p>
-        </div>
+        <h2>بصمة متصفحك الفريدة</h2>
+        <div id="fingerprintData"></div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ipAddressElement = document.getElementById('ipAddress');
-            const cityElement = document.getElementById('city');
-            const regionElement = document.getElementById('region');
-            const countryElement = document.getElementById('country');
-            const ispElement = document.getElementById('isp');
-            const refreshBtn = document.getElementById('refreshBtn');
-            const loadingElement = document.getElementById('loading');
-            
-            // دالة لجلب معلومات IP
-            function fetchIPInfo() {
-                loadingElement.style.display = 'block';
+        function generateFingerprint() {
+            const fingerprint = {
+                // معلومات النظام والمتصفح
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                languages: navigator.languages ? navigator.languages.join(', ') : 'غير معروف',
                 
-                // استخدام خدمة ipapi.co للحصول على معلومات IP
-                fetch('https://ipapi.co/json/')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('فشل في جلب البيانات');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // تحديث العناصر بمعلومات IP
-                        ipAddressElement.textContent = data.ip;
-                        cityElement.textContent = data.city || 'غير معروف';
-                        regionElement.textContent = data.region || 'غير معروف';
-                        countryElement.textContent = data.country_name || 'غير معروف';
-                        ispElement.textContent = data.org || 'غير معروف';
-                        
-                        loadingElement.style.display = 'none';
-                    })
-                    .catch(error => {
-                        console.error('حدث خطأ:', error);
-                        ipAddressElement.textContent = 'فشل في جلب عنوان IP';
-                        loadingElement.style.display = 'none';
-                    });
+                // معلومات الشاشة
+                screenResolution: screen.width + 'x' + screen.height,
+                colorDepth: screen.colorDepth + ' بت',
+                pixelRatio: window.devicePixelRatio,
+                
+                // معلومات الوقت والمنطقة
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                timezoneOffset: new Date().getTimezoneOffset(),
+                
+                // قدرات المتصفح
+                cookiesEnabled: navigator.cookieEnabled,
+                javaEnabled: navigator.javaEnabled ? 'نعم' : 'لا',
+                pdfViewerEnabled: navigator.pdfViewerEnabled ? 'نعم' : 'لا',
+                
+                // الأجهزة والوسائط
+                hardwareConcurrency: navigator.hardwareConcurrency || 'غير معروف',
+                deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'غير معروف',
+                maxTouchPoints: navigator.maxTouchPoints || 'غير معروف'
+            };
+            
+            // عرض البيانات
+            const container = document.getElementById('fingerprintData');
+            let html = '';
+            
+            for (const [key, value] of Object.entries(fingerprint)) {
+                html += `
+                    <div class="info-item">
+                        <strong>${key}:</strong> 
+                        <span class="fingerprint">${value}</span>
+                    </div>
+                `;
             }
             
-            // جلب معلومات IP عند تحميل الصفحة
-            fetchIPInfo();
+            container.innerHTML = html;
             
-            // إضافة حدث النقر على زر التحديث
-            refreshBtn.addEventListener('click', fetchIPInfo);
-        });
+            // إضافة بصمة Canvas (فريدة لكل جهاز)
+            generateCanvasFingerprint();
+        }
+        
+        function generateCanvasFingerprint() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 200;
+            canvas.height = 50;
+            
+            // رسم نص مع تأثيرات
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#f60';
+            ctx.fillRect(125, 1, 62, 20);
+            ctx.fillStyle = '#069';
+            ctx.fillText('Browser Fingerprint', 2, 15);
+            ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+            ctx.fillText('Browser Fingerprint', 4, 17);
+            
+            // الحصول على بصمة Canvas
+            const canvasData = canvas.toDataURL();
+            const canvasHash = simpleHash(canvasData);
+            
+            const container = document.getElementById('fingerprintData');
+            container.innerHTML += `
+                <div class="info-item">
+                    <strong>بصمة Canvas:</strong> 
+                    <span class="fingerprint">${canvasHash}</span>
+                </div>
+            `;
+        }
+        
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(16).substring(0, 8);
+        }
+        
+        // تشغيل عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', generateFingerprint);
     </script>
 </body>
 </html>
