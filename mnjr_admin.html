@@ -3,12 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>صفحة الإدارة - السوق الشامل</title>
+    <title>لوحة تحكم الإدارة - السوق الشامل</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- إضافة Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #9b59b6;
+            --success-color: #27ae60;
+            --warning-color: #e67e22;
+            --danger-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --gradient: linear-gradient(135deg, #3498db 0%, #9b59b6 100%);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -17,7 +31,7 @@
         }
         
         body {
-            background: #ffffff;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ec 100%);
             color: #333;
             min-height: 100vh;
             display: flex;
@@ -31,32 +45,35 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(106, 17, 203, 0.1);
-            color: #6a11cb;
+            background: rgba(52, 152, 219, 0.1);
+            color: var(--secondary-color);
             padding: 12px 20px;
             border-radius: 50px;
             text-decoration: none;
             font-weight: bold;
-            transition: background 0.3s, transform 0.3s;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             gap: 8px;
             backdrop-filter: blur(5px);
-            border: 1px solid rgba(106, 17, 203, 0.2);
+            border: 1px solid rgba(52, 152, 219, 0.2);
             z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
         
         .back-button:hover {
-            background: rgba(106, 17, 203, 0.2);
-            transform: scale(1.05);
+            background: rgba(52, 152, 219, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
         }
         
         .header {
             text-align: center;
             margin-bottom: 40px;
-            color: #333;
+            color: var(--dark-color);
             width: 100%;
             padding: 20px;
+            position: relative;
         }
         
         .logo-container {
@@ -66,145 +83,177 @@
         }
         
         .logo {
-            width: 220px;
-            height: 220px;
+            width: 180px;
+            height: 180px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            border-radius: 15px;
-            background: transparent;
+            border-radius: 50%;
+            background: white;
+            box-shadow: var(--card-shadow);
+            padding: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .logo:hover {
+            transform: scale(1.05);
         }
         
         .logo img {
             width: 100%;
             height: 100%;
             object-fit: contain;
+            border-radius: 50%;
         }
         
         .header h1 {
             font-size: 2.8rem;
             margin-bottom: 10px;
-            color: #2575fc;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+            letter-spacing: -1px;
         }
         
         .header p {
-            font-size: 1.5rem;
-            opacity: 0.9;
+            font-size: 1.3rem;
+            opacity: 0.8;
             margin-top: 10px;
-            color: #666;
+            color: var(--dark-color);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
         }
         
         .container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 30px;
-            max-width: 1200px;
+            max-width: 1400px;
             width: 100%;
+            margin: 0 auto;
         }
         
         .card {
             background: white;
-            border-radius: 15px;
+            border-radius: 20px;
             overflow: hidden;
-            width: 320px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
             cursor: pointer;
             position: relative;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            border: none;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+            transform: translateY(-10px);
+            box-shadow: var(--hover-shadow);
         }
         
         .card-header {
-            background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
+            background: var(--gradient);
             color: white;
             padding: 25px 20px;
             position: relative;
+            flex: 0 0 auto;
         }
         
         .card-header i {
             font-size: 50px;
             margin-bottom: 15px;
+            opacity: 0.9;
         }
         
         .card-header h2 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+            font-weight: 700;
         }
         
         .card-body {
             padding: 25px 20px;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         
         .card-body p {
             color: #666;
             line-height: 1.6;
             margin-bottom: 20px;
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
         
         .btn {
             display: inline-block;
-            background: #6a11cb;
+            background: var(--gradient);
             color: white;
             padding: 12px 25px;
             border-radius: 50px;
             text-decoration: none;
             font-weight: bold;
-            transition: background 0.3s, transform 0.3s;
+            transition: all 0.3s ease;
             border: none;
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
         }
         
         .btn:hover {
-            background: #2575fc;
-            transform: scale(1.05);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
         }
         
         .home-btn {
-            display: inline-block;
-            background: #4CAF50;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--success-color);
             color: white;
-            padding: 12px 25px;
+            padding: 14px 30px;
             border-radius: 50px;
             text-decoration: none;
             font-weight: bold;
-            transition: background 0.3s, transform 0.3s;
-            margin-top: 30px;
+            transition: all 0.3s ease;
+            margin-top: 40px;
+            box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3);
         }
         
         .home-btn:hover {
-            background: #388E3C;
-            transform: scale(1.05);
+            background: #219653;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(39, 174, 96, 0.4);
         }
         
         .footer {
-            margin-top: 50px;
+            margin-top: 60px;
             color: #666;
             text-align: center;
             padding: 20px;
             font-size: 1rem;
             opacity: 0.8;
             width: 100%;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
         
         .footer p {
-            font-size: 1.1rem;
+            font-size: 1rem;
             margin: 5px 0;
         }
         
         .button-container {
             display: flex;
             justify-content: center;
-            margin-top: 30px;
+            margin-top: 40px;
             width: 100%;
             max-width: 1200px;
         }
@@ -214,18 +263,19 @@
             position: absolute;
             top: 15px;
             left: 15px;
-            background: #ff9800;
+            background: var(--warning-color);
             color: white;
             border-radius: 20px;
-            padding: 5px 12px;
-            font-size: 0.9rem;
+            padding: 6px 14px;
+            font-size: 0.85rem;
             font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             animation: pulse 2s infinite;
             white-space: nowrap;
             display: flex;
             align-items: center;
             gap: 5px;
+            z-index: 10;
         }
         
         @keyframes pulse {
@@ -240,15 +290,64 @@
             margin-top: 10px;
         }
         
+        .badge {
+            display: inline-block;
+            background: var(--accent-color);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        
+        .admin-stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0 40px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            min-width: 150px;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+        }
+        
         @media (max-width: 768px) {
             .container {
-                flex-direction: column;
-                align-items: center;
+                grid-template-columns: 1fr;
+                max-width: 400px;
             }
             
             .card {
-                width: 90%;
-                max-width: 350px;
+                width: 100%;
             }
             
             .header h1 {
@@ -256,12 +355,12 @@
             }
             
             .header p {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
             
             .logo {
-                width: 180px;
-                height: 180px;
+                width: 140px;
+                height: 140px;
             }
             
             .back-button {
@@ -274,6 +373,39 @@
             .merchant-notification {
                 font-size: 0.8rem;
                 padding: 4px 10px;
+            }
+            
+            .admin-stats {
+                gap: 10px;
+            }
+            
+            .stat-card {
+                min-width: 120px;
+                padding: 15px;
+            }
+            
+            .stat-value {
+                font-size: 2rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .admin-stats {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stat-card {
+                width: 100%;
+                max-width: 200px;
             }
         }
     </style>
@@ -291,117 +423,149 @@
                 <img src="https://github.com/T772299420/Call/raw/main/BackgroundEraser_%D9%A2%D9%A0%D9%A2%D9%A5%D9%A0%D9%A9%D9%A0%D9%A5_%D9%A0%D9%A0%D9%A3%D9%A5%D9%A0%D9%A1%D9%A0%D9%A0%D9%A7.png" alt="شعار السوق الشامل">
             </div>
         </div>
-        <h1>صفحة الإدارة</h1>
-        <p>السوق الشامل لتلبية احتياجاتك بالكامل</p>
+        <h1>لوحة تحكم الإدارة</h1>
+        <p>مركز التحكم الشامل لإدارة جميع جوانب النظام والبيانات</p>
+        
+        <div class="admin-stats">
+            <div class="stat-card">
+                <div class="stat-value">24</div>
+                <div class="stat-label">تاجر نشط</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">1,248</div>
+                <div class="stat-label">زائر اليوم</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">86</div>
+                <div class="stat-label">طلب جديد</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">12</div>
+                <div class="stat-label">إشعار جديد</div>
+            </div>
+        </div>
     </div>
     
     <div class="container">
         <!-- اختباراتي -->
-        <div class="card" onclick="window.location.href='01.html'">
+        <div class="card" onclick="redirectToPage('01.html')">
             <div class="card-header">
                 <i class="fas fa-vial"></i>
                 <h2>اختباراتي</h2>
+                <span class="badge">تجريبي</span>
             </div>
             <div class="card-body">
-                <p>صفحة الاختبارات والتجارب الخاصة بالنظام</p>
+                <p>صفحة الاختبارات والتجارب الخاصة بالنظام وتطوير الميزات الجديدة</p>
                 <button class="btn">فتح الصفحة</button>
             </div>
         </div>
         
         <!-- اخبار٢ -->
-        <div class="card" onclick="window.location.href='02.html'">
+        <div class="card" onclick="redirectToPage('02.html')">
             <div class="card-header">
                 <i class="fas fa-newspaper"></i>
-                <h2>اخبار٢</h2>
+                <h2>الأخبار والتحديثات</h2>
             </div>
             <div class="card-body">
-                <p>صفحة الأخبار والتحديثات الخاصة بالنظام</p>
+                <p>إدارة الأخبار والتحديثات والإعلانات العامة في النظام</p>
                 <button class="btn">فتح الصفحة</button>
             </div>
         </div>
         
         <!-- تعديل بيانات الأدمن -->
-        <div class="card" onclick="window.location.href='admin.html'">
+        <div class="card" onclick="redirectToPage('admin.html')">
             <div class="card-header">
                 <i class="fas fa-user-cog"></i>
-                <h2>تعديل بيانات الأدمن</h2>
+                <h2>إعدادات المسؤول</h2>
             </div>
             <div class="card-body">
-                <p>تعديل بيانات مسؤول النظام وإعدادات الحساب</p>
+                <p>تعديل بيانات مسؤول النظام، الصلاحيات وإعدادات الحساب المتقدمة</p>
                 <button class="btn">فتح الصفحة</button>
             </div>
         </div>
         
         <!-- تعريف المحافظات والمناطق -->
-        <div class="card" onclick="window.location.href='mhafda.html'">
+        <div class="card" onclick="redirectToPage('mhafda.html')">
             <div class="card-header">
                 <i class="fas fa-map-marked-alt"></i>
-                <h2>تعريف المحافظات والمناطق</h2>
+                <h2>إدارة المناطق</h2>
             </div>
             <div class="card-body">
-                <p>إضافة، تعديل أو حذف المحافظات والمناطق المتاحة في النظام</p>
+                <p>إضافة، تعديل أو حذف المحافظات والمناطق والمدن المتاحة في النظام</p>
                 <button class="btn">فتح الصفحة</button>
             </div>
         </div>
         
         <!-- تعريف الأقسام -->
-        <div class="card" onclick="window.location.href='ksm.html'">
+        <div class="card" onclick="redirectToPage('ksm.html')">
             <div class="card-header">
                 <i class="fas fa-tags"></i>
-                <h2>تعريف الأقسام</h2>
+                <h2>تصنيف المنتجات</h2>
             </div>
             <div class="card-body">
-                <p>إدارة الأقسام الرئيسية والفرعية للمنتجات في المتجر</p>
+                <p>إدارة الأقسام الرئيسية والفرعية والتصنيفات للمنتجات في المتجر</p>
                 <button class="btn">فتح الصفحة</button>
             </div>
         </div>
         
         <!-- تعريف التجار -->
-        <div class="card" id="merchants-card" onclick="window.location.href='tager.html'">
+        <div class="card" id="merchants-card" onclick="redirectToPage('tager.html')">
             <div class="card-header">
                 <i class="fas fa-user-tie"></i>
-                <h2>تعريف التجار</h2>
+                <h2>إدارة التجار</h2>
                 <!-- سيتم إضافة الإشعار هنا عبر JavaScript -->
             </div>
             <div class="card-body">
-                <p>إضافة تجار جدد أو إدارة بيانات التجار الحاليين في النظام</p>
+                <p>إضافة تجار جدد، إدارة بيانات التجار الحاليين والتحكم في صلاحياتهم</p>
                 <button class="btn">فتح الصفحة</button>
                 <div id="merchants-loading" class="loading">جاري تحميل بيانات التجار...</div>
             </div>
         </div>
         
         <!-- تعريف المهن -->
-        <div class="card" onclick="window.location.href='mhna.html'">
+        <div class="card" onclick="redirectToPage('mhna.html')">
             <div class="card-header">
                 <i class="fas fa-briefcase"></i>
-                <h2>تعريف المهن</h2>
+                <h2>إدارة المهن</h2>
             </div>
             <div class="card-body">
-                <p>إضافة، تعديل أو حذف المهن المتاحة في النظام</p>
+                <p>إضافة، تعديل أو حذف المهن والتخصصات المتاحة في النظام</p>
                 <button class="btn">فتح الصفحة</button>
             </div>
         </div>
 
         <!-- إحصائية الزوار -->
-        <div class="card" onclick="window.location.href='ahsaeah.html'">
+        <div class="card" onclick="redirectToPage('ahsaeah.html')">
             <div class="card-header">
                 <i class="fas fa-chart-line"></i>
                 <h2>إحصائية الزوار</h2>
             </div>
             <div class="card-body">
-                <p>عرض عدد الزوار اليومي والإجمالي والتقارير التفصيلية للنشاط على الموقع</p>
+                <p>عرض إحصائيات الزوار، التقارير التفصيلية وتحليلات النشاط على الموقع</p>
                 <button class="btn">فتح الصفحة</button>
             </div>
         </div>
         
         <!-- الإعلانات النصية -->
-        <div class="card" onclick="window.location.href='ealan.html'">
+        <div class="card" onclick="redirectToPage('ealan.html')">
             <div class="card-header">
                 <i class="fas fa-bullhorn"></i>
-                <h2>الإعلانات النصية</h2>
+                <h2>الإعلانات والعروض</h2>
             </div>
             <div class="card-body">
-                <p>إدارة الإعلانات النصية وعروض التخفيضات والعروض الخاصة في النظام</p>
+                <p>إدارة الإعلانات النصية، عروض التخفيضات والعروض الخاصة في النظام</p>
+                <button class="btn">فتح الصفحة</button>
+            </div>
+        </div>
+        
+        <!-- الزوار والحظر -->
+        <div class="card" onclick="redirectToPage('zaer.html')">
+            <div class="card-header">
+                <i class="fas fa-users"></i>
+                <h2>الزوار والحظر</h2>
+            </div>
+            <div class="card-body">
+                <p>إدارة الزوار، قوائم الحظر والتحكم في صلاحيات الوصول للمحتوى</p>
                 <button class="btn">فتح الصفحة</button>
             </div>
         </div>
@@ -417,7 +581,7 @@
     
     <div class="footer">
         <p>جميع الحقوق محفوظة لدى شركة المميز سوفت للأنظمة المحاسبية المتكاملة</p>
-        <p>© 2023 السوق الشامل - نظام إدارة المتاجر</p>
+        <p>© 2023 السوق الشامل - نظام إدارة المتاجر المتكامل</p>
     </div>
 
     <script>
@@ -492,6 +656,12 @@
                 sessionStorage.setItem('redirecting', 'true');
                 window.open('index.html', '_blank');
             }
+        }
+        
+        // دالة للانتقال إلى صفحة مع التحكم في الإغلاق
+        function redirectToPage(url) {
+            sessionStorage.setItem('redirecting', 'true');
+            window.location.href = url;
         }
         
         // تحميل بيانات التجار عند تحميل الصفحة
