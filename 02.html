@@ -2287,25 +2287,29 @@ const merchantGlobal = {
     }
 };
 
-// ===== نظام البصمة الرقمية المتقدم والتحقق من الحظر =====
+// ===== نظام البصمة الرقمية المتقدم والتحقق من الحظر - معدل ومحسن =====
 class AdvancedFingerprintSystem {
     constructor() {
         this.fingerprint = null;
         this.visitorId = null;
+        this.visitorNumber = null;
         this.bannedVisitorsRef = database.ref('banned_visitors');
         this.fingerprintsRef = database.ref('digital_fingerprints');
         this.visitorStatsRef = database.ref('visitor_stats');
         this.visitorTrackingRef = database.ref('visitor_tracking');
+        this.visitorSequencesRef = database.ref('visitor_sequences');
         this.isBanned = false;
         this.banCheckInterval = null;
+        this.currentVisitId = null;
         this.init();
     }
     
     async init() {
         console.log('🔍 بدء نظام البصمة الرقمية المتقدم');
         await this.generateFingerprint();
+        await this.assignVisitorNumber();
         await this.startBanChecking();
-        await this.registerVisitor();
+        await this.registerOrUpdateVisitor();
         await this.trackPageVisit();
     }
     
@@ -2375,6 +2379,41 @@ class AdvancedFingerprintSystem {
             // استخدام بصمة بديلة في حالة الخطأ
             this.fingerprint = this.generateFallbackFingerprint();
             this.visitorId = 'visitor_' + this.fingerprint.substring(0, 16);
+        }
+    }
+    
+    async assignVisitorNumber() {
+        try {
+            // التحقق مما إذا كان الزائر لديه رقم مسبق
+            const existingVisitor = await this.fingerprintsRef
+                .orderByChild('fingerprint')
+                .equalTo(this.fingerprint)
+                .once('value');
+            
+            if (existingVisitor.exists()) {
+                // الزائر موجود مسبقاً، استخدام رقمه الحالي
+                const visitorData = Object.values(existingVisitor.val())[0];
+                this.visitorNumber = visitorData.visitorNumber;
+                console.log('🔢 الزائر موجود مسبقاً برقم:', this.visitorNumber);
+            } else {
+                // زائر جديد، توليد رقم تسلسلي
+                const sequenceSnapshot = await this.visitorSequencesRef.child('visitor_number').once('value');
+                let nextNumber = 1;
+                
+                if (sequenceSnapshot.exists()) {
+                    nextNumber = sequenceSnapshot.val() + 1;
+                }
+                
+                await this.visitorSequencesRef.child('visitor_number').set(nextNumber);
+                this.visitorNumber = nextNumber;
+                console.log('🆕 زائر جديد برقم:', this.visitorNumber);
+            }
+            
+            localStorage.setItem('az_visitor_number', this.visitorNumber.toString());
+            
+        } catch (error) {
+            console.error('❌ خطأ في تعيين رقم الزائر:', error);
+            this.visitorNumber = 0;
         }
     }
     
@@ -2536,78 +2575,117 @@ class AdvancedFingerprintSystem {
         console.log('✅ تم إزالة تأثيرات الحظر عن الزائر');
     }
     
-    async registerVisitor() {
+    async registerOrUpdateVisitor() {
         try {
-            if (!this.fingerprint) return;
+            if (!this.fingerprint || !this.visitorNumber) return;
+            
+            const existingVisitor = await this.fingerprintsRef
+                .orderByChild('fingerprint')
+                .equalTo(this.fingerprint)
+                .once('value');
+            
+            const now = new Date().toISOString();
+            const isNewVisitor = !existingVisitor.exists();
             
             const visitorData = {
                 fingerprint: this.fingerprint,
                 visitorId: this.visitorId,
+                visitorNumber: this.visitorNumber,
                 userAgent: navigator.userAgent,
                 platform: navigator.platform,
                 screen: `${screen.width}x${screen.height}`,
                 language: navigator.language,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                firstVisit: new Date().toISOString(),
-                lastVisit: new Date().toISOString(),
+                lastVisit: now,
                 visitCount: 1,
                 status: 'active',
                 isBanned: false
             };
             
-            // حفظ بيانات البصمة
-            await this.fingerprintsRef.child(this.fingerprint).set(visitorData);
-            
-            // تحديث الإحصائيات
-            await this.updateVisitorStats();
-            
-            console.log('✅ تم تسجيل الزائر في قاعدة البيانات');
+            if (isNewVisitor) {
+                // زائر جديد
+                visitorData.firstVisit = now;
+                visitorData.createdAt = now;
+                await this.fingerprintsRef.child(this.fingerprint).set(visitorData);
+                console.log('✅ تم تسجيل زائر جديد في قاعدة البيانات');
+                
+                // تحديث إحصائيات الزوار الجدد
+                await this.updateVisitorStats(true);
+            } else {
+                // زائر موجود، تحديث البيانات فقط
+                const existingData = Object.values(existingVisitor.val())[0];
+                visitorData.firstVisit = existingData.firstVisit;
+                visitorData.visitCount = (existingData.visitCount || 1) + 1;
+                visitorData.createdAt = existingData.createdAt;
+                
+                await this.fingerprintsRef.child(this.fingerprint).update({
+                    lastVisit: now,
+                    visitCount: visitorData.visitCount,
+                    userAgent: navigator.userAgent
+                });
+                console.log('✅ تم تحديث بيانات الزائر الحالي');
+                
+                // تحديث إحصائيات الزوار العائدين
+                await this.updateVisitorStats(false);
+            }
             
         } catch (error) {
-            console.error('❌ خطأ في تسجيل الزائر:', error);
+            console.error('❌ خطأ في تسجيل/تحديث الزائر:', error);
         }
     }
     
     async trackPageVisit() {
         try {
-            if (!this.fingerprint) return;
+            if (!this.fingerprint || !this.visitorNumber) return;
             
-            const currentPage = window.location.pathname;
-            const pageName = this.getPageName(currentPage);
-            const visitId = Date.now().toString();
+            const currentPage = window.location.pathname + window.location.search;
+            const pageName = this.getRealPageName(currentPage);
+            this.currentVisitId = Date.now().toString();
             
             const visitData = {
                 visitorId: this.visitorId,
+                visitorNumber: this.visitorNumber,
                 fingerprint: this.fingerprint,
                 pageName: pageName,
                 pageUrl: currentPage,
+                pageTitle: document.title,
                 entryTime: new Date().toISOString(),
                 userAgent: navigator.userAgent,
                 referrer: document.referrer || 'direct',
                 screenResolution: `${screen.width}x${screen.height}`,
-                language: navigator.language
+                language: navigator.language,
+                sessionId: this.generateSessionId()
             };
             
             // حفظ بيانات الزيارة
-            await this.visitorTrackingRef.child(visitId).set(visitData);
+            await this.visitorTrackingRef.child(this.currentVisitId).set(visitData);
             
             console.log(`📊 تم تتبع زيارة الصفحة: ${pageName}`);
             
             // تسجيل وقت الخروج عند مغادرة الصفحة
             window.addEventListener('beforeunload', async () => {
-                await this.recordPageExit(visitId);
+                await this.recordPageExit();
             });
+            
+            // تتبع التنقل بين الصفحات
+            this.trackPageNavigation();
             
         } catch (error) {
             console.error('❌ خطأ في تتبع زيارة الصفحة:', error);
         }
     }
     
-    async recordPageExit(visitId) {
+    async recordPageExit() {
         try {
-            await this.visitorTrackingRef.child(visitId).update({
-                exitTime: new Date().toISOString(),
-                timeSpent: Date.now() - parseInt(visitId)
+            if (!this.currentVisitId) return;
+            
+            const exitTime = new Date().toISOString();
+            const timeSpent = Date.now() - parseInt(this.currentVisitId);
+            
+            await this.visitorTrackingRef.child(this.currentVisitId).update({
+                exitTime: exitTime,
+                timeSpent: timeSpent,
+                completed: true
             });
             
             console.log('📊 تم تسجيل وقت الخروج من الصفحة');
@@ -2616,27 +2694,102 @@ class AdvancedFingerprintSystem {
         }
     }
     
-    getPageName(url) {
-        const pageNames = {
-            '/Call/index.html': 'الصفحة الرئيسية',
-            '/Call/mr.html': 'صفحة العرض',
-            '/Call/as.html': 'صفحة طلب الانضمام',
-            '/Call/dm.html': 'صفحة الدم والمتبرعين',
-            '/Call/help.html': 'صفحة الشرح والتعليم',
-            '/Call/seasa.html': 'صفحة سياسة الخصوصية',
-            '/Call/mrwan.html': 'صفحة من نحن',
-            '/Call/1_1.html': 'قسم المنتجات التجارية الجديدة',
-            '/Call/1_2.html': 'قسم المنتجات المستعملة',
-            '/Call/1_5.html': 'قسم المباني والعقارات',
-            '/Call/1_6.html': 'قسم الوظائف الشاغرة',
-            '/Call/index_mt.html': 'قسم الطلب والتوصيل السريع',
-            '/Call/txtx.html': 'أرقام ومواقع أشخاص تهمك'
-        };
+    trackPageNavigation() {
+        // تتبع التنقل بين الصفحات باستخدام MutationObserver
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1 && node.tagName === 'A') {
+                            node.addEventListener('click', (e) => {
+                                this.trackLinkClick(e.target);
+                            });
+                        }
+                    });
+                }
+            });
+        });
         
-        return pageNames[url] || 'صفحة غير معروفة';
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        // تتبع الأحداث الأخرى
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                this.trackButtonClick(e.target);
+            }
+        });
     }
     
-    async updateVisitorStats() {
+    async trackLinkClick(linkElement) {
+        try {
+            const linkData = {
+                visitorId: this.visitorId,
+                visitorNumber: this.visitorNumber,
+                type: 'link_click',
+                element: linkElement.tagName,
+                text: linkElement.textContent?.substring(0, 100) || '',
+                href: linkElement.href || '',
+                timestamp: new Date().toISOString()
+            };
+            
+            await this.visitorTrackingRef.child(`events_${Date.now()}`).set(linkData);
+        } catch (error) {
+            console.error('❌ خطأ في تتبع النقر:', error);
+        }
+    }
+    
+    async trackButtonClick(buttonElement) {
+        try {
+            const buttonData = {
+                visitorId: this.visitorId,
+                visitorNumber: this.visitorNumber,
+                type: 'button_click',
+                element: buttonElement.tagName,
+                text: buttonElement.textContent?.substring(0, 100) || '',
+                className: buttonElement.className || '',
+                timestamp: new Date().toISOString()
+            };
+            
+            await this.visitorTrackingRef.child(`events_${Date.now()}`).set(buttonData);
+        } catch (error) {
+            console.error('❌ خطأ في تتبع النقر:', error);
+        }
+    }
+    
+    getRealPageName(url) {
+        // استخراج اسم الصفحة الحقيقي من URL
+        const path = url.split('?')[0]; // إزالة المعاملات
+        const segments = path.split('/').filter(seg => seg);
+        const pageFile = segments[segments.length - 1] || 'index.html';
+        
+        const pageNames = {
+            'index.html': 'الصفحة الرئيسية',
+            'mr.html': 'صفحة العرض',
+            'as.html': 'صفحة طلب الانضمام',
+            'dm.html': 'صفحة الدم والمتبرعين',
+            'help.html': 'صفحة الشرح والتعليم',
+            'seasa.html': 'صفحة سياسة الخصوصية',
+            'mrwan.html': 'صفحة من نحن',
+            '1_1.html': 'قسم المنتجات التجارية الجديدة',
+            '1_2.html': 'قسم المنتجات المستعملة',
+            '1_5.html': 'قسم المباني والعقارات',
+            '1_6.html': 'قسم الوظائف الشاغرة',
+            'index_mt.html': 'قسم الطلب والتوصيل السريع',
+            'txtx.html': 'أرقام ومواقع أشخاص تهمك',
+            'mnjr_admin.html': 'لوحة الإدارة'
+        };
+        
+        return pageNames[pageFile] || `صفحة: ${pageFile}`;
+    }
+    
+    generateSessionId() {
+        return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    async updateVisitorStats(isNewVisitor) {
         try {
             const today = new Date().toISOString().split('T')[0];
             const statsRef = this.visitorStatsRef.child(today);
@@ -2645,21 +2798,19 @@ class AdvancedFingerprintSystem {
             const currentStats = snapshot.val() || {
                 totalVisits: 0,
                 uniqueVisitors: 0,
-                returningVisitors: 0
+                returningVisitors: 0,
+                pageViews: 0
             };
-            
-            // التحقق مما إذا كان الزائر جديداً
-            const isNewVisitor = !localStorage.getItem('az_previous_visit');
             
             await statsRef.update({
                 totalVisits: currentStats.totalVisits + 1,
                 uniqueVisitors: isNewVisitor ? currentStats.uniqueVisitors + 1 : currentStats.uniqueVisitors,
                 returningVisitors: isNewVisitor ? currentStats.returningVisitors : currentStats.returningVisitors + 1,
+                pageViews: currentStats.pageViews + 1,
                 lastUpdated: new Date().toISOString()
             });
             
-            // حفظ علامة الزيارة السابقة
-            localStorage.setItem('az_previous_visit', new Date().toISOString());
+            console.log(`📈 تم تحديث إحصائيات الزوار: ${isNewVisitor ? 'جديد' : 'عائد'}`);
             
         } catch (error) {
             console.error('❌ خطأ في تحديث الإحصائيات:', error);
@@ -2672,7 +2823,8 @@ class AdvancedFingerprintSystem {
                 fingerprint: fingerprint,
                 reason: reason,
                 bannedAt: new Date().toISOString(),
-                bannedBy: 'system'
+                bannedBy: 'system',
+                visitorNumber: this.visitorNumber
             });
             
             console.log('✅ تم حظر الزائر بنجاح');
@@ -2690,6 +2842,16 @@ class AdvancedFingerprintSystem {
             this.banCheckInterval = null;
             console.log('🛑 تم إيقاف نظام التحقق من الحظر');
         }
+    }
+    
+    // الحصول على معلومات الزائر
+    getVisitorInfo() {
+        return {
+            visitorId: this.visitorId,
+            visitorNumber: this.visitorNumber,
+            fingerprint: this.fingerprint,
+            isBanned: this.isBanned
+        };
     }
 }
 
