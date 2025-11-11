@@ -1756,34 +1756,39 @@
         let searchActive = false;
 
         // ==========================================
-        // 💾 وظائف حفظ واستعادة الطلب محلياً - جديد
+        // 💾 نظام تخزين الطلبات المؤقت المحسن
         // ==========================================
 
         /**
-         * حفظ الطلب الحالي في localStorage
+         * حفظ بيانات التاجر والطلبات المرتبطة به
          */
-        function saveOrderToLocalStorage() {
+        function saveMerchantOrderData() {
+            if (!currentMerchantId) return;
+            
             const orderData = {
-                selectedProducts: selectedProducts,
                 merchantId: currentMerchantId,
                 merchantName: currentMerchantName,
+                merchantMobile: currentMerchantMobile,
+                selectedProducts: selectedProducts,
                 timestamp: new Date().toISOString()
             };
-            localStorage.setItem('savedOrder', JSON.stringify(orderData));
-            console.log('تم حفظ الطلب محلياً');
+            
+            localStorage.setItem(`merchantOrder_${currentMerchantId}`, JSON.stringify(orderData));
+            console.log('تم حفظ بيانات الطلب للتاجر:', currentMerchantName);
         }
 
         /**
-         * استعادة الطلب المحفوظ من localStorage
+         * تحميل بيانات الطلب المخزنة للتاجر الحالي
          */
-        function loadOrderFromLocalStorage() {
-            const savedOrder = localStorage.getItem('savedOrder');
-            if (savedOrder) {
+        function loadMerchantOrderData() {
+            if (!currentMerchantId) return null;
+            
+            const savedData = localStorage.getItem(`merchantOrder_${currentMerchantId}`);
+            if (savedData) {
                 try {
-                    const orderData = JSON.parse(savedOrder);
-                    return orderData;
+                    return JSON.parse(savedData);
                 } catch (e) {
-                    console.error('خطأ في تحميل الطلب المحفوظ:', e);
+                    console.error('خطأ في تحميل البيانات المحفوظة:', e);
                     return null;
                 }
             }
@@ -1791,34 +1796,34 @@
         }
 
         /**
-         * حذف الطلب المحفوظ من localStorage
+         * حذف بيانات الطلب المخزنة للتاجر الحالي
          */
-        function clearSavedOrder() {
-            localStorage.removeItem('savedOrder');
-            console.log('تم حذف الطلب المحفوظ');
+        function clearMerchantOrderData() {
+            if (!currentMerchantId) return;
+            
+            localStorage.removeItem(`merchantOrder_${currentMerchantId}`);
+            console.log('تم حذف بيانات الطلب للتاجر:', currentMerchantName);
         }
 
         /**
-         * التحقق من وجود طلب محفوظ لنفس التاجر
+         * التحقق من وجود بيانات طلب مخزنة للتاجر الحالي
          */
         function checkForSavedOrder() {
-            const savedOrder = loadOrderFromLocalStorage();
-            if (savedOrder && savedOrder.merchantId === currentMerchantId) {
-                // حساب عدد المنتجات والمجموع
-                const productCount = Object.keys(savedOrder.selectedProducts).length;
+            const savedData = loadMerchantOrderData();
+            
+            if (savedData && Object.keys(savedData.selectedProducts).length > 0) {
+                const productCount = Object.keys(savedData.selectedProducts).length;
                 let total = 0;
-                Object.values(savedOrder.selectedProducts).forEach(item => {
+                Object.values(savedData.selectedProducts).forEach(item => {
                     total += item.quantity * item.price.officialPrice;
                 });
 
-                // تحديث رسالة الطلب المحفوظ
                 savedOrderMessage.innerHTML = `
-                    يوجد لديك طلب محفوظ مسبقاً للتاجر <strong>${savedOrder.merchantName}</strong><br><br>
+                    يوجد لديك طلب محفوظ مسبقاً للتاجر <strong>${savedData.merchantName}</strong><br><br>
                     <strong>${productCount}</strong> منتج | المجموع: <strong>${total}</strong> ريال<br><br>
                     هل ترغب بمواصلة الطلب السابق أو بدء طلب جديد؟
                 `;
 
-                // عرض نافذة التأكيد
                 savedOrderModal.classList.add('active');
                 return true;
             }
@@ -1829,9 +1834,9 @@
          * مواصلة الطلب المحفوظ
          */
         function continueSavedOrder() {
-            const savedOrder = loadOrderFromLocalStorage();
-            if (savedOrder) {
-                selectedProducts = savedOrder.selectedProducts;
+            const savedData = loadMerchantOrderData();
+            if (savedData) {
+                selectedProducts = savedData.selectedProducts;
                 updateOrderSummary();
                 showMessage('تم تحميل الطلب المحفوظ بنجاح', 'success');
             }
@@ -1844,9 +1849,42 @@
         function startNewOrder() {
             selectedProducts = {};
             updateOrderSummary();
-            clearSavedOrder();
+            clearMerchantOrderData();
             showMessage('تم بدء طلب جديد', 'success');
             savedOrderModal.classList.remove('active');
+        }
+
+        /**
+         * التحقق من وجود بيانات طلب مخزنة لتاجر آخر
+         */
+        function checkForOtherMerchantOrder(newMerchantId) {
+            if (!newMerchantId) return false;
+            
+            // التحقق من وجود بيانات مخزنة لأي تاجر غير التاجر الجديد
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('merchantOrder_')) {
+                    const merchantIdFromKey = key.replace('merchantOrder_', '');
+                    if (merchantIdFromKey !== newMerchantId) {
+                        const savedData = JSON.parse(localStorage.getItem(key));
+                        if (savedData && Object.keys(savedData.selectedProducts).length > 0) {
+                            return {
+                                merchantId: merchantIdFromKey,
+                                merchantName: savedData.merchantName,
+                                productCount: Object.keys(savedData.selectedProducts).length
+                            };
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        /**
+         * عرض تأكيد حذف بيانات التاجر السابق
+         */
+        function showDeletePreviousOrderConfirmation(previousOrderData) {
+            return confirm(`هل ترغب بحذف بيانات الطلب الخاصة بالتاجر ${previousOrderData.merchantName}؟\n\nيوجد ${previousOrderData.productCount} منتج في الطلب السابق.`);
         }
 
         // ==========================================
@@ -2001,7 +2039,7 @@
         function cancelOrder() {
             selectedProducts = {};
             updateOrderSummary();
-            clearSavedOrder();
+            clearMerchantOrderData();
             showMessage('تم إلغاء الطلب بنجاح', 'success');
         }
 
@@ -2011,22 +2049,19 @@
             
             if (hasProducts) {
                 floatingActionMenu.classList.add('active');
+                // حفظ بيانات الطلب عند التحديث
+                saveMerchantOrderData();
             } else {
                 floatingActionMenu.classList.remove('active');
                 floatingActionItems.classList.remove('active');
                 floatingMenuVisible = false;
                 orderSummaryModal.classList.remove('active');
+                // حذف بيانات الطلب إذا لم توجد منتجات
+                clearMerchantOrderData();
             }
             
             whatsappOrderBtn.disabled = !(hasProducts && hasLocation);
             smsOrderBtn.disabled = !(hasProducts && hasLocation);
-
-            // حفظ الطلب عند أي تحديث
-            if (hasProducts && currentMerchantId) {
-                saveOrderToLocalStorage();
-            } else {
-                clearSavedOrder();
-            }
         }
 
         function showOrderSummary() {
@@ -2073,6 +2108,8 @@
                 floatingMenuVisible = false;
             } else {
                 floatingActionMenu.classList.add('active');
+                // حفظ بيانات الطلب عند التحديث
+                saveMerchantOrderData();
             }
             
             let total = 0;
@@ -2759,6 +2796,16 @@
                 notes: notes
             };
             
+            // التحقق من وجود بيانات مخزنة للتاجر الحالي وحفظها
+            const existingData = loadMerchantOrderData();
+            if (existingData) {
+                // تحديث البيانات الموجودة
+                saveMerchantOrderData();
+            } else {
+                // حفظ بيانات جديدة
+                saveMerchantOrderData();
+            }
+            
             updateOrderSummary();
             showMessage(`تم إضافة ${product.name} إلى الطلب`, 'success');
         }
@@ -2900,7 +2947,34 @@
             
             // مستمعي الأحداث
             merchantSelect.addEventListener('change', function() {
-                currentMerchantId = this.value;
+                const newMerchantId = this.value;
+                
+                // التحقق من وجود بيانات طلب مخزنة لتاجر آخر
+                if (newMerchantId && newMerchantId !== currentMerchantId) {
+                    const previousOrderData = checkForOtherMerchantOrder(newMerchantId);
+                    
+                    if (previousOrderData) {
+                        const userChoice = showDeletePreviousOrderConfirmation(previousOrderData);
+                        
+                        if (userChoice) {
+                            // حذف بيانات التاجر السابق
+                            localStorage.removeItem(`merchantOrder_${previousOrderData.merchantId}`);
+                            showMessage(`تم حذف بيانات الطلب الخاصة بالتاجر ${previousOrderData.merchantName}`, 'success');
+                        } else {
+                            // عدم الحذف وفتح السلة العائمة
+                            floatingActionMenu.classList.add('active');
+                            floatingActionItems.classList.add('active');
+                            floatingMenuVisible = true;
+                            showMessage('يرجى إرسال الطلب الحالي قبل تغيير التاجر', 'warning');
+                            // إعادة تعيين القائمة للتاجر الحالي
+                            this.value = currentMerchantId || '';
+                            return;
+                        }
+                    }
+                }
+                
+                // تحديث بيانات التاجر الجديد
+                currentMerchantId = newMerchantId;
                 const selectedOption = this.options[this.selectedIndex];
                 currentMerchantName = selectedOption.textContent.replace(/ \(\d+\) ✓/, '');
                 
@@ -2917,15 +2991,15 @@
                         // تحديث بيانات التاجر في المتغير العام
                         updateCurrentMerchantData(selectedMerchant);
                         
-                        // التحقق من وجود طلب محفوظ لنفس التاجر
-                        setTimeout(() => {
-                            checkForSavedOrder();
-                        }, 500);
-                        
                         // تحميل الفئات والمنتجات فوراً
                         loadCategories().then(() => {
                             loadProducts();
                         });
+                        
+                        // التحقق من وجود طلب محفوظ للتاجر الجديد
+                        setTimeout(() => {
+                            checkForSavedOrder();
+                        }, 500);
                     } else {
                         showMessage('التاجر المحدد غير نشط. يرجى اختيار تاجر نشط.', 'warning');
                         productsContainer.innerHTML = `
