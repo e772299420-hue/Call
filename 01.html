@@ -317,9 +317,8 @@
            ========================================== */
         .floating-action-menu {
             position: fixed;
-            top: 60%; /* تم التعديل للانخفاض قليلاً */
-            right: 20px; /* تم التعديل من left إلى right */
-            transform: translateY(-50%);
+            top: 140px; /* تم تعديل الموقع ليكون أسفل الشريط الثانوي */
+            right: 20px;
             z-index: 997;
             display: none;
         }
@@ -374,6 +373,9 @@
             animation: slideDown 0.3s ease;
         }
 
+        /* ==========================================
+           🎯 تحسين تصميم أزرار القائمة العائمة - التعديل الجديد
+           ========================================== */
         .floating-action-item {
             display: flex;
             align-items: center;
@@ -389,47 +391,89 @@
             transition: var(--transition);
             text-align: right;
             width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .floating-action-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .floating-action-item:hover::before {
+            opacity: 1;
         }
 
         .floating-action-item:hover {
-            background: #f8f9fa;
-            transform: translateX(5px); /* تم تعديل الاتجاه */
+            transform: translateX(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         .floating-action-item i {
             width: 20px;
             text-align: center;
             font-size: 16px;
+            transition: var(--transition);
         }
 
-        .floating-action-item.cancel {
-            color: var(--danger-color);
+        .floating-action-item:hover i {
+            transform: scale(1.2);
         }
 
         .floating-action-item.show-order {
-            color: var(--info-color);
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05));
+            color: var(--primary-color);
+            border: 1px solid rgba(52, 152, 219, 0.2);
         }
 
         .floating-action-item.whatsapp {
+            background: linear-gradient(135deg, rgba(37, 211, 102, 0.1), rgba(37, 211, 102, 0.05));
             color: #25D366;
+            border: 1px solid rgba(37, 211, 102, 0.2);
         }
 
         .floating-action-item.sms {
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.1), rgba(255, 107, 0, 0.05));
             color: #ff6b00;
+            border: 1px solid rgba(255, 107, 0, 0.2);
         }
 
         .floating-action-item.merchant {
+            background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05));
             color: var(--warning-color);
+            border: 1px solid rgba(243, 156, 18, 0.2);
+        }
+
+        .floating-action-item.cancel {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
+            color: var(--danger-color);
+            border: 1px solid rgba(231, 76, 60, 0.2);
         }
 
         .floating-action-item:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
+            transform: none !important;
         }
 
         .floating-action-item:disabled:hover {
             background: transparent;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .floating-action-item:disabled:hover::before {
+            opacity: 0;
+        }
+
+        .floating-action-item:disabled:hover i {
             transform: none;
         }
 
@@ -1120,6 +1164,106 @@
         }
 
         /* ==========================================
+           🗑️ نافذة تأكيد حذف الطلب - جديد
+           ========================================== */
+        .delete-order-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .delete-order-modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .delete-order-content {
+            background: var(--background-color);
+            border-radius: var(--border-radius);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+            animation: modalSlideIn 0.4s ease-out;
+        }
+
+        .delete-order-header {
+            padding: 25px;
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+        }
+
+        .delete-order-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.5rem;
+        }
+
+        .delete-order-body {
+            padding: 25px;
+            text-align: center;
+        }
+
+        .delete-order-message {
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+
+        .delete-order-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .delete-order-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 160px;
+        }
+
+        .cancel-delete-btn {
+            background: linear-gradient(135deg, var(--gray-color), #6c757d);
+            color: white;
+        }
+
+        .confirm-delete-btn {
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+            color: white;
+        }
+
+        .delete-order-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        /* ==========================================
            📱 تحسينات للأجهزة المحمولة
            ========================================== */
         @media (max-width: 1200px) {
@@ -1216,7 +1360,7 @@
             }
 
             .floating-action-menu {
-                top: 60%;
+                top: 140px;
                 right: 15px;
             }
 
@@ -1289,11 +1433,11 @@
                 width: 100%;
             }
 
-            .saved-order-buttons {
+            .saved-order-buttons, .delete-order-buttons {
                 flex-direction: column;
             }
 
-            .saved-order-btn {
+            .saved-order-btn, .delete-order-btn {
                 width: 100%;
             }
         }
@@ -1320,11 +1464,11 @@
                 padding: 15px;
             }
 
-            .order-summary-header, .prices-header, .saved-order-header {
+            .order-summary-header, .prices-header, .saved-order-header, .delete-order-header {
                 padding: 20px;
             }
 
-            .order-summary-header h3, .prices-header h3, .saved-order-header h3 {
+            .order-summary-header h3, .prices-header h3, .saved-order-header h3, .delete-order-header h3 {
                 font-size: 1.3rem;
             }
 
@@ -1597,6 +1741,35 @@
     </div>
 
     <!-- ==========================================
+       🗑️ نافذة تأكيد حذف الطلب - جديد
+       ========================================== -->
+    <div class="delete-order-modal" id="delete-order-modal">
+        <div class="delete-order-content">
+            <div class="delete-order-header">
+                <h3>
+                    <i class="fas fa-trash-alt"></i>
+                    تأكيد حذف الطلب
+                </h3>
+            </div>
+            <div class="delete-order-body">
+                <div class="delete-order-message" id="delete-order-message">
+                    <!-- سيتم تعبئة رسالة الحذف هنا -->
+                </div>
+                <div class="delete-order-buttons">
+                    <button class="delete-order-btn cancel-delete-btn" id="cancel-delete-btn">
+                        <i class="fas fa-times-circle"></i>
+                        إلغاء
+                    </button>
+                    <button class="delete-order-btn confirm-delete-btn" id="confirm-delete-btn">
+                        <i class="fas fa-check-circle"></i>
+                        تأكيد الحذف
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
        🦶 الفوتر المحسن - تم إزالة زر التاجر
        ========================================== -->
     <footer class="footer">
@@ -1734,6 +1907,12 @@
         const floatingSearchBtn = document.getElementById('floating-search-btn');
         const merchantInfoBtn = document.getElementById('merchant-info-btn');
         const currentMerchantNameElement = document.getElementById('current-merchant-name');
+        
+        // عناصر نافذة حذف الطلب الجديدة
+        const deleteOrderModal = document.getElementById('delete-order-modal');
+        const deleteOrderMessage = document.getElementById('delete-order-message');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 
         // متغيرات التطبيق
         let allProducts = [];
@@ -1888,7 +2067,28 @@
          * عرض تأكيد حذف بيانات التاجر السابق
          */
         function showDeletePreviousOrderConfirmation(previousOrderData) {
-            return confirm(`هل ترغب بحذف بيانات الطلب الخاصة بالتاجر ${previousOrderData.merchantName}؟\n\nيوجد ${previousOrderData.productCount} منتج في الطلب السابق.`);
+            deleteOrderMessage.innerHTML = `
+                هل ترغب بحذف بيانات الطلب الخاصة بالتاجر <strong>${previousOrderData.merchantName}</strong>؟<br><br>
+                يوجد <strong>${previousOrderData.productCount}</strong> منتج في الطلب السابق.
+            `;
+            
+            deleteOrderModal.classList.add('active');
+            
+            return new Promise((resolve) => {
+                const handleChoice = (choice) => {
+                    deleteOrderModal.classList.remove('active');
+                    resolve(choice);
+                    // إزالة المستمعين بعد الاستخدام
+                    confirmDeleteBtn.removeEventListener('click', confirmHandler);
+                    cancelDeleteBtn.removeEventListener('click', cancelHandler);
+                };
+                
+                const confirmHandler = () => handleChoice(true);
+                const cancelHandler = () => handleChoice(false);
+                
+                confirmDeleteBtn.addEventListener('click', confirmHandler);
+                cancelDeleteBtn.addEventListener('click', cancelHandler);
+            });
         }
 
         // ==========================================
@@ -2032,9 +2232,11 @@
         // ==========================================
         function showCancelConfirmation() {
             if (Object.keys(selectedProducts).length > 0) {
-                if (confirm('هل أنت متأكد أنك تريد إلغاء الطلب؟ سيتم حذف جميع المنتجات المضافة.')) {
-                    cancelOrder();
-                }
+                deleteOrderMessage.innerHTML = `
+                    هل أنت متأكد أنك تريد إلغاء الطلب؟<br><br>
+                    سيتم حذف <strong>${Object.keys(selectedProducts).length}</strong> منتج من الطلب الحالي.
+                `;
+                deleteOrderModal.classList.add('active');
             } else {
                 showMessage('لا توجد منتجات في الطلب', 'warning');
             }
@@ -2227,23 +2429,41 @@
                 top: 140px;
                 right: 20px;
                 padding: 18px 24px;
-                background: ${type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : type === 'warning' ? '#fff3cd' : '#d1ecf1'};
-                color: ${type === 'error' ? '#721c24' : type === 'success' ? '#155724' : type === 'warning' ? '#856404' : '#0c5460'};
+                background: ${type === 'error' ? 'linear-gradient(135deg, #f8d7da, #f5c6cb)' : 
+                            type === 'success' ? 'linear-gradient(135deg, #d4edda, #c3e6cb)' : 
+                            type === 'warning' ? 'linear-gradient(135deg, #fff3cd, #ffeaa7)' : 
+                            'linear-gradient(135deg, #d1ecf1, #b8daff)'};
+                color: ${type === 'error' ? '#721c24' : 
+                        type === 'success' ? '#155724' : 
+                        type === 'warning' ? '#856404' : 
+                        '#0c5460'};
                 border-radius: 12px;
                 z-index: 1000;
                 box-shadow: 0 8px 25px rgba(0,0,0,0.2);
                 max-width: 400px;
-                border: 2px solid ${type === 'error' ? '#f5c6cb' : type === 'success' ? '#c3e6cb' : type === 'warning' ? '#ffeaa7' : '#b8daff'};
+                border: 2px solid ${type === 'error' ? '#f5c6cb' : 
+                                type === 'success' ? '#c3e6cb' : 
+                                type === 'warning' ? '#ffeaa7' : 
+                                '#b8daff'};
                 font-weight: 600;
                 font-size: 15px;
                 backdrop-filter: blur(10px);
+                transform: translateX(100%);
+                transition: transform 0.3s ease, opacity 0.3s ease;
+                opacity: 0;
             `;
             messageDiv.textContent = message;
             document.body.appendChild(messageDiv);
             
+            // إظهار الإشعار بتحريكه من اليمين
+            setTimeout(() => {
+                messageDiv.style.transform = 'translateX(0)';
+                messageDiv.style.opacity = '1';
+            }, 100);
+            
             setTimeout(() => {
                 messageDiv.style.opacity = '0';
-                messageDiv.style.transform = 'translateY(-20px)';
+                messageDiv.style.transform = 'translateX(100%)';
                 setTimeout(() => {
                     messageDiv.remove();
                 }, 300);
@@ -2956,7 +3176,7 @@
             initializeApp();
             
             // مستمعي الأحداث
-            merchantSelect.addEventListener('change', function() {
+            merchantSelect.addEventListener('change', async function() {
                 const newMerchantId = this.value;
                 
                 // التحقق من وجود بيانات طلب مخزنة لتاجر آخر
@@ -2964,12 +3184,14 @@
                     const previousOrderData = checkForOtherMerchantOrder(newMerchantId);
                     
                     if (previousOrderData) {
-                        const userChoice = showDeletePreviousOrderConfirmation(previousOrderData);
+                        const userChoice = await showDeletePreviousOrderConfirmation(previousOrderData);
                         
                         if (userChoice) {
                             // حذف بيانات التاجر السابق
                             localStorage.removeItem(`merchantOrder_${previousOrderData.merchantId}`);
                             showMessage(`تم حذف بيانات الطلب الخاصة بالتاجر ${previousOrderData.merchantName}`, 'success');
+                            // متابعة تغيير التاجر
+                            completeMerchantChange(newMerchantId);
                         } else {
                             // عدم الحذف وفتح السلة العائمة والتركيز على زر واتساب
                             floatingActionMenu.classList.add('active');
@@ -2993,12 +3215,20 @@
                             this.value = currentMerchantId || '';
                             return;
                         }
+                    } else {
+                        // إذا لم يكن هناك طلب سابق، نكمل تغيير التاجر
+                        completeMerchantChange(newMerchantId);
                     }
+                } else {
+                    // إذا لم يكن هناك تغيير في التاجر، نكمل
+                    completeMerchantChange(newMerchantId);
                 }
-                
+            });
+            
+            function completeMerchantChange(newMerchantId) {
                 // تحديث بيانات التاجر الجديد
                 currentMerchantId = newMerchantId;
-                const selectedOption = this.options[this.selectedIndex];
+                const selectedOption = merchantSelect.options[merchantSelect.selectedIndex];
                 currentMerchantName = selectedOption.textContent.replace(/ \(\d+\) ✓/, '');
                 
                 // تحديث رقم الجوال والتاجر المختار
@@ -3053,7 +3283,7 @@
                 }
                 
                 updateOrderButtons();
-            });
+            }
             
             categorySelect.addEventListener('change', function() {
                 if (currentMerchantId) {
@@ -3086,6 +3316,20 @@
             merchantInfoBtn.addEventListener('click', openMerchantPage);
             
             cancelOrderBtn.addEventListener('click', showCancelConfirmation);
+            confirmDeleteBtn.addEventListener('click', function() {
+                cancelOrder();
+                deleteOrderModal.classList.remove('active');
+            });
+            
+            cancelDeleteBtn.addEventListener('click', function() {
+                deleteOrderModal.classList.remove('active');
+            });
+            
+            deleteOrderModal.addEventListener('click', function(e) {
+                if (e.target === deleteOrderModal) {
+                    deleteOrderModal.classList.remove('active');
+                }
+            });
             
             showOrderBtn.addEventListener('click', showOrderSummary);
             closeSummary.addEventListener('click', () => {
