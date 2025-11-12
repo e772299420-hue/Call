@@ -1532,7 +1532,7 @@
             <div class="order-summary-header">
                 <h3>
                     <i class="fas fa-shopping-basket"></i>
-                    ملخص الطلب
+                    ملخص الطلب - <span id="current-merchant-name"></span>
                 </h3>
                 <button class="close-summary" id="close-summary">
                     <i class="fas fa-times"></i>
@@ -1733,6 +1733,7 @@
         const continueOrderBtn = document.getElementById('continue-order-btn');
         const floatingSearchBtn = document.getElementById('floating-search-btn');
         const merchantInfoBtn = document.getElementById('merchant-info-btn');
+        const currentMerchantNameElement = document.getElementById('current-merchant-name');
 
         // متغيرات التطبيق
         let allProducts = [];
@@ -2075,6 +2076,9 @@
             let total = 0;
             orderItems.innerHTML = '';
             
+            // تحديث اسم التاجر في شاشة الملخص
+            currentMerchantNameElement.textContent = currentMerchantName;
+            
             productKeys.forEach(key => {
                 const item = selectedProducts[key];
                 const itemTotal = item.quantity * item.price.officialPrice;
@@ -2114,6 +2118,9 @@
             
             let total = 0;
             orderItems.innerHTML = '';
+            
+            // تحديث اسم التاجر في شاشة الملخص
+            currentMerchantNameElement.textContent = currentMerchantName;
             
             productKeys.forEach(key => {
                 const item = selectedProducts[key];
@@ -2961,10 +2968,23 @@
                             localStorage.removeItem(`merchantOrder_${previousOrderData.merchantId}`);
                             showMessage(`تم حذف بيانات الطلب الخاصة بالتاجر ${previousOrderData.merchantName}`, 'success');
                         } else {
-                            // عدم الحذف وفتح السلة العائمة
+                            // عدم الحذف وفتح السلة العائمة والتركيز على زر واتساب
                             floatingActionMenu.classList.add('active');
                             floatingActionItems.classList.add('active');
                             floatingMenuVisible = true;
+                            
+                            // إبراز زر الواتساب
+                            whatsappOrderBtn.style.background = 'rgba(37, 211, 102, 0.1)';
+                            whatsappOrderBtn.style.border = '2px solid #25D366';
+                            whatsappOrderBtn.style.boxShadow = '0 0 10px rgba(37, 211, 102, 0.5)';
+                            
+                            // إعادة تعيين التنسيق بعد 3 ثواني
+                            setTimeout(() => {
+                                whatsappOrderBtn.style.background = '';
+                                whatsappOrderBtn.style.border = '';
+                                whatsappOrderBtn.style.boxShadow = '';
+                            }, 3000);
+                            
                             showMessage('يرجى إرسال الطلب الحالي قبل تغيير التاجر', 'warning');
                             // إعادة تعيين القائمة للتاجر الحالي
                             this.value = currentMerchantId || '';
@@ -3000,6 +3020,10 @@
                         setTimeout(() => {
                             checkForSavedOrder();
                         }, 500);
+                        
+                        // إعادة تعيين الطلب الحالي
+                        selectedProducts = {};
+                        updateOrderSummary();
                     } else {
                         showMessage('التاجر المحدد غير نشط. يرجى اختيار تاجر نشط.', 'warning');
                         productsContainer.innerHTML = `
