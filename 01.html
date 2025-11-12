@@ -1810,25 +1810,28 @@
          * التحقق من وجود بيانات طلب مخزنة للتاجر الحالي
          */
         function checkForSavedOrder() {
-            const savedData = loadMerchantOrderData();
-            
-            if (savedData && Object.keys(savedData.selectedProducts).length > 0) {
-                const productCount = Object.keys(savedData.selectedProducts).length;
-                let total = 0;
-                Object.values(savedData.selectedProducts).forEach(item => {
-                    total += item.quantity * item.price.officialPrice;
-                });
+            // إضافة تأخير بسيط لضمان تحميل كافة البيانات
+            setTimeout(() => {
+                const savedData = loadMerchantOrderData();
+                
+                if (savedData && Object.keys(savedData.selectedProducts).length > 0) {
+                    const productCount = Object.keys(savedData.selectedProducts).length;
+                    let total = 0;
+                    Object.values(savedData.selectedProducts).forEach(item => {
+                        total += item.quantity * item.price.officialPrice;
+                    });
 
-                savedOrderMessage.innerHTML = `
-                    يوجد لديك طلب محفوظ مسبقاً للتاجر <strong>${savedData.merchantName}</strong><br><br>
-                    <strong>${productCount}</strong> منتج | المجموع: <strong>${total}</strong> ريال<br><br>
-                    هل ترغب بمواصلة الطلب السابق أو بدء طلب جديد؟
-                `;
+                    savedOrderMessage.innerHTML = `
+                        يوجد لديك طلب محفوظ مسبقاً للتاجر <strong>${savedData.merchantName}</strong><br><br>
+                        <strong>${productCount}</strong> منتج | المجموع: <strong>${total}</strong> ريال<br><br>
+                        هل ترغب بمواصلة الطلب السابق أو بدء طلب جديد؟
+                    `;
 
-                savedOrderModal.classList.add('active');
-                return true;
-            }
-            return false;
+                    savedOrderModal.classList.add('active');
+                    return true;
+                }
+                return false;
+            }, 300); // تأخير 300 مللي ثانية لضمان استقرار التطبيق
         }
 
         /**
@@ -2334,10 +2337,10 @@
                         // تحديث بيانات التاجر في المتغير العام
                         updateCurrentMerchantData(firstMerchant);
                         
-                        // التحقق من وجود طلب محفوظ لنفس التاجر
+                        // التحقق من وجود طلب محفوظ لنفس التاجر - إضافة تأخير لضمان استقرار التطبيق
                         setTimeout(() => {
                             checkForSavedOrder();
-                        }, 1000);
+                        }, 800);
                         
                         // تحميل المنتجات فوراً
                         loadProducts();
@@ -3016,10 +3019,10 @@
                             loadProducts();
                         });
                         
-                        // التحقق من وجود طلب محفوظ للتاجر الجديد
+                        // التحقق من وجود طلب محفوظ للتاجر الجديد - مع تأخير مناسب
                         setTimeout(() => {
                             checkForSavedOrder();
-                        }, 500);
+                        }, 600);
                         
                         // إعادة تعيين الطلب الحالي
                         selectedProducts = {};
