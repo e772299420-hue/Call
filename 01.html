@@ -3054,7 +3054,7 @@
          * @param {boolean} includePhone - تضمين رقم الجوال في الرسالة
          * @param {boolean} includeNote - تضمين الملاحظة في الرسالة
          */
-        function sendWhatsAppOrder(includePhone = false, includeNote = false) {
+        async function sendWhatsAppOrder(includePhone = false, includeNote = false) {
             const productKeys = Object.keys(selectedProducts);
             
             if (productKeys.length === 0) {
@@ -3122,14 +3122,21 @@
             tempCustomerPhone = customerPhone.value.trim();
             tempCustomerNote = customerNote.value.trim();
             
-            // عرض نافذة تأكيد حفظ الطلب بعد الإرسال
-            showSaveOrderConfirmation();
+            // حفظ الفاتورة وطلبات التوصيل في قاعدة البيانات
+            const saveSuccess = await saveOrderToDatabase(tempCustomerPhone, tempCustomerNote);
+            
+            if (saveSuccess) {
+                // عرض نافذة تأكيد حفظ الطلب بعد الإرسال
+                showSaveOrderConfirmation();
+            } else {
+                showMessage('حدث خطأ في حفظ الفاتورة، يرجى المحاولة مرة أخرى', 'error');
+            }
         }
 
         /**
          * إرسال الطلب عبر رسالة SMS
          */
-        function sendSMSOrder() {
+        async function sendSMSOrder() {
             const productKeys = Object.keys(selectedProducts);
             
             if (productKeys.length === 0) {
@@ -3172,8 +3179,126 @@
             tempCustomerPhone = customerPhone.value.trim();
             tempCustomerNote = customerNote.value.trim();
             
-            // عرض نافذة تأكيد حفظ الطلب بعد الإرسال
-            showSaveOrderConfirmation();
+            // حفظ الفاتورة وطلبات التوصيل في قاعدة البيانات
+            const saveSuccess = await saveOrderToDatabase(tempCustomerPhone, tempCustomerNote);
+            
+            if (saveSuccess) {
+                // عرض نافذة تأكيد حفظ الطلب بعد الإرسال
+                showSaveOrderConfirmation();
+            } else {
+                showMessage('حدث خطأ في حفظ الفاتورة، يرجى المحاولة مرة أخرى', 'error');
+            }
+        }
+
+        // ==========================================
+        // 💾 نظام حفظ الفواتير وطلبات التوصيل في قاعدة البيانات
+        // ==========================================
+
+        /**
+         * إنشاء بصمة رقمية للزائر
+         */
+        function generateVisitorId() {
+            let visitorId = localStorage.getItem('visitorId');
+            if (!visitorId) {
+                visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('visitorId', visitorId);
+            }
+            return visitorId;
+        }
+
+        /**
+         * الحصول على رقم الطلب التالي للتاجر
+         */
+        async function getNextOrderNumber(merchantId) {
+            try {
+                const orderNumberRef = database.ref('last_order_numbers').child(merchantId);
+                const snapshot = await orderNumberRef.once('value');
+                let lastOrderNumber = snapshot.val();
+                
+                if (lastOrderNumber === null) {
+                    lastOrderNumber = 0;
+                }
+                
+                const nextOrderNumber = lastOrderNumber + 1;
+                await orderNumberRef.set(nextOrderNumber);
+                
+                return nextOrderNumber;
+            } catch (error) {
+                console.error('خطأ في الحصول على رقم الطلب:', error);
+                // استخدام رقم افتراضي في حالة الخطأ
+                return 1;
+            }
+        }
+
+        /**
+         * حفظ الفاتورة وطلبات التوصيل في قاعدة البيانات
+         */
+        async function saveOrderToDatabase(customerPhone, customerNote) {
+            try {
+                if (!currentMerchantId || Object.keys(selectedProducts).length === 0) {
+                    console.error('لا يمكن حفظ الطلب: لا يوجد تاجر أو منتجات');
+                    return false;
+                }
+                
+                // الحصول على البصمة الرقمية للزائر
+                const visitorId = generateVisitorId();
+                
+                // الحصول على رقم الطلب التالي للتاجر
+                const orderNumber = await getNextOrderNumber(currentMerchantId);
+                
+                // حساب إجمالي مبلغ الطلب
+                let totalAmount = 0;
+                Object.values(selectedProducts).forEach(item => {
+                    totalAmount += item.quantity * item.price.officialPrice;
+                });
+                
+                // التاريخ والوقت الحالي
+                const timestamp = new Date().toISOString();
+                
+                // حفظ فاتورة الطلب
+                const invoiceRef = database.ref('فاتورة_الطلب').push();
+                const invoiceData = {
+                    merchantId: currentMerchantId,
+                    orderNumber: orderNumber,
+                    visitorId: visitorId,
+                    timestamp: timestamp,
+                    totalAmount: totalAmount,
+                    customerPhone: customerPhone || '',
+                    customerNote: customerNote || ''
+                };
+                
+                await invoiceRef.set(invoiceData);
+                const invoiceId = invoiceRef.key;
+                
+                // حفظ طلبات التوصيل
+                let serialNumber = 1;
+                for (const [key, item] of Object.entries(selectedProducts)) {
+                    const deliveryRef = database.ref('طلبات_التوصيل').push();
+                    const deliveryData = {
+                        merchantId: currentMerchantId,
+                        orderNumber: orderNumber,
+                        invoiceId: invoiceId,
+                        serialNumber: serialNumber++,
+                        productName: item.product.name,
+                        unit: item.unitName,
+                        quantity: item.quantity,
+                        unitPrice: item.price.officialPrice,
+                        totalPrice: item.quantity * item.price.officialPrice,
+                        notes: item.notes || ''
+                    };
+                    
+                    await deliveryRef.set(deliveryData);
+                }
+                
+                console.log('تم حفظ الفاتورة وطلبات التوصيل بنجاح:', invoiceId);
+                showMessage('تم حفظ الفاتورة وطلبات التوصيل بنجاح', 'success');
+                return true;
+                
+            } catch (error) {
+                console.error('خطأ في حفظ الفاتورة وطلبات التوصيل:', error);
+                showMessage('حدث خطأ في حفظ الفاتورة وطلبات التوصيل', 'error');
+                return false;
+            }
         }
 
         /**
