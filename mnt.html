@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منتجات التاجر</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- إضافة Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
         :root {
             --primary-color: #4361ee;
@@ -42,67 +39,6 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px;
-        }
-
-        /* إشعار بيانات التاجر */
-        .merchant-alert {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: var(--border-radius);
-            margin: 20px 0;
-            box-shadow: var(--box-shadow);
-            display: none;
-        }
-
-        .alert-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .alert-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .alert-close {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .alert-close:hover {
-            transform: scale(1.2);
-        }
-
-        .alert-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .alert-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .alert-label {
-            font-size: 14px;
-            opacity: 0.8;
-        }
-
-        .alert-value {
-            font-size: 16px;
-            font-weight: 600;
         }
 
         /* الترويسة */
@@ -496,47 +432,10 @@
             .product-actions {
                 flex-direction: column;
             }
-
-            .alert-content {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- إشعار بيانات التاجر -->
-    <div class="container">
-        <div class="merchant-alert" id="merchantDataAlert">
-            <div class="alert-header">
-                <div class="alert-title">
-                    <i class="fas fa-store"></i>
-                    <span>بيانات التاجر</span>
-                </div>
-                <button class="alert-close" id="closeMerchantAlert">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="alert-content">
-                <div class="alert-item">
-                    <span class="alert-label">اسم التاجر:</span>
-                    <span class="alert-value" id="merchant-name-value">جاري التحميل...</span>
-                </div>
-                <div class="alert-item">
-                    <span class="alert-label">معرف التاجر:</span>
-                    <span class="alert-value" id="merchant-id-value">جاري التحميل...</span>
-                </div>
-                <div class="alert-item">
-                    <span class="alert-label">رقم الواتساب:</span>
-                    <span class="alert-value" id="whatsapp-value">جاري التحميل...</span>
-                </div>
-                <div class="alert-item">
-                    <span class="alert-label">عرض رقم الواتساب:</span>
-                    <span class="alert-value" id="show-number-value">جاري التحميل...</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- الترويسة -->
     <header>
         <div class="container">
@@ -616,20 +515,11 @@
 
     <!-- الكود الجافاسكريبت -->
     <script>
-        // ====== تهيئة Firebase ======
-        const firebaseConfig = {
-            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
-        };
-
-        // تهيئة Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
         // ====== نظام الجلوبال لتخزين بيانات التاجر ======
         const merchantGlobal = {
             // الحصول على اسم التاجر من الجلوبال
             getMerchantName: function() {
-                return sessionStorage.getItem('merchantName') || localStorage.getItem('merchantName') || 'تاجر غير معروف';
+                return sessionStorage.getItem('merchantName') || localStorage.getItem('merchantName') || '';
             },
             
             // الحصول على معرف التاجر من الجلوبال
@@ -639,12 +529,7 @@
             
             // الحصول على رقم الجوال/الواتساب من الجلوبال
             getMerchantPhone: function() {
-                return sessionStorage.getItem('merchantPhone') || localStorage.getItem('merchantPhone') || 'غير متوفر';
-            },
-            
-            // الحصول على حالة عرض الرقم
-            getShowNumberStatus: function() {
-                return sessionStorage.getItem('showNumber') || localStorage.getItem('showNumber') || '0';
+                return sessionStorage.getItem('merchantPhone') || localStorage.getItem('merchantPhone') || '';
             },
             
             // التحقق من وجود بيانات تاجر في الجلوبال
@@ -658,7 +543,6 @@
                 console.log('اسم التاجر:', this.getMerchantName());
                 console.log('معرف التاجر:', this.getMerchantId());
                 console.log('رقم الجوال:', this.getMerchantPhone());
-                console.log('عرض الرقم:', this.getShowNumberStatus());
                 console.log('====================');
             }
         };
@@ -686,8 +570,6 @@
 
         // ====== نظام عرض المنتجات ======
         const productsDisplay = {
-            allProducts: [],
-            
             // تحميل وعرض منتجات التاجر
             loadMerchantProducts: function() {
                 const merchantId = merchantGlobal.getMerchantId();
@@ -700,8 +582,6 @@
                 // عرض حالة التحميل
                 this.showLoading();
                 
-                console.log('جاري تحميل منتجات التاجر:', merchantId);
-                
                 // جلب منتجات التاجر من قاعدة البيانات
                 productsPath.getMerchantProducts(merchantId).once('value')
                     .then(snapshot => {
@@ -710,22 +590,17 @@
                             const product = childSnapshot.val();
                             product.id = childSnapshot.key;
                             products.push(product);
-                            console.log('تم تحميل المنتج:', product.name);
                         });
-                        
-                        this.allProducts = products;
                         
                         if (products.length > 0) {
                             this.displayProducts(products);
-                            console.log(`تم تحميل ${products.length} منتج بنجاح`);
                         } else {
                             this.showNoProductsMessage('لا توجد منتجات متاحة لهذا التاجر');
-                            console.log('لا توجد منتجات لهذا التاجر');
                         }
                     })
                     .catch(error => {
                         console.error('خطأ في تحميل المنتجات:', error);
-                        this.showNoProductsMessage('حدث خطأ أثناء تحميل المنتجات: ' + error.message);
+                        this.showNoProductsMessage('حدث خطأ أثناء تحميل المنتجات');
                     });
             },
             
@@ -807,15 +682,11 @@
                 detailsBtn.addEventListener('click', () => this.showProductDetails(product));
                 actions.appendChild(detailsBtn);
                 
-                // إظهار زر الواتساب فقط إذا كان مفعلاً
-                const showNumber = merchantGlobal.getShowNumberStatus();
-                if (showNumber === '1' || showNumber === 1) {
-                    const whatsappBtn = document.createElement('button');
-                    whatsappBtn.className = 'btn btn-success';
-                    whatsappBtn.innerHTML = '<i class="fab fa-whatsapp"></i> واتساب';
-                    whatsappBtn.addEventListener('click', () => this.contactViaWhatsApp(product));
-                    actions.appendChild(whatsappBtn);
-                }
+                const whatsappBtn = document.createElement('button');
+                whatsappBtn.className = 'btn btn-success';
+                whatsappBtn.innerHTML = '<i class="fab fa-whatsapp"></i> واتساب';
+                whatsappBtn.addEventListener('click', () => this.contactViaWhatsApp(product));
+                actions.appendChild(whatsappBtn);
                 
                 infoSection.appendChild(actions);
                 
@@ -831,15 +702,12 @@
                 if (product.images && product.images.length > 0) {
                     return product.images[0];
                 }
-                if (product.imageUrl) {
-                    return product.imageUrl;
-                }
                 return 'https://via.placeholder.com/300x200?text=لا+توجد+صورة';
             },
             
             // تنسيق السعر
             formatPrice: function(price) {
-                if (!price && price !== 0) return 'غير متوفر';
+                if (!price) return 'غير متوفر';
                 return `${price} ر.س`;
             },
             
@@ -884,13 +752,13 @@
             // عرض تفاصيل المنتج
             showProductDetails: function(product) {
                 // يمكن تطوير هذه الدالة لعرض تفاصيل المنتج في نافذة منبثقة
-                alert(`تفاصيل المنتج:\n\nالاسم: ${product.name}\nالوصف: ${product.description}\nالسعر: ${this.formatPrice(product.price)}\nالفئة: ${product.category || 'غير مصنف'}`);
+                alert(`تفاصيل المنتج:\n\nالاسم: ${product.name}\nالوصف: ${product.description}\nالسعر: ${this.formatPrice(product.price)}`);
             },
             
             // التواصل عبر الواتساب
             contactViaWhatsApp: function(product) {
                 const phone = merchantGlobal.getMerchantPhone();
-                if (!phone || phone === 'غير متوفر') {
+                if (!phone) {
                     alert('رقم الواتساب غير متوفر');
                     return;
                 }
@@ -908,7 +776,7 @@
                 // البحث في المنتجات
                 searchInput.addEventListener('input', (e) => {
                     const searchTerm = e.target.value.toLowerCase();
-                    const filteredProducts = this.allProducts.filter(product => 
+                    const filteredProducts = products.filter(product => 
                         (product.name && product.name.toLowerCase().includes(searchTerm)) ||
                         (product.description && product.description.toLowerCase().includes(searchTerm)) ||
                         (product.category && product.category.toLowerCase().includes(searchTerm))
@@ -920,7 +788,7 @@
                 // ترتيب المنتجات
                 sortSelect.addEventListener('change', (e) => {
                     const sortBy = e.target.value;
-                    const sortedProducts = [...this.allProducts];
+                    const sortedProducts = [...products];
                     
                     switch(sortBy) {
                         case 'name':
@@ -945,100 +813,21 @@
             }
         };
 
-        // ====== نظام عرض بيانات الجلوبال ======
-        const globalDataDisplay = {
-            // عرض إشعار بيانات التاجر
-            showMerchantDataAlert: function() {
-                const merchantDataAlert = document.getElementById('merchantDataAlert');
-                merchantDataAlert.style.display = 'block';
-                
-                // تحديث بيانات الإشعار
-                this.updateMerchantDataAlert();
-            },
-            
-            // إغلاق إشعار بيانات التاجر
-            closeMerchantDataAlert: function() {
-                const merchantDataAlert = document.getElementById('merchantDataAlert');
-                merchantDataAlert.style.display = 'none';
-            },
-            
-            // تحديث بيانات الإشعار
-            updateMerchantDataAlert: function() {
-                // استخدام بيانات التاجر من الجلوبال
-                const merchantName = merchantGlobal.getMerchantName();
-                const merchantId = merchantGlobal.getMerchantId();
-                const merchantPhone = merchantGlobal.getMerchantPhone();
-                const showNumber = merchantGlobal.getShowNumberStatus();
-                
-                document.getElementById('merchant-name-value').textContent = merchantName;
-                document.getElementById('merchant-id-value').textContent = merchantId || 'غير محدد';
-                document.getElementById('whatsapp-value').textContent = merchantPhone;
-                
-                // تحديث حقل الشيك بوكس
-                this.updateShowNumberDisplay(showNumber);
-            },
-            
-            // تحديث عرض حقل الشيك بوكس في الإشعار
-            updateShowNumberDisplay: function(showNumber) {
-                const showNumberElement = document.getElementById('show-number-value');
-                if (showNumberElement) {
-                    if (showNumber === 1 || showNumber === '1') {
-                        showNumberElement.textContent = '1 (مفعل - سيتم عرض زر واتساب)';
-                        showNumberElement.style.color = '#4ade80';
-                    } else {
-                        showNumberElement.textContent = '0 (معطل - سيتم إخفاء زر واتساب)';
-                        showNumberElement.style.color = '#f87171';
-                    }
-                }
-            },
-            
-            // تحديث عرض اسم المستخدم في واجهة المستخدم
-            updateUserDisplay: function() {
-                const merchantName = merchantGlobal.getMerchantName();
-                const userDisplayElement = document.getElementById('user-display-name');
-                
-                if (merchantName) {
-                    userDisplayElement.textContent = `منتجات: ${merchantName}`;
-                } else {
-                    userDisplayElement.textContent = `جاري التحميل...`;
-                }
-            },
-            
-            // تحديث عناوين التبويب والقسم
-            updateTabTitles: function() {
-                const merchantName = merchantGlobal.getMerchantName();
-                const tabTitleElement = document.getElementById('tab-title');
-                const sectionTitleElement = document.getElementById('section-title');
-                
-                if (tabTitleElement) {
-                    tabTitleElement.textContent = merchantName ? `منتجات ${merchantName}` : `منتجات التاجر`;
-                }
-                
-                if (sectionTitleElement) {
-                    sectionTitleElement.textContent = merchantName ? `منتجات ${merchantName}` : `منتجات التاجر`;
-                }
-                
-                // تحديث عنوان الصفحة
-                document.title = merchantName ? `منتجات ${merchantName}` : `منتجات التاجر`;
-            }
-        };
-
         // ====== تهيئة الصفحة ======
         document.addEventListener('DOMContentLoaded', function() {
-            // عرض إشعار بيانات التاجر
-            globalDataDisplay.showMerchantDataAlert();
-            
             // تحديث بيانات التاجر في الواجهة
-            globalDataDisplay.updateUserDisplay();
-            globalDataDisplay.updateTabTitles();
+            const merchantName = merchantGlobal.getMerchantName();
+            const merchantId = merchantGlobal.getMerchantId();
+            
+            if (merchantName) {
+                document.getElementById('user-display-name').textContent = `منتجات: ${merchantName}`;
+                document.getElementById('section-title').textContent = `منتجات ${merchantName}`;
+                document.getElementById('tab-title').textContent = `منتجات ${merchantName}`;
+                document.title = `منتجات ${merchantName}`;
+            }
             
             // تحميل منتجات التاجر
             productsDisplay.loadMerchantProducts();
-            
-            // إضافة حدث إغلاق الإشعار
-            document.getElementById('closeMerchantAlert').addEventListener('click', function() {
-                globalDataDisplay.closeMerchantDataAlert();
-            });
             
             // عرض بيانات الجلوبال للتشخيص (في الكونسول)
             merchantGlobal.debug();
@@ -1048,7 +837,6 @@
         window.merchantGlobal = merchantGlobal;
         window.productsPath = productsPath;
         window.productsDisplay = productsDisplay;
-        window.globalDataDisplay = globalDataDisplay;
     </script>
 </body>
 </html>
