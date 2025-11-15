@@ -51,9 +51,9 @@
     <!-- إعلانات AMP -->
     <script async custom-element="amp-auto-ads" src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js"></script>
 
-    <!-- نظام تتبع الزوار الجديد والمحسن -->
+    <!-- نظام تتبع الزوار المحسن والمدمج -->
     <script>
-    // ===== نظام تتبع الزوار المحسن مع مراقبة الحظر كل 5 ثوانٍ =====
+    // ===== نظام تتبع الزوار المحسن والمدمج =====
     const VisitorTracker = {
         isInitialized: false,
         fingerprint: null,
@@ -61,48 +61,106 @@
         isBannedFlag: false,
         banCheckInterval: null,
         currentPage: '',
+        visitorRef: null,
         
         // تهيئة النظام
         initialize: function() {
             if (this.isInitialized) return;
             
-            console.log('🚀 بدء نظام تتبع الزوار الجديد');
+            console.log('🚀 بدء نظام تتبع الزوار المحسن والمدمج');
             this.currentPage = this.getCurrentPageName();
             this.generateFingerprint();
             this.startBanMonitoring();
             this.trackPageVisit();
             this.isInitialized = true;
             
+            // تحديث معلومات التتبع في الواجهة
+            this.updateTrackingInfo();
+            
             return this;
         },
         
-        // توليد بصمة رقمية فريدة
+        // توليد بصمة رقمية فريدة ومتقدمة
         generateFingerprint: function() {
             try {
+                // محاولة استعادة البصمة من التخزين المحلي أولاً
+                const storedFingerprint = localStorage.getItem('azVisitorFingerprint');
+                const storedVisitorId = localStorage.getItem('azVisitorId');
+                
+                if (storedFingerprint && storedVisitorId) {
+                    this.fingerprint = storedFingerprint;
+                    this.visitorId = storedVisitorId;
+                    console.log('✅ تم استعادة البصمة من التخزين المحلي:', this.fingerprint);
+                    return;
+                }
+                
                 const components = [];
                 
-                // معلومات المتصفح والنظام
+                // معلومات المتصفح والنظام الأساسية
                 const browserInfo = {
                     userAgent: navigator.userAgent,
                     language: navigator.language,
+                    languages: JSON.stringify(navigator.languages || []),
                     platform: navigator.platform,
+                    hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+                    deviceMemory: navigator.deviceMemory || 'unknown',
                     screen: `${screen.width}x${screen.height}`,
                     colorDepth: screen.colorDepth,
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    pixelDepth: screen.pixelDepth,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    timezoneOffset: new Date().getTimezoneOffset()
                 };
                 
                 components.push(JSON.stringify(browserInfo));
                 
-                // Canvas fingerprinting مبسط
+                // Canvas fingerprinting متقدم
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 canvas.width = 200;
                 canvas.height = 50;
+                
+                // إضافة نص مع تدرجات وألوان مختلفة
                 ctx.textBaseline = 'top';
                 ctx.font = '14px Arial';
+                ctx.fillStyle = 'rgb(52, 152, 219)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
                 ctx.fillText('AZ Market Fingerprint', 2, 15);
+                
+                // إضافة تأثيرات إضافية
+                ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)';
+                ctx.strokeRect(5, 5, canvas.width-10, canvas.height-10);
+                
                 const canvasData = canvas.toDataURL();
                 components.push(canvasData);
+                
+                // WebGL fingerprinting مبسط
+                let webglFingerprint = 'webgl_not_supported';
+                try {
+                    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                    if (gl) {
+                        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                        if (debugInfo) {
+                            webglFingerprint = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) + '|' + 
+                                             gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                        } else {
+                            webglFingerprint = 'webgl_supported_no_debug';
+                        }
+                    }
+                } catch (e) {
+                    webglFingerprint = 'webgl_error';
+                }
+                components.push(webglFingerprint);
+                
+                // معلومات إضافية
+                const additionalInfo = {
+                    cookiesEnabled: navigator.cookieEnabled,
+                    doNotTrack: navigator.doNotTrack || 'unspecified',
+                    online: navigator.onLine,
+                    touchSupport: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+                    javaEnabled: navigator.javaEnabled ? navigator.javaEnabled() : false
+                };
+                components.push(JSON.stringify(additionalInfo));
                 
                 // توليد الهاش النهائي
                 this.fingerprint = this.hashCode(components.join('|'));
@@ -112,24 +170,25 @@
                 localStorage.setItem('azVisitorFingerprint', this.fingerprint);
                 localStorage.setItem('azVisitorId', this.visitorId);
                 
-                console.log('✅ تم توليد البصمة:', this.fingerprint);
+                console.log('✅ تم توليد بصمة زائر جديدة:', this.fingerprint);
                 
             } catch (error) {
                 console.error('❌ خطأ في توليد البصمة:', error);
+                // بصمة احتياطية
                 this.fingerprint = 'fallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 this.visitorId = 'visitor_' + this.fingerprint;
             }
         },
         
-        // دالة توليد الهاش
+        // دالة توليد الهاش محسنة
         hashCode: function(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
                 const char = str.charCodeAt(i);
                 hash = ((hash << 5) - hash) + char;
-                hash = hash & hash;
+                hash = hash & hash; // Convert to 32bit integer
             }
-            return Math.abs(hash).toString(16);
+            return Math.abs(hash).toString(16) + Math.abs(hash).toString(36);
         },
         
         // بدء مراقبة الحظر كل 5 ثوانٍ
@@ -145,7 +204,7 @@
             console.log('🔍 بدء مراقبة الحظر كل 5 ثوانٍ');
         },
         
-        // التحقق من حالة الحظر
+        // التحقق من حالة الحظر في قاعدة البيانات
         checkBanStatus: function() {
             if (!this.fingerprint) return;
             
@@ -159,12 +218,15 @@
                         this.isBannedFlag = snapshot.exists();
                         
                         if (this.isBannedFlag && !wasBanned) {
-                            console.warn('🚫 تم اكتشاف حظر للزائر');
+                            console.warn('🚫 تم اكتشاف حظر للزائر:', this.fingerprint);
                             this.handleBannedVisitor();
                         } else if (!this.isBannedFlag && wasBanned) {
-                            console.log('✅ تم إلغاء حظر الزائر');
+                            console.log('✅ تم إلغاء حظر الزائر:', this.fingerprint);
                             this.handleUnbannedVisitor();
                         }
+                        
+                        // تحديث معلومات التتبع في الواجهة
+                        this.updateTrackingInfo();
                     })
                     .catch(error => {
                         console.error('❌ خطأ في التحقق من الحظر:', error);
@@ -189,6 +251,9 @@
             // إظهار إشعار للمستخدم
             this.showNotification('🚫 تم حظر وصولك إلى الموقع بسبب مخالفة شروط الاستخدام', 'error', 10000);
             
+            // تسجيل الحظر في قاعدة البيانات
+            this.logBanStatus(true);
+            
             console.log('🚫 تم تطبيق تأثيرات الحظر على الزائر');
         },
         
@@ -202,6 +267,9 @@
             
             // إزالة تأثيرات الحظر
             this.applyBanEffects(false);
+            
+            // تسجيل إلغاء الحظر في قاعدة البيانات
+            this.logBanStatus(false);
             
             console.log('✅ تم إزالة تأثيرات الحظر عن الزائر');
         },
@@ -237,7 +305,7 @@
             });
         },
         
-        // تتبع زيارة الصفحة
+        // تتبع زيارة الصفحة وتخزينها في قاعدة البيانات
         trackPageVisit: function() {
             if (!this.fingerprint) return;
             
@@ -252,18 +320,87 @@
                     userAgent: navigator.userAgent,
                     referrer: document.referrer || 'direct',
                     screenResolution: `${screen.width}x${screen.height}`,
-                    language: navigator.language
+                    language: navigator.language,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    isBanned: this.isBannedFlag
                 };
                 
                 // حفظ بيانات الزيارة في Firebase
                 const visitsRef = firebase.database().ref('visitor_tracking');
-                const visitId = 'visit_' + Date.now();
+                const visitId = 'visit_' + Date.now() + '_' + this.visitorId;
                 visitsRef.child(visitId).set(visitData);
+                
+                // تحديث بيانات الزائر الرئيسية
+                this.updateVisitorData(visitData);
                 
                 console.log(`📊 تم تتبع زيارة الصفحة: ${this.currentPage}`);
                 
             } catch (error) {
                 console.error('❌ خطأ في تتبع الزيارة:', error);
+            }
+        },
+        
+        // تحديث بيانات الزائر الرئيسية في قاعدة البيانات
+        updateVisitorData: function(visitData) {
+            try {
+                const visitorRef = firebase.database().ref('visitors').child(this.visitorId);
+                
+                visitorRef.update({
+                    fingerprint: this.fingerprint,
+                    lastVisit: new Date().toISOString(),
+                    lastPage: this.currentPage,
+                    totalVisits: firebase.database.ServerValue.increment(1),
+                    userAgent: navigator.userAgent,
+                    screenResolution: `${screen.width}x${screen.height}`,
+                    language: navigator.language,
+                    isBanned: this.isBannedFlag,
+                    lastUpdated: new Date().toISOString()
+                });
+                
+                // إذا كان الزائر جديداً، إضافة المزيد من البيانات
+                visitorRef.once('value').then(snapshot => {
+                    if (!snapshot.exists()) {
+                        visitorRef.set({
+                            fingerprint: this.fingerprint,
+                            firstVisit: new Date().toISOString(),
+                            lastVisit: new Date().toISOString(),
+                            lastPage: this.currentPage,
+                            totalVisits: 1,
+                            userAgent: navigator.userAgent,
+                            screenResolution: `${screen.width}x${screen.height}`,
+                            language: navigator.language,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            isBanned: this.isBannedFlag,
+                            created: new Date().toISOString(),
+                            lastUpdated: new Date().toISOString()
+                        });
+                    }
+                });
+                
+            } catch (error) {
+                console.error('❌ خطأ في تحديث بيانات الزائر:', error);
+            }
+        },
+        
+        // تسجيل حالة الحظر في قاعدة البيانات
+        logBanStatus: function(isBanned) {
+            try {
+                const banLogRef = firebase.database().ref('ban_logs');
+                const logId = 'banlog_' + Date.now() + '_' + this.visitorId;
+                
+                banLogRef.child(logId).set({
+                    visitorId: this.visitorId,
+                    fingerprint: this.fingerprint,
+                    isBanned: isBanned,
+                    timestamp: new Date().toISOString(),
+                    page: this.currentPage,
+                    userAgent: navigator.userAgent
+                });
+                
+                console.log(`📝 تم تسجيل حالة الحظر: ${isBanned ? 'محظور' : 'غير محظور'}`);
+                
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل حالة الحظر:', error);
             }
         },
         
@@ -314,6 +451,27 @@
                     toast.remove();
                 }
             }, duration);
+        },
+        
+        // تحديث معلومات التتبع في الواجهة
+        updateTrackingInfo: function() {
+            const trackingStatus = document.getElementById('trackingStatus');
+            const visitorInfo = document.getElementById('visitorInfo');
+            
+            if (trackingStatus) {
+                trackingStatus.innerHTML = this.isBannedFlag ? 
+                    '<span style="color: red;">❌ تم حظر هذا الزائر</span>' : 
+                    '<span style="color: green;">✅ نظام التتبع نشط</span>';
+            }
+            
+            if (visitorInfo && this.fingerprint && !this.isBannedFlag) {
+                visitorInfo.innerHTML = `
+                    <p><strong>البصمة الرقمية:</strong> ${this.fingerprint}</p>
+                    <p><strong>الحالة:</strong> ✓ تم تسجيل الزيارة بنجاح</p>
+                    <p><strong>الوقت:</strong> ${new Date().toLocaleString('ar-SA')}</p>
+                    <p><strong>الصفحة:</strong> ${this.currentPage}</p>
+                `;
+            }
         },
         
         // الحصول على البصمة
@@ -2085,6 +2243,27 @@ body {
         font-size: 0.7rem;
     }
 }
+
+/* قسم معلومات التتبع المدمج */
+.tracking-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.tracking-info h3 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.tracking-info p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #495057;
+}
 </style>
 </head>
 <body>
@@ -2438,6 +2617,20 @@ body {
             </button>
             
             <!-- تم إزالة زر القائمة المنسدلة -->
+        </div>
+    </div>
+</div>
+
+<!-- قسم معلومات التتبع المدمج -->
+<div class="container">
+    <div class="box">
+        <h2 class="box-title">
+            <i class="fas fa-chart-line" style="color: #3498db;"></i> نظام تتبع الزوار
+        </h2>
+        <div class="tracking-info">
+            <h3>معلومات التتبع:</h3>
+            <div id="trackingStatus">جاري تحميل نظام التتبع...</div>
+            <div id="visitorInfo"></div>
         </div>
     </div>
 </div>
@@ -3365,7 +3558,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // تهيئة Firebase
         const app = firebase.initializeApp(firebaseConfig);
         
-        // تهيئة نظام تتبع الزوار الجديد مع مراقبة الحظر كل 5 ثوانٍ
+        // تهيئة نظام تتبع الزوار المحسن والمدمج
         VisitorTracker.initialize();
         
         // تهيئة أنظمة التطبيق الأخرى
