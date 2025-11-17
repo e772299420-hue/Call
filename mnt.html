@@ -77,7 +77,7 @@
             align-items: center;
         }
 
-        .share-top-btn, .debug-btn {
+        .share-top-btn, .home-btn {
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
@@ -92,7 +92,7 @@
             transition: all 0.3s ease;
         }
 
-        .share-top-btn:hover, .debug-btn:hover {
+        .share-top-btn:hover, .home-btn:hover {
             background: rgba(255,255,255,0.3);
             transform: scale(1.1);
         }
@@ -899,111 +899,6 @@
             }
         }
 
-        /* نافذة التصحيح */
-        .debug-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 3001;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .debug-modal.active {
-            display: flex;
-        }
-
-        .debug-content {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        .debug-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #007bff;
-        }
-
-        .debug-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: #007bff;
-        }
-
-        .debug-close {
-            background: none;
-            border: none;
-            color: #e74c3c;
-            font-size: 24px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .debug-close:hover {
-            color: #c0392b;
-            transform: scale(1.1);
-        }
-
-        .debug-info {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border-right: 4px solid #007bff;
-        }
-
-        .debug-item {
-            margin-bottom: 10px;
-            padding: 8px;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-
-        .debug-label {
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 5px;
-        }
-
-        .debug-value {
-            color: #2c3e50;
-            word-break: break-all;
-        }
-
-        .debug-status {
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        .debug-status.true {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .debug-status.false {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
         /* تحسينات للجوال */
         @media (max-width: 768px) {
             body {
@@ -1118,11 +1013,6 @@
             .notification {
                 top: 120px;
             }
-
-            .debug-content {
-                padding: 20px;
-                margin: 20px;
-            }
         }
 
         @media (max-width: 480px) {
@@ -1164,8 +1054,8 @@
                 </div>
             </div>
             <div class="top-bar-buttons">
-                <button class="debug-btn" id="debug-btn" title="فحص بيانات التاجر">
-                    <i class="fas fa-bug"></i>
+                <button class="home-btn" id="home-btn" title="العودة للصفحة الرئيسية">
+                    <i class="fas fa-home"></i>
                 </button>
                 <button class="share-top-btn" id="share-top-btn">
                     <i class="fas fa-share-alt"></i>
@@ -1289,19 +1179,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ✅ نافذة التصحيح -->
-    <div class="debug-modal" id="debug-modal">
-        <div class="debug-content">
-            <div class="debug-header">
-                <div class="debug-title">فحص بيانات التاجر</div>
-                <button class="debug-close" id="debug-close">×</button>
-            </div>
-            <div class="debug-info" id="debug-info">
-                <!-- سيتم ملؤها بالبيانات -->
             </div>
         </div>
     </div>
@@ -1444,10 +1321,7 @@
         const scrollLeft = document.getElementById("scroll-left");
         const scrollRight = document.getElementById("scroll-right");
         const shareTopBtn = document.getElementById("share-top-btn");
-        const debugBtn = document.getElementById("debug-btn");
-        const debugModal = document.getElementById("debug-modal");
-        const debugClose = document.getElementById("debug-close");
-        const debugInfo = document.getElementById("debug-info");
+        const homeBtn = document.getElementById("home-btn");
         const merchantNameDisplay = document.getElementById("merchant-name-display");
 
         let allProducts = {};
@@ -1483,8 +1357,6 @@
                     return;
                 }
 
-                showNotification('🔍 جاري فحص بيانات التاجر...', 'info');
-
                 const merchantRef = ref(db, `merchants/${merchantId}`);
                 const snapshot = await get(merchantRef);
                 
@@ -1513,58 +1385,19 @@
                 // ✅ تحديث اسم التاجر في الشريط العلوي
                 updateMerchantNameInTopBar();
 
-                // ✅ عرض البيانات في نافذة التصحيح
-                displayDebugInfo(merchantData, merchantId);
-
-                showNotification('✅ تم تحديث بيانات التاجر بنجاح', 'success');
+                console.log('✅ تم تحديث بيانات التاجر بنجاح من Firebase');
 
             } catch (error) {
                 console.error('❌ خطأ في فحص بيانات التاجر:', error);
-                showNotification('❌ حدث خطأ في فحص بيانات التاجر', 'error');
             }
         }
 
-        // ✅ دالة عرض معلومات التصحيح
-        function displayDebugInfo(merchantData, merchantId) {
-            const phoneNumber = merchantData.mobile || merchantData.phone || 'غير متوفر';
-            const showNumberStatus = merchantData.showNumber;
-            const hasValidPhone = phoneNumber && phoneNumber.trim() !== '' && phoneNumber !== 'غير متوفر' && phoneNumber.length >= 6;
-            const shouldShowNumber = showNumberStatus === '1' || showNumberStatus === 1 || showNumberStatus === true;
-            const shouldShowButton = hasValidPhone && shouldShowNumber;
-
-            debugInfo.innerHTML = `
-                <div class="debug-item">
-                    <div class="debug-label">معرف التاجر:</div>
-                    <div class="debug-value">${merchantId}</div>
-                </div>
-                <div class="debug-item">
-                    <div class="debug-label">اسم التاجر:</div>
-                    <div class="debug-value">${merchantData.name || 'غير محدد'}</div>
-                </div>
-                <div class="debug-item">
-                    <div class="debug-label">رقم الجوال:</div>
-                    <div class="debug-value">${phoneNumber}</div>
-                </div>
-                <div class="debug-item">
-                    <div class="debug-label">قيمة showNumber:</div>
-                    <div class="debug-value">${showNumberStatus} (${typeof showNumberStatus})</div>
-                </div>
-                <div class="debug-item">
-                    <div class="debug-label">حالة عرض الزر:</div>
-                    <div class="debug-status ${shouldShowButton ? 'true' : 'false'}">
-                        ${shouldShowButton ? '✅ سيتم عرض زر "اطلب المنتج الان"' : '❌ سيتم إخفاء زر "اطلب المنتج الان"'}
-                    </div>
-                </div>
-                <div class="debug-item">
-                    <div class="debug-label">التفاصيل:</div>
-                    <div class="debug-value">
-                        <div>• رقم صالح: ${hasValidPhone ? '✅ نعم' : '❌ لا'}</div>
-                        <div>• عرض الرقم مفعل: ${shouldShowNumber ? '✅ نعم' : '❌ لا'}</div>
-                    </div>
-                </div>
-            `;
-
-            debugModal.classList.add('active');
+        // ✅ دالة العودة للصفحة الرئيسية
+        function goToHomePage() {
+            showNotification('جارٍ العودة للصفحة الرئيسية...', 'info');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
         }
 
         // تحميل جميع البيانات
@@ -2477,11 +2310,8 @@ ${pageUrl}
             // زر المشاركة في الشريط العلوي
             shareTopBtn.addEventListener('click', shareMerchantPage);
 
-            // ✅ زر التصحيح في الشريط العلوي
-            debugBtn.addEventListener('click', checkMerchantData);
-            debugClose.addEventListener('click', () => {
-                debugModal.classList.remove('active');
-            });
+            // ✅ زر الشاشة الرئيسية في الشريط العلوي
+            homeBtn.addEventListener('click', goToHomePage);
 
             // إغلاق الفلاتر عند النقر خارجها
             document.addEventListener('click', (e) => {
@@ -2494,13 +2324,6 @@ ${pageUrl}
             document.getElementById('image-gallery').addEventListener('click', (e) => {
                 if (e.target.id === 'image-gallery') {
                     closeImageGallery();
-                }
-            });
-
-            // إغلاق نافذة التصحيح عند النقر خارجها
-            debugModal.addEventListener('click', (e) => {
-                if (e.target.id === 'debug-modal') {
-                    debugModal.classList.remove('active');
                 }
             });
 
@@ -2557,7 +2380,7 @@ ${pageUrl}
         window.sendWhatsAppMessage = sendWhatsAppMessage;
         window.merchantGlobal = merchantGlobal;
         window.shareMerchantPage = shareMerchantPage;
-        window.checkMerchantData = checkMerchantData;
+        window.goToHomePage = goToHomePage;
     </script>
 
     <!-- Font Awesome للأيقونات -->
