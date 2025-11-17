@@ -1407,16 +1407,31 @@
             return snapshot.exists();
         }
         
-        // الحصول على آخر معرف مستخدم
+        // الحصول على آخر معرف مستخدم - التصحيح الأساسي
         async function getLastUserId() {
-            const usersRef = database.ref('use_wdefa');
-            const snapshot = await usersRef.orderByKey().limitToLast(1).once('value');
-            if (snapshot.exists()) {
-                const lastKey = Object.keys(snapshot.val())[0];
-                const lastId = parseInt(lastKey.split('_')[1]) || 0;
-                return lastId + 1;
+            try {
+                const usersRef = database.ref('use_wdefa');
+                const snapshot = await usersRef.once('value');
+                
+                if (!snapshot.exists()) {
+                    return 1;
+                }
+                
+                const users = snapshot.val();
+                let maxId = 0;
+                
+                Object.values(users).forEach(user => {
+                    if (user && user.id && user.id > maxId) {
+                        maxId = user.id;
+                    }
+                });
+                
+                return maxId + 1;
+            } catch (error) {
+                console.error('Error getting last user ID:', error);
+                // في حالة الخطأ، نستخدم الطوابع الزمنية لتجنب التكرار
+                return Math.floor(Date.now() / 1000);
             }
-            return 1;
         }
         
         // معالجة التسجيل - تم التعديل للانتقال إلى تسجيل الدخول وعرض البيانات
@@ -1468,7 +1483,7 @@
                 // الحصول على IP المستخدم
                 const userIP = await getUserIP();
                 
-                // الحصول على آخر معرف مستخدم
+                // الحصول على آخر معرف مستخدم - التصحيح الأساسي
                 const lastId = await getLastUserId();
                 const userId = `user_${lastId}`;
                 
@@ -1501,7 +1516,7 @@
                 }, 2000);
                 
             } catch (error) {
-                messageElement.textContent = 'حدث خطأ أثناء إنشاء الحساب';
+                messageElement.textContent = 'حدث خطأ أثناء إنشاء الحساب: ' + error.message;
                 messageElement.className = 'message error';
                 messageElement.style.display = 'block';
                 console.error('Error creating account:', error);
