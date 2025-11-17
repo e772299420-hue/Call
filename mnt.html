@@ -71,7 +71,13 @@
             font-weight: normal;
         }
 
-        .share-top-btn {
+        .top-bar-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .share-top-btn, .debug-btn {
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
@@ -86,7 +92,7 @@
             transition: all 0.3s ease;
         }
 
-        .share-top-btn:hover {
+        .share-top-btn:hover, .debug-btn:hover {
             background: rgba(255,255,255,0.3);
             transform: scale(1.1);
         }
@@ -874,6 +880,14 @@
             background: #e74c3c;
         }
 
+        .notification.info {
+            background: #3498db;
+        }
+
+        .notification.warning {
+            background: #f39c12;
+        }
+
         @keyframes slideInDown {
             from {
                 opacity: 0;
@@ -883,6 +897,111 @@
                 opacity: 1;
                 transform: translateX(-50%) translateY(0);
             }
+        }
+
+        /* نافذة التصحيح */
+        .debug-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 3001;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .debug-modal.active {
+            display: flex;
+        }
+
+        .debug-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .debug-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .debug-close {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .debug-close:hover {
+            color: #c0392b;
+            transform: scale(1.1);
+        }
+
+        .debug-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-right: 4px solid #007bff;
+        }
+
+        .debug-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .debug-label {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .debug-value {
+            color: #2c3e50;
+            word-break: break-all;
+        }
+
+        .debug-status {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .debug-status.true {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .debug-status.false {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
         /* تحسينات للجوال */
@@ -999,6 +1118,11 @@
             .notification {
                 top: 120px;
             }
+
+            .debug-content {
+                padding: 20px;
+                margin: 20px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1039,9 +1163,14 @@
                     <h2>صفحة منتجات / <span id="merchant-name-display">اسم التاجر</span></h2>
                 </div>
             </div>
-            <button class="share-top-btn" id="share-top-btn">
-                <i class="fas fa-share-alt"></i>
-            </button>
+            <div class="top-bar-buttons">
+                <button class="debug-btn" id="debug-btn" title="فحص بيانات التاجر">
+                    <i class="fas fa-bug"></i>
+                </button>
+                <button class="share-top-btn" id="share-top-btn">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1164,6 +1293,19 @@
         </div>
     </div>
 
+    <!-- ✅ نافذة التصحيح -->
+    <div class="debug-modal" id="debug-modal">
+        <div class="debug-content">
+            <div class="debug-header">
+                <div class="debug-title">فحص بيانات التاجر</div>
+                <button class="debug-close" id="debug-close">×</button>
+            </div>
+            <div class="debug-info" id="debug-info">
+                <!-- سيتم ملؤها بالبيانات -->
+            </div>
+        </div>
+    </div>
+
     <!-- ✅ Firebase + JavaScript -->
     <script type="module">
         // 🔥 1- ربط Firebase
@@ -1171,13 +1313,13 @@
         import { getDatabase, ref, onValue, set, get, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "chat-fat-free.firebaseapp.com",
+            apiKey: "AIzaSyCZPqfq2Q6edvLkMogu1jR6RgLkLf-gQk0",
+            authDomain: "chat-fat-free-default-rtdb.firebaseapp.com",
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com",
             projectId: "chat-fat-free",
-            storageBucket: "chat-fat-free.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            storageBucket: "chat-fat-free-default-rtdb.appspot.com",
+            messagingSenderId: "106886157687",
+            appId: "1:106886157687:web:5d6c8e3e5c7d5d7a8d8b9c"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -1205,35 +1347,74 @@
                 return sessionStorage.getItem('showNumber') || localStorage.getItem('showNumber') || '0';
             },
             
-            // ✅ التحقق من شروط عرض زر "اطلب المنتج الان"
-            shouldShowOrderButton: function() {
-                const phoneNumber = this.getMerchantPhone();
-                const showNumberStatus = this.getShowNumberStatus();
-                
-                // ✅ الشروط المطلوبة:
-                // 1- أن يكون الرقم موجوداً وغير فارغ وغير "غير متوفر"
-                // 2- أن تكون قيمة عرض الرقم تساوي "1"
-                const hasValidPhone = phoneNumber && 
-                                    phoneNumber.trim() !== '' && 
-                                    phoneNumber !== 'غير متوفر' &&
-                                    phoneNumber !== 'undefined' &&
-                                    phoneNumber.length >= 6;
-                
-                const shouldShowNumber = showNumberStatus === '1' || 
-                                       showNumberStatus === 1 || 
-                                       showNumberStatus === true;
-                
-                const shouldShowButton = hasValidPhone && shouldShowNumber;
-                
-                console.log('🔍 شروط عرض زر الطلب:', {
-                    phoneNumber: phoneNumber,
-                    hasValidPhone: hasValidPhone,
-                    showNumberStatus: showNumberStatus,
-                    shouldShowNumber: shouldShowNumber,
-                    shouldShowButton: shouldShowButton
-                });
-                
-                return shouldShowButton;
+            // ✅ التحقق من شروط عرض زر "اطلب المنتج الان" - الإصدار المحسن
+            shouldShowOrderButton: async function() {
+                try {
+                    const merchantId = this.getMerchantId();
+                    
+                    if (!merchantId) {
+                        console.log('❌ لا يوجد معرف تاجر في الجلوبال');
+                        return false;
+                    }
+
+                    // ✅ جلب بيانات التاجر مباشرة من Firebase
+                    const merchantRef = ref(db, `merchants/${merchantId}`);
+                    const snapshot = await get(merchantRef);
+                    
+                    if (!snapshot.exists()) {
+                        console.log('❌ التاجر غير موجود في قاعدة البيانات');
+                        return false;
+                    }
+
+                    const merchantData = snapshot.val();
+                    console.log('📋 بيانات التاجر من Firebase:', merchantData);
+
+                    // ✅ تحديث بيانات الجلوبال من Firebase
+                    if (merchantData.name) {
+                        sessionStorage.setItem('merchantName', merchantData.name);
+                        localStorage.setItem('merchantName', merchantData.name);
+                    }
+                    if (merchantData.mobile || merchantData.phone) {
+                        const phone = merchantData.mobile || merchantData.phone;
+                        sessionStorage.setItem('merchantPhone', phone);
+                        localStorage.setItem('merchantPhone', phone);
+                    }
+                    if (merchantData.showNumber !== undefined) {
+                        sessionStorage.setItem('showNumber', merchantData.showNumber);
+                        localStorage.setItem('showNumber', merchantData.showNumber);
+                    }
+
+                    // ✅ الشروط المطلوبة:
+                    const phoneNumber = merchantData.mobile || merchantData.phone || '';
+                    const showNumberStatus = merchantData.showNumber;
+                    
+                    const hasValidPhone = phoneNumber && 
+                                        phoneNumber.trim() !== '' && 
+                                        phoneNumber !== 'غير متوفر' &&
+                                        phoneNumber !== 'undefined' &&
+                                        phoneNumber.length >= 6;
+                    
+                    const shouldShowNumber = showNumberStatus === '1' || 
+                                           showNumberStatus === 1 || 
+                                           showNumberStatus === true;
+                    
+                    const shouldShowButton = hasValidPhone && shouldShowNumber;
+                    
+                    console.log('🔍 شروط عرض زر الطلب (من Firebase):', {
+                        merchantId: merchantId,
+                        phoneNumber: phoneNumber,
+                        hasValidPhone: hasValidPhone,
+                        showNumberStatus: showNumberStatus,
+                        shouldShowNumber: shouldShowNumber,
+                        shouldShowButton: shouldShowButton
+                    });
+                    
+                    return shouldShowButton;
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في جلب بيانات التاجر:', error);
+                    return false;
+                }
             },
             
             // التحقق من وجود بيانات تاجر في الجلوبال
@@ -1248,7 +1429,6 @@
                 console.log('معرف التاجر:', this.getMerchantId());
                 console.log('رقم الجوال:', this.getMerchantPhone());
                 console.log('عرض الرقم:', this.getShowNumberStatus());
-                console.log('عرض زر الطلب:', this.shouldShowOrderButton());
                 console.log('====================');
             }
         };
@@ -1264,6 +1444,10 @@
         const scrollLeft = document.getElementById("scroll-left");
         const scrollRight = document.getElementById("scroll-right");
         const shareTopBtn = document.getElementById("share-top-btn");
+        const debugBtn = document.getElementById("debug-btn");
+        const debugModal = document.getElementById("debug-modal");
+        const debugClose = document.getElementById("debug-close");
+        const debugInfo = document.getElementById("debug-info");
         const merchantNameDisplay = document.getElementById("merchant-name-display");
 
         let allProducts = {};
@@ -1289,6 +1473,100 @@
         let favoriteProducts = JSON.parse(localStorage.getItem('favoriteProducts')) || {};
         let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
 
+        // ✅ دالة فحص بيانات التاجر من Firebase
+        async function checkMerchantData() {
+            try {
+                const merchantId = merchantGlobal.getMerchantId();
+                
+                if (!merchantId) {
+                    showNotification('❌ لا يوجد معرف تاجر في الجلوبال', 'error');
+                    return;
+                }
+
+                showNotification('🔍 جاري فحص بيانات التاجر...', 'info');
+
+                const merchantRef = ref(db, `merchants/${merchantId}`);
+                const snapshot = await get(merchantRef);
+                
+                if (!snapshot.exists()) {
+                    showNotification('❌ التاجر غير موجود في قاعدة البيانات', 'error');
+                    return;
+                }
+
+                const merchantData = snapshot.val();
+                
+                // ✅ تحديث بيانات الجلوبال من Firebase
+                if (merchantData.name) {
+                    sessionStorage.setItem('merchantName', merchantData.name);
+                    localStorage.setItem('merchantName', merchantData.name);
+                }
+                if (merchantData.mobile || merchantData.phone) {
+                    const phone = merchantData.mobile || merchantData.phone;
+                    sessionStorage.setItem('merchantPhone', phone);
+                    localStorage.setItem('merchantPhone', phone);
+                }
+                if (merchantData.showNumber !== undefined) {
+                    sessionStorage.setItem('showNumber', merchantData.showNumber);
+                    localStorage.setItem('showNumber', merchantData.showNumber);
+                }
+
+                // ✅ تحديث اسم التاجر في الشريط العلوي
+                updateMerchantNameInTopBar();
+
+                // ✅ عرض البيانات في نافذة التصحيح
+                displayDebugInfo(merchantData, merchantId);
+
+                showNotification('✅ تم تحديث بيانات التاجر بنجاح', 'success');
+
+            } catch (error) {
+                console.error('❌ خطأ في فحص بيانات التاجر:', error);
+                showNotification('❌ حدث خطأ في فحص بيانات التاجر', 'error');
+            }
+        }
+
+        // ✅ دالة عرض معلومات التصحيح
+        function displayDebugInfo(merchantData, merchantId) {
+            const phoneNumber = merchantData.mobile || merchantData.phone || 'غير متوفر';
+            const showNumberStatus = merchantData.showNumber;
+            const hasValidPhone = phoneNumber && phoneNumber.trim() !== '' && phoneNumber !== 'غير متوفر' && phoneNumber.length >= 6;
+            const shouldShowNumber = showNumberStatus === '1' || showNumberStatus === 1 || showNumberStatus === true;
+            const shouldShowButton = hasValidPhone && shouldShowNumber;
+
+            debugInfo.innerHTML = `
+                <div class="debug-item">
+                    <div class="debug-label">معرف التاجر:</div>
+                    <div class="debug-value">${merchantId}</div>
+                </div>
+                <div class="debug-item">
+                    <div class="debug-label">اسم التاجر:</div>
+                    <div class="debug-value">${merchantData.name || 'غير محدد'}</div>
+                </div>
+                <div class="debug-item">
+                    <div class="debug-label">رقم الجوال:</div>
+                    <div class="debug-value">${phoneNumber}</div>
+                </div>
+                <div class="debug-item">
+                    <div class="debug-label">قيمة showNumber:</div>
+                    <div class="debug-value">${showNumberStatus} (${typeof showNumberStatus})</div>
+                </div>
+                <div class="debug-item">
+                    <div class="debug-label">حالة عرض الزر:</div>
+                    <div class="debug-status ${shouldShowButton ? 'true' : 'false'}">
+                        ${shouldShowButton ? '✅ سيتم عرض زر "اطلب المنتج الان"' : '❌ سيتم إخفاء زر "اطلب المنتج الان"'}
+                    </div>
+                </div>
+                <div class="debug-item">
+                    <div class="debug-label">التفاصيل:</div>
+                    <div class="debug-value">
+                        <div>• رقم صالح: ${hasValidPhone ? '✅ نعم' : '❌ لا'}</div>
+                        <div>• عرض الرقم مفعل: ${shouldShowNumber ? '✅ نعم' : '❌ لا'}</div>
+                    </div>
+                </div>
+            `;
+
+            debugModal.classList.add('active');
+        }
+
         // تحميل جميع البيانات
         Promise.all([
             new Promise(resolve => onValue(categoriesRef, resolve)),
@@ -1299,33 +1577,36 @@
             allProducts = productsSnap.val() || {};
             allMerchants = merchantsSnap.val() || {};
 
-            // تحديث اسم التاجر في الشريط العلوي
-            updateMerchantNameInTopBar();
-            
-            // حساب عدد المنتجات لكل قسم
-            calculateProductCounts();
-            
-            // عرض الأقسام مرتبة حسب عدد المنتجات
-            displayCategories();
-            
-            // تحميل الفلاتر
-            populateFilters();
-            
-            // عرض منتجات القسم الأول تلقائياً
-            const firstCategory = Object.keys(allCategories)[0];
-            if (firstCategory) {
-                loadProductsByCategory(firstCategory);
-            }
+            // ✅ فحص بيانات التاجر تلقائياً عند تحميل الصفحة
+            checkMerchantData().then(() => {
+                // تحديث اسم التاجر في الشريط العلوي
+                updateMerchantNameInTopBar();
+                
+                // حساب عدد المنتجات لكل قسم
+                calculateProductCounts();
+                
+                // عرض الأقسام مرتبة حسب عدد المنتجات
+                displayCategories();
+                
+                // تحميل الفلاتر
+                populateFilters();
+                
+                // عرض منتجات القسم الأول تلقائياً
+                const firstCategory = Object.keys(allCategories)[0];
+                if (firstCategory) {
+                    loadProductsByCategory(firstCategory);
+                }
 
-            // إعداد أزرار التمرير
-            setupScrollButtons();
+                // إعداد أزرار التمرير
+                setupScrollButtons();
 
-            // عرض بيانات الجلوبال للتشخيص
-            merchantGlobal.debug();
+                // عرض بيانات الجلوبال للتشخيص
+                merchantGlobal.debug();
 
-            // ✅ عرض عدد المنتجات المحملة في الكونسول
-            console.log('عدد المنتجات الإجمالي:', Object.keys(allProducts).length);
-            console.log('عدد المنتجات بعد التصفية:', Object.keys(allProducts).filter(id => shouldDisplayProduct(allProducts[id], id)).length);
+                // ✅ عرض عدد المنتجات المحملة في الكونسول
+                console.log('عدد المنتجات الإجمالي:', Object.keys(allProducts).length);
+                console.log('عدد المنتجات بعد التصفية:', Object.keys(allProducts).filter(id => shouldDisplayProduct(allProducts[id], id)).length);
+            });
         });
 
         // تحديث اسم التاجر في الشريط العلوي
@@ -1761,12 +2042,12 @@
         }
 
         // ✅ إعداد زر التاجر - الإصدار المحسن مع شروط العرض الجديدة
-        function setupMerchantButton(product) {
+        async function setupMerchantButton(product) {
             const merchantBtn = document.getElementById('merchant-btn');
             const merchantNameText = document.getElementById('merchant-name-text');
             
-            // ✅ التحقق من شروط عرض زر "اطلب المنتج الان"
-            const shouldShowButton = merchantGlobal.shouldShowOrderButton();
+            // ✅ التحقق من شروط عرض زر "اطلب المنتج الان" من Firebase
+            const shouldShowButton = await merchantGlobal.shouldShowOrderButton();
             
             if (shouldShowButton) {
                 // ✅ عرض الزر إذا تحققت الشروط
@@ -1801,11 +2082,14 @@
                 cleanPhone = '967' + cleanPhone;
             }
             
-            // نص الرسالة المطلوبة مع رابط المنتج
+            // ✅ نص الرسالة المحدث مع رابط الصفحة ومعرف التاجر
+            const merchantId = merchantGlobal.getMerchantId();
+            const pageUrl = `${window.location.origin}${window.location.pathname}?merchantId=${merchantId}`;
+            
             const message = `مرحباً، أنا عميل منصة AZ السوق الشامل لتلبية احتياجك بالكامل 
 وأنا مهتم بـ ${productName} 
 هل لازال العرض متوفر
-${window.location.href}`;
+${pageUrl}`;
             
             // ترميز النص للرابط
             const encodedMessage = encodeURIComponent(message);
@@ -2024,20 +2308,25 @@ ${window.location.href}`;
             }
         }
 
-        // مشاركة صفحة التاجر
+        // ✅ مشاركة صفحة التاجر - الإصدار المحدث
         function shareMerchantPage() {
             const merchantName = merchantGlobal.getMerchantName();
+            const merchantId = merchantGlobal.getMerchantId();
+            
+            // ✅ إنشاء رابط يحتوي على معرف التاجر
+            const pageUrl = `${window.location.origin}${window.location.pathname}?merchantId=${merchantId}`;
+            
             const shareText = `مرحبا 
 أنا ${merchantName}
 عميل منصة AZ السوق الشامل لتلبية احتياجك بالكامل
-${window.location.href}
+${pageUrl}
 تفضل باستكشاف جميع المنتجات والعروض`;
             
             if (navigator.share) {
                 navigator.share({
                     title: `صفحة منتجات ${merchantName}`,
                     text: shareText,
-                    url: window.location.href
+                    url: pageUrl
                 })
                 .then(() => showNotification('تمت المشاركة بنجاح'))
                 .catch(err => {
@@ -2150,7 +2439,7 @@ ${window.location.href}
 
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
-            notification.className = `notification ${type === 'error' ? 'error' : ''}`;
+            notification.className = `notification ${type === 'error' ? 'error' : type === 'info' ? 'info' : type === 'warning' ? 'warning' : ''}`;
             notification.textContent = message;
             
             document.body.appendChild(notification);
@@ -2188,6 +2477,12 @@ ${window.location.href}
             // زر المشاركة في الشريط العلوي
             shareTopBtn.addEventListener('click', shareMerchantPage);
 
+            // ✅ زر التصحيح في الشريط العلوي
+            debugBtn.addEventListener('click', checkMerchantData);
+            debugClose.addEventListener('click', () => {
+                debugModal.classList.remove('active');
+            });
+
             // إغلاق الفلاتر عند النقر خارجها
             document.addEventListener('click', (e) => {
                 if (!filterBar.contains(e.target) && !filterToggle.contains(e.target)) {
@@ -2199,6 +2494,13 @@ ${window.location.href}
             document.getElementById('image-gallery').addEventListener('click', (e) => {
                 if (e.target.id === 'image-gallery') {
                     closeImageGallery();
+                }
+            });
+
+            // إغلاق نافذة التصحيح عند النقر خارجها
+            debugModal.addEventListener('click', (e) => {
+                if (e.target.id === 'debug-modal') {
+                    debugModal.classList.remove('active');
                 }
             });
 
@@ -2224,6 +2526,20 @@ ${window.location.href}
                 }
             });
 
+            // ✅ التحقق من معرف التاجر في URL
+            function getMerchantIdFromURL() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('merchantId');
+            }
+
+            // ✅ إذا كان هناك معرف تاجر في URL، نستخدمه
+            const urlMerchantId = getMerchantIdFromURL();
+            if (urlMerchantId) {
+                sessionStorage.setItem('merchantId', urlMerchantId);
+                localStorage.setItem('merchantId', urlMerchantId);
+                console.log('✅ تم تحديث معرف التاجر من URL:', urlMerchantId);
+            }
+
             // إغلاق الصفحة والعودة إلى index.html عند الخروج
             window.addEventListener('beforeunload', function() {
                 window.location.href = 'index.html';
@@ -2241,6 +2557,7 @@ ${window.location.href}
         window.sendWhatsAppMessage = sendWhatsAppMessage;
         window.merchantGlobal = merchantGlobal;
         window.shareMerchantPage = shareMerchantPage;
+        window.checkMerchantData = checkMerchantData;
     </script>
 
     <!-- Font Awesome للأيقونات -->
