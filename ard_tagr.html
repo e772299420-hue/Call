@@ -46,7 +46,7 @@
 
         #merchant-details{ width:400px; max-width:40%; background:#fff; padding:16px; border-radius:10px; overflow:auto; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
 
-        #map{ flex:1; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+        #map{ flex:1; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.06); position: relative; }
 
         .merchant-header{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
         .merchant-avatar{ width:76px; height:76px; border-radius:50%; background:var(--primary-color); display:flex; align-items:center; justify-content:center; color:#fff; font-size:34px }
@@ -67,6 +67,13 @@
         .share-btn{ background:var(--primary-color); color:#fff }
         .secondary-btn{ background:#f8f9fa; color:var(--text-color); border:1px solid var(--border-color) }
 
+        /* أزرار الإجراءات المصغرة */
+        .mini-action-buttons { display: flex; gap: 6px; margin-top: 8px; }
+        .mini-action-btn { width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .mini-call-btn { background: var(--accent-color); color: #fff; }
+        .mini-whatsapp-btn { background: #25D366; color: #fff; }
+        .mini-share-btn { background: var(--primary-color); color: #fff; }
+
         .route-info{ background:#fff; padding:10px; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,0.06); margin-top:10px }
 
         .loading{ display:flex; justify-content:center; align-items:center; height:150px; flex-direction:column; gap:12px }
@@ -74,6 +81,24 @@
         @keyframes spin{ to{ transform:rotate(360deg) } }
 
         footer{ text-align:center; padding:12px; background:var(--secondary-color); font-size:13px; color:var(--light-text); margin-top:auto }
+
+        /* زر احسب المسار الثابت */
+        #fixedRouteBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: var(--accent-color);
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
 
         /* إشعار تفعيل GPS */
         #gpsAlert {
@@ -116,6 +141,47 @@
             font-size: 14px;
         }
 
+        /* إشعار تعليمي لتشغيل الموقع الجغرافي */
+        #locationHelpAlert {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1200;
+            background: #fff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            border-right: 4px solid var(--primary-color);
+            max-width: 300px;
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        #locationHelpAlert .alert-title {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #locationHelpAlert .alert-content {
+            font-size: 14px;
+            color: var(--text-color);
+            line-height: 1.4;
+        }
+
+        #locationHelpAlert .alert-close {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: none;
+            border: none;
+            color: var(--light-text);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
         @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -132,11 +198,17 @@
             #merchant-details{ width:100%; max-width:100%; height:40vh } 
             #map{ height:56vh } 
             #mapType{ top:58px } 
-            #gpsAlert {
+            #gpsAlert, #locationHelpAlert {
                 max-width: 90%;
                 left: 5%;
                 right: 5%;
                 transform: none;
+            }
+            #fixedRouteBtn {
+                top: 5px;
+                right: 5px;
+                padding: 8px 12px;
+                font-size: 14px;
             }
         }
     </style>
@@ -168,6 +240,22 @@
         </div>
     </div>
 
+    <!-- إشعار تعليمي لتشغيل الموقع الجغرافي -->
+    <div id="locationHelpAlert" style="display: none;">
+        <button class="alert-close" onclick="closeLocationHelpAlert()"><i class="fas fa-times"></i></button>
+        <div class="alert-title">
+            <i class="fas fa-info-circle"></i> تشغيل الموقع الجغرافي
+        </div>
+        <div class="alert-content">
+            <p>لتحديد موقعك على الخريطة وحساب المسار إلى التاجر:</p>
+            <ol style="padding-right: 15px; margin-top: 8px;">
+                <li>اضغط على زر "احسب المسار" أعلى الخريطة</li>
+                <li>اسمح للمتصفح بالوصول إلى موقعك</li>
+                <li>انتظر لحساب المسار والمسافة</li>
+            </ol>
+        </div>
+    </div>
+
     <div id="mapType">نوع الخريطة:
         <select id="mapSelect" style="border:none;background:transparent;font-weight:600">
             <option value="street">Street</option>
@@ -185,7 +273,12 @@
             <!-- المحتوى سيملؤه JavaScript -->
         </div>
 
-        <div id="map"></div>
+        <div id="map">
+            <!-- زر احسب المسار الثابت -->
+            <button id="fixedRouteBtn" style="display: none;">
+                <i class="fas fa-route"></i> احسب المسار
+            </button>
+        </div>
     </div>
 
     <footer>جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة</footer>
@@ -206,19 +299,6 @@
                 <div class="modal-footer">
                     <button id="saveMsgBtn" class="btn btn-primary">حفظ</button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- قائمة المنتجات -->
-    <div class="modal fade" id="productsModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">قائمة منتجات التاجر</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="productsList">جارٍ التحميل...</div>
             </div>
         </div>
     </div>
@@ -399,6 +479,7 @@
 
         // ====== عناصر و متغيرات عامة ======
         const merchantDetailsDiv = document.getElementById('merchant-details');
+        const fixedRouteBtn = document.getElementById('fixedRouteBtn');
         let currentRoute = null; let userMarker = null; let currentMerchantCoords = null; let userCoords = null; let currentMerchantData = null;
         
         // ====== دوال مساعدة ======
@@ -427,6 +508,26 @@
 
         function closeGpsAlert(){
             const alert = document.getElementById('gpsAlert');
+            alert.style.animation = 'slideInRight 0.5s ease-out reverse';
+            setTimeout(() => {
+                alert.style.display = 'none';
+                alert.style.animation = 'slideInRight 0.5s ease-out';
+            }, 500);
+        }
+
+        // إشعار تعليمي لتشغيل الموقع الجغرافي
+        function showLocationHelpAlert(){
+            const alert = document.getElementById('locationHelpAlert');
+            alert.style.display = 'block';
+            
+            // إخفاء الإشعار تلقائياً بعد 10 ثوانٍ
+            setTimeout(() => {
+                closeLocationHelpAlert();
+            }, 10000);
+        }
+
+        function closeLocationHelpAlert(){
+            const alert = document.getElementById('locationHelpAlert');
             alert.style.animation = 'slideInRight 0.5s ease-out reverse';
             setTimeout(() => {
                 alert.style.display = 'none';
@@ -512,8 +613,8 @@
                             <div class="detail-value">
                                 <div style="display:flex;justify-content:space-between;align-items:center;">
                                     <span>${merchant.phone}</span>
-                                    <button class="action-btn call-btn" onclick="callNumber('${merchant.phone.replace(/'/g,'\'')}')">
-                                        <i class="fas fa-phone"></i> اتصال
+                                    <button class="mini-action-btn mini-call-btn" onclick="callNumber('${merchant.phone.replace(/'/g,'\'')}')" title="اتصال">
+                                        <i class="fas fa-phone"></i>
                                     </button>
                                 </div>
                             </div>
@@ -541,10 +642,16 @@
                 mobileContent = `
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <span>${merchant.mobile}</span>
-                        <div class="action-buttons">
-                            <button class="action-btn call-btn" onclick="callNumber('${merchant.mobile.replace(/'/g,'\'')}')"><i class="fas fa-phone"></i></button>
-                            <button class="action-btn whatsapp-btn" id="openWhatsAppBtn"><i class="fab fa-whatsapp"></i></button>
-                            <button class="action-btn share-btn" id="shareLocationBtn"><i class="fas fa-share-alt"></i></button>
+                        <div class="mini-action-buttons">
+                            <button class="mini-action-btn mini-call-btn" onclick="callNumber('${merchant.mobile.replace(/'/g,'\'')}')" title="اتصال">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                            <button class="mini-action-btn mini-whatsapp-btn" id="openWhatsAppBtn" title="واتساب">
+                                <i class="fab fa-whatsapp"></i>
+                            </button>
+                            <button class="mini-action-btn mini-share-btn" id="shareLocationBtn" title="مشاركة">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
                         </div>
                     </div>`;
             } else if (merchant.mobile && !shouldShowPhone) {
@@ -552,15 +659,19 @@
                 mobileContent = `
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <span style="color: var(--light-text); font-style: italic;">غير متاح للعامة</span>
-                        <div class="action-buttons">
-                            <button class="action-btn share-btn" id="shareLocationBtnSmall"><i class="fas fa-share-alt"></i> مشاركة</button>
+                        <div class="mini-action-buttons">
+                            <button class="mini-action-btn mini-share-btn" id="shareLocationBtnSmall" title="مشاركة">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
                         </div>
                     </div>`;
             } else {
                 // إذا لم يكن هناك رقم جوال
                 mobileContent = `<div style="display:flex;justify-content:space-between;align-items:center;"><span>غير متوفر</span>
-                    <div class="action-buttons">
-                        <button class="action-btn share-btn" id="shareLocationBtnSmall"><i class="fas fa-share-alt"></i> مشاركة</button>
+                    <div class="mini-action-buttons">
+                        <button class="mini-action-btn mini-share-btn" id="shareLocationBtnSmall" title="مشاركة">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
                     </div>
                 </div>`;
             }
@@ -584,8 +695,7 @@
                     <div class="detail-item"><div class="detail-icon"><i class="fas fa-mobile-alt"></i></div><div class="detail-content"><div class="detail-label">رقم الجوال / واتساب</div><div class="detail-value">${mobileContent}</div></div></div>
 
                     <div class="action-buttons" style="margin-top:8px">
-                        <button class="action-btn secondary-btn" id="showProductsBtn"><i class="fas fa-box-open"></i> عرض منتجات التاجر</button>
-                        <button class="action-btn secondary-btn" id="showOurProductsBtn"><i class="fas fa-boxes"></i> منتجاتنا</button>
+                        <button class="action-btn secondary-btn" id="showOurProductsBtn"><i class="fas fa-boxes"></i> عرض منتجات التاجر</button>
                     </div>
                 </div>
 
@@ -593,16 +703,12 @@
                     <div class="section-title"><i class="fas fa-link"></i> الروابط والمواقع</div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
                         ${merchant.googleSite?`<a class="social-link" href="${merchant.googleSite}" target="_blank" title="موقع جوجل"><i class="fas fa-globe"></i></a>`:''}
+                        ${merchant.facebookSite?`<a class="social-link" href="${merchant.facebookSite}" target="_blank" title="فيسبوك"><i class="fab fa-facebook"></i></a>`:''}
+                        ${merchant.twitterSite?`<a class="social-link" href="${merchant.twitterSite}" target="_blank" title="تويتر"><i class="fab fa-twitter"></i></a>`:''}
+                        ${merchant.instagramSite?`<a class="social-link" href="${merchant.instagramSite}" target="_blank" title="انستجرام"><i class="fab fa-instagram"></i></a>`:''}
                         ${merchant.youtubeSite?`<a class="social-link" href="${merchant.youtubeSite}" target="_blank" title="YouTube"><i class="fab fa-youtube"></i></a>`:''}
                         ${merchant.telegramSite?`<a class="social-link" href="${merchant.telegramSite}" target="_blank" title="Telegram"><i class="fab fa-telegram"></i></a>`:''}
-                        ${merchant.twitterSite?`<a class="social-link" href="${merchant.twitterSite}" target="_blank" title="Twitter"><i class="fab fa-twitter"></i></a>`:''}
                     </div>
-                </div>
-
-                <div class="details-section">
-                    <div class="section-title"><i class="fas fa-route"></i> اتجاهات الوصول</div>
-                    <div class="route-info" id="routeInfo">انقر على "احسب المسار" لعرض معلومات المسافة والوقت</div>
-                    <button class="back-button" id="calcRouteBtn" style="background:var(--accent-color); width:100%; justify-content:center; margin-top:10px;"><i class="fas fa-route"></i> احسب المسار</button>
                 </div>
             `;
 
@@ -619,48 +725,30 @@
                 finalShareBtn.addEventListener('click', ()=>{ shareMerchantDetails(merchant); }); 
             }
 
-            // ====== تحديث مستمع زر عرض المنتجات ======
-            document.getElementById('showProductsBtn').addEventListener('click', ()=>{ 
-                // حفظ بيانات التاجر في الجلوبال (sessionStorage و localStorage)
-                merchantGlobal.setMerchantData(merchant);
-                
-                console.log('📦 تم حفظ بيانات التاجر في الجلوبال:', {
-                    name: merchantGlobal.getMerchantName(),
-                    id: merchantGlobal.getMerchantId(),
-                    phone: merchantGlobal.getMerchantPhone()
-                });
-                
-                showNotification('تم حفظ بيانات التاجر، جاري فتح صفحة المنتجات...', 'info');
-                
-                // فتح صفحة mntg_tagr.html بعد تأخير بسيط
-                setTimeout(() => {
-                    window.location.href = 'mntg_tagr.html';
-                }, 1000);
-            });
-
-            // ====== إضافة مستمع للزر الجديد "منتجاتنا" ======
+            // ====== إضافة مستمع للزر "عرض منتجات التاجر" ======
             document.getElementById('showOurProductsBtn').addEventListener('click', ()=>{ 
                 // حفظ بيانات التاجر في الجلوبال (sessionStorage و localStorage)
                 merchantGlobal.setMerchantData(merchant);
                 
-                console.log('📦 تم حفظ بيانات التاجر في الجلوبال (لصفحة منتجاتنا):', {
+                console.log('📦 تم حفظ بيانات التاجر في الجلوبال (لصفحة منتجات التاجر):', {
                     name: merchantGlobal.getMerchantName(),
                     id: merchantGlobal.getMerchantId(),
                     phone: merchantGlobal.getMerchantPhone()
                 });
                 
-                showNotification('تم حفظ بيانات التاجر، جاري فتح صفحة منتجاتنا...', 'info');
-                
                 // فتح صفحة mnt.html بعد تأخير بسيط
                 setTimeout(() => {
                     window.location.href = 'mnt.html';
-                }, 1000);
+                }, 500);
             });
-
-            document.getElementById('calcRouteBtn').addEventListener('click', ()=>{ calculateRoute(); });
 
             // اختفاء لودر
             const loader = document.getElementById('loadingBox'); if(loader) loader.style.display = 'none';
+            
+            // إظهار زر احسب المسار إذا كان هناك موقع للتاجر
+            if (merchant.location) {
+                fixedRouteBtn.style.display = 'flex';
+            }
         }
 
         // ====== دوال الاتصال و واتساب ======
@@ -739,25 +827,12 @@
                     if(route){
                         const distance = (route.summary.totalDistance/1000).toFixed(2);
                         const duration = Math.ceil(route.summary.totalTime/60);
-                        document.getElementById('routeInfo').innerHTML = `<strong>المسافة:</strong> ${distance} كم<br><strong>الوقت:</strong> ${duration} دقيقة`;
+                        showNotification(`تم حساب المسار: ${distance} كم، ${duration} دقيقة`, 'success');
                     }
                 }).addTo(map);
             } else {
-                alert('تعذر حساب المسار. تأكد من تفعيل موقعك أو وجود موقع التاجر.');
+                showNotification('تعذر حساب المسار. تأكد من تفعيل موقعك أو وجود موقع التاجر.', 'error');
             }
-        }
-
-        // ====== إظهار قائمة المنتجات (Modal) ======
-        function showProductsModal(merchant){
-            const box = document.getElementById('productsList'); box.innerHTML = '';
-            if(merchant.products){
-                Object.values(merchant.products).forEach(p=>{
-                    const el = document.createElement('div'); el.className='p-2 mb-2 border rounded';
-                    el.innerHTML = `<strong>${p.name||p.title||'بدون اسم'}</strong> ${p.price?('<span style="float:left">'+p.price+'</span>'):''}<div style=\"clear:both\"></div>`;
-                    box.appendChild(el);
-                });
-            } else { box.innerHTML = '<div class="text-muted">لا توجد منتجات</div>'; }
-            new bootstrap.Modal(document.getElementById('productsModal')).show();
         }
 
         // ====== الحصول على موقع المستخدم ======
@@ -769,8 +844,6 @@
 
                     if(merchant && merchant.location){
                         const dist = calculateDistance(userCoords[0],userCoords[1], currentMerchantCoords[0], currentMerchantCoords[1]);
-                        const routeInfo = document.getElementById('routeInfo');
-                        if(routeInfo) routeInfo.innerHTML += `<br><strong>المسافة المباشرة:</strong> ${dist} كم`;
                         
                         // التحقق من إعدادات عرض الرقم قبل تحديث المسافة
                         const shouldShowPhone = shouldShowPhoneNumber(merchant);
@@ -778,6 +851,9 @@
 
                         // ضبط الإطار لعرض كلا النقطتين
                         try{ const bounds = L.latLngBounds([userCoords, currentMerchantCoords]); map.fitBounds(bounds, { padding:[50,50] }); }catch(e){}
+                        
+                        // حساب المسار تلقائياً
+                        calculateRoute();
                     }
                 }, err=>{
                     console.warn('gps err', err);
@@ -828,7 +904,9 @@
                                     map.setView(coords, 15);
 
                                     // ضع محاولة الحصول على موقع المستخدم
-                                    getUserLocationAndPlaceMarker(merchant);
+                                    setTimeout(() => {
+                                        getUserLocationAndPlaceMarker(merchant);
+                                    }, 1000);
                                 }
                             }
                             break;
@@ -848,6 +926,14 @@
         // بدء التطبيق عند تحميل الصفحة
         window.addEventListener('DOMContentLoaded', ()=>{ 
             loadMerchantData(); 
+            
+            // إضافة مستمع لزر احسب المسار
+            fixedRouteBtn.addEventListener('click', calculateRoute);
+            
+            // عرض الإشعار التعليمي لتشغيل الموقع الجغرافي بعد تحميل الصفحة
+            setTimeout(() => {
+                showLocationHelpAlert();
+            }, 2000);
             
             // عرض بيانات localStorage في الكونسول للمساعدة في التشخيص
             console.log('جميع بيانات localStorage:', localStorage);
