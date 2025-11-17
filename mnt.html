@@ -1205,6 +1205,37 @@
                 return sessionStorage.getItem('showNumber') || localStorage.getItem('showNumber') || '0';
             },
             
+            // ✅ التحقق من شروط عرض زر "اطلب المنتج الان"
+            shouldShowOrderButton: function() {
+                const phoneNumber = this.getMerchantPhone();
+                const showNumberStatus = this.getShowNumberStatus();
+                
+                // ✅ الشروط المطلوبة:
+                // 1- أن يكون الرقم موجوداً وغير فارغ وغير "غير متوفر"
+                // 2- أن تكون قيمة عرض الرقم تساوي "1"
+                const hasValidPhone = phoneNumber && 
+                                    phoneNumber.trim() !== '' && 
+                                    phoneNumber !== 'غير متوفر' &&
+                                    phoneNumber !== 'undefined' &&
+                                    phoneNumber.length >= 6;
+                
+                const shouldShowNumber = showNumberStatus === '1' || 
+                                       showNumberStatus === 1 || 
+                                       showNumberStatus === true;
+                
+                const shouldShowButton = hasValidPhone && shouldShowNumber;
+                
+                console.log('🔍 شروط عرض زر الطلب:', {
+                    phoneNumber: phoneNumber,
+                    hasValidPhone: hasValidPhone,
+                    showNumberStatus: showNumberStatus,
+                    shouldShowNumber: shouldShowNumber,
+                    shouldShowButton: shouldShowButton
+                });
+                
+                return shouldShowButton;
+            },
+            
             // التحقق من وجود بيانات تاجر في الجلوبال
             hasMerchantData: function() {
                 return this.getMerchantId() !== '' && this.getMerchantName() !== '';
@@ -1217,6 +1248,7 @@
                 console.log('معرف التاجر:', this.getMerchantId());
                 console.log('رقم الجوال:', this.getMerchantPhone());
                 console.log('عرض الرقم:', this.getShowNumberStatus());
+                console.log('عرض زر الطلب:', this.shouldShowOrderButton());
                 console.log('====================');
             }
         };
@@ -1620,7 +1652,7 @@
             gallery.classList.add('active');
             document.body.style.overflow = 'hidden';
 
-            // إعداد زر التاجر
+            // ✅ إعداد زر التاجر مع تطبيق شروط العرض الجديدة
             setupMerchantButton(product);
         }
 
@@ -1728,24 +1760,34 @@
             }
         }
 
-        // إعداد زر التاجر - التعديل الرئيسي هنا
+        // ✅ إعداد زر التاجر - الإصدار المحسن مع شروط العرض الجديدة
         function setupMerchantButton(product) {
             const merchantBtn = document.getElementById('merchant-btn');
             const merchantNameText = document.getElementById('merchant-name-text');
             
-            // الحصول على بيانات التاجر من الجلوبال
-            const merchantName = merchantGlobal.getMerchantName();
-            const merchantPhone = merchantGlobal.getMerchantPhone();
+            // ✅ التحقق من شروط عرض زر "اطلب المنتج الان"
+            const shouldShowButton = merchantGlobal.shouldShowOrderButton();
             
-            // عرض زر التاجر إذا كان هناك رقم هاتف متوفر
-            if (merchantPhone && merchantPhone !== 'غير متوفر') {
+            if (shouldShowButton) {
+                // ✅ عرض الزر إذا تحققت الشروط
                 merchantBtn.style.display = 'block';
-                merchantNameText.textContent = merchantName;
+                merchantNameText.textContent = merchantGlobal.getMerchantName();
                 
                 // إعداد وظيفة إرسال رسالة واتساب عند النقر
-                merchantBtn.onclick = () => sendWhatsAppMessage(merchantPhone, product.name || 'منتج');
+                merchantBtn.onclick = () => sendWhatsAppMessage(merchantGlobal.getMerchantPhone(), product.name || 'منتج');
+                
+                console.log('✅ تم عرض زر "اطلب المنتج الان" - الشروط متوفرة');
             } else {
+                // ✅ إخفاء الزر إذا لم تتحقق الشروط
                 merchantBtn.style.display = 'none';
+                
+                console.log('❌ تم إخفاء زر "اطلب المنتج الان" - الأسباب:', {
+                    hasPhone: merchantGlobal.getMerchantPhone() && 
+                              merchantGlobal.getMerchantPhone().trim() !== '' && 
+                              merchantGlobal.getMerchantPhone() !== 'غير متوفر',
+                    showNumber: merchantGlobal.getShowNumberStatus(),
+                    shouldShow: shouldShowButton
+                });
             }
         }
 
