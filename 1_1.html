@@ -2608,6 +2608,13 @@
             "منتج رائع ومميز"
         ];
 
+        // ==========================================
+        // 🔔 متغيرات نظام الإشعارات للمنتجات الجديدة
+        // ==========================================
+        let lastCheckTime = new Date();
+        let openedProducts = [];
+        let favoriteMerchantsCheckInterval = null;
+
         // عناصر الواجهة
         const productsContainer = document.getElementById('products-container');
         const governorateSelect = document.getElementById('governorate');
@@ -2686,7 +2693,70 @@
             
             // 11. بدء نظام الإعجابات والتعليقات التلقائية
             startAutoInteractions();
+            
+            // 12. بدء نظام فحص المنتجات الجديدة للتجار المفضلين
+            startFavoriteMerchantsCheck();
         });
+
+        // ==========================================
+        // 🔔 نظام فحص المنتجات الجديدة للتجار المفضلين
+        // ==========================================
+        function startFavoriteMerchantsCheck() {
+            // فحص كل 7 ثواني
+            favoriteMerchantsCheckInterval = setInterval(() => {
+                checkNewProductsFromFavoriteMerchants();
+            }, 7000);
+        }
+
+        function checkNewProductsFromFavoriteMerchants() {
+            // إذا لم يكن هناك منتجات في المفضلة، توقف
+            if (Object.keys(favoriteProducts).length === 0) return;
+            
+            // الحصول على قائمة تجار المفضلة
+            const favoriteMerchantIds = [...new Set(
+                Object.keys(favoriteProducts)
+                    .map(productId => allProducts.find(p => p.id === productId)?.userId)
+                    .filter(Boolean)
+            )];
+            
+            if (favoriteMerchantIds.length === 0) return;
+            
+            // فلترة المنتجات الجديدة
+            const newProducts = allProducts.filter(product => {
+                // التحقق من تاريخ الإنشاء
+                const productDate = new Date(product.publishDate || product.createdAt || product.date || 0);
+                if (productDate <= lastCheckTime) return false;
+                
+                // التحقق من أن التاجر من المفضلة
+                if (!favoriteMerchantIds.includes(product.userId)) return false;
+                
+                // التحقق من أن المنتج لم يتم فتح صوره
+                if (openedProducts.includes(product.id)) return false;
+                
+                return true;
+            });
+            
+            // تجميع المنتجات الجديدة حسب التاجر
+            const productsByMerchant = {};
+            newProducts.forEach(product => {
+                if (!productsByMerchant[product.userId]) {
+                    productsByMerchant[product.userId] = [];
+                }
+                productsByMerchant[product.userId].push(product);
+            });
+            
+            // عرض إشعار لكل تاجر
+            Object.keys(productsByMerchant).forEach(merchantId => {
+                const merchant = allMerchants.find(m => m.id === merchantId);
+                const merchantName = merchant ? (merchant.name || merchant.username) : 'تاجر';
+                const count = productsByMerchant[merchantId].length;
+                
+                showNotification(`هناك ${count} منتج جديد من التاجر ${merchantName}`, 'info');
+            });
+            
+            // تحديث وقت آخر فحص
+            lastCheckTime = new Date();
+        }
 
         // ==========================================
         // 🎯 وظيفة التحقق من صحة العرض - تم التعديل حسب الطلب
@@ -3420,6 +3490,12 @@
                     closeShareModal();
                 }
             });
+
+            // ==========================================
+            // 🔄 إزالة مستمعي الأحداث المسببة للمشكلة في التنقل
+            // ==========================================
+            // تم إزالة مستمعي الأحداث popstate و beforeunload
+            // لتمكين التنقل الطبيعي بين الصفحات
         }
 
         function handleScroll() {
@@ -3991,7 +4067,7 @@
                 if (result === 0) {
                     const dateA = new Date(a.publishDate || a.createdAt || a.date || 0);
                     const dateB = new Date(b.publishDate || b.createdAt || b.date || 0);
-                    return dateB - dateA;
+                    return dateB - aDate;
                 }
                 
                 return result;
@@ -4551,6 +4627,11 @@
                 if (product && product.categoryId) {
                     userInterests[product.categoryId] = (userInterests[product.categoryId] || 0) + 1;
                     localStorage.setItem('userInterests', JSON.stringify(userInterests));
+                }
+                
+                // إضافة المنتج إلى قائمة المنتجات المفتوحة
+                if (productId && !openedProducts.includes(productId)) {
+                    openedProducts.push(productId);
                 }
             }
 
@@ -5285,6 +5366,9 @@
             }
             if (autoCommentInterval) {
                 clearInterval(autoCommentInterval);
+            }
+            if (favoriteMerchantsCheckInterval) {
+                clearInterval(favoriteMerchantsCheckInterval);
             }
         });
     </script>
