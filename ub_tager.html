@@ -281,6 +281,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             padding: 5px 0;
+            display: none; /* تم إخفاء اسم التاجر من هنا */
         }
         
         .merchant-status {
@@ -633,7 +634,7 @@
         .toast-progress-bar {
             height: 100%;
             background: white;
-            animation: progressBar 10s linear forwards;
+            animation: progressBar 5s linear forwards; /* تم تقليل الوقت من 10s إلى 5s */
         }
         
         @keyframes slideIn {
@@ -1049,6 +1050,7 @@
             text-align: center;
             box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
             animation: slideDown 0.5s ease-out;
+            position: relative;
         }
 
         @keyframes slideDown {
@@ -1070,9 +1072,16 @@
         }
 
         .welcome-subtitle {
-            font-size: 16px;
+            font-size: 18px;
             opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .merchant-name-welcome {
+            font-size: 22px;
+            font-weight: bold;
             margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         .welcome-instruction {
@@ -1081,6 +1090,18 @@
             border-radius: 10px;
             font-size: 14px;
             border: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 10px;
+        }
+
+        .welcome-status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
         }
         
         /* ===== استجابة الهواتف ===== */
@@ -1170,12 +1191,22 @@
             }
             
             .welcome-subtitle {
-                font-size: 14px;
+                font-size: 16px;
+            }
+
+            .merchant-name-welcome {
+                font-size: 18px;
             }
             
             .welcome-instruction {
                 font-size: 12px;
                 padding: 8px 12px;
+            }
+
+            .welcome-status {
+                position: static;
+                margin-bottom: 10px;
+                align-self: center;
             }
             
             .gallery-main-content {
@@ -1254,8 +1285,10 @@
 <div class="container">
     <!-- شعار ترحيبي -->
     <div class="welcome-banner" id="welcomeBanner">
+        <div class="welcome-status status-active" id="welcomeStatus">نشط</div>
         <div class="welcome-title">مرحباً بك في منصة AZ السوق الشامل</div>
-        <div class="welcome-subtitle" id="welcomeSubtitle">لتلبية احتياجك بالكامل</div>
+        <div class="welcome-subtitle">لتلبية احتياجك بالكامل</div>
+        <div class="merchant-name-welcome" id="merchantNameWelcome">اسم التاجر</div>
         <div class="welcome-instruction">
             <i class="fas fa-info-circle"></i>
             للتعديل على بياناتك، انقر على زر "تعديل البيانات" في الأعلى
@@ -1269,8 +1302,8 @@
 
     <div id="merchantData" class="merchant-card" style="display: none;">
         <div class="merchant-header">
-            <h2 class="merchant-name-card" id="merchantName">اسم التاجر</h2>
-            <div class="merchant-status" id="merchantStatus">نشط</div>
+            <!-- تم إخفاء اسم التاجر من هنا -->
+            <div class="merchant-status" id="merchantStatus" style="display: none;">نشط</div>
         </div>
         
         <div class="merchant-details">
@@ -1478,7 +1511,8 @@
     const userDisplayElement = document.getElementById('user-display-name');
     const globalsBar = document.getElementById('globals-bar');
     const welcomeBanner = document.getElementById('welcomeBanner');
-    const welcomeSubtitle = document.getElementById('welcomeSubtitle');
+    const welcomeStatus = document.getElementById('welcomeStatus');
+    const merchantNameWelcome = document.getElementById('merchantNameWelcome');
     
     // عناصر الشيك بوكس الجديد
     const showNumberContainer = document.getElementById('showNumberContainer');
@@ -1619,17 +1653,17 @@
             const displayName = userData.name || userData.username || userData.commercialName || 'تاجر';
             userDisplayElement.textContent = `تاجر: ${displayName}`;
             
-            // تحديث الشعار الترحيبي
-            welcomeSubtitle.textContent = `لتلبية احتياجك بالكامل - ${displayName}`;
+            // تحديث الشعار الترحيبي باسم التاجر
+            merchantNameWelcome.textContent = displayName;
         } else {
             // استخدام بيانات من merchantGlobal كبديل
             const merchantName = merchantGlobal.getMerchantName();
             if (merchantName) {
                 userDisplayElement.textContent = `تاجر: ${merchantName}`;
-                welcomeSubtitle.textContent = `لتلبية احتياجك بالكامل - ${merchantName}`;
+                merchantNameWelcome.textContent = merchantName;
             } else {
                 userDisplayElement.textContent = 'تاجر: جاري التحميل...';
-                welcomeSubtitle.textContent = 'لتلبية احتياجك بالكامل';
+                merchantNameWelcome.textContent = 'جاري التحميل...';
             }
         }
     }
@@ -1666,7 +1700,7 @@
             }, 300);
         });
         
-        // إزالة الإشعار تلقائياً بعد 10 ثوان
+        // إزالة الإشعار تلقائياً بعد 5 ثوان (تم تقليل الوقت من 10 إلى 5 ثوان)
         setTimeout(() => {
             if (toast.parentNode === toastContainer) {
                 toast.style.opacity = '0';
@@ -1674,7 +1708,7 @@
                     toastContainer.removeChild(toast);
                 }, 300);
             }
-        }, 10000);
+        }, 5000);
     }
     
     // ===== 🔥 كود إصلاح مشكلة عرض الصور من جوجل درايف =====
@@ -2133,8 +2167,9 @@
         merchantName.textContent = merchant.name || 'غير معروف';
         merchantNameValue.textContent = merchant.name || 'غير معروف';
         
-        merchantStatus.textContent = merchant.status === 'active' ? 'نشط' : 'موقف';
-        merchantStatus.className = `merchant-status status-${merchant.status || 'active'}`;
+        // تحديث شارة النشاط في الشعار الترحيبي
+        welcomeStatus.textContent = merchant.status === 'active' ? 'نشط' : 'موقف';
+        welcomeStatus.className = `welcome-status status-${merchant.status || 'active'}`;
         
         username.textContent = merchant.username || 'غير معروف';
         phone.textContent = merchant.phone || 'غير معروف';
@@ -2187,7 +2222,7 @@
         merchantData.style.display = 'block';
         
         // تحديث الشعار الترحيبي باسم التاجر
-        welcomeSubtitle.textContent = `لتلبية احتياجك بالكامل - ${merchant.name || merchant.username}`;
+        merchantNameWelcome.textContent = merchant.name || merchant.username;
     }
     
     // تحديد الموقع الحالي بدقة عالية
@@ -2448,7 +2483,7 @@
         // جعل الحقول قابلة للتعديل
         const editableFields = [
             merchantNameValue, phone, mobile, 
-            locationField, facebook, instagram,
+            facebook, instagram,
             twitter, youtube, google, password
         ];
         
@@ -2456,6 +2491,10 @@
             field.contentEditable = true;
             field.classList.add('editable');
         });
+        
+        // تمكين حقل الموقع (إزالة خاصية readonly)
+        locationField.readOnly = false;
+        locationField.classList.add('editable');
         
         // تمكين زر تحديد الموقع
         getLocationBtn.disabled = false;
@@ -2641,7 +2680,7 @@
     function disableEditing() {
         const editableFields = [
             merchantNameValue, phone, mobile, 
-            locationField, facebook, instagram,
+            facebook, instagram,
             twitter, youtube, google, password
         ];
         
@@ -2649,6 +2688,10 @@
             field.contentEditable = false;
             field.classList.remove('editable');
         });
+        
+        // تعطيل حقل الموقع (إعادة خاصية readonly)
+        locationField.readOnly = true;
+        locationField.classList.remove('editable');
         
         // تعطيل زر تحديد الموقع
         getLocationBtn.disabled = true;
