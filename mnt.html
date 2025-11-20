@@ -1683,6 +1683,61 @@
         let favoriteProducts = JSON.parse(localStorage.getItem('favoriteProducts')) || {};
         let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
 
+        // ✅ دالة محسنة لمعالجة روابط الصور - الإصدار المصحح
+        function formatDriveUrl(url, mode = 'thumb') {
+            if (!url || url.trim() === '') {
+                console.log('❌ رابط صورة فارغ');
+                return 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
+            }
+            
+            // إذا كان الرابط من GitHub (الشعار الافتراضي)
+            if (url.includes('github.com') || url.includes('raw=true')) {
+                console.log('✅ استخدام الشعار الافتراضي من GitHub');
+                return url;
+            }
+            
+            // إذا كان الرابط يحتوي على drive.google.com مباشرة
+            if (url.includes('drive.google.com')) {
+                let id = '';
+                
+                // استخراج معرف الملف من الروابط المختلفة
+                if (url.includes('/d/')) {
+                    id = url.split('/d/')[1].split('/')[0];
+                } 
+                else if (url.includes('id=')) {
+                    try { 
+                        id = new URLSearchParams(url.split('?')[1]).get('id') || ''; 
+                    } catch { 
+                        return url; 
+                    }
+                }
+                else if (url.includes('/file/d/')) {
+                    id = url.split('/file/d/')[1].split('/')[0];
+                }
+                else if (url.includes('drive.google.com/uc?id=')) {
+                    id = url.split('drive.google.com/uc?id=')[1].split('&')[0];
+                }
+                
+                if (id) {
+                    if (mode === 'thumb') {
+                        return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
+                    } else if (mode === 'main') {
+                        return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+                    }
+                }
+            }
+            
+            // إذا كان الرابط مباشراً لصورة (jpg, png, etc)
+            if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?.*)?$/i)) {
+                console.log('✅ استخدام رابط الصورة المباشر:', url);
+                return url;
+            }
+            
+            // في حالة فشل جميع المحاولات، نعود للشعار الافتراضي
+            console.log('❌ لم يتم التعرف على نوع الرابط، استخدام الشعار الافتراضي:', url);
+            return 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
+        }
+
         // ✅ تحديث شاشة الترحيب
         function updateSplashScreen(merchantData = {}) {
             const merchantName = merchantData.name || merchantGlobal.getMerchantName();
@@ -1693,8 +1748,9 @@
             
             // ✅ تحديث شعار التاجر في شاشة الترحيب
             if (merchantLogo && merchantLogo.trim() !== '') {
-                splashLogo.src = formatDriveUrl(merchantLogo, 'main');
-                console.log('✅ تم تحديث شعار التاجر في شاشة الترحيب:', merchantLogo);
+                const formattedLogo = formatDriveUrl(merchantLogo, 'main');
+                splashLogo.src = formattedLogo;
+                console.log('✅ تم تحديث شعار التاجر في شاشة الترحيب:', formattedLogo);
             } else {
                 // استخدام الشعار الافتراضي إذا لم يكن هناك شعار
                 splashLogo.src = 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
@@ -1707,8 +1763,9 @@
             const merchantLogo = merchantData.logoUrl || merchantGlobal.getMerchantLogo();
             
             if (merchantLogo && merchantLogo.trim() !== '') {
-                topBarLogo.src = formatDriveUrl(merchantLogo, 'thumb');
-                console.log('✅ تم تحديث شعار التاجر في الشريط العلوي:', merchantLogo);
+                const formattedLogo = formatDriveUrl(merchantLogo, 'thumb');
+                topBarLogo.src = formattedLogo;
+                console.log('✅ تم تحديث شعار التاجر في الشريط العلوي:', formattedLogo);
             } else {
                 // استخدام الشعار الافتراضي إذا لم يكن هناك شعار
                 topBarLogo.src = 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
@@ -1745,6 +1802,7 @@
                 }
 
                 const merchantData = snapshot.val();
+                console.log('📋 بيانات التاجر من Firebase:', merchantData);
                 
                 // ✅ تحديث بيانات الجلوبال من Firebase
                 if (merchantData.name) {
@@ -1786,23 +1844,41 @@
 
         // ✅ دالة عرض إشعار بيانات التاجر
         function showMerchantDataNotification(merchantData) {
+            console.log('🎯 عرض إشعار بيانات التاجر:', merchantData);
+            
             // تحديث شعار التاجر في الإشعار
             const merchantLogo = merchantData.logoUrl || merchantGlobal.getMerchantLogo();
+            console.log('🖼️ رابط شعار التاجر:', merchantLogo);
+            
             if (merchantLogo && merchantLogo.trim() !== '') {
-                merchantNotificationLogo.src = formatDriveUrl(merchantLogo, 'main');
+                const formattedLogo = formatDriveUrl(merchantLogo, 'main');
+                merchantNotificationLogo.src = formattedLogo;
+                console.log('✅ تم تعيين شعار التاجر في الإشعار:', formattedLogo);
+                
+                // إضافة مستمع للأخطاء في حالة فشل تحميل الصورة
+                merchantNotificationLogo.onerror = function() {
+                    console.error('❌ فشل تحميل شعار التاجر:', formattedLogo);
+                    merchantNotificationLogo.src = 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
+                };
+                
+                merchantNotificationLogo.onload = function() {
+                    console.log('✅ تم تحميل شعار التاجر بنجاح');
+                };
             } else {
                 merchantNotificationLogo.src = 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
+                console.log('ℹ️ استخدام الشعار الافتراضي في الإشعار');
             }
 
             // تحديث عنوان الإشعار
-            merchantNotificationTitle.textContent = `بيانات التاجر: ${merchantData.name || merchantGlobal.getMerchantName()}`;
+            const merchantName = merchantData.name || merchantGlobal.getMerchantName();
+            merchantNotificationTitle.textContent = `بيانات التاجر: ${merchantName}`;
             
             // بناء شبكة بيانات التاجر
             merchantDataGrid.innerHTML = '';
             
             // إضافة بيانات التاجر
             const dataItems = [
-                { label: 'اسم التاجر', value: merchantData.name || merchantGlobal.getMerchantName(), icon: 'fas fa-user' },
+                { label: 'اسم التاجر', value: merchantName, icon: 'fas fa-user' },
                 { label: 'رقم الجوال / الواتساب', value: merchantData.mobile || merchantData.phone || merchantGlobal.getMerchantPhone(), icon: 'fas fa-phone' },
                 { label: 'حالة عرض الرقم', value: (merchantData.showNumber === '1' || merchantData.showNumber === 1) ? 'مفعل' : 'غير مفعل', icon: 'fas fa-eye' },
                 { label: 'معرف التاجر', value: merchantGlobal.getMerchantId(), icon: 'fas fa-id-card' }
@@ -1846,6 +1922,7 @@
 
             // عرض الإشعار
             merchantDataNotification.classList.add('active');
+            console.log('✅ تم عرض إشعار بيانات التاجر بنجاح');
         }
 
         // ✅ إغلاق إشعار بيانات التاجر
@@ -2656,42 +2733,6 @@ ${pageUrl}
             }
             
             return imageUrls;
-        }
-
-        function formatDriveUrl(url, mode = 'thumb') {
-            if (!url) return '';
-            
-            if (url.includes('1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC')) {
-                return url;
-            }
-            
-            let id = '';
-            
-            if (url.includes('/d/')) {
-                id = url.split('/d/')[1].split('/')[0];
-            } 
-            else if (url.includes('id=')) {
-                try { 
-                    id = new URLSearchParams(url.split('?')[1]).get('id') || ''; 
-                } catch { 
-                    return url; 
-                }
-            }
-            else if (url.includes('/file/d/')) {
-                id = url.split('/file/d/')[1].split('/')[0];
-            }
-            else if (url.includes('drive.google.com/uc?id=')) {
-                id = url.split('drive.google.com/uc?id=')[1].split('&')[0];
-            }
-            
-            if (!id) return url;
-
-            if (mode === 'thumb') {
-                return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
-            } else if (mode === 'main') {
-                return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
-            }
-            return url;
         }
 
         function formatDate(dateString) {
