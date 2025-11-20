@@ -939,7 +939,6 @@
                     <label class="checkbox-label" id="showNumberLabel">
                         <div class="checkbox-custom" id="showNumberCustom"></div>
                         <input type="checkbox" class="checkbox-input" id="showNumber" value="0">
-                        <span>السماح بعرض رقم الجوال للعامة</span>
                     </label>
                     <div class="checkbox-info" id="showNumberInfo">عند تفعيل هذا الخيار، سيتم عرض رقم الجوال للعامة في المتجر</div>
                 </div>
@@ -951,7 +950,7 @@
                 <div class="image-upload-section">
                     <p>اسحب الصورة هنا أو انقر لاختيارها</p>
                     <input type="file" id="logo-image" accept="image/*" style="display: none;">
-                    <button type="button" class="upload-btn" onclick="document.getElementById('logo-image').click()">
+                    <button type="button" class="upload-btn" id="logo-upload-btn">
                         <i class="fas fa-upload"></i> رفع الصورة
                     </button>
                     
@@ -1086,6 +1085,7 @@
     // عناصر صورة الشعار
     const logoImageInput = document.getElementById('logo-image');
     const uploadedLogoImages = document.getElementById('uploaded-logo-images');
+    const logoUploadBtn = document.getElementById('logo-upload-btn');
     
     // بيانات المحافظات والتاجر الحالي
     let governoratesData = {};
@@ -1352,7 +1352,6 @@
         editBtn.addEventListener('click', enableEditing);
         saveBtn.addEventListener('click', saveChanges);
         cancelBtn.addEventListener('click', cancelEditing);
-        getLocationBtn.addEventListener('click', getCurrentLocation);
         
         // إعداد مستمع الأحداث لأزرار شريط الجلوبلات
         globalsEditBtn.addEventListener('click', enableEditing);
@@ -1362,16 +1361,26 @@
         // السماح بالإدخال اليدوي للموقع
         locationField.readOnly = false;
         
+        // إعداد حدث اختيار صورة الشعار
+        logoUploadBtn.addEventListener('click', function() {
+            if (!getLocationBtn.disabled) { // إذا كان في وضع التعديل
+                logoImageInput.click();
+            }
+        });
+        logoImageInput.addEventListener('change', handleLogoImageSelection);
+        
         // إعداد حدث النقر على الشيك بوكس
         showNumberLabel.addEventListener('click', function(e) {
             e.preventDefault();
-            const isChecked = showNumberInput.checked;
-            showNumberInput.checked = !isChecked;
-            updateCheckboxDisplay();
+            if (!getLocationBtn.disabled) { // إذا كان في وضع التعديل
+                const isChecked = showNumberInput.checked;
+                showNumberInput.checked = !isChecked;
+                updateCheckboxDisplay();
+            }
         });
         
-        // إعداد حدث اختيار صورة الشعار
-        logoImageInput.addEventListener('change', handleLogoImageSelection);
+        // تعطيل جميع العناصر القابلة للتعديل في البداية
+        disableEditing();
     });
     
     // تحديث عرض الشيك بوكس
@@ -1833,6 +1842,9 @@
         showNumberContainer.classList.add('editable');
         showNumberLabel.style.cursor = 'pointer';
         
+        // تمكين زر رفع الصورة
+        logoUploadBtn.disabled = false;
+        
         // إظهار أزرار الحفظ والإلغاء وإخفاء زر التعديل في الواجهة الرئيسية
         editBtn.style.display = 'none';
         saveBtn.style.display = 'inline-flex';
@@ -2014,6 +2026,9 @@
         // تعطيل حقل الشيك بوكس
         showNumberContainer.classList.remove('editable');
         showNumberLabel.style.cursor = 'default';
+        
+        // تعطيل زر رفع الصورة
+        logoUploadBtn.disabled = true;
         
         // إزالة عنصر دقة الموقع
         const accuracyElement = document.getElementById('location-accuracy');
