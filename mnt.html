@@ -20,6 +20,90 @@
             overflow-x: hidden;
         }
 
+        /* شاشة التحميل والترحيب */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .splash-screen.hidden {
+            opacity: 0;
+            transform: scale(1.1);
+            pointer-events: none;
+        }
+
+        .splash-logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
+            padding: 15px;
+            object-fit: contain;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .splash-text {
+            text-align: center;
+            color: white;
+        }
+
+        .splash-text h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .splash-text p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 500px;
+            line-height: 1.6;
+            margin: 0 auto;
+        }
+
+        .loading-bar {
+            width: 200px;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            margin-top: 30px;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: white;
+            width: 0%;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            animation: loading 2s ease-in-out;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
         /* الشريط العلوي الثابت */
         .top-bar {
             position: fixed;
@@ -905,6 +989,19 @@
                 padding-top: 120px;
             }
 
+            .splash-logo {
+                width: 100px;
+                height: 100px;
+            }
+
+            .splash-text h1 {
+                font-size: 2rem;
+            }
+
+            .splash-text p {
+                font-size: 1rem;
+            }
+
             .top-bar {
                 padding: 8px 15px;
                 height: 60px;
@@ -1043,6 +1140,18 @@
     </style>
 </head>
 <body>
+    <!-- شاشة التحميل والترحيب -->
+    <div class="splash-screen" id="splash-screen">
+        <img src="https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true" alt="شعار AZ السوق الشامل" class="splash-logo">
+        <div class="splash-text">
+            <h1 id="splash-merchant-name">مرحباً بك</h1>
+            <p id="splash-merchant-desc">جارٍ تحميل منتجات التاجر...</p>
+        </div>
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
+        </div>
+    </div>
+
     <!-- ✅ الشريط العلوي الثابت -->
     <div class="top-bar">
         <div class="top-bar-content">
@@ -1323,6 +1432,9 @@
         const shareTopBtn = document.getElementById("share-top-btn");
         const homeBtn = document.getElementById("home-btn");
         const merchantNameDisplay = document.getElementById("merchant-name-display");
+        const splashScreen = document.getElementById("splash-screen");
+        const splashMerchantName = document.getElementById("splash-merchant-name");
+        const splashMerchantDesc = document.getElementById("splash-merchant-desc");
 
         let allProducts = {};
         let allCategories = {};
@@ -1346,6 +1458,23 @@
         // المفضلة والإعجابات
         let favoriteProducts = JSON.parse(localStorage.getItem('favoriteProducts')) || {};
         let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
+
+        // ✅ تحديث شاشة الترحيب
+        function updateSplashScreen() {
+            const merchantName = merchantGlobal.getMerchantName();
+            splashMerchantName.textContent = `مرحباً بك في ${merchantName}`;
+            splashMerchantDesc.textContent = `جارٍ تحميل منتجات ${merchantName}...`;
+        }
+
+        // ✅ إخفاء شاشة الترحيب
+        function hideSplashScreen() {
+            setTimeout(() => {
+                splashScreen.classList.add('hidden');
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                }, 500);
+            }, 1500);
+        }
 
         // ✅ دالة فحص بيانات التاجر من Firebase
         async function checkMerchantData() {
@@ -1382,7 +1511,8 @@
                     localStorage.setItem('showNumber', merchantData.showNumber);
                 }
 
-                // ✅ تحديث اسم التاجر في الشريط العلوي
+                // ✅ تحديث شاشة الترحيب واسم التاجر في الشريط العلوي
+                updateSplashScreen();
                 updateMerchantNameInTopBar();
 
                 console.log('✅ تم تحديث بيانات التاجر بنجاح من Firebase');
@@ -1401,46 +1531,52 @@
         }
 
         // تحميل جميع البيانات
-        Promise.all([
-            new Promise(resolve => onValue(categoriesRef, resolve)),
-            new Promise(resolve => onValue(productsRef, resolve)),
-            new Promise(resolve => onValue(merchantsRef, resolve))
-        ]).then(([categoriesSnap, productsSnap, merchantsSnap]) => {
-            allCategories = categoriesSnap.val() || {};
-            allProducts = productsSnap.val() || {};
-            allMerchants = merchantsSnap.val() || {};
+        function loadAllData() {
+            // تحديث شاشة الترحيب أولاً
+            updateSplashScreen();
+            
+            // تحميل البيانات من Firebase
+            onValue(categoriesRef, (snapshot) => {
+                allCategories = snapshot.val() || {};
+                console.log('✅ تم تحميل الأقسام:', Object.keys(allCategories).length);
+            });
+            
+            onValue(productsRef, (snapshot) => {
+                allProducts = snapshot.val() || {};
+                console.log('✅ تم تحميل المنتجات:', Object.keys(allProducts).length);
+                initializePage();
+            });
+            
+            onValue(merchantsRef, (snapshot) => {
+                allMerchants = snapshot.val() || {};
+                console.log('✅ تم تحميل التجار:', Object.keys(allMerchants).length);
+            });
+        }
 
-            // ✅ فحص بيانات التاجر تلقائياً عند تحميل الصفحة
+        function initializePage() {
+            // ✅ فحص بيانات التاجر
             checkMerchantData().then(() => {
-                // تحديث اسم التاجر في الشريط العلوي
                 updateMerchantNameInTopBar();
-                
-                // حساب عدد المنتجات لكل قسم
                 calculateProductCounts();
-                
-                // عرض الأقسام مرتبة حسب عدد المنتجات
                 displayCategories();
-                
-                // تحميل الفلاتر
                 populateFilters();
                 
-                // عرض منتجات القسم الأول تلقائياً
                 const firstCategory = Object.keys(allCategories)[0];
                 if (firstCategory) {
                     loadProductsByCategory(firstCategory);
                 }
-
-                // إعداد أزرار التمرير
+                
                 setupScrollButtons();
-
-                // عرض بيانات الجلوبال للتشخيص
                 merchantGlobal.debug();
-
-                // ✅ عرض عدد المنتجات المحملة في الكونسول
+                
+                // ✅ إخفاء شاشة الترحيب بعد تحميل البيانات
+                hideSplashScreen();
+                
+                // ✅ عرض عدد المنتجات المحملة في الكونسول فقط (بدون إشعار)
                 console.log('عدد المنتجات الإجمالي:', Object.keys(allProducts).length);
                 console.log('عدد المنتجات بعد التصفية:', Object.keys(allProducts).filter(id => shouldDisplayProduct(allProducts[id], id)).length);
             });
-        });
+        }
 
         // تحديث اسم التاجر في الشريط العلوي
         function updateMerchantNameInTopBar() {
@@ -1503,26 +1639,6 @@
             
             // تطبيق جميع الشروط
             const shouldInclude = isMerchantProduct && isAvailable && isActive && hasBasicData;
-            
-            if (shouldInclude) {
-                console.log(`✅ منتج مستوفي الشروط:`, {
-                    id: productId,
-                    name: product.name,
-                    price: product.price,
-                    merchantId: product.merchantId || product.userId,
-                    availability: product.availability,
-                    status: product.status
-                });
-            } else {
-                console.log(`❌ منتج مرفوض:`, {
-                    id: productId,
-                    name: product.name,
-                    merchantMatch: isMerchantProduct,
-                    available: isAvailable,
-                    active: isActive,
-                    hasData: hasBasicData
-                });
-            }
             
             return shouldInclude;
         }
@@ -1728,12 +1844,14 @@
                 if (imageUrl) {
                     img.src = formatDriveUrl(imageUrl, 'thumb');
                     img.alt = product.name || 'منتج';
+                    img.loading = "lazy"; // تحسين أداء تحميل الصور
                     img.addEventListener('click', () => {
                         openImageGallery(product, imageUrls, 0, id);
                     });
                 } else {
                     img.src = 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w800';
                     img.alt = 'صورة افتراضية';
+                    img.loading = "lazy"; // تحسين أداء تحميل الصور
                     img.addEventListener('click', () => {
                         openImageGallery(product, ['https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w1600'], 0, id);
                     });
@@ -1742,8 +1860,7 @@
                 productsContainer.appendChild(img);
             });
 
-            // ✅ عرض رسالة نجاح تحميل المنتجات
-            showNotification(`تم تحميل ${products.length} منتج بنجاح`);
+            // ✅ تم إخفاء إشعار تحميل المنتجات كما طلبت
         }
 
         // ==========================================
@@ -2286,6 +2403,9 @@ ${pageUrl}
         // 🎯 إعداد مستمعي الأحداث
         // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
+            // ✅ بدء تحميل البيانات
+            loadAllData();
+            
             // مستمعي الأحداث لمعرض الصور
             document.getElementById('gallery-close').addEventListener('click', closeImageGallery);
             document.getElementById('gallery-prev').addEventListener('click', () => navigateGallery(-1));
