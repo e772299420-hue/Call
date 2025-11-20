@@ -423,8 +423,18 @@
         
         .checkbox-info {
             font-size: 12px;
-            color: var(--gray);
             margin-top: 5px;
+            transition: color 0.3s ease;
+        }
+        
+        .checkbox-info.active {
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        .checkbox-info.inactive {
+            color: var(--danger);
+            font-weight: bold;
         }
         
         .action-buttons {
@@ -707,6 +717,64 @@
             color: var(--info);
         }
         
+        /* ===== قسم رفع الصور ===== */
+        .image-upload-section {
+            border: 2px dashed #bdc3c7;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .image-upload-section:hover {
+            border-color: var(--primary);
+            background: #ecf0f1;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, var(--success), #2ecc71);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .uploaded-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .uploaded-image {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 3px solid white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .uploaded-image:hover {
+            transform: scale(1.05);
+        }
+        
         /* ===== استجابة الهواتف ===== */
         @media (max-width: 768px) {
             .container {
@@ -850,6 +918,11 @@
             </div>
             
             <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-key"></i> كلمة المرور</div>
+                <div class="detail-value" id="password">قيد التحميل...</div>
+            </div>
+            
+            <div class="detail-item">
                 <div class="detail-label"><i class="fas fa-phone"></i> رقم الهاتف الثابت</div>
                 <div class="detail-value" id="phone">قيد التحميل...</div>
             </div>
@@ -857,22 +930,6 @@
             <div class="detail-item">
                 <div class="detail-label"><i class="fas fa-mobile-alt"></i> رقم الجوال/واتساب</div>
                 <div class="detail-value" id="mobile">قيد التحميل...</div>
-            </div>
-            
-            <div class="detail-item">
-                <div class="detail-label"><i class="fas fa-network-wired"></i> أيبي هاتف العميل</div>
-                <div class="detail-value" id="ip">قيد التحميل...</div>
-            </div>
-            
-            <div class="detail-item">
-                <div class="detail-label"><i class="fas fa-map-marker-alt"></i> الموقع</div>
-                <div class="location-group">
-                    <input type="text" class="detail-value" id="location" placeholder="إحداثيات الموقع (خط العرض, خط الطول)" readonly>
-                    <button type="button" class="btn-location" id="get-location-btn">
-                        <i class="fas fa-map-marker-alt"></i> تحديد الموقع
-                    </button>
-                </div>
-                <!-- سيتم إضافة معلومات الدقة والخريطة هنا ديناميكياً -->
             </div>
             
             <!-- حقل الشيك بوكس الجديد -->
@@ -884,8 +941,33 @@
                         <input type="checkbox" class="checkbox-input" id="showNumber" value="0">
                         <span>السماح بعرض رقم الجوال للعامة</span>
                     </label>
-                    <div class="checkbox-info">عند تفعيل هذا الخيار، سيتم عرض رقم الجوال للعامة في المتجر</div>
+                    <div class="checkbox-info" id="showNumberInfo">عند تفعيل هذا الخيار، سيتم عرض رقم الجوال للعامة في المتجر</div>
                 </div>
+            </div>
+            
+            <!-- حقل صورة الشعار -->
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-camera"></i> صورة الشعار</div>
+                <div class="image-upload-section">
+                    <p>اسحب الصورة هنا أو انقر لاختيارها</p>
+                    <input type="file" id="logo-image" accept="image/*" style="display: none;">
+                    <button type="button" class="upload-btn" onclick="document.getElementById('logo-image').click()">
+                        <i class="fas fa-upload"></i> رفع الصورة
+                    </button>
+                    
+                    <div class="uploaded-images" id="uploaded-logo-images"></div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-map-marker-alt"></i> الموقع</div>
+                <div class="location-group">
+                    <input type="text" class="detail-value" id="location" placeholder="إحداثيات الموقع (خط العرض, خط الطول)" readonly>
+                    <button type="button" class="btn-location" id="get-location-btn">
+                        <i class="fas fa-map-marker-alt"></i> تحديد الموقع
+                    </button>
+                </div>
+                <!-- سيتم إضافة معلومات الدقة والخريطة هنا ديناميكياً -->
             </div>
             
             <div class="detail-item">
@@ -911,11 +993,6 @@
             <div class="detail-item">
                 <div class="detail-label"><i class="fab fa-google"></i> رابط موقع جوجل</div>
                 <div class="detail-value" id="google">قيد التحميل...</div>
-            </div>
-            
-            <div class="detail-item">
-                <div class="detail-label"><i class="fas fa-key"></i> كلمة المرور</div>
-                <div class="detail-value" id="password">قيد التحميل...</div>
             </div>
             
             <div class="detail-item">
@@ -953,6 +1030,10 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
+    // إعدادات Google Drive
+    const DRIVE_FOLDER_ID = '1A9kpKsUxVy8q0P0p3QaXmK3VeB-pSDms';
+    const DRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbwk7cLtyeG1lC--OUvfHJB8VQHccabTjPxbWbEmFjqQPbRxOrOGvMpjncFk2R9r8RNL/exec';
+    
     // تهيئة Firebase
     const firebaseConfig = {
         databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
@@ -974,7 +1055,6 @@
     const username = document.getElementById('username');
     const phone = document.getElementById('phone');
     const mobile = document.getElementById('mobile');
-    const ip = document.getElementById('ip');
     const locationField = document.getElementById('location');
     const facebook = document.getElementById('facebook');
     const instagram = document.getElementById('instagram');
@@ -996,17 +1076,23 @@
     const showNumberLabel = document.getElementById('showNumberLabel');
     const showNumberCustom = document.getElementById('showNumberCustom');
     const showNumberInput = document.getElementById('showNumber');
+    const showNumberInfo = document.getElementById('showNumberInfo');
     
     // أزرار شريط الجلوبلات
     const globalsEditBtn = document.getElementById('globalsEditBtn');
     const globalsSaveBtn = document.getElementById('globalsSaveBtn');
     const globalsCancelBtn = document.getElementById('globalsCancelBtn');
     
+    // عناصر صورة الشعار
+    const logoImageInput = document.getElementById('logo-image');
+    const uploadedLogoImages = document.getElementById('uploaded-logo-images');
+    
     // بيانات المحافظات والتاجر الحالي
     let governoratesData = {};
     let currentMerchant = null;
     let originalData = {};
     let locationWatchId = null;
+    let selectedLogoImageFile = null;
     
     // ===== نظام الجلوبالات المحسن =====
     const globalUser = {
@@ -1160,6 +1246,99 @@
         }, 10000);
     }
     
+    // ===== دوال رفع الصور إلى جوجل درايف =====
+    
+    // تحويل الملف إلى Base64
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // رفع الصورة إلى Google Drive
+    async function uploadImageToDrive(file) {
+        try {
+            showLoading(true);
+            
+            const base64Data = await fileToBase64(file);
+            
+            const formData = new FormData();
+            formData.append('fileData', base64Data);
+            formData.append('fileName', file.name);
+            formData.append('mimeType', file.type);
+            formData.append('folderId', DRIVE_FOLDER_ID);
+            
+            const response = await fetch(DRIVE_API_URL, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) throw new Error(`خطأ HTTP ${response.status}`);
+
+            const data = await response.json();
+            
+            if (data.success && data.fileId) {
+                return `https://drive.usercontent.google.com/download?id=${data.fileId}&authuser=0`;
+            } else {
+                throw new Error(data.error || 'فشل رفع الصورة');
+            }
+            
+        } catch (error) {
+            console.error('خطأ في رفع الصورة:', error);
+            throw error;
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // معالجة اختيار صورة الشعار
+    function handleLogoImageSelection(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            showToast('يرجى اختيار ملف صورة صالح', 'error');
+            return;
+        }
+        
+        const maxSize = 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+            showToast('حجم الصورة يجب أن يكون أقل من 5 ميجابايت', 'error');
+            return;
+        }
+        
+        // حفظ الملف المختار فقط دون رفعه فوراً
+        selectedLogoImageFile = file;
+        
+        // عرض معاينة الصورة
+        uploadedLogoImages.innerHTML = '';
+        const img = document.createElement('img');
+        img.className = 'uploaded-image';
+        img.src = URL.createObjectURL(file);
+        img.alt = file.name;
+        uploadedLogoImages.appendChild(img);
+        
+        showToast('تم اختيار صورة الشعار بنجاح، سيتم رفعها عند حفظ البيانات', 'success');
+    }
+    
+    // دالة لعرض/إخفاء التحميل
+    function showLoading(show) {
+        if (show) {
+            document.body.style.pointerEvents = 'none';
+            document.body.style.opacity = '0.7';
+        } else {
+            document.body.style.pointerEvents = 'auto';
+            document.body.style.opacity = '1';
+        }
+    }
+    
     // تهيئة الصفحة
     document.addEventListener('DOMContentLoaded', function() {
         // تحديث عرض اسم المستخدم
@@ -1190,6 +1369,9 @@
             showNumberInput.checked = !isChecked;
             updateCheckboxDisplay();
         });
+        
+        // إعداد حدث اختيار صورة الشعار
+        logoImageInput.addEventListener('change', handleLogoImageSelection);
     });
     
     // تحديث عرض الشيك بوكس
@@ -1197,9 +1379,13 @@
         if (showNumberInput.checked) {
             showNumberCustom.classList.add('checked');
             showNumberInput.value = '1';
+            showNumberInfo.textContent = 'تم تفعيل ميزة عرض الرقم للعامة';
+            showNumberInfo.className = 'checkbox-info active';
         } else {
             showNumberCustom.classList.remove('checked');
             showNumberInput.value = '0';
+            showNumberInfo.textContent = 'تم إلغاء تفعيل ميزة عرض الرقم للعامة';
+            showNumberInfo.className = 'checkbox-info inactive';
         }
     }
     
@@ -1312,7 +1498,6 @@
         username.textContent = merchant.username || 'غير معروف';
         phone.textContent = merchant.phone || 'غير معروف';
         mobile.textContent = merchant.mobile || 'غير معروف';
-        ip.textContent = merchant.ip || 'غير معروف';
         locationField.value = merchant.location || '';
         
         // عرض حقل الشيك بوكس
@@ -1320,21 +1505,39 @@
             showNumberInput.checked = merchant.showNumber === '1' || merchant.showNumber === 1;
             showNumberInput.value = showNumberInput.checked ? '1' : '0';
         } else {
-            // القيمة الافتراضية 0 إذا لم تكن موجودة
-            showNumberInput.checked = false;
-            showNumberInput.value = '0';
+            // القيمة الافتراضية 1 إذا لم تكن موجودة
+            showNumberInput.checked = true;
+            showNumberInput.value = '1';
         }
         updateCheckboxDisplay();
         
+        // عرض صورة الشعار إن وجدت
+        if (merchant.logoUrl) {
+            uploadedLogoImages.innerHTML = '';
+            const img = document.createElement('img');
+            img.className = 'uploaded-image';
+            img.src = merchant.logoUrl;
+            img.alt = 'شعار المتجر';
+            uploadedLogoImages.appendChild(img);
+        }
+        
         // عرض روابط التواصل الاجتماعي
-        facebook.innerHTML = merchant.facebook ? `<a href="${merchant.facebook}" target="_blank">${merchant.facebook}</a>` : 'غير معروف';
-        instagram.innerHTML = merchant.instagram ? `<a href="${merchant.instagram}" target="_blank">${merchant.instagram}</a>` : 'غير معروف';
-        twitter.innerHTML = merchant.twitter ? `<a href="${merchant.twitter}" target="_blank">${merchant.twitter}</a>` : 'غير معروف';
-        youtube.innerHTML = merchant.youtube ? `<a href="${merchant.youtube}" target="_blank">${merchant.youtube}</a>` : 'غير معروف';
-        google.innerHTML = merchant.google ? `<a href="${merchant.google}" target="_blank">${merchant.google}</a>` : 'غير معروف';
+        facebook.innerHTML = merchant.facebook && merchant.facebook !== 'غير معروف' ? `<a href="${merchant.facebook}" target="_blank">${merchant.facebook}</a>` : '';
+        instagram.innerHTML = merchant.instagram && merchant.instagram !== 'غير معروف' ? `<a href="${merchant.instagram}" target="_blank">${merchant.instagram}</a>` : '';
+        twitter.innerHTML = merchant.twitter && merchant.twitter !== 'غير معروف' ? `<a href="${merchant.twitter}" target="_blank">${merchant.twitter}</a>` : '';
+        youtube.innerHTML = merchant.youtube && merchant.youtube !== 'غير معروف' ? `<a href="${merchant.youtube}" target="_blank">${merchant.youtube}</a>` : '';
+        google.innerHTML = merchant.google && merchant.google !== 'غير معروف' ? `<a href="${merchant.google}" target="_blank">${merchant.google}</a>` : '';
         
         password.textContent = merchant.password || 'غير معروف';
         createdAt.textContent = merchant.createdAt ? new Date(merchant.createdAt).toLocaleDateString('ar-EG') : 'غير معروف';
+        
+        // إذا كان الحقل يحتوي على "غير معروف" نجعله فارغاً
+        const fieldsToCheck = [merchantNameValue, username, phone, mobile, password, facebook, instagram, twitter, youtube, google];
+        fieldsToCheck.forEach(field => {
+            if (field.textContent === 'غير معروف') {
+                field.textContent = '';
+            }
+        });
         
         loadingIndicator.style.display = 'none';
         merchantData.style.display = 'block';
@@ -1600,9 +1803,9 @@
             username: username.textContent,
             phone: phone.textContent,
             mobile: mobile.textContent,
-            ip: ip.textContent,
             location: locationField.value,
             showNumber: showNumberInput.value,
+            logoUrl: currentMerchant.logoUrl || '',
             facebook: facebook.textContent,
             instagram: instagram.textContent,
             twitter: twitter.textContent,
@@ -1614,7 +1817,7 @@
         // جعل الحقول قابلة للتعديل
         const editableFields = [
             merchantNameValue, phone, mobile, 
-            ip, locationField, facebook, instagram,
+            locationField, facebook, instagram,
             twitter, youtube, google, password
         ];
         
@@ -1681,15 +1884,27 @@
                 }
             }
             
+            // رفع صورة الشعار إذا تم اختيار صورة جديدة
+            let logoUrl = currentMerchant.logoUrl || '';
+            if (selectedLogoImageFile) {
+                try {
+                    logoUrl = await uploadImageToDrive(selectedLogoImageFile);
+                    showToast('تم رفع صورة الشعار بنجاح', 'success');
+                } catch (error) {
+                    showToast('حدث خطأ في رفع صورة الشعار: ' + error.message, 'error');
+                    return;
+                }
+            }
+            
             // تجميع البيانات المعدلة
             const updatedData = {
                 name: merchantNameValue.textContent,
                 username: username.textContent, // اسم المستخدم غير قابل للتعديل
                 phone: phone.textContent,
                 mobile: mobile.textContent,
-                ip: ip.textContent,
                 location: locationValue,
                 showNumber: showNumberInput.value,
+                logoUrl: logoUrl,
                 facebook: facebook.textContent,
                 instagram: instagram.textContent,
                 twitter: twitter.textContent,
@@ -1751,7 +1966,6 @@
         username.textContent = originalData.username;
         phone.textContent = originalData.phone;
         mobile.textContent = originalData.mobile;
-        ip.textContent = originalData.ip;
         locationField.value = originalData.location;
         showNumberInput.value = originalData.showNumber;
         updateCheckboxDisplay();
@@ -1762,6 +1976,21 @@
         google.textContent = originalData.google;
         password.textContent = originalData.password;
         
+        // استعادة صورة الشعار
+        if (originalData.logoUrl) {
+            uploadedLogoImages.innerHTML = '';
+            const img = document.createElement('img');
+            img.className = 'uploaded-image';
+            img.src = originalData.logoUrl;
+            img.alt = 'شعار المتجر';
+            uploadedLogoImages.appendChild(img);
+        } else {
+            uploadedLogoImages.innerHTML = '';
+        }
+        
+        // إعادة تعيين الملف المختار
+        selectedLogoImageFile = null;
+        
         // تعطيل وضع التعديل
         disableEditing();
     }
@@ -1770,7 +1999,7 @@
     function disableEditing() {
         const editableFields = [
             merchantNameValue, phone, mobile, 
-            ip, locationField, facebook, instagram,
+            locationField, facebook, instagram,
             twitter, youtube, google, password
         ];
         
