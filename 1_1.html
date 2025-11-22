@@ -2648,6 +2648,11 @@
         const shareOptions = document.querySelectorAll('.share-option');
 
         // ==========================================
+        // 🔄 نظام إدارة التنقل والرجوع للصفحة السابقة
+        // ==========================================
+        let isBackButtonPressed = false;
+
+        // ==========================================
         // 🎯 بدء التطبيق - الترتيب الصحيح
         // ==========================================
 
@@ -2655,28 +2660,31 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🏁 بدء تحميل التطبيق...');
             
-            // 1. تهيئة معرف المستخدم المستقر أولاً
+            // 1. تهيئة نظام إدارة التنقل أولاً
+            initializeNavigationManager();
+            
+            // 2. تهيئة معرف المستخدم المستقر
             initializeStableUserId();
             
-            // 2. بدء نظام العداد العشوائي للمتصلين
+            // 3. بدء نظام العداد العشوائي للمتصلين
             startRandomOnlineUsers();
             
-            // 3. بدء نظام زيادة المشاهدات التلقائي
+            // 4. بدء نظام زيادة المشاهدات التلقائي
             startAutoViewIncrement();
             
-            // 4. تهيئة نظام تتبع المستخدمين المتصلين
+            // 5. تهيئة نظام تتبع المستخدمين المتصلين
             initializeUserPresence();
             
-            // 5. تهيئة التعرف الصوتي
+            // 6. تهيئة التعرف الصوتي
             initializeSpeechRecognition();
             
-            // 6. تهيئة التطبيق
+            // 7. تهيئة التطبيق
             initializeApp();
             
-            // 7. إعداد مستمعي الأحداث
+            // 8. إعداد مستمعي الأحداث
             setupEventListeners();
             
-            // 8. تحميل البيانات
+            // 9. تحميل البيانات
             loadAllData().then(() => {
                 checkUrlForProduct();
                 displayPersonalizedProducts();
@@ -2685,18 +2693,118 @@
                 console.error('❌ خطأ في تحميل البيانات:', error);
             });
             
-            // 9. بدء تحديث المنتجات الجديدة تلقائياً
+            // 10. بدء تحديث المنتجات الجديدة تلقائياً
             startAutoUpdate();
             
-            // 10. تحميل وعرض الإعلانات النصية
+            // 11. تحميل وعرض الإعلانات النصية
             loadAdvertisementTexts();
             
-            // 11. بدء نظام الإعجابات والتعليقات التلقائية
+            // 12. بدء نظام الإعجابات والتعليقات التلقائية
             startAutoInteractions();
             
-            // 12. بدء نظام فحص المنتجات الجديدة للتجار المفضلين
+            // 13. بدء نظام فحص المنتجات الجديدة للتجار المفضلين
             startFavoriteMerchantsCheck();
         });
+
+        // ==========================================
+        // 🔄 نظام إدارة التنقل والرجوع للصفحة الرئيسية
+        // ==========================================
+        function initializeNavigationManager() {
+            console.log('🚀 تهيئة نظام إدارة التنقل...');
+            
+            // منع السلوك الافتراضي للزر الخلفي
+            window.addEventListener('popstate', function(event) {
+                console.log('🔙 تم الضغط على زر الرجوع - إغلاق الصفحة وفتح index.html');
+                
+                if (!isBackButtonPressed) {
+                    isBackButtonPressed = true;
+                    
+                    // تنظيف جميع الفواصل الزمنية أولاً
+                    cleanupAllIntervals();
+                    
+                    // إغلاق جميع النوافذ المفتوحة
+                    closeAllModals();
+                    
+                    // الانتقال إلى index.html بعد تأخير بسيط
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 300);
+                }
+            });
+
+            // إضافة حالة إلى سجل التصفح للتحكم في الزر الخلفي
+            history.pushState({ page: 'az-marketplace' }, '', window.location.href);
+            
+            console.log('✅ تم تهيئة نظام إدارة التنقل بنجاح');
+        }
+
+        // ==========================================
+        // 🧹 تنظيف جميع الفواصل الزمنية
+        // ==========================================
+        function cleanupAllIntervals() {
+            console.log('🧹 جاري تنظيف جميع الفواصل الزمنية...');
+            
+            if (onlineUsersInterval) {
+                clearInterval(onlineUsersInterval);
+                onlineUsersInterval = null;
+            }
+            
+            if (autoViewInterval) {
+                clearInterval(autoViewInterval);
+                autoViewInterval = null;
+            }
+            
+            if (autoLikeInterval) {
+                clearInterval(autoLikeInterval);
+                autoLikeInterval = null;
+            }
+            
+            if (autoCommentInterval) {
+                clearInterval(autoCommentInterval);
+                autoCommentInterval = null;
+            }
+            
+            if (favoriteMerchantsCheckInterval) {
+                clearInterval(favoriteMerchantsCheckInterval);
+                favoriteMerchantsCheckInterval = null;
+            }
+            
+            if (adInterval) {
+                clearInterval(adInterval);
+                adInterval = null;
+            }
+            
+            console.log('✅ تم تنظيف جميع الفواصل الزمنية');
+        }
+
+        // ==========================================
+        // 🪟 إغلاق جميع النوافذ المفتوحة
+        // ==========================================
+        function closeAllModals() {
+            console.log('🪟 جاري إغلاق جميع النوافذ المفتوحة...');
+            
+            // إغلاق معرض الصور
+            const gallery = document.getElementById('image-gallery');
+            if (gallery.classList.contains('active')) {
+                closeImageGallery();
+            }
+            
+            // إغلاق نافذة المشاركة
+            const shareModal = document.getElementById('share-modal');
+            if (shareModal.classList.contains('active')) {
+                closeShareModal();
+            }
+            
+            // إغلاق جميع أقسام التعليقات
+            closeAllComments();
+            
+            // إخفاء شريط الفلاتر إذا كان مفتوحاً
+            if (filterBar.style.display === 'flex') {
+                hideFilterBar();
+            }
+            
+            console.log('✅ تم إغلاق جميع النوافذ المفتوحة');
+        }
 
         // ==========================================
         // 🔔 نظام فحص المنتجات الجديدة للتجار المفضلين
@@ -3492,10 +3600,11 @@
             });
 
             // ==========================================
-            // 🔄 إزالة مستمعي الأحداث المسببة للمشكلة في التنقل
+            // 🔄 إضافة مستمع حدث قبل إغلاق الصفحة للتنظيف
             // ==========================================
-            // تم إزالة مستمعي الأحداث popstate و beforeunload
-            // لتمكين التنقل الطبيعي بين الصفحات
+            window.addEventListener('beforeunload', () => {
+                cleanupAllIntervals();
+            });
         }
 
         function handleScroll() {
@@ -5353,24 +5462,7 @@
 
         // تنظيف الفاصل الزمني للإعلانات عند إغلاق الصفحة
         window.addEventListener('beforeunload', () => {
-            if (adInterval) {
-                clearInterval(adInterval);
-            }
-            if (onlineUsersInterval) {
-                clearInterval(onlineUsersInterval);
-            }
-            if (autoViewInterval) {
-                clearInterval(autoViewInterval);
-            }
-            if (autoLikeInterval) {
-                clearInterval(autoLikeInterval);
-            }
-            if (autoCommentInterval) {
-                clearInterval(autoCommentInterval);
-            }
-            if (favoriteMerchantsCheckInterval) {
-                clearInterval(favoriteMerchantsCheckInterval);
-            }
+            cleanupAllIntervals();
         });
     </script>
 </body>
