@@ -1142,7 +1142,7 @@
 <body>
     <!-- شاشة التحميل والترحيب -->
     <div class="splash-screen" id="splash-screen">
-        <img src="" alt="شعار التاجر" class="splash-logo" id="splash-logo">
+        <img src="https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true" alt="شعار AZ السوق الشامل" class="splash-logo" id="splash-logo">
         <div class="splash-text">
             <h1 id="splash-merchant-name">مرحباً بك</h1>
             <p id="splash-merchant-desc">جارٍ تحميل منتجات التاجر...</p>
@@ -1156,7 +1156,7 @@
     <div class="top-bar">
         <div class="top-bar-content">
             <div class="logo-title">
-                <img src="" alt="شعار التاجر" class="logo" id="top-bar-logo">
+                <img src="https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true" alt="شعار AZ السوق الشامل" class="logo">
                 <div class="titles">
                     <h1>AZ السوق الشامل</h1>
                     <h2>صفحة منتجات / <span id="merchant-name-display">اسم التاجر</span></h2>
@@ -1446,7 +1446,6 @@
         const splashMerchantName = document.getElementById("splash-merchant-name");
         const splashMerchantDesc = document.getElementById("splash-merchant-desc");
         const splashLogo = document.getElementById("splash-logo");
-        const topBarLogo = document.getElementById("top-bar-logo");
 
         let allProducts = {};
         let allCategories = {};
@@ -1478,30 +1477,14 @@
             splashMerchantDesc.textContent = `جارٍ تحميل منتجات ${merchantName}...`;
         }
 
-        // ✅ تحديث شعار التاجر في الشاشة الترحيبية والشريط العلوي
+        // ✅ تحديث شعار التاجر في الشاشة الترحيبية فقط
         function updateMerchantLogo(logoUrl) {
-            const formattedLogoUrl = formatDriveUrl(logoUrl, 'main');
-            
-            // تحديث الشعار في الشاشة الترحيبية
-            if (splashLogo) {
+            if (splashLogo && logoUrl) {
+                const formattedLogoUrl = formatDriveUrl(logoUrl, 'main');
                 splashLogo.src = formattedLogoUrl;
                 splashLogo.alt = `شعار ${merchantGlobal.getMerchantName()}`;
+                console.log('✅ تم تحديث شعار التاجر في الشاشة الترحيبية:', formattedLogoUrl);
             }
-            
-            // تحديث الشعار في الشريط العلوي
-            if (topBarLogo) {
-                topBarLogo.src = formatDriveUrl(logoUrl, 'thumb');
-                topBarLogo.alt = `شعار ${merchantGlobal.getMerchantName()}`;
-            }
-            
-            console.log('✅ تم تحديث شعار التاجر:', formattedLogoUrl);
-        }
-
-        // ✅ استخدام الشعار الافتراضي إذا لم يكن هناك شعار
-        function setDefaultLogo() {
-            const defaultLogo = 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
-            splashLogo.src = defaultLogo;
-            topBarLogo.src = defaultLogo;
         }
 
         // ✅ إخفاء شاشة الترحيب
@@ -1514,14 +1497,13 @@
             }, 1500);
         }
 
-        // ✅ دالة فحص بيانات التاجر من Firebase
+        // ✅ دالة فحص بيانات التاجر من Firebase - محسنة للأداء
         async function checkMerchantData() {
             try {
                 const merchantId = merchantGlobal.getMerchantId();
                 
                 if (!merchantId) {
-                    showNotification('❌ لا يوجد معرف تاجر في الجلوبال', 'error');
-                    setDefaultLogo();
+                    console.log('❌ لا يوجد معرف تاجر في الجلوبال');
                     return;
                 }
 
@@ -1529,8 +1511,7 @@
                 const snapshot = await get(merchantRef);
                 
                 if (!snapshot.exists()) {
-                    showNotification('❌ التاجر غير موجود في قاعدة البيانات', 'error');
-                    setDefaultLogo();
+                    console.log('❌ التاجر غير موجود في قاعدة البيانات');
                     return;
                 }
 
@@ -1551,13 +1532,11 @@
                     localStorage.setItem('showNumber', merchantData.showNumber);
                 }
 
-                // ✅ تحديث شعار التاجر إذا كان موجوداً
+                // ✅ تحديث شعار التاجر في الشاشة الترحيبية فوراً إذا كان موجوداً
                 if (merchantData.logoUrl) {
                     sessionStorage.setItem('merchantLogo', merchantData.logoUrl);
                     localStorage.setItem('merchantLogo', merchantData.logoUrl);
                     updateMerchantLogo(merchantData.logoUrl);
-                } else {
-                    setDefaultLogo();
                 }
 
                 // ✅ تحديث شاشة الترحيب واسم التاجر في الشريط العلوي
@@ -1568,7 +1547,6 @@
 
             } catch (error) {
                 console.error('❌ خطأ في فحص بيانات التاجر:', error);
-                setDefaultLogo();
             }
         }
 
@@ -1585,47 +1563,47 @@
             // تحديث شاشة الترحيب أولاً
             updateSplashScreen();
             
-            // تحميل البيانات من Firebase
-            onValue(categoriesRef, (snapshot) => {
-                allCategories = snapshot.val() || {};
-                console.log('✅ تم تحميل الأقسام:', Object.keys(allCategories).length);
-            });
-            
-            onValue(productsRef, (snapshot) => {
-                allProducts = snapshot.val() || {};
-                console.log('✅ تم تحميل المنتجات:', Object.keys(allProducts).length);
-                initializePage();
-            });
-            
-            onValue(merchantsRef, (snapshot) => {
-                allMerchants = snapshot.val() || {};
-                console.log('✅ تم تحميل التجار:', Object.keys(allMerchants).length);
+            // ✅ تحميل بيانات التاجر أولاً وبشكل منفصل لسرعة العرض
+            checkMerchantData().then(() => {
+                // ثم تحميل باقي البيانات من Firebase
+                onValue(categoriesRef, (snapshot) => {
+                    allCategories = snapshot.val() || {};
+                    console.log('✅ تم تحميل الأقسام:', Object.keys(allCategories).length);
+                });
+                
+                onValue(productsRef, (snapshot) => {
+                    allProducts = snapshot.val() || {};
+                    console.log('✅ تم تحميل المنتجات:', Object.keys(allProducts).length);
+                    initializePage();
+                });
+                
+                onValue(merchantsRef, (snapshot) => {
+                    allMerchants = snapshot.val() || {};
+                    console.log('✅ تم تحميل التجار:', Object.keys(allMerchants).length);
+                });
             });
         }
 
         function initializePage() {
-            // ✅ فحص بيانات التاجر
-            checkMerchantData().then(() => {
-                updateMerchantNameInTopBar();
-                calculateProductCounts();
-                displayCategories();
-                populateFilters();
-                
-                const firstCategory = Object.keys(allCategories)[0];
-                if (firstCategory) {
-                    loadProductsByCategory(firstCategory);
-                }
-                
-                setupScrollButtons();
-                merchantGlobal.debug();
-                
-                // ✅ إخفاء شاشة الترحيب بعد تحميل البيانات
-                hideSplashScreen();
-                
-                // ✅ عرض عدد المنتجات المحملة في الكونسول فقط (بدون إشعار)
-                console.log('عدد المنتجات الإجمالي:', Object.keys(allProducts).length);
-                console.log('عدد المنتجات بعد التصفية:', Object.keys(allProducts).filter(id => shouldDisplayProduct(allProducts[id], id)).length);
-            });
+            updateMerchantNameInTopBar();
+            calculateProductCounts();
+            displayCategories();
+            populateFilters();
+            
+            const firstCategory = Object.keys(allCategories)[0];
+            if (firstCategory) {
+                loadProductsByCategory(firstCategory);
+            }
+            
+            setupScrollButtons();
+            merchantGlobal.debug();
+            
+            // ✅ إخفاء شاشة الترحيب بعد تحميل البيانات
+            hideSplashScreen();
+            
+            // ✅ عرض عدد المنتجات المحملة في الكونسول فقط (بدون إشعار)
+            console.log('عدد المنتجات الإجمالي:', Object.keys(allProducts).length);
+            console.log('عدد المنتجات بعد التصفية:', Object.keys(allProducts).filter(id => shouldDisplayProduct(allProducts[id], id)).length);
         }
 
         // تحديث اسم التاجر في الشريط العلوي
