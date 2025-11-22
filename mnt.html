@@ -45,13 +45,13 @@
         .splash-logo {
             width: 120px;
             height: 120px;
-            border-radius: 20px;
-            padding: 0;
-            object-fit: cover;
+            border-radius: 50%;
+            background: white;
+            padding: 15px;
+            object-fit: contain;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             animation: pulse 2s infinite;
-            border: 3px solid rgba(255,255,255,0.2);
         }
 
         @keyframes pulse {
@@ -136,10 +136,10 @@
         .logo {
             width: 50px;
             height: 50px;
-            border-radius: 12px;
-            padding: 0;
-            object-fit: cover;
-            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            background: white;
+            padding: 5px;
+            object-fit: contain;
         }
 
         .titles h1 {
@@ -1142,7 +1142,7 @@
 <body>
     <!-- شاشة التحميل والترحيب -->
     <div class="splash-screen" id="splash-screen">
-        <img id="splash-logo" src="https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true" alt="شعار التاجر" class="splash-logo">
+        <img src="" alt="شعار التاجر" class="splash-logo" id="splash-logo">
         <div class="splash-text">
             <h1 id="splash-merchant-name">مرحباً بك</h1>
             <p id="splash-merchant-desc">جارٍ تحميل منتجات التاجر...</p>
@@ -1156,7 +1156,7 @@
     <div class="top-bar">
         <div class="top-bar-content">
             <div class="logo-title">
-                <img id="top-bar-logo" src="https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true" alt="شعار AZ السوق الشامل" class="logo">
+                <img src="" alt="شعار التاجر" class="logo" id="top-bar-logo">
                 <div class="titles">
                     <h1>AZ السوق الشامل</h1>
                     <h2>صفحة منتجات / <span id="merchant-name-display">اسم التاجر</span></h2>
@@ -1332,16 +1332,10 @@
             getShowNumberStatus: function() {
                 return sessionStorage.getItem('showNumber') || localStorage.getItem('showNumber') || '0';
             },
-            
-            // الحصول على شعار التاجر
+
+            // الحصول على رابط الشعار من الجلوبال
             getMerchantLogo: function() {
                 return sessionStorage.getItem('merchantLogo') || localStorage.getItem('merchantLogo') || '';
-            },
-            
-            // حفظ شعار التاجر
-            setMerchantLogo: function(logoUrl) {
-                sessionStorage.setItem('merchantLogo', logoUrl);
-                localStorage.setItem('merchantLogo', logoUrl);
             },
             
             // ✅ التحقق من شروط عرض زر "اطلب المنتج الان" - الإصدار المحسن
@@ -1381,7 +1375,8 @@
                         localStorage.setItem('showNumber', merchantData.showNumber);
                     }
                     if (merchantData.logoUrl) {
-                        this.setMerchantLogo(merchantData.logoUrl);
+                        sessionStorage.setItem('merchantLogo', merchantData.logoUrl);
+                        localStorage.setItem('merchantLogo', merchantData.logoUrl);
                     }
 
                     // ✅ الشروط المطلوبة:
@@ -1429,7 +1424,7 @@
                 console.log('معرف التاجر:', this.getMerchantId());
                 console.log('رقم الجوال:', this.getMerchantPhone());
                 console.log('عرض الرقم:', this.getShowNumberStatus());
-                console.log('شعار التاجر:', this.getMerchantLogo());
+                console.log('رابط الشعار:', this.getMerchantLogo());
                 console.log('====================');
             }
         };
@@ -1477,36 +1472,36 @@
         let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
 
         // ✅ تحديث شاشة الترحيب
-        function updateSplashScreen(merchantData = {}) {
-            const merchantName = merchantData.name || merchantGlobal.getMerchantName();
-            const merchantLogo = merchantData.logoUrl || merchantGlobal.getMerchantLogo();
-            
+        function updateSplashScreen() {
+            const merchantName = merchantGlobal.getMerchantName();
             splashMerchantName.textContent = `مرحباً بك في ${merchantName}`;
             splashMerchantDesc.textContent = `جارٍ تحميل منتجات ${merchantName}...`;
-            
-            // ✅ تحديث شعار التاجر في شاشة الترحيب
-            if (merchantLogo && merchantLogo.trim() !== '') {
-                splashLogo.src = formatDriveUrl(merchantLogo, 'main');
-                console.log('✅ تم تحديث شعار التاجر في شاشة الترحيب:', merchantLogo);
-            } else {
-                // استخدام الشعار الافتراضي إذا لم يكن هناك شعار
-                splashLogo.src = 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
-                console.log('ℹ️ استخدام الشعار الافتراضي في شاشة الترحيب');
-            }
         }
 
-        // ✅ تحديث الشعار في الشريط العلوي
-        function updateTopBarLogo(merchantData = {}) {
-            const merchantLogo = merchantData.logoUrl || merchantGlobal.getMerchantLogo();
+        // ✅ تحديث شعار التاجر في الشاشة الترحيبية والشريط العلوي
+        function updateMerchantLogo(logoUrl) {
+            const formattedLogoUrl = formatDriveUrl(logoUrl, 'main');
             
-            if (merchantLogo && merchantLogo.trim() !== '') {
-                topBarLogo.src = formatDriveUrl(merchantLogo, 'thumb');
-                console.log('✅ تم تحديث شعار التاجر في الشريط العلوي:', merchantLogo);
-            } else {
-                // استخدام الشعار الافتراضي إذا لم يكن هناك شعار
-                topBarLogo.src = 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
-                console.log('ℹ️ استخدام الشعار الافتراضي في الشريط العلوي');
+            // تحديث الشعار في الشاشة الترحيبية
+            if (splashLogo) {
+                splashLogo.src = formattedLogoUrl;
+                splashLogo.alt = `شعار ${merchantGlobal.getMerchantName()}`;
             }
+            
+            // تحديث الشعار في الشريط العلوي
+            if (topBarLogo) {
+                topBarLogo.src = formatDriveUrl(logoUrl, 'thumb');
+                topBarLogo.alt = `شعار ${merchantGlobal.getMerchantName()}`;
+            }
+            
+            console.log('✅ تم تحديث شعار التاجر:', formattedLogoUrl);
+        }
+
+        // ✅ استخدام الشعار الافتراضي إذا لم يكن هناك شعار
+        function setDefaultLogo() {
+            const defaultLogo = 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
+            splashLogo.src = defaultLogo;
+            topBarLogo.src = defaultLogo;
         }
 
         // ✅ إخفاء شاشة الترحيب
@@ -1526,7 +1521,8 @@
                 
                 if (!merchantId) {
                     showNotification('❌ لا يوجد معرف تاجر في الجلوبال', 'error');
-                    return null;
+                    setDefaultLogo();
+                    return;
                 }
 
                 const merchantRef = ref(db, `merchants/${merchantId}`);
@@ -1534,7 +1530,8 @@
                 
                 if (!snapshot.exists()) {
                     showNotification('❌ التاجر غير موجود في قاعدة البيانات', 'error');
-                    return null;
+                    setDefaultLogo();
+                    return;
                 }
 
                 const merchantData = snapshot.val();
@@ -1553,22 +1550,25 @@
                     sessionStorage.setItem('showNumber', merchantData.showNumber);
                     localStorage.setItem('showNumber', merchantData.showNumber);
                 }
+
+                // ✅ تحديث شعار التاجر إذا كان موجوداً
                 if (merchantData.logoUrl) {
-                    merchantGlobal.setMerchantLogo(merchantData.logoUrl);
+                    sessionStorage.setItem('merchantLogo', merchantData.logoUrl);
+                    localStorage.setItem('merchantLogo', merchantData.logoUrl);
+                    updateMerchantLogo(merchantData.logoUrl);
+                } else {
+                    setDefaultLogo();
                 }
 
                 // ✅ تحديث شاشة الترحيب واسم التاجر في الشريط العلوي
-                updateSplashScreen(merchantData);
-                updateTopBarLogo(merchantData);
+                updateSplashScreen();
                 updateMerchantNameInTopBar();
 
-                console.log('✅ تم تحديث بيانات التاجر بنجاح من Firebase:', merchantData);
-
-                return merchantData;
+                console.log('✅ تم تحديث بيانات التاجر بنجاح من Firebase');
 
             } catch (error) {
                 console.error('❌ خطأ في فحص بيانات التاجر:', error);
-                return null;
+                setDefaultLogo();
             }
         }
 
@@ -1605,7 +1605,7 @@
 
         function initializePage() {
             // ✅ فحص بيانات التاجر
-            checkMerchantData().then((merchantData) => {
+            checkMerchantData().then(() => {
                 updateMerchantNameInTopBar();
                 calculateProductCounts();
                 displayCategories();
