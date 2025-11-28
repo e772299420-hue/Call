@@ -64,72 +64,63 @@
         }
 
         /* ==========================================
-           🎯 أنماط نظام المطابقات المحسنة - التعديلات الجديدة
+           🎯 أنماط نظام المطابقات المحسنة
            ========================================== */
         
-        /* شريط المنتجات المطابقة داخل البطاقة - تم التعديل بالكامل */
+        /* شريط المنتجات المطابقة داخل البطاقة - تم التعديل */
         .matches-bar-container {
             position: relative;
-            margin-top: 10px;
+            margin-top: 15px;
             overflow: hidden;
-            border-radius: 8px;
+            border-radius: 12px;
             width: 100%;
-            height: 90px; /* ارتفاع ثابت للشريط - تم تعديله */
-            background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            display: none; /* مخفي افتراضياً */
+            height: 200px; /* ارتفاع ثابت للشريط */
         }
         
         .matches-bar {
             display: flex; 
-            gap: 10px; 
-            padding: 8px; 
+            gap: 8px; 
+            padding: 12px; 
             overflow-x: auto;
-            overflow-y: hidden;
+            overflow-y: hidden; /* منع التمرير العمودي */
             background: white;
             color: #2c3e50;
             white-space: nowrap;
             scroll-behavior: smooth;
             -ms-overflow-style: none;
             scrollbar-width: none;
-            height: 100%;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.4s ease, opacity 0.4s ease;
+            overflow: hidden;
+            cursor: grab;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             width: 100%;
-            align-items: center;
-        }
-        
-        /* شريط التمرير الأفقي */
-        .matches-bar::-webkit-scrollbar {
-            height: 6px;
-            display: block;
-        }
-        
-        .matches-bar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-        
-        .matches-bar::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
-        
-        .matches-bar::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
+            height: 100%; /* ارتفاع كامل للحاوية */
         }
         
         /* شريط مفتوح تلقائياً على أجهزة سطح المكتب */
         .matches-bar.auto-open {
-            display: flex;
+            max-height: 200px;
+            opacity: 1;
+            overflow-x: auto;
         }
         
         .matches-bar.active {
-            display: flex;
+            max-height: 200px;
+            opacity: 1;
+            overflow-x: auto;
+        }
+        
+        .matches-bar::-webkit-scrollbar {
+            display: none;
         }
         
         .match-item {
             padding: 8px 12px; 
-            background: #ffffff;
-            border-radius: 8px;
+            background: #f8f9fa;
+            border-radius: 15px;
             border: 1px solid #e0e0e0;
             font-weight: 500;
             display: flex;
@@ -139,28 +130,27 @@
             flex-shrink: 0;
             transition: all 0.3s ease;
             cursor: pointer;
-            width: 160px; /* عرض ثابت للعناصر */
-            height: 70px; /* ارتفاع ثابت للعناصر */
+            min-width: 160px;
+            max-width: 160px; /* عرض ثابت للعناصر */
             color: #2c3e50;
             text-decoration: none;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            height: 80px; /* ارتفاع ثابت للعناصر */
         }
         
         .match-item:hover { 
-            background: #f0f0f0;
+            background: #e9ecef;
             transform: translateY(-2px);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             text-decoration: none;
             color: #2c3e50;
-            border-color: #3498db;
         }
         
         .match-image {
             width: 40px;
             height: 40px;
-            border-radius: 6px;
+            border-radius: 8px;
             object-fit: cover;
-            border: 1px solid #e0e0e0;
+            border: 2px solid #e0e0e0;
             flex-shrink: 0;
         }
         
@@ -204,14 +194,21 @@
             transition: all 0.3s ease;
             font-size: 12px;
             cursor: pointer;
-            opacity: 0.7;
-            pointer-events: auto;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            opacity: 0;
+            pointer-events: auto; /* تمكين التفاعل */
         }
         
-        .scroll-btn:hover {
-            opacity: 1;
-            background: rgba(52, 152, 219, 0.25);
+        /* إصلاح: إظهار الأزرار فقط عندما يكون الشريط نشطًا */
+        .matches-bar.active + .scroll-btn,
+        .matches-bar.auto-open + .scroll-btn {
+            opacity: 0.6;
+            pointer-events: auto;
+        }
+        
+        /* إصلاح: إخفاء الأزرار عندما يكون الشريط مخفيًا */
+        .matches-bar:not(.active):not(.auto-open) + .scroll-btn {
+            opacity: 0;
+            display: none;
         }
         
         .scroll-left {
@@ -222,33 +219,41 @@
             left: 5px;
         }
         
-        /* زر التبديل الجديد - أسفل اسم التاجر */
-        .toggle-matches-btn {
-            background: rgba(52, 152, 219, 0.1);
-            border: 1px solid rgba(52, 152, 219, 0.3);
+        .toggle-matches {
+            background: none;
+            border: none;
             color: #3498db;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 0.9rem;
             margin-top: 5px;
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 5px;
             transition: all 0.3s ease;
             padding: 5px 10px;
-            border-radius: 15px;
-            width: auto;
-            align-self: flex-start;
+            border-radius: 20px;
+            background: rgba(52, 152, 219, 0.1);
+            width: 100%;
+            justify-content: center;
         }
         
-        .toggle-matches-btn:hover {
+        /* إخفاء زر التبديل على أجهزة سطح المكتب عندما يكون الشريط مفتوحاً تلقائياً */
+        .toggle-matches.desktop-hide {
+            display: none;
+        }
+        
+        .toggle-matches.mobile-show {
+            display: flex;
+        }
+        
+        /* إصلاح: إخفاء زر التبديل عندما لا توجد مطابقات */
+        .toggle-matches.hidden {
+            display: none !important;
+        }
+        
+        .toggle-matches:hover {
             color: #2980b9;
             background: rgba(52, 152, 219, 0.2);
-            border-color: rgba(52, 152, 219, 0.5);
-        }
-        
-        .toggle-matches-btn.hidden {
-            display: none !important;
         }
         
         .no-matches {
@@ -273,6 +278,42 @@
             cursor: pointer;
         }
         
+        /* تحسينات لعرض الوصف */
+        .product-description {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+        
+        .product-description.collapsed {
+            max-height: 4.5em; /* حوالي 3 أسطر */
+        }
+        
+        .product-description.expanded {
+            max-height: none;
+        }
+        
+        .read-more-toggle {
+            color: #3498db;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 5px;
+            transition: all 0.3s ease;
+            display: inline;
+            background: none;
+            border: none;
+            font-size: inherit;
+        }
+        
+        .read-more-toggle:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        
         /* حقل عدد المطابقات المخفي */
         .matches-count {
             display: none;
@@ -282,16 +323,32 @@
             display: none;
         }
         
+        /* تمييز الكلمة الأولى */
+        .first-word {
+            color: #3498db;
+            font-weight: bold;
+        }
+        
         /* تحسينات للهواتف المحمولة */
         @media (max-width: 768px) {
             .matches-bar.auto-open {
+                max-height: 0;
+                opacity: 0;
+            }
+            
+            .toggle-matches.mobile-show {
+                display: flex;
+            }
+            
+            .toggle-matches.desktop-hide {
                 display: none;
             }
             
             .match-item {
                 padding: 6px 10px;
-                width: 140px;
-                height: 65px;
+                min-width: 140px;
+                max-width: 140px;
+                height: 70px;
             }
             
             .match-image {
@@ -299,20 +356,27 @@
                 height: 35px;
             }
             
-            .matches-bar-container {
-                height: 80px; /* ارتفاع أقل على الهواتف */
+            .match-name {
+                max-width: 100px;
             }
             
-            .toggle-matches-btn {
-                font-size: 11px;
-                padding: 4px 8px;
+            .product-description.collapsed {
+                max-height: 6em;
+            }
+            
+            .matches-bar-container {
+                height: 160px; /* ارتفاع أقل على الهواتف */
             }
         }
         
         /* تحسينات لأجهزة سطح المكتب */
         @media (min-width: 769px) {
-            .matches-bar-container.auto-open {
-                display: block;
+            .toggle-matches.mobile-show {
+                display: none;
+            }
+            
+            .toggle-matches.desktop-hide {
+                display: flex;
             }
         }
 
@@ -4971,7 +5035,7 @@
         }
 
         // ==========================================
-        // 🎯 تعديل دالة إنشاء بطاقة المنتج مع إضافة نظام المطابقات المحسّن - التعديلات الجديدة
+        // 🎯 تعديل دالة إنشاء بطاقة المنتج مع إضافة نظام المطابقات المحسّن
         // ==========================================
         function createProductCard(product, merchant) {
             const merchantName = merchant.name || merchant.username || "تاجر";
@@ -5193,33 +5257,6 @@
             });
             merchantDiv.appendChild(merchantNameEl);
             
-            // ==========================================
-            // 🎯 إضافة زر التبديل الجديد أسفل اسم التاجر
-            // ==========================================
-            const matches = calculateMatches(product.name, product.categoryId, allProducts, product.id);
-            
-            if (matches > 0) {
-                const toggleMatchesBtn = document.createElement('button');
-                toggleMatchesBtn.className = 'toggle-matches-btn';
-                toggleMatchesBtn.innerHTML = `<i class="fas fa-chevron-down"></i> عرض المنتجات المطابقة (${matches})`;
-                
-                toggleMatchesBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const matchesContainer = card.querySelector('.matches-bar-container');
-                    const isVisible = matchesContainer.style.display === 'block';
-                    
-                    if (isVisible) {
-                        matchesContainer.style.display = 'none';
-                        toggleMatchesBtn.innerHTML = `<i class="fas fa-chevron-down"></i> عرض المنتجات المطابقة (${matches})`;
-                    } else {
-                        matchesContainer.style.display = 'block';
-                        toggleMatchesBtn.innerHTML = `<i class="fas fa-chevron-up"></i> إخفاء المنتجات المطابقة`;
-                    }
-                });
-                
-                merchantDiv.appendChild(toggleMatchesBtn);
-            }
-            
             infoDiv.appendChild(merchantDiv);
 
             // ==========================================
@@ -5229,17 +5266,17 @@
             // حقل عدد المطابقات المخفي
             const matchesCount = document.createElement('div');
             matchesCount.className = 'matches-count';
-            matchesCount.textContent = matches;
+            matchesCount.textContent = calculateMatches(product.name, product.categoryId, allProducts, product.id);
             
             const matchesLabel = document.createElement('div');
             matchesLabel.className = 'matches-label';
             matchesLabel.textContent = 'مطابق';
             
-            // حاوية شريط المنتجات المطابقة - تم التعديل بالكامل
+            // حاوية شريط المنتجات المطابقة - تم التعديل
             const matchesContainer = document.createElement('div');
             matchesContainer.className = 'matches-bar-container';
             
-            // شريط المنتجات المطابقة - تم التعديل بالكامل
+            // شريط المنتجات المطابقة - تم التعديل
             const matchesBar = document.createElement('div');
             matchesBar.className = 'matches-bar';
             
@@ -5252,6 +5289,16 @@
             scrollRightBtn.className = 'scroll-btn scroll-right';
             scrollRightBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
             
+            // زر تبديل عرض المنتجات المطابقة (للهواتف)
+            const toggleMatchesBtnMobile = document.createElement('button');
+            toggleMatchesBtnMobile.className = 'toggle-matches mobile-show';
+            toggleMatchesBtnMobile.innerHTML = `<i class="fas fa-chevron-down"></i> عرض المنتجات المطابقة`;
+            
+            // زر تبديل عرض المنتجات المطابقة (للسطح المكتب)
+            const toggleMatchesBtnDesktop = document.createElement('button');
+            toggleMatchesBtnDesktop.className = 'toggle-matches desktop-hide';
+            toggleMatchesBtnDesktop.innerHTML = `<i class="fas fa-chevron-down"></i> عرض المنتجات المطابقة`;
+            
             // إضافة العناصر إلى الحاوية
             matchesContainer.appendChild(matchesBar);
             matchesContainer.appendChild(scrollLeftBtn);
@@ -5262,11 +5309,66 @@
             infoDiv.appendChild(matchesLabel);
             infoDiv.appendChild(matchesContainer);
             
-            // تحميل المنتجات المطابقة تلقائياً على أجهزة سطح المكتب
-            if (!isMobileDevice() && matches > 0) {
-                matchesBar.classList.add('auto-open');
-                matchesContainer.style.display = 'block';
-                loadMatchingProducts(matchesBar, product, scrollLeftBtn, scrollRightBtn);
+            // إضافة أزرار التبديل فقط إذا كان هناك مطابقات
+            const matches = parseInt(matchesCount.textContent);
+            if (matches > 0) {
+                card.classList.add('has-matches');
+                infoDiv.appendChild(toggleMatchesBtnMobile);
+                infoDiv.appendChild(toggleMatchesBtnDesktop);
+                
+                // تحميل المنتجات المطابقة تلقائياً على أجهزة سطح المكتب
+                if (!isMobileDevice() && matches > 0) {
+                    matchesBar.classList.add('auto-open');
+                    loadMatchingProducts(matchesBar, product, scrollLeftBtn, scrollRightBtn);
+                }
+                
+                // إعداد حدث النقر لعرض/إخفاء المنتجات المطابقة
+                const toggleMatches = () => {
+                    const isActive = matchesBar.classList.contains('active');
+                    
+                    if (!isActive && !matchesBar.classList.contains('auto-open')) {
+                        loadMatchingProducts(matchesBar, product, scrollLeftBtn, scrollRightBtn);
+                    }
+                    
+                    matchesBar.classList.toggle('active');
+                    matchesBar.classList.remove('auto-open');
+                    
+                    toggleMatchesBtnMobile.innerHTML = matchesBar.classList.contains('active') 
+                        ? `<i class="fas fa-chevron-up"></i> إخفاء المنتجات المطابقة`
+                        : `<i class="fas fa-chevron-down"></i> عرض المنتجات المطابقة`;
+                        
+                    toggleMatchesBtnDesktop.innerHTML = matchesBar.classList.contains('active') 
+                        ? `<i class="fas fa-chevron-up"></i> إخفاء المنتجات المطابقة`
+                        : `<i class="fas fa-chevron-down"></i> عرض المنتجات المطابقة`;
+                        
+                    setTimeout(() => {
+                        setupScrollButtons(matchesBar, scrollLeftBtn, scrollRightBtn);
+                    }, 100);
+                };
+                
+                // إضافة حدث النقر على بطاقة المنتج (للهواتف فقط)
+                if (isMobileDevice()) {
+                    card.addEventListener('click', (e) => {
+                        if (!e.target.closest('.toggle-matches') && !e.target.closest('.match-item') && !e.target.closest('.read-more-toggle')) {
+                            toggleMatches();
+                        }
+                    });
+                }
+                
+                // إضافة حدث النقر على أزرار التبديل
+                toggleMatchesBtnMobile.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleMatches();
+                });
+                
+                toggleMatchesBtnDesktop.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleMatches();
+                });
+            } else {
+                // إخفاء أزرار التبديل إذا لم توجد مطابقات
+                toggleMatchesBtnMobile.classList.add('hidden');
+                toggleMatchesBtnDesktop.classList.add('hidden');
             }
 
             // تعليقات
@@ -5351,7 +5453,7 @@
         }
 
         // ==========================================
-        // 🎯 وظائف نظام المطابقات المحسّنة - التعديلات الجديدة
+        // 🎯 وظائف نظام المطابقات المحسّنة
         // ==========================================
 
         // دالة للتحقق إذا كان الجهاز محمولاً
@@ -5460,16 +5562,25 @@
         // دالة لإعداد أزرار التمرير المحسّنة
         function setupScrollButtons(container, leftBtn, rightBtn) {
             const checkScrollButtons = () => {
+                const isBarActive = container.classList.contains('active') || container.classList.contains('auto-open');
                 const scrollLeftVisible = container.scrollLeft > 0;
                 const scrollRightVisible = container.scrollLeft < container.scrollWidth - container.clientWidth;
                 
                 // التحقق من أن الشريط نشط أولاً
-                if (container.children.length > 2) {
+                if (isBarActive && container.children.length > 2) {
                     leftBtn.style.display = scrollLeftVisible ? 'flex' : 'none';
                     rightBtn.style.display = scrollRightVisible ? 'flex' : 'none';
+                    
+                    // إضافة opacity فقط عندما يتم عرض الأزرار
+                    if (scrollLeftVisible || scrollRightVisible) {
+                        leftBtn.style.opacity = scrollLeftVisible ? '0.6' : '0';
+                        rightBtn.style.opacity = scrollRightVisible ? '0.6' : '0';
+                    }
                 } else {
                     leftBtn.style.display = 'none';
                     rightBtn.style.display = 'none';
+                    leftBtn.style.opacity = '0';
+                    rightBtn.style.opacity = '0';
                 }
             };
 
