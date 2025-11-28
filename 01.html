@@ -5363,28 +5363,26 @@
         function getFirstWord(text) {
             if (!text || text.trim() === '') return '';
             
-            // إزالة الرموز والحروف الخاصة
-            const cleanText = text
+            const words = text
                 .replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFFa-zA-Z0-9\s]/g, '')
-                .trim();
+                .trim()
+                .split(/\s+/);
                 
-            // استخراج الكلمة الأولى
-            const words = cleanText.split(/\s+/);
             return words.length > 0 ? words[0] : '';
         }
 
         // دالة لحساب عدد المطابقات لمنتج معين (بنفس القسم)
         function calculateMatches(currentProductName, currentProductCategory, allProducts, currentProductId) {
             const firstWord = getFirstWord(currentProductName);
-            if (!firstWord || firstWord.length < 2) return 0;
+            if (!firstWord) return 0;
             
             let matchCount = 0;
             
             allProducts.forEach(otherProduct => {
-                if (otherProduct.id !== currentProductId && otherProduct.categoryId === currentProductCategory) {
+                if (otherProduct.id !== currentProductId) {
                     const otherProductName = otherProduct.name || '';
                     
-                    if (otherProductName.includes(firstWord)) {
+                    if (otherProductName.includes(firstWord) && otherProduct.categoryId === currentProductCategory) {
                         matchCount++;
                     }
                 }
@@ -5396,15 +5394,15 @@
         // دالة للحصول على المنتجات المطابقة لمنتج معين (بنفس القسم)
         function getMatchingProducts(currentProductName, currentProductCategory, allProducts, currentProductId) {
             const firstWord = getFirstWord(currentProductName);
-            if (!firstWord || firstWord.length < 2) return [];
+            if (!firstWord) return [];
             
             let matchingProducts = [];
             
             allProducts.forEach(otherProduct => {
-                if (otherProduct.id !== currentProductId && otherProduct.categoryId === currentProductCategory) {
+                if (otherProduct.id !== currentProductId) {
                     const otherProductName = otherProduct.name || '';
                     
-                    if (otherProductName.includes(firstWord)) {
+                    if (otherProductName.includes(firstWord) && otherProduct.categoryId === currentProductCategory) {
                         matchingProducts.push({
                             id: otherProduct.id,
                             ...otherProduct
@@ -5439,7 +5437,7 @@
                     matchItem.className = 'match-item';
                     matchItem.href = 'javascript:void(0)';
                     matchItem.innerHTML = `
-                        <img src="${formattedImageUrl || 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w800'}" alt="${match.name || 'منتج'}" class="match-image">
+                        <img src="${formattedImageUrl}" alt="${match.name || 'منتج'}" class="match-image">
                         <div class="match-info">
                             <div class="match-name">${match.name || 'منتج بدون اسم'}</div>
                             <div class="match-price">${match.price ? match.price + ' ريال' : 'بدون سعر'}</div>
@@ -5513,13 +5511,22 @@
         // 🎯 وظيفة تبديل إظهار/إخفاء تواريخ العرض
         // ==========================================
         function toggleOfferDates(card) {
-            const offerDates = card.querySelector('.offer-dates');
+            const startDateBadge = card.querySelector('.offer-dates');
+            const endDateBadge = card.querySelector('.offer-dates-end');
             
-            if (offerDates) {
-                if (offerDates.style.display === 'none' || offerDates.style.display === '') {
-                    offerDates.style.display = 'flex';
+            if (startDateBadge) {
+                if (startDateBadge.style.display === 'none' || startDateBadge.style.display === '') {
+                    startDateBadge.style.display = 'flex';
                 } else {
-                    offerDates.style.display = 'none';
+                    startDateBadge.style.display = 'none';
+                }
+            }
+            
+            if (endDateBadge) {
+                if (endDateBadge.style.display === 'none' || endDateBadge.style.display === '') {
+                    endDateBadge.style.display = 'flex';
+                } else {
+                    endDateBadge.style.display = 'none';
                 }
             }
         }
