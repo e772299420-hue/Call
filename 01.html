@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -3084,7 +3083,7 @@
         let currentCategoryFilter = '';
 
         // ==========================================
-        // 🔐 نظام بصمة البيانات المحسن
+        // 🔐 نظام بصمة البيانات المحسن - الإصلاحات الجديدة
         // ==========================================
         let visitorFingerprint = null;
         let fingerprintId = null;
@@ -3190,12 +3189,29 @@
         });
 
         // ==========================================
-        // 🔐 نظام بصمة البيانات المحسن
+        // 🔐 نظام بصمة البيانات المحسن - الإصلاحات الجديدة
         // ==========================================
         async function initializeFingerprintSystem() {
             console.log('🆔 تهيئة نظام بصمة البيانات...');
             
-            // إنشاء بصمة البيانات
+            // التحقق أولاً من وجود بصمة مخزنة مسبقاً
+            const savedFingerprintId = localStorage.getItem('visitorFingerprintId');
+            if (savedFingerprintId) {
+                console.log('✅ تم العثور على بصمة مخزنة مسبقاً:', savedFingerprintId);
+                fingerprintId = savedFingerprintId;
+                
+                // تحديث تاريخ آخر زيارة للبصمة المخزنة
+                await updateFingerprintVisit(savedFingerprintId);
+                
+                // تسجيل بداية الجلسة
+                await recordSessionStart();
+                
+                // استعادة حالة البحث من localStorage
+                restoreSearchState();
+                return;
+            }
+            
+            // إنشاء بصمة جديدة فقط إذا لم تكن موجودة
             visitorFingerprint = await generateFingerprint();
             console.log('✅ تم إنشاء بصمة البيانات:', visitorFingerprint);
             
@@ -3209,27 +3225,43 @@
             restoreSearchState();
         }
 
-        // دالة إنشاء بصمة البيانات
+        // ==========================================
+        // 🔄 دالة تحديث زيارة البصمة المخزنة
+        // ==========================================
+        async function updateFingerprintVisit(fingerprintId) {
+            try {
+                const fingerprintsRef = db.ref('بصمة_١');
+                await fingerprintsRef.child(fingerprintId).update({
+                    lastVisit: new Date().toISOString(),
+                    visitCount: firebase.database.ServerValue.increment(1)
+                });
+                console.log('✅ تم تحديث بيانات الزيارة للبصمة:', fingerprintId);
+            } catch (error) {
+                console.error('❌ خطأ في تحديث بيانات الزيارة:', error);
+            }
+        }
+
+        // ==========================================
+        // 🔧 دالة إنشاء بصمة البيانات المحسنة - إصلاح مشكلة التغير
+        // ==========================================
         async function generateFingerprint() {
             const components = [];
             
-            // 1. معلومات المتصفح
+            // 1. معلومات المتصفح الثابتة فقط (لا تتغير بين الجلسات)
             components.push(navigator.userAgent);
             components.push(navigator.language);
-            components.push(navigator.languages ? navigator.languages.join(',') : '');
+            components.push(navigator.platform);
             components.push(screen.width + 'x' + screen.height);
             components.push(screen.colorDepth);
             components.push(new Date().getTimezoneOffset());
             components.push(!!navigator.javaEnabled());
             components.push(navigator.hardwareConcurrency || 'unknown');
             components.push(navigator.deviceMemory || 'unknown');
-            components.push(navigator.platform);
             
-            // 2. معلومات إضافية
-            components.push(performance.timeOrigin || '');
-            components.push(performance.memory ? performance.memory.totalJSHeapSize : '');
+            // 2. إزالة القيم المتغيرة مثل الوقت الحالي
+            // لا نستخدم performance.timeOrigin لأنه يتغير بين الجلسات
             
-            // 3. Canvas fingerprinting (مبسط)
+            // 3. Canvas fingerprinting (مبسط ومستقر)
             try {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
@@ -3249,7 +3281,7 @@
                 components.push('canvas-unsupported');
             }
             
-            // 4. WebGL fingerprinting (مبسط)
+            // 4. WebGL fingerprinting (مبسط ومستقر)
             try {
                 const canvas = document.createElement('canvas');
                 const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -3266,14 +3298,16 @@
                 components.push('webgl-error');
             }
             
-            // 5. إنشاء hash للبصمة
+            // 5. إنشاء hash للبصمة باستخدام خوارزمية أكثر استقراراً
             const fingerprintString = components.join('|');
             const fingerprintHash = await hashString(fingerprintString);
             
             return fingerprintHash;
         }
 
-        // دالة إنشاء hash للنص
+        // ==========================================
+        // 🔧 دالة إنشاء hash للنص
+        // ==========================================
         async function hashString(str) {
             const encoder = new TextEncoder();
             const data = encoder.encode(str);
@@ -3283,7 +3317,9 @@
             return hashHex;
         }
 
-        // دالة تسجيل بصمة البيانات في قاعدة البيانات
+        // ==========================================
+        // 🔄 دالة تسجيل بصمة البيانات في قاعدة البيانات
+        // ==========================================
         async function registerFingerprint(fingerprint) {
             try {
                 // البحث عن بصمة موجودة مسبقاً
@@ -3300,7 +3336,7 @@
                     // تحديث تاريخ آخر زيارة
                     await fingerprintsRef.child(fingerprintId).update({
                         lastVisit: new Date().toISOString(),
-                        visitCount: (existingData[existingKey].visitCount || 0) + 1
+                        visitCount: firebase.database.ServerValue.increment(1)
                     });
                 } else {
                     // إنشاء بصمة جديدة
@@ -3331,7 +3367,9 @@
             }
         }
 
-        // دالة تسجيل بداية الجلسة
+        // ==========================================
+        // 🔄 دالة تسجيل بداية الجلسة
+        // ==========================================
         async function recordSessionStart() {
             visitStartTime = new Date();
             visitSessionId = 'session_' + Date.now();
@@ -3357,7 +3395,9 @@
             }
         }
 
-        // دالة تسجيل نهاية الجلسة
+        // ==========================================
+        // 🔄 دالة تسجيل نهاية الجلسة
+        // ==========================================
         async function recordSessionEnd() {
             if (!visitStartTime || !visitSessionId) return;
             
@@ -3529,83 +3569,9 @@
             }
         }
 
-        // تعديل دالة البحث
-        function filterProducts() {
-            const filters = {
-                governorate: governorateSelect.value,
-                region: regionSelect.value,
-                category: categorySelect.value,
-                merchant: merchantSelect.value,
-                search: (searchInput.value || '').trim(),
-                sortBy: sortSelect.value
-            };
-
-            // حفظ حالة البحث في localStorage
-            saveSearchState(filters);
-
-            // حفظ مصطلح البحث في السجل
-            if (filters.search) {
-                saveSearchTerm(filters.search);
-                // حفظ مصطلحات البحث غير الموجودة في asnaf_slect
-                saveSearchTermToAsnaf(filters.search);
-                
-                // تسجيل البحث مع البصمة
-                recordUserAction('search', null, filters.search);
-            }
-
-            const result = allProducts.filter(product => {
-                if (!product) return false;
-                const merchant = allMerchants.find(m => m.id === product.userId);
-                if (!merchant) return false;
-
-                // التحقق من أن التاجر نشط ووظيفته "تاجر"
-                const isActive = merchant.status === "active" || merchant.status === "نشط";
-                const isMerchant = merchant.job === "تاجر" || merchant.type === "تاجر";
-                
-                if (!isActive || !isMerchant) return false;
-
-                // ==========================================
-                // 🎯 فلترة العروض المنتهية
-                // ==========================================
-                if (product.productType === 'عرض' && !isOfferValid(product)) {
-                    return false;
-                }
-
-                // ==========================================
-                // 🔍 البحث مع مراعاة الأحرف المتشابهة
-                // ==========================================
-                if (filters.search) {
-                    const normalizedSearch = normalizeText(filters.search);
-                    const productName = normalizeText(product.name || '');
-                    const productDesc = normalizeText(product.description || '');
-                    
-                    if (!productName.includes(normalizedSearch) && !productDesc.includes(normalizedSearch)) {
-                        return false;
-                    }
-                }
-
-                if (filters.category) {
-                    if (product.categoryId !== filters.category && product.category !== filters.category) return false;
-                }
-
-                if (filters.merchant && product.userId !== filters.merchant) return false;
-
-                if (filters.governorate) {
-                    const merchantGovernorate = merchant.governorate || merchant.region;
-                    if (merchantGovernorate !== filters.governorate) return false;
-                }
-                if (filters.region) {
-                    const merchantArea = merchant.area || merchant.city;
-                    if (merchantArea !== filters.region) return false;
-                }
-
-                return true;
-            });
-
-            displayProducts(result);
-        }
-
-        // دالة تسجيل إجراءات المستخدم مع البصمة
+        // ==========================================
+        // 🔧 دالة تسجيل إجراءات المستخدم مع البصمة
+        // ==========================================
         async function recordUserAction(actionType, productId = null, additionalData = null) {
             if (!fingerprintId) return;
             
@@ -3651,20 +3617,25 @@
         }
 
         // ==========================================
-        // 🚫 نظام مراقبة الحظر
+        // 🚫 نظام مراقبة الحظر - الإصلاحات الجديدة
         // ==========================================
         function startBanMonitoring() {
-            // التحقق من الحظر كل دقيقة
+            // التحقق من الحظر كل 10 ثواني بدلاً من 60 ثانية
             banCheckInterval = setInterval(() => {
                 checkIfBanned();
-            }, 60000); // 60 ثانية
+            }, 10000); // 10 ثواني
             
             // التحقق فور التحميل أيضاً
             checkIfBanned();
+            
+            console.log('🚫 تم بدء نظام مراقبة الحظر كل 10 ثواني');
         }
 
         async function checkIfBanned() {
-            if (!fingerprintId) return;
+            if (!fingerprintId) {
+                console.log('⚠️ لا يوجد بصمة بيانات للتحقق من الحظر');
+                return;
+            }
             
             try {
                 const bannedRef = db.ref('banned_fingerprints');
@@ -3674,6 +3645,11 @@
                     // المستخدم محظور
                     showBanNotification();
                     console.log('🚫 تم اكتشاف بصمة محظورة:', fingerprintId);
+                    
+                    // إيقاف جميع الفواصل الزمنية
+                    cleanupAllIntervals();
+                } else {
+                    console.log('✅ البصمة غير محظورة:', fingerprintId);
                 }
             } catch (error) {
                 console.error('❌ خطأ في التحقق من الحظر:', error);
