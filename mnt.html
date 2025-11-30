@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AZ السوق الشامل - منتجات التاجر</title>
     
-    <!-- Open Graph Meta Tags الأساسية -->
+    <!-- سيتم تحديث هذه الوسوم ديناميكياً -->
     <meta property="og:title" content="AZ السوق الشامل - منتجات التاجر">
     <meta property="og:description" content="استكشف منتجاتنا وعروضنا الحصرية على منصة AZ السوق الشامل">
     <meta property="og:image" content="https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true">
@@ -1488,6 +1488,49 @@
         let favoriteProducts = JSON.parse(localStorage.getItem('favoriteProducts')) || {};
         let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
 
+        // ✅ دالة محسنة لتحويل رابط Google Drive إلى رابط مباشر للصورة
+        function convertGoogleDriveUrl(driveUrl) {
+            if (!driveUrl) return null;
+            
+            console.log('🔄 تحويل رابط Google Drive:', driveUrl);
+            
+            // استخراج معرف الملف من رابط Google Drive
+            let fileId = '';
+            
+            // نمط 1: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+            if (driveUrl.includes('/file/d/')) {
+                fileId = driveUrl.split('/file/d/')[1].split('/')[0];
+            }
+            // نمط 2: https://drive.google.com/open?id=FILE_ID
+            else if (driveUrl.includes('id=')) {
+                const urlParams = new URLSearchParams(driveUrl.split('?')[1]);
+                fileId = urlParams.get('id');
+            }
+            // نمط 3: https://drive.google.com/uc?id=FILE_ID
+            else if (driveUrl.includes('drive.google.com/uc?id=')) {
+                fileId = driveUrl.split('drive.google.com/uc?id=')[1].split('&')[0];
+            }
+            // نمط 4: https://drive.google.com/thumbnail?id=FILE_ID
+            else if (driveUrl.includes('drive.google.com/thumbnail?id=')) {
+                fileId = driveUrl.split('drive.google.com/thumbnail?id=')[1].split('&')[0];
+            }
+            
+            if (!fileId) {
+                console.log('❌ لم يتم العثور على معرف الملف في رابط Google Drive');
+                return null;
+            }
+            
+            // إنشاء رابط مباشر للصورة بأبعاد مناسبة للوسائط الاجتماعية
+            const directImageUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200-h630`;
+            
+            console.log('✅ تم تحويل الرابط:', {
+                fileId: fileId,
+                directImageUrl: directImageUrl
+            });
+            
+            return directImageUrl;
+        }
+
         // ✅ دالة محسنة لتحديث وسوم Open Graph مع صورة الشعار الخاص بالتاجر
         async function updateSocialMetaTags(merchantName, merchantLogo) {
             const merchantTitle = `AZ السوق الشامل - ${merchantName}`;
@@ -1497,19 +1540,27 @@
             // ✅ استخدام شعار التاجر مباشرة من Firebase
             let logoUrl = merchantLogo || 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
             
-            // ✅ تحويل رابط Google Drive إلى رابط صورة مباشر مناسب للوسائط الاجتماعية
-            const formattedLogoUrl = formatDriveUrlForSocial(logoUrl);
+            // ✅ إذا كان الرابط من Google Drive، قم بتحويله إلى رابط مباشر
+            if (logoUrl.includes('drive.google.com')) {
+                const convertedUrl = convertGoogleDriveUrl(logoUrl);
+                if (convertedUrl) {
+                    logoUrl = convertedUrl;
+                    console.log('✅ تم استخدام رابط Google Drive المحول للوسائط الاجتماعية');
+                } else {
+                    console.log('⚠️ استخدام الشعار الافتراضي بسبب فشل تحويل رابط Google Drive');
+                    logoUrl = 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
+                }
+            }
             
             console.log('🔄 محاولة تحديث وسوم الوسائط الاجتماعية:', {
                 merchantName,
-                logoUrl,
-                formattedLogoUrl
+                logoUrl
             });
             
             // ✅ تحديث Open Graph tags
             updateMetaTag('og:title', merchantTitle);
             updateMetaTag('og:description', merchantDescription);
-            updateMetaTag('og:image', formattedLogoUrl);
+            updateMetaTag('og:image', logoUrl);
             updateMetaTag('og:url', pageUrl);
             updateMetaTag('og:type', 'website');
             updateMetaTag('og:site_name', 'AZ السوق الشامل');
@@ -1522,11 +1573,11 @@
             updateMetaTag('twitter:card', 'summary_large_image');
             updateMetaTag('twitter:title', merchantTitle);
             updateMetaTag('twitter:description', merchantDescription);
-            updateMetaTag('twitter:image', formattedLogoUrl);
+            updateMetaTag('twitter:image', logoUrl);
             
             console.log('✅ تم تحديث وسوم الوسائط الاجتماعية مع صورة الشعار الخاص بالتاجر:', {
                 merchantTitle, 
-                formattedLogoUrl
+                logoUrl
             });
         }
 
@@ -1551,41 +1602,6 @@
             }
             
             metaTag.setAttribute('content', content);
-        }
-
-        // ✅ دالة محسنة لتحويل رابط Google Drive إلى رابط مناسب للوسائط الاجتماعية
-        function formatDriveUrlForSocial(url) {
-            if (!url) return 'https://github.com/e772299420-hue/Call/blob/main/icon-512x5122.png?raw=true';
-            
-            // إذا كان الرابط يحتوي على github (الشعار الافتراضي)
-            if (url.includes('github.com')) {
-                return url;
-            }
-            
-            // استخراج معرف الملف من رابط Google Drive
-            let fileId = '';
-            
-            if (url.includes('/d/')) {
-                fileId = url.split('/d/')[1].split('/')[0];
-            } 
-            else if (url.includes('id=')) {
-                try { 
-                    fileId = new URLSearchParams(url.split('?')[1]).get('id') || ''; 
-                } catch { 
-                    return url; 
-                }
-            }
-            else if (url.includes('/file/d/')) {
-                fileId = url.split('/file/d/')[1].split('/')[0];
-            }
-            else if (url.includes('drive.google.com/uc?id=')) {
-                fileId = url.split('drive.google.com/uc?id=')[1].split('&')[0];
-            }
-            
-            if (!fileId) return url;
-
-            // ✅ إنشاء رابط مباشر للصورة مناسب للوسائط الاجتماعية
-            return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200-h630`;
         }
 
         // ✅ دالة محسنة لتحديث شعار التاجر في الشاشة الترحيبية
@@ -2639,13 +2655,6 @@ ${pageUrl}`;
                 localStorage.setItem('merchantId', urlMerchantId);
                 console.log('✅ تم تحديث معرف التاجر من URL:', urlMerchantId);
             }
-
-            // ✅ تحديث وسوم Open Graph عند تحميل الصفحة
-            setTimeout(() => {
-                const merchantName = merchantGlobal.getMerchantName();
-                const merchantLogo = merchantGlobal.getMerchantLogo();
-                updateSocialMetaTags(merchantName, merchantLogo);
-            }, 1000);
 
             // ✅ إغلاق الصفحة والعودة إلى 1_1.html عند الخروج - تم التعديل
             window.addEventListener('beforeunload', function() {
