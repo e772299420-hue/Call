@@ -179,7 +179,7 @@
             align-items: center;
         }
 
-        .share-top-btn, .home-btn {
+        .share-top-btn {
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
@@ -194,9 +194,36 @@
             transition: all 0.3s ease;
         }
 
-        .share-top-btn:hover, .home-btn:hover {
+        .share-top-btn:hover {
             background: rgba(255,255,255,0.3);
             transform: scale(1.1);
+        }
+
+        /* زر العودة العائم الجديد */
+        .floating-home-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 99;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+            font-size: 24px;
+        }
+
+        .floating-home-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+            background: linear-gradient(135deg, #218838, #1e7e34);
         }
 
         /* شريط الأقسام */
@@ -1128,6 +1155,14 @@
             .notification {
                 top: 120px;
             }
+
+            .floating-home-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+                bottom: 20px;
+                left: 20px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1153,6 +1188,14 @@
 
             .gallery-product-price {
                 font-size: 18px;
+            }
+
+            .floating-home-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+                bottom: 15px;
+                left: 15px;
             }
         }
     </style>
@@ -1181,15 +1224,17 @@
                 </div>
             </div>
             <div class="top-bar-buttons">
-                <button class="home-btn" id="home-btn" title="العودة للصفحة الرئيسية">
-                    <i class="fas fa-home"></i>
-                </button>
                 <button class="share-top-btn" id="share-top-btn">
                     <i class="fas fa-share-alt"></i>
                 </button>
             </div>
         </div>
     </div>
+
+    <!-- ✅ زر العودة العائم الجديد -->
+    <button class="floating-home-btn" id="floating-home-btn" title="العودة للصفحة الرئيسية">
+        <i class="fas fa-home"></i>
+    </button>
 
     <!-- ✅ شريط الأقسام -->
     <div id="categories" class="category-bar">جارِ التحميل...</div>
@@ -1458,7 +1503,7 @@
         const scrollLeft = document.getElementById("scroll-left");
         const scrollRight = document.getElementById("scroll-right");
         const shareTopBtn = document.getElementById("share-top-btn");
-        const homeBtn = document.getElementById("home-btn");
+        const floatingHomeBtn = document.getElementById("floating-home-btn");
         const merchantNameDisplay = document.getElementById("merchant-name-display");
         const splashScreen = document.getElementById("splash-screen");
         const splashMerchantName = document.getElementById("splash-merchant-name");
@@ -1631,6 +1676,13 @@
             }, 1500);
         }
 
+        // ✅ تحديث اسم التاجر في الشريط العلوي - تم تحسينها
+        function updateMerchantNameInTopBar() {
+            const merchantName = merchantGlobal.getMerchantName();
+            merchantNameDisplay.textContent = merchantName;
+            console.log('✅ تم تحديث اسم التاجر في الشريط العلوي إلى:', merchantName);
+        }
+
         // ✅ دالة العودة للصفحة الرئيسية - تم التعديل إلى 1_1.html
         function goToHomePage() {
             showNotification('جارٍ العودة للصفحة الرئيسية...', 'info');
@@ -1639,7 +1691,7 @@
             }, 500);
         }
 
-        // ✅ دالة فحص بيانات التاجر من Firebase - محسنة للأداء
+        // ✅ دالة فحص بيانات التاجر من Firebase - محسنة للأداء وبتحديث الاسم مباشرة
         async function checkMerchantData() {
             try {
                 const merchantId = merchantGlobal.getMerchantId();
@@ -1663,6 +1715,8 @@
                 if (merchantData.name) {
                     sessionStorage.setItem('merchantName', merchantData.name);
                     localStorage.setItem('merchantName', merchantData.name);
+                    // تحديث اسم التاجر فوراً
+                    updateMerchantNameInTopBar();
                 }
                 if (merchantData.mobile || merchantData.phone) {
                     const phone = merchantData.mobile || merchantData.phone;
@@ -1687,7 +1741,7 @@
                     updateSocialMetaTags(merchantData.name, '');
                 }
 
-                // ✅ تحديث شاشة الترحيب واسم التاجر في الشريط العلوي
+                // ✅ تحديث شاشة الترحيب واسم التاجر في الشريط العلوي فوراً
                 updateSplashScreen();
                 updateMerchantNameInTopBar();
 
@@ -1725,6 +1779,7 @@
         }
 
         function initializePage() {
+            // ✅ تأكد من تحديث اسم التاجر أولاً
             updateMerchantNameInTopBar();
             calculateProductCounts();
             displayCategories();
@@ -1744,12 +1799,6 @@
             // ✅ عرض عدد المنتجات المحملة في الكونسول فقط (بدون إشعار)
             console.log('عدد المنتجات الإجمالي:', Object.keys(allProducts).length);
             console.log('عدد المنتجات بعد التصفية:', Object.keys(allProducts).filter(id => shouldDisplayProduct(allProducts[id], id)).length);
-        }
-
-        // تحديث اسم التاجر في الشريط العلوي
-        function updateMerchantNameInTopBar() {
-            const merchantName = merchantGlobal.getMerchantName();
-            merchantNameDisplay.textContent = merchantName;
         }
 
         // حساب عدد المنتجات لكل قسم
@@ -2603,8 +2652,8 @@ ${pageUrl}`;
             // زر المشاركة في الشريط العلوي
             shareTopBtn.addEventListener('click', shareMerchantPage);
 
-            // ✅ زر الشاشة الرئيسية في الشريط العلوي - تم التعديل إلى 1_1.html
-            homeBtn.addEventListener('click', goToHomePage);
+            // ✅ زر العودة العائم الجديد
+            floatingHomeBtn.addEventListener('click', goToHomePage);
 
             // إغلاق الفلاتر عند النقر خارجها
             document.addEventListener('click', (e) => {
