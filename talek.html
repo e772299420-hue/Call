@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المنتجات والتعليقات</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-dark: #3a0ca3;
+            --secondary-color: #4cc9f0;
+            --accent-color: #f72585;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --gray-color: #6c757d;
+            --light-gray: #e9ecef;
+            --border-radius: 12px;
+            --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7ff;
+            color: var(--dark-color);
+            line-height: 1.6;
+            padding-bottom: 40px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 25px 0;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 30px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo i {
+            font-size: 2.5rem;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .merchant-info {
+            background-color: rgba(255, 255, 255, 0.15);
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .merchant-info i {
+            color: var(--secondary-color);
+        }
+
+        .view-toggle {
+            display: flex;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            padding: 5px;
+            margin-top: 15px;
+        }
+
+        .view-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 50px;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-btn.active {
+            background-color: white;
+            color: var(--primary-color);
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .stat-icon.products {
+            background-color: var(--primary-color);
+        }
+
+        .stat-icon.comments {
+            background-color: var(--secondary-color);
+        }
+
+        .stat-icon.rating {
+            background-color: var(--accent-color);
+        }
+
+        .stat-info h3 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-info p {
+            color: var(--gray-color);
+            font-size: 0.9rem;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .products-section, .comments-section {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eaeaea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 10px 40px 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            min-width: 250px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-color);
+        }
+
+        .select-filter {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            background-color: white;
+            color: var(--dark-color);
+            font-size: 1rem;
+            cursor: pointer;
+            min-width: 150px;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .product-card {
+            border: 1px solid #eee;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            transition: var(--transition);
+            cursor: pointer;
+            background-color: white;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-card.active {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+        }
+
+        .product-image {
+            height: 200px;
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-image .placeholder {
+            font-size: 4rem;
+            color: #ccc;
+        }
+
+        .product-info {
+            padding: 20px;
+        }
+
+        .product-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: var(--dark-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .product-price {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .product-description {
+            color: var(--gray-color);
+            margin-bottom: 15px;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .product-comments {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray-color);
+        }
+
+        .product-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #ffc107;
+        }
+
+        .comments-list {
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .comment-item {
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: var(--transition);
+        }
+
+        .comment-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .comment-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .user-info h4 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .comment-date {
+            color: var(--gray-color);
+            font-size: 0.9rem;
+        }
+
+        .comment-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #ffc107;
+            font-size: 1.2rem;
+        }
+
+        .comment-content {
+            margin-bottom: 15px;
+            line-height: 1.7;
+            color: #333;
+        }
+
+        .comment-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 5px;
+            border: none;
+            background-color: #f0f0f0;
+            color: var(--gray-color);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+        }
+
+        .action-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        .action-btn.delete:hover {
+            background-color: #ffebee;
+            color: var(--danger-color);
+        }
+
+        .action-btn.reply:hover {
+            background-color: #e8f5e9;
+            color: var(--success-color);
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-color);
+        }
+
+        .no-data i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+
+        .no-data h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .no-data p {
+            font-size: 1rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray-color);
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .product-details-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .back-btn {
+            padding: 8px 16px;
+            background-color: var(--light-gray);
+            border: none;
+            border-radius: var(--border-radius);
+            color: var(--dark-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover {
+            background-color: #ddd;
+        }
+
+        .current-product-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .product-badge {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .login-required {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 40px;
+            text-align: center;
+            box-shadow: var(--box-shadow);
+            margin-bottom: 30px;
+        }
+
+        .login-required i {
+            font-size: 4rem;
+            color: var(--warning-color);
+            margin-bottom: 20px;
+        }
+
+        .login-required h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 12px 30px;
+            border-radius: var(--border-radius);
+            border: none;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--gray-color);
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 992px) {
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .view-toggle {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .controls {
+                width: 100%;
+                flex-direction: column;
+            }
+            
+            .search-box input {
+                min-width: 100%;
+            }
+            
+            .select-filter {
+                width: 100%;
+            }
+            
+            .product-details-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .current-product-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-card {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-store-alt"></i>
+                    <h1>نظام إدارة المنتجات والتعليقات</h1>
+                </div>
+                
+                <div class="merchant-info" id="merchantInfo" style="display: none;">
+                    <i class="fas fa-user-tie"></i>
+                    <span id="merchantName">جاري التحميل...</span>
+                </div>
+                
+                <div class="view-toggle">
+                    <button class="view-btn active" id="viewProductsBtn">
+                        <i class="fas fa-th-large"></i>
+                        عرض المنتجات
+                    </button>
+                    <button class="view-btn" id="viewCommentsBtn">
+                        <i class="fas fa-comments"></i>
+                        عرض التعليقات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- قسم تسجيل الدخول مطلوب -->
+        <div class="login-required" id="loginRequired" style="display: none;">
+            <i class="fas fa-lock"></i>
+            <h2>يجب تسجيل الدخول أولاً</h2>
+            <p>لإدارة منتجاتك وتعليقاتها، يرجى تسجيل الدخول أولاً باستخدام حساب التاجر الخاص بك</p>
+            <button class="login-btn" id="loginRedirectBtn">
+                <i class="fas fa-sign-in-alt"></i>
+                الانتقال إلى تسجيل الدخول
+            </button>
+        </div>
+
+        <!-- الإحصائيات والمحتوى (يتم إخفاؤه إذا لم يتم تسجيل الدخول) -->
+        <div id="appContent" style="display: none;">
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-icon products">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalProducts">0</h3>
+                        <p>عدد منتجاتك</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon comments">
+                        <i class="fas fa-comment-dots"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalComments">0</h3>
+                        <p>إجمالي تعليقات منتجاتك</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon rating">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="avgRating">0.0</h3>
+                        <p>متوسط تقييم منتجاتك</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <!-- قسم المنتجات -->
+                <section class="products-section" id="productsSection">
+                    <div class="section-header">
+                        <h2><i class="fas fa-boxes"></i> منتجاتك</h2>
+                        
+                        <div class="controls">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="productSearch" placeholder="ابحث في منتجاتك...">
+                            </div>
+                            
+                            <select id="productSort" class="select-filter">
+                                <option value="name">الاسم (أ-ي)</option>
+                                <option value="nameDesc">الاسم (ي-أ)</option>
+                                <option value="priceHigh">السعر (من الأعلى)</option>
+                                <option value="priceLow">السعر (من الأدنى)</option>
+                                <option value="comments">الأكثر تعليقات</option>
+                                <option value="newest">الأحدث</option>
+                                <option value="oldest">الأقدم</option>
+                            </select>
+                            
+                            <select id="productFilter" class="select-filter">
+                                <option value="all">جميع المنتجات</option>
+                                <option value="available">متوفر فقط</option>
+                                <option value="unavailable">غير متوفر</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="products-grid" id="productsGrid">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <p>جاري تحميل منتجاتك...</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- قسم التعليقات (مخفي افتراضياً) -->
+                <section class="comments-section" id="commentsSection" style="display: none;">
+                    <div class="section-header">
+                        <div class="product-details-header">
+                            <button class="back-btn" id="backToProducts">
+                                <i class="fas fa-arrow-right"></i>
+                                العودة إلى المنتجات
+                            </button>
+                            
+                            <div class="current-product-info">
+                                <h2><i class="fas fa-comments"></i> تعليقات المنتج: <span id="currentProductName">...</span></h2>
+                                <div class="product-badge" id="currentProductId"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="controls">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="commentSearch" placeholder="ابحث في التعليقات...">
+                            </div>
+                            
+                            <select id="commentSort" class="select-filter">
+                                <option value="newest">الأحدث أولاً</option>
+                                <option value="oldest">الأقدم أولاً</option>
+                                <option value="highestRating">أعلى تقييم</option>
+                                <option value="lowestRating">أقل تقييم</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="comments-list" id="commentsList">
+                        <div class="no-data">
+                            <i class="fas fa-comment-slash"></i>
+                            <h3>لا توجد تعليقات لهذا المنتج</h3>
+                            <p>اختر منتجاً لعرض التعليقات المرتبطة به</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <footer class="container">
+        <p>تم التطوير باستخدام Firebase Realtime Database | جميع الحقوق محفوظة © 2023</p>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
+        };
+
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // عناصر DOM
+        const productsSection = document.getElementById('productsSection');
+        const commentsSection = document.getElementById('commentsSection');
+        const productsGrid = document.getElementById('productsGrid');
+        const commentsList = document.getElementById('commentsList');
+        const viewProductsBtn = document.getElementById('viewProductsBtn');
+        const viewCommentsBtn = document.getElementById('viewCommentsBtn');
+        const backToProducts = document.getElementById('backToProducts');
+        const productSearch = document.getElementById('productSearch');
+        const productSort = document.getElementById('productSort');
+        const productFilter = document.getElementById('productFilter');
+        const commentSearch = document.getElementById('commentSearch');
+        const commentSort = document.getElementById('commentSort');
+        const currentProductName = document.getElementById('currentProductName');
+        const currentProductId = document.getElementById('currentProductId');
+        const totalProductsEl = document.getElementById('totalProducts');
+        const totalCommentsEl = document.getElementById('totalComments');
+        const avgRatingEl = document.getElementById('avgRating');
+        const merchantInfo = document.getElementById('merchantInfo');
+        const merchantName = document.getElementById('merchantName');
+        const loginRequired = document.getElementById('loginRequired');
+        const appContent = document.getElementById('appContent');
+        const loginRedirectBtn = document.getElementById('loginRedirectBtn');
+
+        // متغيرات التطبيق
+        let allProducts = [];
+        let allComments = [];
+        let productsCommentsCount = {};
+        let productsAvgRating = {};
+        let selectedProduct = null;
+        let filteredProducts = [];
+        let filteredComments = [];
+        let productSearchQuery = '';
+        let commentSearchQuery = '';
+        let currentView = 'products';
+        let currentMerchantId = null;
+        let currentMerchantName = '';
+
+        // دالة التحقق من تسجيل الدخول
+        function checkMerchantLogin() {
+            // محاولة الحصول على بيانات التاجر من sessionStorage
+            const merchantData = sessionStorage.getItem('globalUserData');
+            
+            if (merchantData) {
+                try {
+                    const merchant = JSON.parse(merchantData);
+                    
+                    if (merchant && merchant.id && merchant.type === 'merchant') {
+                        currentMerchantId = merchant.id;
+                        currentMerchantName = merchant.name || merchant.username || merchant.commercialName || 'تاجر';
+                        
+                        // عرض معلومات التاجر
+                        merchantInfo.style.display = 'flex';
+                        merchantName.textContent = `التاجر: ${currentMerchantName}`;
+                        
+                        // إظهار المحتوى وإخفاء رسالة تسجيل الدخول
+                        appContent.style.display = 'block';
+                        loginRequired.style.display = 'none';
+                        
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Error parsing merchant data:', error);
+                }
+            }
+            
+            // إذا لم يتم تسجيل الدخول
+            merchantInfo.style.display = 'none';
+            appContent.style.display = 'none';
+            loginRequired.style.display = 'block';
+            
+            return false;
+        }
+
+        // دالة جلب جميع منتجات التاجر الحالي
+        async function fetchMerchantProducts() {
+            try {
+                // التأكد من وجود معرف التاجر
+                if (!currentMerchantId) {
+                    productsGrid.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>لم يتم العثور على معرف التاجر</h3>
+                            <p>يرجى تسجيل الدخول أولاً</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // البحث عن منتجات التاجر الحالي
+                const snapshot = await db.ref('products')
+                    .orderByChild('merchantId')
+                    .equalTo(currentMerchantId)
+                    .once('value');
+                
+                if (!snapshot.exists()) {
+                    productsGrid.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-box-open"></i>
+                            <h3>لا توجد منتجات حالياً</h3>
+                            <p>لم تقم بإضافة أي منتجات بعد</p>
+                        </div>
+                    `;
+                    allProducts = [];
+                    updateStats();
+                    return;
+                }
+
+                const productsData = snapshot.val();
+                allProducts = [];
+                
+                // تحويل البيانات إلى مصفوفة
+                for (const productId in productsData) {
+                    const product = productsData[productId];
+                    allProducts.push({
+                        id: productId,
+                        ...product
+                    });
+                }
+                
+                // جلب التعليقات لحساب الإحصائيات
+                await fetchCommentsForStats();
+                
+                updateProductsDisplay();
+                updateStats();
+            } catch (error) {
+                console.error('Error fetching merchant products:', error);
+                productsGrid.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>حدث خطأ في تحميل المنتجات</h3>
+                        <p>يرجى التحقق من اتصال الإنترنت وحاول مرة أخرى</p>
+                    </div>
+                `;
+            }
+        }
+
+        // دالة جلب التعليقات لحساب الإحصائيات (للمنتجات الخاصة بالتاجر فقط)
+        async function fetchCommentsForStats() {
+            try {
+                const snapshot = await db.ref('comments').once('value');
+                
+                if (!snapshot.exists()) {
+                    allComments = [];
+                    productsCommentsCount = {};
+                    productsAvgRating = {};
+                    return;
+                }
+
+                const commentsData = snapshot.val();
+                allComments = [];
+                productsCommentsCount = {};
+                productsAvgRating = {};
+                
+                let totalRating = 0;
+                let totalCommentsCount = 0;
+
+                // تجميع التعليقات فقط للمنتجات الخاصة بالتاجر الحالي
+                const merchantProductIds = allProducts.map(p => p.id);
+
+                for (const productId in commentsData) {
+                    // تخطي التعليقات لمنتجات ليست للتاجر الحالي
+                    if (!merchantProductIds.includes(productId)) {
+                        continue;
+                    }
+                    
+                    const productComments = commentsData[productId];
+                    let productRatingSum = 0;
+                    let productCommentsCount = 0;
+                    
+                    for (const commentId in productComments) {
+                        const comment = productComments[commentId];
+                        allComments.push({
+                            id: commentId,
+                            productId: productId,
+                            ...comment,
+                            timestamp: comment.timestamp || Date.now()
+                        });
+                        
+                        if (comment.rating) {
+                            productRatingSum += comment.rating;
+                            totalRating += comment.rating;
+                        }
+                        productCommentsCount++;
+                        totalCommentsCount++;
+                    }
+                    
+                    // تخزين عدد التعليقات ومتوسط التقييم لكل منتج
+                    productsCommentsCount[productId] = productCommentsCount;
+                    productsAvgRating[productId] = productCommentsCount > 0 ? (productRatingSum / productCommentsCount) : 0;
+                }
+                
+                // حساب المتوسط العام
+                const avgRating = totalCommentsCount > 0 ? (totalRating / totalCommentsCount) : 0;
+                avgRatingEl.textContent = avgRating.toFixed(1);
+                totalCommentsEl.textContent = totalCommentsCount;
+                
+            } catch (error) {
+                console.error('Error fetching comments for stats:', error);
+            }
+        }
+
+        // دالة جلب تعليقات منتج معين
+        async function fetchProductComments(productId) {
+            try {
+                const snapshot = await db.ref(`comments/${productId}`).once('value');
+                
+                if (!snapshot.exists()) {
+                    filteredComments = [];
+                    renderComments();
+                    return;
+                }
+
+                const commentsData = snapshot.val();
+                filteredComments = [];
+                
+                for (const commentId in commentsData) {
+                    const comment = commentsData[commentId];
+                    filteredComments.push({
+                        id: commentId,
+                        productId: productId,
+                        ...comment,
+                        timestamp: comment.timestamp || Date.now()
+                    });
+                }
+                
+                renderComments();
+            } catch (error) {
+                console.error('Error fetching product comments:', error);
+                commentsList.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>حدث خطأ في تحميل التعليقات</h3>
+                        <p>يرجى المحاولة مرة أخرى</p>
+                    </div>
+                `;
+            }
+        }
+
+        // دالة تحديث الإحصائيات
+        function updateStats() {
+            // تحديث عدد المنتجات
+            totalProductsEl.textContent = allProducts.length;
+        }
+
+        // دالة تصفية وترتيب المنتجات
+        function filterAndSortProducts() {
+            let filtered = [...allProducts];
+
+            // التصفية حسب النص
+            if (productSearchQuery) {
+                const query = productSearchQuery.toLowerCase();
+                filtered = filtered.filter(product => 
+                    (product.name && product.name.toLowerCase().includes(query)) ||
+                    (product.description && product.description.toLowerCase().includes(query))
+                );
+            }
+
+            // التصفية حسب الحالة
+            if (productFilter.value === 'available') {
+                filtered = filtered.filter(product => product.available !== false);
+            } else if (productFilter.value === 'unavailable') {
+                filtered = filtered.filter(product => product.available === false);
+            }
+
+            // الترتيب حسب الخيار المحدد
+            switch (productSort.value) {
+                case 'name':
+                    filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                    break;
+                case 'nameDesc':
+                    filtered.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+                    break;
+                case 'priceHigh':
+                    filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+                    break;
+                case 'priceLow':
+                    filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+                    break;
+                case 'comments':
+                    filtered.sort((a, b) => (productsCommentsCount[b.id] || 0) - (productsCommentsCount[a.id] || 0));
+                    break;
+                case 'newest':
+                    // إذا كان هناك حقل تاريخ إضافة
+                    filtered.sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
+                    break;
+                case 'oldest':
+                    filtered.sort((a, b) => (a.timestamp || a.createdAt || 0) - (b.timestamp || b.createdAt || 0));
+                    break;
+            }
+
+            filteredProducts = filtered;
+            return filtered;
+        }
+
+        // دالة عرض النجوم حسب التقييم
+        function renderStars(rating) {
+            if (!rating) return '<span style="color: var(--gray-color);">لا يوجد تقييم</span>';
+            
+            let starsHtml = '';
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            
+            for (let i = 1; i <= 5; i++) {
+                if (i <= fullStars) {
+                    starsHtml += '<i class="fas fa-star"></i>';
+                } else if (i === fullStars + 1 && hasHalfStar) {
+                    starsHtml += '<i class="fas fa-star-half-alt"></i>';
+                } else {
+                    starsHtml += '<i class="far fa-star"></i>';
+                }
+            }
+            
+            return starsHtml;
+        }
+
+        // دالة عرض المنتجات
+        function updateProductsDisplay() {
+            const filteredProducts = filterAndSortProducts();
+            
+            if (filteredProducts.length === 0) {
+                productsGrid.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-search"></i>
+                        <h3>لا توجد منتجات تطابق معايير البحث</h3>
+                        <p>حاول تغيير عوامل التصفية أو البحث</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let productsHtml = '';
+            
+            filteredProducts.forEach(product => {
+                const commentsCount = productsCommentsCount[product.id] || 0;
+                const avgRating = productsAvgRating[product.id] || 0;
+                
+                productsHtml += `
+                    <div class="product-card ${selectedProduct && selectedProduct.id === product.id ? 'active' : ''}" 
+                         data-product-id="${product.id}" onclick="selectProduct('${product.id}')">
+                        <div class="product-image">
+                            ${product.image ? 
+                                `<img src="${product.image}" alt="${product.name || 'منتج'}">` : 
+                                `<div class="placeholder"><i class="fas fa-box-open"></i></div>`
+                            }
+                        </div>
+                        <div class="product-info">
+                            <div class="product-title">
+                                <span>${product.name || 'منتج بدون اسم'}</span>
+                                ${product.price ? `<span class="product-price">${product.price} ر.س</span>` : ''}
+                            </div>
+                            <div class="product-description">
+                                ${product.description || 'لا يوجد وصف للمنتج'}
+                            </div>
+                            <div class="product-meta">
+                                <div class="product-comments">
+                                    <i class="fas fa-comment"></i>
+                                    <span>${commentsCount} تعليق</span>
+                                </div>
+                                <div class="product-rating">
+                                    ${renderStars(avgRating)}
+                                    ${avgRating ? `<span style="color: var(--gray-color); font-size: 0.9rem;">${avgRating.toFixed(1)}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            productsGrid.innerHTML = productsHtml;
+        }
+
+        // دالة تصفية وترتيب التعليقات
+        function filterAndSortComments() {
+            let filtered = [...filteredComments];
+
+            // التصفية حسب نص البحث
+            if (commentSearchQuery) {
+                const query = commentSearchQuery.toLowerCase();
+                filtered = filtered.filter(comment => 
+                    (comment.userName && comment.userName.toLowerCase().includes(query)) ||
+                    (comment.text && comment.text.toLowerCase().includes(query))
+                );
+            }
+
+            // الترتيب حسب الخيار المحدد
+            if (commentSort.value === 'newest') {
+                filtered.sort((a, b) => b.timestamp - a.timestamp);
+            } else if (commentSort.value === 'oldest') {
+                filtered.sort((a, b) => a.timestamp - b.timestamp);
+            } else if (commentSort.value === 'highestRating') {
+                filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            } else if (commentSort.value === 'lowestRating') {
+                filtered.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+            }
+
+            return filtered;
+        }
+
+        // دالة عرض التعليقات
+        function renderComments() {
+            const filteredCommentsList = filterAndSortComments();
+            
+            if (filteredCommentsList.length === 0) {
+                commentsList.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-comment-slash"></i>
+                        <h3>لا توجد تعليقات تطابق معايير البحث</h3>
+                        <p>حاول تغيير عوامل التصفية أو البحث</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let commentsHtml = '';
+            
+            filteredCommentsList.forEach(comment => {
+                const date = new Date(comment.timestamp);
+                const formattedDate = date.toLocaleDateString('ar-SA', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // الحصول على الحرف الأول من اسم المستخدم
+                const userInitial = comment.userName ? comment.userName.charAt(0).toUpperCase() : '?';
+                
+                commentsHtml += `
+                    <div class="comment-item" data-comment-id="${comment.id}">
+                        <div class="comment-header">
+                            <div class="comment-user">
+                                <div class="user-avatar">${userInitial}</div>
+                                <div class="user-info">
+                                    <h4>${comment.userName || 'مستخدم مجهول'}</h4>
+                                    <div class="comment-date">${formattedDate}</div>
+                                </div>
+                            </div>
+                            <div class="comment-rating">
+                                ${renderStars(comment.rating || 0)}
+                                ${comment.rating ? `<span style="color: var(--gray-color); font-size: 0.9rem;">${comment.rating}</span>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="comment-content">
+                            ${comment.text || 'لا يوجد نص للتعليق'}
+                        </div>
+                        
+                        ${comment.reply ? `
+                        <div class="comment-content" style="background-color: #f0f8ff; padding: 15px; border-radius: 8px; margin-top: 15px; border-right: 3px solid var(--primary-color);">
+                            <strong style="color: var(--primary-color);">رد الإدارة:</strong><br>
+                            ${comment.reply}
+                        </div>
+                        ` : ''}
+                        
+                        <div class="comment-actions">
+                            <button class="action-btn reply" onclick="replyToComment('${comment.id}', '${comment.productId}')">
+                                <i class="fas fa-reply"></i>
+                                ${comment.reply ? 'تعديل الرد' : 'رد'}
+                            </button>
+                            <button class="action-btn delete" onclick="deleteComment('${comment.id}', '${comment.productId}')">
+                                <i class="fas fa-trash"></i>
+                                حذف
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            commentsList.innerHTML = commentsHtml;
+        }
+
+        // دالة اختيار منتج وعرض تعليقاته
+        function selectProduct(productId) {
+            // العثور على المنتج المحدد
+            selectedProduct = allProducts.find(p => p.id === productId);
+            
+            if (!selectedProduct) return;
+            
+            // تحديث المعلومات في رأس قسم التعليقات
+            currentProductName.textContent = selectedProduct.name || 'منتج بدون اسم';
+            currentProductId.textContent = selectedProduct.id;
+            
+            // التبديل إلى عرض التعليقات
+            switchToCommentsView();
+            
+            // جلب تعليقات المنتج المحدد
+            fetchProductComments(productId);
+            
+            // تحديث تظليل المنتج المحدد
+            updateProductsDisplay();
+        }
+
+        // دالة التبديل إلى عرض التعليقات
+        function switchToCommentsView() {
+            productsSection.style.display = 'none';
+            commentsSection.style.display = 'block';
+            viewProductsBtn.classList.remove('active');
+            viewCommentsBtn.classList.add('active');
+            currentView = 'comments';
+        }
+
+        // دالة التبديل إلى عرض المنتجات
+        function switchToProductsView() {
+            productsSection.style.display = 'block';
+            commentsSection.style.display = 'none';
+            viewProductsBtn.classList.add('active');
+            viewCommentsBtn.classList.remove('active');
+            currentView = 'products';
+        }
+
+        // دالة حذف التعليق
+        function deleteComment(commentId, productId) {
+            if (confirm('هل أنت متأكد من رغبتك في حذف هذا التعليق؟ لا يمكن التراجع عن هذا الإجراء.')) {
+                db.ref(`comments/${productId}/${commentId}`).remove()
+                    .then(() => {
+                        alert('تم حذف التعليق بنجاح');
+                        // إعادة تحميل تعليقات المنتج
+                        fetchProductComments(productId);
+                        // تحديث الإحصائيات
+                        fetchCommentsForStats();
+                    })
+                    .catch(error => {
+                        alert('حدث خطأ أثناء حذف التعليق');
+                        console.error('Error deleting comment:', error);
+                    });
+            }
+        }
+
+        // دالة الرد على التعليق
+        function replyToComment(commentId, productId) {
+            const replyText = prompt('أدخل رد الإدارة على هذا التعليق:');
+            
+            if (replyText !== null && replyText.trim() !== '') {
+                db.ref(`comments/${productId}/${commentId}`).update({
+                    reply: replyText.trim(),
+                    replyTimestamp: Date.now()
+                })
+                .then(() => {
+                    alert('تم إرسال الرد بنجاح');
+                    // إعادة تحميل تعليقات المنتج
+                    fetchProductComments(productId);
+                })
+                .catch(error => {
+                    alert('حدث خطأ أثناء إرسال الرد');
+                    console.error('Error replying to comment:', error);
+                });
+            }
+        }
+
+        // الاستماع للتغييرات في الوقت الحقيقي للمنتجات الخاصة بالتاجر
+        function setupRealtimeListener() {
+            if (currentMerchantId) {
+                // الاستماع لتغييرات منتجات التاجر الحالي
+                db.ref('products').orderByChild('merchantId').equalTo(currentMerchantId).on('value', () => {
+                    fetchMerchantProducts();
+                });
+                
+                // الاستماع لتغييرات التعليقات
+                db.ref('comments').on('value', () => {
+                    fetchCommentsForStats();
+                    if (selectedProduct) {
+                        fetchProductComments(selectedProduct.id);
+                    }
+                });
+            }
+        }
+
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            // أحداث التبديل بين العرضين
+            viewProductsBtn.addEventListener('click', switchToProductsView);
+            viewCommentsBtn.addEventListener('click', () => {
+                if (selectedProduct) {
+                    switchToCommentsView();
+                } else {
+                    alert('الرجاء اختيار منتج أولاً لعرض تعليقاته');
+                }
+            });
+            
+            backToProducts.addEventListener('click', switchToProductsView);
+            
+            // أحداث البحث والتصفية للمنتجات
+            productSearch.addEventListener('input', (e) => {
+                productSearchQuery = e.target.value;
+                updateProductsDisplay();
+            });
+            
+            productSort.addEventListener('change', () => {
+                updateProductsDisplay();
+            });
+            
+            productFilter.addEventListener('change', () => {
+                updateProductsDisplay();
+            });
+            
+            // أحداث البحث والترتيب للتعليقات
+            commentSearch.addEventListener('input', (e) => {
+                commentSearchQuery = e.target.value;
+                renderComments();
+            });
+            
+            commentSort.addEventListener('change', () => {
+                renderComments();
+            });
+            
+            // اختيار منتج عند الضغط على Enter في البحث
+            productSearch.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && filteredProducts.length > 0) {
+                    selectProduct(filteredProducts[0].id);
+                }
+            });
+            
+            // إعادة التوجيه إلى صفحة تسجيل الدخول
+            loginRedirectBtn.addEventListener('click', () => {
+                window.location.href = '1_1.html'; // أو صفحة تسجيل الدخول الخاصة بك
+            });
+        }
+
+        // تهيئة التطبيق
+        function initApp() {
+            // التحقق من تسجيل الدخول أولاً
+            const isLoggedIn = checkMerchantLogin();
+            
+            if (isLoggedIn) {
+                setupEventListeners();
+                setupRealtimeListener();
+                fetchMerchantProducts();
+            }
+        }
+
+        // بدء التطبيق عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+  </html>
