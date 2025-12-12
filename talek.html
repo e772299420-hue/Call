@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة المنتجات والتعليقات</title>
+    <title>نظام إدارة المنتجات والتعليقات - لوحة التحكم</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -83,6 +83,7 @@
             align-items: center;
             gap: 10px;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .merchant-info i {
@@ -136,6 +137,7 @@
 
         .stat-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
         }
 
         .stat-icon {
@@ -150,15 +152,15 @@
         }
 
         .stat-icon.products {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         }
 
         .stat-icon.comments {
-            background-color: var(--secondary-color);
+            background: linear-gradient(135deg, var(--secondary-color), #2a9d8f);
         }
 
         .stat-icon.rating {
-            background-color: var(--accent-color);
+            background: linear-gradient(135deg, var(--accent-color), #e63946);
         }
 
         .stat-info h3 {
@@ -182,6 +184,7 @@
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
             overflow: hidden;
+            transition: var(--transition);
         }
 
         .section-header {
@@ -219,6 +222,13 @@
             border-radius: var(--border-radius);
             font-size: 1rem;
             min-width: 250px;
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
         }
 
         .search-box i {
@@ -238,6 +248,12 @@
             font-size: 1rem;
             cursor: pointer;
             min-width: 150px;
+            transition: var(--transition);
+        }
+
+        .select-filter:focus {
+            outline: none;
+            border-color: var(--primary-color);
         }
 
         .products-grid {
@@ -254,6 +270,7 @@
             transition: var(--transition);
             cursor: pointer;
             background-color: white;
+            position: relative;
         }
 
         .product-card:hover {
@@ -268,7 +285,7 @@
 
         .product-image {
             height: 200px;
-            background-color: #f5f5f5;
+            background: linear-gradient(135deg, #f5f7ff, #e9ecef);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -279,6 +296,11 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .product-card:hover .product-image img {
+            transform: scale(1.05);
         }
 
         .product-image .placeholder {
@@ -300,7 +322,7 @@
         }
 
         .product-price {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
             color: white;
             padding: 5px 12px;
             border-radius: 20px;
@@ -341,6 +363,27 @@
             color: #ffc107;
         }
 
+        .product-status {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            z-index: 1;
+        }
+
+        .status-available {
+            background-color: rgba(46, 204, 113, 0.9);
+            color: white;
+        }
+
+        .status-unavailable {
+            background-color: rgba(231, 76, 60, 0.9);
+            color: white;
+        }
+
         .comments-list {
             max-height: 600px;
             overflow-y: auto;
@@ -351,10 +394,15 @@
             padding: 20px;
             border-bottom: 1px solid #f0f0f0;
             transition: var(--transition);
+            background-color: white;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
         .comment-item:hover {
             background-color: #f9f9f9;
+            transform: translateX(-5px);
         }
 
         .comment-header {
@@ -376,7 +424,7 @@
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
             color: white;
             display: flex;
             align-items: center;
@@ -407,6 +455,10 @@
             margin-bottom: 15px;
             line-height: 1.7;
             color: #333;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-right: 3px solid var(--primary-color);
         }
 
         .comment-actions {
@@ -417,8 +469,8 @@
         }
 
         .action-btn {
-            padding: 6px 12px;
-            border-radius: 5px;
+            padding: 8px 15px;
+            border-radius: var(--border-radius);
             border: none;
             background-color: #f0f0f0;
             color: var(--gray-color);
@@ -428,10 +480,12 @@
             align-items: center;
             gap: 5px;
             font-size: 0.9rem;
+            font-weight: 500;
         }
 
         .action-btn:hover {
             background-color: #e0e0e0;
+            transform: translateY(-2px);
         }
 
         .action-btn.delete:hover {
@@ -442,6 +496,11 @@
         .action-btn.reply:hover {
             background-color: #e8f5e9;
             color: var(--success-color);
+        }
+
+        .action-btn.edit:hover {
+            background-color: #e3f2fd;
+            color: var(--primary-color);
         }
 
         .no-data {
@@ -498,8 +557,8 @@
         }
 
         .back-btn {
-            padding: 8px 16px;
-            background-color: var(--light-gray);
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--light-gray), #dee2e6);
             border: none;
             border-radius: var(--border-radius);
             color: var(--dark-color);
@@ -508,20 +567,23 @@
             align-items: center;
             gap: 8px;
             transition: var(--transition);
+            font-weight: 500;
         }
 
         .back-btn:hover {
-            background-color: #ddd;
+            background: linear-gradient(135deg, #dee2e6, #ced4da);
+            transform: translateX(-5px);
         }
 
         .current-product-info {
             display: flex;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         .product-badge {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
             color: white;
             padding: 5px 12px;
             border-radius: 20px;
@@ -536,6 +598,12 @@
             text-align: center;
             box-shadow: var(--box-shadow);
             margin-bottom: 30px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .login-required i {
@@ -564,11 +632,39 @@
             align-items: center;
             gap: 10px;
             margin-top: 20px;
+            text-decoration: none;
         }
 
         .login-btn:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .session-info {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 5px;
+            display: block;
         }
 
         footer {
@@ -580,6 +676,29 @@
             border-top: 1px solid #eee;
         }
 
+        /* إضافة فلاتر متقدمة */
+        .advanced-filters {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eaeaea;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-label {
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        /* تحسينات للهواتف */
         @media (max-width: 992px) {
             .products-grid {
                 grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -625,6 +744,12 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
+            
+            .merchant-info {
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
         }
 
         @media (max-width: 576px) {
@@ -635,6 +760,16 @@
             .stat-card {
                 flex-direction: column;
                 text-align: center;
+            }
+            
+            .comment-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .comment-actions {
+                justify-content: flex-start;
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -650,17 +785,24 @@
                 
                 <div class="merchant-info" id="merchantInfo" style="display: none;">
                     <i class="fas fa-user-tie"></i>
-                    <span id="merchantName">جاري التحميل...</span>
+                    <div>
+                        <span id="merchantName">جاري التحميل...</span>
+                        <span class="session-info" id="sessionInfo"></span>
+                        <button class="logout-btn" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            تسجيل الخروج
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="view-toggle">
                     <button class="view-btn active" id="viewProductsBtn">
                         <i class="fas fa-th-large"></i>
-                        عرض المنتجات
+                        منتجاتي
                     </button>
                     <button class="view-btn" id="viewCommentsBtn">
                         <i class="fas fa-comments"></i>
-                        عرض التعليقات
+                        تعليقات العملاء
                     </button>
                 </div>
             </div>
@@ -672,7 +814,7 @@
         <div class="login-required" id="loginRequired" style="display: none;">
             <i class="fas fa-lock"></i>
             <h2>يجب تسجيل الدخول أولاً</h2>
-            <p>لإدارة منتجاتك وتعليقاتها، يرجى تسجيل الدخول أولاً باستخدام حساب التاجر الخاص بك</p>
+            <p>لإدارة منتجاتك وتعليقات العملاء، يرجى تسجيل الدخول أولاً باستخدام حساب التاجر الخاص بك</p>
             <button class="login-btn" id="loginRedirectBtn">
                 <i class="fas fa-sign-in-alt"></i>
                 الانتقال إلى تسجيل الدخول
@@ -688,7 +830,7 @@
                     </div>
                     <div class="stat-info">
                         <h3 id="totalProducts">0</h3>
-                        <p>عدد منتجاتك</p>
+                        <p>عدد منتجاتي</p>
                     </div>
                 </div>
                 
@@ -698,7 +840,7 @@
                     </div>
                     <div class="stat-info">
                         <h3 id="totalComments">0</h3>
-                        <p>إجمالي تعليقات منتجاتك</p>
+                        <p>إجمالي التعليقات</p>
                     </div>
                 </div>
                 
@@ -708,8 +850,25 @@
                     </div>
                     <div class="stat-info">
                         <h3 id="avgRating">0.0</h3>
-                        <p>متوسط تقييم منتجاتك</p>
+                        <p>متوسط التقييم</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- فلاتر متقدمة -->
+            <div class="advanced-filters" id="advancedFilters" style="display: none;">
+                <div class="filter-group">
+                    <span class="filter-label">فلترة سريعة:</span>
+                    <button class="action-btn" id="filterAvailable">المتوفرة فقط</button>
+                    <button class="action-btn" id="filterUnavailable">غير المتوفرة</button>
+                    <button class="action-btn" id="filterAll">الكل</button>
+                </div>
+                <div class="filter-group">
+                    <span class="filter-label">ترتيب حسب:</span>
+                    <button class="action-btn" id="sortNewest">الأحدث</button>
+                    <button class="action-btn" id="sortOldest">الأقدم</button>
+                    <button class="action-btn" id="sortPriceHigh">الأعلى سعراً</button>
+                    <button class="action-btn" id="sortPriceLow">الأقل سعراً</button>
                 </div>
             </div>
 
@@ -717,7 +876,7 @@
                 <!-- قسم المنتجات -->
                 <section class="products-section" id="productsSection">
                     <div class="section-header">
-                        <h2><i class="fas fa-boxes"></i> منتجاتك</h2>
+                        <h2><i class="fas fa-boxes"></i> منتجاتي</h2>
                         
                         <div class="controls">
                             <div class="search-box">
@@ -726,19 +885,19 @@
                             </div>
                             
                             <select id="productSort" class="select-filter">
+                                <option value="newest">الأحدث أولاً</option>
+                                <option value="oldest">الأقدم أولاً</option>
                                 <option value="name">الاسم (أ-ي)</option>
                                 <option value="nameDesc">الاسم (ي-أ)</option>
                                 <option value="priceHigh">السعر (من الأعلى)</option>
                                 <option value="priceLow">السعر (من الأدنى)</option>
                                 <option value="comments">الأكثر تعليقات</option>
-                                <option value="newest">الأحدث</option>
-                                <option value="oldest">الأقدم</option>
                             </select>
                             
                             <select id="productFilter" class="select-filter">
                                 <option value="all">جميع المنتجات</option>
-                                <option value="available">متوفر فقط</option>
-                                <option value="unavailable">غير متوفر</option>
+                                <option value="available">المتوفرة فقط</option>
+                                <option value="unavailable">غير المتوفرة</option>
                             </select>
                         </div>
                     </div>
@@ -761,7 +920,7 @@
                             </button>
                             
                             <div class="current-product-info">
-                                <h2><i class="fas fa-comments"></i> تعليقات المنتج: <span id="currentProductName">...</span></h2>
+                                <h2><i class="fas fa-comments"></i> تعليقات العملاء على: <span id="currentProductName">...</span></h2>
                                 <div class="product-badge" id="currentProductId"></div>
                             </div>
                         </div>
@@ -785,7 +944,7 @@
                         <div class="no-data">
                             <i class="fas fa-comment-slash"></i>
                             <h3>لا توجد تعليقات لهذا المنتج</h3>
-                            <p>اختر منتجاً لعرض التعليقات المرتبطة به</p>
+                            <p>اختر منتجاً لعرض تعليقات العملاء عليه</p>
                         </div>
                     </div>
                 </section>
@@ -794,7 +953,7 @@
     </main>
 
     <footer class="container">
-        <p>تم التطوير باستخدام Firebase Realtime Database | جميع الحقوق محفوظة © 2023</p>
+        <p>نظام إدارة المنتجات والتعليقات | تم التطوير باستخدام Firebase Realtime Database | جميع الحقوق محفوظة © 2023</p>
     </footer>
 
     <!-- Firebase SDK -->
@@ -802,16 +961,20 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     
     <script>
+        // ============================================
         // تهيئة Firebase
+        // ============================================
         const firebaseConfig = {
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
         };
 
         // تهيئة Firebase
-        firebase.initializeApp(firebaseConfig);
+        const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // ============================================
         // عناصر DOM
+        // ============================================
         const productsSection = document.getElementById('productsSection');
         const commentsSection = document.getElementById('commentsSection');
         const productsGrid = document.getElementById('productsGrid');
@@ -831,11 +994,16 @@
         const avgRatingEl = document.getElementById('avgRating');
         const merchantInfo = document.getElementById('merchantInfo');
         const merchantName = document.getElementById('merchantName');
+        const sessionInfo = document.getElementById('sessionInfo');
         const loginRequired = document.getElementById('loginRequired');
         const appContent = document.getElementById('appContent');
         const loginRedirectBtn = document.getElementById('loginRedirectBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const advancedFilters = document.getElementById('advancedFilters');
 
+        // ============================================
         // متغيرات التطبيق
+        // ============================================
         let allProducts = [];
         let allComments = [];
         let productsCommentsCount = {};
@@ -848,72 +1016,142 @@
         let currentView = 'products';
         let currentMerchantId = null;
         let currentMerchantName = '';
+        let currentMerchantData = null;
 
-        // دالة التحقق من تسجيل الدخول
-        function checkMerchantLogin() {
-            // محاولة الحصول على بيانات التاجر من sessionStorage
-            const merchantData = sessionStorage.getItem('globalUserData');
-            
-            if (merchantData) {
+        // ============================================
+        // نظام الجلوبال المحسن
+        // ============================================
+        const GlobalUserManager = {
+            // الحصول على بيانات التاجر من الجلوبال
+            getMerchantData: function() {
                 try {
-                    const merchant = JSON.parse(merchantData);
+                    // 1. البحث في sessionStorage أولاً (للجلسة الحالية)
+                    const sessionData = sessionStorage.getItem('globalUserData');
                     
-                    if (merchant && merchant.id && merchant.type === 'merchant') {
-                        currentMerchantId = merchant.id;
-                        currentMerchantName = merchant.name || merchant.username || merchant.commercialName || 'تاجر';
+                    // 2. إذا لم توجد في sessionStorage، ابحث في localStorage (للانتقال بين الصفحات)
+                    const localStorageData = localStorage.getItem('merchantDataForNavigation');
+                    
+                    let merchantData = null;
+                    
+                    if (sessionData) {
+                        merchantData = JSON.parse(sessionData);
+                        console.log('✅ تم تحميل بيانات التاجر من sessionStorage:', merchantData);
+                    } else if (localStorageData) {
+                        const savedData = JSON.parse(localStorageData);
+                        const now = Date.now();
+                        const dataAge = now - savedData.timestamp;
                         
-                        // عرض معلومات التاجر
-                        merchantInfo.style.display = 'flex';
-                        merchantName.textContent = `التاجر: ${currentMerchantName}`;
-                        
-                        // إظهار المحتوى وإخفاء رسالة تسجيل الدخول
-                        appContent.style.display = 'block';
-                        loginRequired.style.display = 'none';
-                        
-                        return true;
+                        // التحقق من أن البيانات ليست قديمة (أقل من 10 دقائق)
+                        if (dataAge < 10 * 60 * 1000) {
+                            merchantData = {
+                                id: savedData.id,
+                                username: savedData.username,
+                                name: savedData.name,
+                                commercialName: savedData.commercialName,
+                                type: 'merchant',
+                                timestamp: savedData.timestamp
+                            };
+                            console.log('✅ تم تحميل بيانات التاجر من localStorage:', merchantData);
+                        } else {
+                            localStorage.removeItem('merchantDataForNavigation');
+                            console.log('🗑️ تم حذف بيانات التاجر القديمة من localStorage');
+                        }
                     }
+                    
+                    return merchantData;
                 } catch (error) {
-                    console.error('Error parsing merchant data:', error);
+                    console.error('❌ خطأ في تحميل بيانات التاجر:', error);
+                    return null;
                 }
-            }
-            
-            // إذا لم يتم تسجيل الدخول
-            merchantInfo.style.display = 'none';
-            appContent.style.display = 'none';
-            loginRequired.style.display = 'block';
-            
-            return false;
-        }
+            },
 
-        // دالة جلب جميع منتجات التاجر الحالي
+            // التحقق من تسجيل دخول التاجر
+            checkMerchantLogin: function() {
+                const merchantData = this.getMerchantData();
+                
+                if (merchantData && merchantData.id && merchantData.type === 'merchant') {
+                    currentMerchantId = merchantData.id;
+                    currentMerchantName = merchantData.commercialName || merchantData.name || merchantData.username || 'تاجر';
+                    currentMerchantData = merchantData;
+                    
+                    // عرض معلومات التاجر
+                    merchantInfo.style.display = 'flex';
+                    merchantName.textContent = `التاجر: ${currentMerchantName}`;
+                    
+                    // عرض معلومات الجلسة
+                    if (merchantData.timestamp) {
+                        const loginTime = new Date(merchantData.timestamp);
+                        const now = new Date();
+                        const diffMinutes = Math.floor((now - loginTime) / (1000 * 60));
+                        sessionInfo.textContent = `مسجل منذ ${diffMinutes} دقيقة`;
+                    }
+                    
+                    // إظهار المحتوى وإخفاء رسالة تسجيل الدخول
+                    appContent.style.display = 'block';
+                    loginRequired.style.display = 'none';
+                    
+                    console.log(`✅ تاجر مسجل: ${currentMerchantName} (ID: ${currentMerchantId})`);
+                    return true;
+                }
+                
+                // إذا لم يتم تسجيل الدخول
+                merchantInfo.style.display = 'none';
+                appContent.style.display = 'none';
+                loginRequired.style.display = 'block';
+                
+                console.log('❌ لم يتم تسجيل الدخول كتاجر');
+                return false;
+            },
+
+            // تسجيل خروج التاجر
+            logoutMerchant: function() {
+                // حذف بيانات التاجر من التخزين المحلي
+                sessionStorage.removeItem('globalUserData');
+                localStorage.removeItem('merchantDataForNavigation');
+                
+                // إعادة تعيين المتغيرات
+                currentMerchantId = null;
+                currentMerchantName = '';
+                currentMerchantData = null;
+                
+                // إعادة تحميل الصفحة
+                window.location.reload();
+            },
+
+            // الحصول على معرف التاجر للاستخدام في الاستعلامات
+            getMerchantId: function() {
+                return currentMerchantId;
+            },
+
+            // الحصول على اسم التاجر
+            getMerchantName: function() {
+                return currentMerchantName;
+            }
+        };
+
+        // ============================================
+        // دوال جلب البيانات
+        // ============================================
+
+        // دالة جلب جميع منتجات التاجر الحالي (مرتبطة بـ userId)
         async function fetchMerchantProducts() {
             try {
-                // التأكد من وجود معرف التاجر
+                // التحقق من وجود معرف التاجر
                 if (!currentMerchantId) {
-                    productsGrid.innerHTML = `
-                        <div class="no-data">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <h3>لم يتم العثور على معرف التاجر</h3>
-                            <p>يرجى تسجيل الدخول أولاً</p>
-                        </div>
-                    `;
+                    showNoProductsMessage('لم يتم العثور على معرف التاجر', 'يرجى تسجيل الدخول أولاً');
                     return;
                 }
 
-                // البحث عن منتجات التاجر الحالي
+                console.log(`🔍 جاري جلب منتجات التاجر (userId: ${currentMerchantId})...`);
+
+                // استعلام Firebase لجلب المنتجات التي لديها userId يساوي معرف التاجر
                 const snapshot = await db.ref('products')
-                    .orderByChild('merchantId')
+                    .orderByChild('userId')
                     .equalTo(currentMerchantId)
                     .once('value');
                 
                 if (!snapshot.exists()) {
-                    productsGrid.innerHTML = `
-                        <div class="no-data">
-                            <i class="fas fa-box-open"></i>
-                            <h3>لا توجد منتجات حالياً</h3>
-                            <p>لم تقم بإضافة أي منتجات بعد</p>
-                        </div>
-                    `;
+                    showNoProductsMessage('لا توجد منتجات حالياً', 'لم تقم بإضافة أي منتجات بعد');
                     allProducts = [];
                     updateStats();
                     return;
@@ -925,38 +1163,56 @@
                 // تحويل البيانات إلى مصفوفة
                 for (const productId in productsData) {
                     const product = productsData[productId];
-                    allProducts.push({
-                        id: productId,
-                        ...product
-                    });
+                    
+                    // التأكد من أن المنتج ينتمي للتاجر الحالي (تحقق إضافي)
+                    if (product.userId === currentMerchantId) {
+                        allProducts.push({
+                            id: productId,
+                            ...product
+                        });
+                    }
                 }
+                
+                console.log(`✅ تم جلب ${allProducts.length} منتج للتاجر ${currentMerchantName}`);
                 
                 // جلب التعليقات لحساب الإحصائيات
                 await fetchCommentsForStats();
                 
                 updateProductsDisplay();
                 updateStats();
+                
+                // إظهار الفلاتر المتقدمة إذا كان هناك منتجات
+                if (allProducts.length > 0) {
+                    advancedFilters.style.display = 'flex';
+                }
             } catch (error) {
-                console.error('Error fetching merchant products:', error);
-                productsGrid.innerHTML = `
-                    <div class="no-data">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <h3>حدث خطأ في تحميل المنتجات</h3>
-                        <p>يرجى التحقق من اتصال الإنترنت وحاول مرة أخرى</p>
-                    </div>
-                `;
+                console.error('❌ خطأ في جلب منتجات التاجر:', error);
+                showNoProductsMessage('حدث خطأ في تحميل المنتجات', 'يرجى التحقق من اتصال الإنترنت وحاول مرة أخرى');
             }
+        }
+
+        // دالة لعرض رسالة عدم وجود منتجات
+        function showNoProductsMessage(title, message) {
+            productsGrid.innerHTML = `
+                <div class="no-data">
+                    <i class="fas fa-box-open"></i>
+                    <h3>${title}</h3>
+                    <p>${message}</p>
+                </div>
+            `;
         }
 
         // دالة جلب التعليقات لحساب الإحصائيات (للمنتجات الخاصة بالتاجر فقط)
         async function fetchCommentsForStats() {
             try {
+                // جلب جميع التعليقات
                 const snapshot = await db.ref('comments').once('value');
                 
                 if (!snapshot.exists()) {
                     allComments = [];
                     productsCommentsCount = {};
                     productsAvgRating = {};
+                    updateStats();
                     return;
                 }
 
@@ -1000,27 +1256,35 @@
                     
                     // تخزين عدد التعليقات ومتوسط التقييم لكل منتج
                     productsCommentsCount[productId] = productCommentsCount;
-                    productsAvgRating[productId] = productCommentsCount > 0 ? (productRatingSum / productCommentsCount) : 0;
+                    productsAvgRating[productId] = productCommentsCount > 0 ? 
+                        parseFloat((productRatingSum / productCommentsCount).toFixed(1)) : 0;
                 }
                 
                 // حساب المتوسط العام
-                const avgRating = totalCommentsCount > 0 ? (totalRating / totalCommentsCount) : 0;
-                avgRatingEl.textContent = avgRating.toFixed(1);
+                const avgRating = totalCommentsCount > 0 ? 
+                    parseFloat((totalRating / totalCommentsCount).toFixed(1)) : 0;
+                
+                // تحديث الإحصائيات
+                avgRatingEl.textContent = avgRating;
                 totalCommentsEl.textContent = totalCommentsCount;
                 
+                console.log(`📊 الإحصائيات: ${totalCommentsCount} تعليق، متوسط التقييم: ${avgRating}`);
+                
             } catch (error) {
-                console.error('Error fetching comments for stats:', error);
+                console.error('❌ خطأ في جلب التعليقات للإحصائيات:', error);
             }
         }
 
         // دالة جلب تعليقات منتج معين
         async function fetchProductComments(productId) {
             try {
+                console.log(`🔍 جاري جلب تعليقات المنتج: ${productId}`);
+                
                 const snapshot = await db.ref(`comments/${productId}`).once('value');
                 
                 if (!snapshot.exists()) {
                     filteredComments = [];
-                    renderComments();
+                    showNoCommentsMessage();
                     return;
                 }
 
@@ -1037,18 +1301,28 @@
                     });
                 }
                 
+                console.log(`✅ تم جلب ${filteredComments.length} تعليق للمنتج`);
                 renderComments();
             } catch (error) {
-                console.error('Error fetching product comments:', error);
-                commentsList.innerHTML = `
-                    <div class="no-data">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <h3>حدث خطأ في تحميل التعليقات</h3>
-                        <p>يرجى المحاولة مرة أخرى</p>
-                    </div>
-                `;
+                console.error('❌ خطأ في جلب تعليقات المنتج:', error);
+                showNoCommentsMessage('حدث خطأ في تحميل التعليقات', 'يرجى المحاولة مرة أخرى');
             }
         }
+
+        // دالة لعرض رسالة عدم وجود تعليقات
+        function showNoCommentsMessage(title = 'لا توجد تعليقات لهذا المنتج', message = 'اختر منتجاً لعرض تعليقات العملاء عليه') {
+            commentsList.innerHTML = `
+                <div class="no-data">
+                    <i class="fas fa-comment-slash"></i>
+                    <h3>${title}</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // دوال تحديث واجهة المستخدم
+        // ============================================
 
         // دالة تحديث الإحصائيات
         function updateStats() {
@@ -1060,12 +1334,13 @@
         function filterAndSortProducts() {
             let filtered = [...allProducts];
 
-            // التصفية حسب النص
+            // التصفية حسب نص البحث
             if (productSearchQuery) {
                 const query = productSearchQuery.toLowerCase();
                 filtered = filtered.filter(product => 
                     (product.name && product.name.toLowerCase().includes(query)) ||
-                    (product.description && product.description.toLowerCase().includes(query))
+                    (product.description && product.description.toLowerCase().includes(query)) ||
+                    (product.category && product.category.toLowerCase().includes(query))
                 );
             }
 
@@ -1094,7 +1369,6 @@
                     filtered.sort((a, b) => (productsCommentsCount[b.id] || 0) - (productsCommentsCount[a.id] || 0));
                     break;
                 case 'newest':
-                    // إذا كان هناك حقل تاريخ إضافة
                     filtered.sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
                     break;
                 case 'oldest':
@@ -1108,7 +1382,9 @@
 
         // دالة عرض النجوم حسب التقييم
         function renderStars(rating) {
-            if (!rating) return '<span style="color: var(--gray-color);">لا يوجد تقييم</span>';
+            if (!rating || rating === 0) {
+                return '<span style="color: var(--gray-color); font-size: 0.9rem;">لا يوجد تقييم</span>';
+            }
             
             let starsHtml = '';
             const fullStars = Math.floor(rating);
@@ -1147,20 +1423,24 @@
             filteredProducts.forEach(product => {
                 const commentsCount = productsCommentsCount[product.id] || 0;
                 const avgRating = productsAvgRating[product.id] || 0;
+                const isAvailable = product.available !== false;
                 
                 productsHtml += `
                     <div class="product-card ${selectedProduct && selectedProduct.id === product.id ? 'active' : ''}" 
                          data-product-id="${product.id}" onclick="selectProduct('${product.id}')">
+                        <div class="product-status ${isAvailable ? 'status-available' : 'status-unavailable'}">
+                            ${isAvailable ? 'متوفر' : 'غير متوفر'}
+                        </div>
                         <div class="product-image">
                             ${product.image ? 
-                                `<img src="${product.image}" alt="${product.name || 'منتج'}">` : 
+                                `<img src="${product.image}" alt="${product.name || 'منتج'}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\" viewBox=\"0 0 100 100\"><rect width=\"100\" height=\"100\" fill=\"%23f5f5f5\"/><text x=\"50\" y=\"50\" font-family=\"Arial\" font-size=\"14\" fill=\"%23999\" text-anchor=\"middle\" dy=\".3em\">${product.name ? product.name.substring(0, 10) : 'صورة'}</text></svg>'">` : 
                                 `<div class="placeholder"><i class="fas fa-box-open"></i></div>`
                             }
                         </div>
                         <div class="product-info">
                             <div class="product-title">
                                 <span>${product.name || 'منتج بدون اسم'}</span>
-                                ${product.price ? `<span class="product-price">${product.price} ر.س</span>` : ''}
+                                ${product.price ? `<span class="product-price">${formatPrice(product.price)}</span>` : ''}
                             </div>
                             <div class="product-description">
                                 ${product.description || 'لا يوجد وصف للمنتج'}
@@ -1172,7 +1452,7 @@
                                 </div>
                                 <div class="product-rating">
                                     ${renderStars(avgRating)}
-                                    ${avgRating ? `<span style="color: var(--gray-color); font-size: 0.9rem;">${avgRating.toFixed(1)}</span>` : ''}
+                                    ${avgRating > 0 ? `<span style="color: var(--gray-color); font-size: 0.9rem;">${avgRating}</span>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -1181,6 +1461,12 @@
             });
             
             productsGrid.innerHTML = productsHtml;
+        }
+
+        // دالة تنسيق السعر
+        function formatPrice(price) {
+            if (!price) return '0 ر.س';
+            return `${parseFloat(price).toLocaleString('ar-SA')} ر.س`;
         }
 
         // دالة تصفية وترتيب التعليقات
@@ -1192,7 +1478,8 @@
                 const query = commentSearchQuery.toLowerCase();
                 filtered = filtered.filter(comment => 
                     (comment.userName && comment.userName.toLowerCase().includes(query)) ||
-                    (comment.text && comment.text.toLowerCase().includes(query))
+                    (comment.text && comment.text.toLowerCase().includes(query)) ||
+                    (comment.reply && comment.reply.toLowerCase().includes(query))
                 );
             }
 
@@ -1215,13 +1502,7 @@
             const filteredCommentsList = filterAndSortComments();
             
             if (filteredCommentsList.length === 0) {
-                commentsList.innerHTML = `
-                    <div class="no-data">
-                        <i class="fas fa-comment-slash"></i>
-                        <h3>لا توجد تعليقات تطابق معايير البحث</h3>
-                        <p>حاول تغيير عوامل التصفية أو البحث</p>
-                    </div>
-                `;
+                showNoCommentsMessage('لا توجد تعليقات تطابق معايير البحث', 'حاول تغيير عوامل التصفية أو البحث');
                 return;
             }
 
@@ -1264,15 +1545,16 @@
                         <div class="comment-content" style="background-color: #f0f8ff; padding: 15px; border-radius: 8px; margin-top: 15px; border-right: 3px solid var(--primary-color);">
                             <strong style="color: var(--primary-color);">رد الإدارة:</strong><br>
                             ${comment.reply}
+                            ${comment.replyTimestamp ? `<div style="font-size: 0.8rem; color: var(--gray-color); margin-top: 5px;">تم الرد في ${new Date(comment.replyTimestamp).toLocaleDateString('ar-SA')}</div>` : ''}
                         </div>
                         ` : ''}
                         
                         <div class="comment-actions">
-                            <button class="action-btn reply" onclick="replyToComment('${comment.id}', '${comment.productId}')">
+                            <button class="action-btn reply" onclick="replyToComment('${comment.id}', '${comment.productId}', ${comment.reply ? `'${comment.reply}'` : 'null'})">
                                 <i class="fas fa-reply"></i>
                                 ${comment.reply ? 'تعديل الرد' : 'رد'}
                             </button>
-                            <button class="action-btn delete" onclick="deleteComment('${comment.id}', '${comment.productId}')">
+                            <button class="action-btn delete" onclick="deleteComment('${comment.id}', '${comment.productId}', '${comment.userName || 'هذا التعليق'}')">
                                 <i class="fas fa-trash"></i>
                                 حذف
                             </button>
@@ -1284,16 +1566,23 @@
             commentsList.innerHTML = commentsHtml;
         }
 
+        // ============================================
+        // دوال التحكم في الواجهة
+        // ============================================
+
         // دالة اختيار منتج وعرض تعليقاته
         function selectProduct(productId) {
             // العثور على المنتج المحدد
             selectedProduct = allProducts.find(p => p.id === productId);
             
-            if (!selectedProduct) return;
+            if (!selectedProduct) {
+                alert('لم يتم العثور على المنتج المحدد');
+                return;
+            }
             
             // تحديث المعلومات في رأس قسم التعليقات
             currentProductName.textContent = selectedProduct.name || 'منتج بدون اسم';
-            currentProductId.textContent = selectedProduct.id;
+            currentProductId.textContent = `ID: ${selectedProduct.id.substring(0, 8)}...`;
             
             // التبديل إلى عرض التعليقات
             switchToCommentsView();
@@ -1312,6 +1601,9 @@
             viewProductsBtn.classList.remove('active');
             viewCommentsBtn.classList.add('active');
             currentView = 'comments';
+            
+            // إخفاء الفلاتر المتقدمة
+            advancedFilters.style.display = 'none';
         }
 
         // دالة التبديل إلى عرض المنتجات
@@ -1321,57 +1613,139 @@
             viewProductsBtn.classList.add('active');
             viewCommentsBtn.classList.remove('active');
             currentView = 'products';
+            
+            // إظهار الفلاتر المتقدمة إذا كان هناك منتجات
+            if (allProducts.length > 0) {
+                advancedFilters.style.display = 'flex';
+            }
         }
 
+        // ============================================
+        // دوال إدارة التعليقات
+        // ============================================
+
         // دالة حذف التعليق
-        function deleteComment(commentId, productId) {
-            if (confirm('هل أنت متأكد من رغبتك في حذف هذا التعليق؟ لا يمكن التراجع عن هذا الإجراء.')) {
+        function deleteComment(commentId, productId, commentOwner) {
+            if (confirm(`هل أنت متأكد من رغبتك في حذف تعليق ${commentOwner}؟\nلا يمكن التراجع عن هذا الإجراء.`)) {
                 db.ref(`comments/${productId}/${commentId}`).remove()
                     .then(() => {
-                        alert('تم حذف التعليق بنجاح');
+                        alert('✅ تم حذف التعليق بنجاح');
                         // إعادة تحميل تعليقات المنتج
                         fetchProductComments(productId);
                         // تحديث الإحصائيات
                         fetchCommentsForStats();
                     })
                     .catch(error => {
-                        alert('حدث خطأ أثناء حذف التعليق');
+                        alert('❌ حدث خطأ أثناء حذف التعليق');
                         console.error('Error deleting comment:', error);
                     });
             }
         }
 
         // دالة الرد على التعليق
-        function replyToComment(commentId, productId) {
-            const replyText = prompt('أدخل رد الإدارة على هذا التعليق:');
+        function replyToComment(commentId, productId, existingReply = null) {
+            const promptMessage = existingReply ? 
+                'تعديل رد الإدارة على هذا التعليق:' : 
+                'أدخل رد الإدارة على هذا التعليق:';
             
-            if (replyText !== null && replyText.trim() !== '') {
-                db.ref(`comments/${productId}/${commentId}`).update({
+            const defaultText = existingReply || '';
+            
+            const replyText = prompt(promptMessage, defaultText);
+            
+            if (replyText !== null) {
+                const replyData = {
                     reply: replyText.trim(),
                     replyTimestamp: Date.now()
-                })
+                };
+                
+                if (replyText.trim() === '' && existingReply) {
+                    // إذا كان النص فارغاً وكان هناك رد موجود، نسأل عن الحذف
+                    if (confirm('الرد فارغ. هل تريد حذف رد الإدارة؟')) {
+                        replyData.reply = null;
+                        replyData.replyTimestamp = null;
+                    } else {
+                        return;
+                    }
+                }
+                
+                db.ref(`comments/${productId}/${commentId}`).update(replyData)
                 .then(() => {
-                    alert('تم إرسال الرد بنجاح');
+                    alert('✅ تم حفظ الرد بنجاح');
                     // إعادة تحميل تعليقات المنتج
                     fetchProductComments(productId);
                 })
                 .catch(error => {
-                    alert('حدث خطأ أثناء إرسال الرد');
+                    alert('❌ حدث خطأ أثناء حفظ الرد');
                     console.error('Error replying to comment:', error);
                 });
             }
         }
 
-        // الاستماع للتغييرات في الوقت الحقيقي للمنتجات الخاصة بالتاجر
-        function setupRealtimeListener() {
+        // ============================================
+        // دوال الفلاتر المتقدمة
+        // ============================================
+
+        // إعداد الفلاتر المتقدمة
+        function setupAdvancedFilters() {
+            // فلترة حسب التوفر
+            document.getElementById('filterAvailable').addEventListener('click', () => {
+                productFilter.value = 'available';
+                updateProductsDisplay();
+            });
+            
+            document.getElementById('filterUnavailable').addEventListener('click', () => {
+                productFilter.value = 'unavailable';
+                updateProductsDisplay();
+            });
+            
+            document.getElementById('filterAll').addEventListener('click', () => {
+                productFilter.value = 'all';
+                updateProductsDisplay();
+            });
+            
+            // ترتيب المنتجات
+            document.getElementById('sortNewest').addEventListener('click', () => {
+                productSort.value = 'newest';
+                updateProductsDisplay();
+            });
+            
+            document.getElementById('sortOldest').addEventListener('click', () => {
+                productSort.value = 'oldest';
+                updateProductsDisplay();
+            });
+            
+            document.getElementById('sortPriceHigh').addEventListener('click', () => {
+                productSort.value = 'priceHigh';
+                updateProductsDisplay();
+            });
+            
+            document.getElementById('sortPriceLow').addEventListener('click', () => {
+                productSort.value = 'priceLow';
+                updateProductsDisplay();
+            });
+        }
+
+        // ============================================
+        // نظام الاستماع للتغييرات في الوقت الحقيقي
+        // ============================================
+
+        // الاستماع للتغييرات في منتجات التاجر
+        function setupRealtimeListeners() {
             if (currentMerchantId) {
-                // الاستماع لتغييرات منتجات التاجر الحالي
-                db.ref('products').orderByChild('merchantId').equalTo(currentMerchantId).on('value', () => {
-                    fetchMerchantProducts();
-                });
+                console.log(`👂 بدأ الاستماع للتغييرات على منتجات التاجر: ${currentMerchantId}`);
+                
+                // الاستماع لتغييرات منتجات التاجر الحالي (مرتبطة بـ userId)
+                db.ref('products')
+                    .orderByChild('userId')
+                    .equalTo(currentMerchantId)
+                    .on('value', (snapshot) => {
+                        console.log('🔄 تم اكتشاف تغيير في منتجات التاجر');
+                        fetchMerchantProducts();
+                    });
                 
                 // الاستماع لتغييرات التعليقات
                 db.ref('comments').on('value', () => {
+                    console.log('🔄 تم اكتشاف تغيير في التعليقات');
                     fetchCommentsForStats();
                     if (selectedProduct) {
                         fetchProductComments(selectedProduct.id);
@@ -1380,7 +1754,10 @@
             }
         }
 
+        // ============================================
         // إعداد مستمعي الأحداث
+        // ============================================
+
         function setupEventListeners() {
             // أحداث التبديل بين العرضين
             viewProductsBtn.addEventListener('click', switchToProductsView);
@@ -1388,7 +1765,7 @@
                 if (selectedProduct) {
                     switchToCommentsView();
                 } else {
-                    alert('الرجاء اختيار منتج أولاً لعرض تعليقاته');
+                    alert('⚠️ الرجاء اختيار منتج أولاً لعرض تعليقات العملاء عليه');
                 }
             });
             
@@ -1427,24 +1804,81 @@
             
             // إعادة التوجيه إلى صفحة تسجيل الدخول
             loginRedirectBtn.addEventListener('click', () => {
-                window.location.href = '1_1.html'; // أو صفحة تسجيل الدخول الخاصة بك
+                window.location.href = '1_1.html'; // صفحة تسجيل الدخول للتجار
             });
+            
+            // تسجيل الخروج
+            logoutBtn.addEventListener('click', () => {
+                if (confirm('هل أنت متأكد من رغبتك في تسجيل الخروج؟')) {
+                    GlobalUserManager.logoutMerchant();
+                }
+            });
+            
+            // إعداد الفلاتر المتقدمة
+            setupAdvancedFilters();
         }
 
+        // ============================================
         // تهيئة التطبيق
+        // ============================================
+
         function initApp() {
+            console.log('🚀 بدء تحميل نظام إدارة المنتجات...');
+            
             // التحقق من تسجيل الدخول أولاً
-            const isLoggedIn = checkMerchantLogin();
+            const isLoggedIn = GlobalUserManager.checkMerchantLogin();
             
             if (isLoggedIn) {
+                console.log('✅ تم التحقق من تسجيل الدخول بنجاح');
+                
+                // إعداد الأحداث
                 setupEventListeners();
-                setupRealtimeListener();
+                
+                // إعداد مستمعي الوقت الحقيقي
+                setupRealtimeListeners();
+                
+                // جلب منتجات التاجر
                 fetchMerchantProducts();
+                
+                // إظهار رسالة ترحيب
+                setTimeout(() => {
+                    console.log(`👋 مرحباً ${currentMerchantName}! تم تحميل النظام بنجاح`);
+                }, 1000);
+            } else {
+                console.log('❌ لم يتم تسجيل الدخول، إظهار رسالة تسجيل الدخول');
             }
         }
 
         // بدء التطبيق عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', initApp);
+
+        // ============================================
+        // وظائف مساعدة للاستخدام العام
+        // ============================================
+
+        // دالة لإعادة تحميل المنتجات يدوياً
+        function reloadProducts() {
+            console.log('🔄 إعادة تحميل المنتجات يدوياً...');
+            fetchMerchantProducts();
+        }
+
+        // دالة للبحث الفوري في المنتجات
+        function searchProducts(query) {
+            productSearch.value = query;
+            productSearchQuery = query;
+            updateProductsDisplay();
+        }
+
+        // جعل الدوال متاحة عالمياً للاستخدام من وحدة التحكم
+        window.reloadProducts = reloadProducts;
+        window.searchProducts = searchProducts;
+        window.selectProduct = selectProduct;
+        window.deleteComment = deleteComment;
+        window.replyToComment = replyToComment;
+        window.switchToProductsView = switchToProductsView;
+        window.switchToCommentsView = switchToCommentsView;
+
+        console.log('✅ تم تحميل نظام إدارة المنتجات والتعليقات للتجار');
     </script>
 </body>
-  </html>
+    </html>
