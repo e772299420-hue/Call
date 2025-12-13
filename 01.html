@@ -1734,7 +1734,7 @@
         }
 
         // ==========================================
-        // 🔗 دالة تنسيق روابط جوجل درايف المحسنة - النسخة المحسنة
+        // 🔗 دالة تنسيق روابط جوجل درايف المحسنة - النسخة المحسنة مع إضافة وضع واتساب
         // ==========================================
         function formatDriveUrl(url, mode = 'thumb') {
             if (!url) return 'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png';
@@ -1801,6 +1801,14 @@
                 case 'embed':
                     // رابط التضمين المناسب للمشاركة
                     return `https://drive.google.com/file/d/${fileId}/preview`;
+                
+                case 'whatsapp':
+                    // رابط خاص لواتساب - صورة متوسطة الحجم مع تحسين
+                    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+                
+                case 'preview':
+                    // رابط المعاينة المناسب للمشاركة العامة
+                    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200-h630-p-k-no`;
                 
                 default:
                     return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
@@ -2287,7 +2295,7 @@
             
             // الحصول على صورة المنتج
             const images = extractImageUrls(product);
-            currentShareProductImage = images.length > 0 ? formatDriveUrl(images[0], 'raw') : '';
+            currentShareProductImage = images.length > 0 ? formatDriveUrl(images[0], 'preview') : '';
             
             // تحديث معلومات المنتج في النافذة
             document.getElementById('shareProductName').textContent = product.name || 'منتج بدون اسم';
@@ -2303,6 +2311,10 @@
                 previewImage.src = currentShareProductImage;
                 previewImage.style.display = 'block';
                 previewImage.alt = product.name || 'صورة المنتج';
+                previewImage.onerror = function() {
+                    this.onerror = null;
+                    this.src = 'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png';
+                };
             } else {
                 previewImage.style.display = 'none';
             }
@@ -2390,22 +2402,29 @@
         }
 
         // ==========================================
-        // 📱 مشاركة على WhatsApp
+        // 📱 مشاركة على WhatsApp - النسخة المحسنة لعرض الصورة
         // ==========================================
         function shareOnWhatsApp(product, shareUrl) {
             try {
                 const merchant = allMerchants.find(m => m.id === product.userId);
                 const merchantName = merchant ? (merchant.name || merchant.username) : 'تاجر';
                 const images = extractImageUrls(product);
-                const mainImage = images.length > 0 ? formatDriveUrl(images[0], 'embed') : '';
                 
-                // نص الرسالة المحسن مع رابط الصورة كرابط منفصل
+                // استخدام رابط صورة مناسبة لواتساب
+                let imageUrl = '';
+                if (images.length > 0) {
+                    imageUrl = formatDriveUrl(images[0], 'whatsapp');
+                } else {
+                    imageUrl = 'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png';
+                }
+                
+                // نص الرسالة المحسن مع رابط الصورة في البداية (مهم لواتساب)
                 const message = encodeURIComponent(
+                    `${imageUrl}\n\n` + // رابط الصورة في البداية لضمان عرضها
                     `🛍️ *${product.name || 'منتج رائع'}*\n\n` +
                     `💰 *السعر:* ${product.price ? `${product.price} ${product.currency || 'ريال يمني'}` : 'سعر مميز'}\n` +
                     `🏪 *التاجر:* ${merchantName}\n\n` +
                     `📝 ${product.description ? product.description.substring(0, 100) + '...' : 'منتج عالي الجودة'}\n\n` +
-                    `🖼️ *رابط الصورة:* ${mainImage}\n\n` +
                     `🔗 *رابط المنتج:* ${shareUrl}\n\n` +
                     `✨ *AZ السوق الشامل* ✨\n` +
                     `#AZ_السوق_الشامل #تسوق`
@@ -2415,6 +2434,7 @@
                 const whatsappUrl = `https://wa.me/?text=${message}`;
                 
                 console.log('📱 رابط مشاركة WhatsApp:', whatsappUrl);
+                console.log('🖼️ رابط الصورة لواتساب:', imageUrl);
                 
                 // فتح نافذة جديدة
                 window.open(whatsappUrl, '_blank');
@@ -2446,7 +2466,6 @@
                     `💰 السعر: ${product.price ? `${product.price} ${product.currency || 'ريال يمني'}` : 'سعر مميز'}\n` +
                     `🏪 التاجر: ${merchantName}\n\n` +
                     `${product.description ? product.description.substring(0, 150) + '...' : 'منتج عالي الجودة'}\n\n` +
-                    `🖼️ رابط الصورة: ${mainImage}\n\n` +
                     `🔗 رابط المنتج: ${shareUrl}\n\n` +
                     `#AZ_السوق_الشامل #تسوق`
                 );
@@ -2790,4 +2809,4 @@
         console.log('🎉 تم تحميل الصفحة بنجاح');
     </script>
 </body>
-            </html>
+                </html>
