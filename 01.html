@@ -1734,7 +1734,7 @@
         }
 
         // ==========================================
-        // 🔗 دالة تنسيق روابط جوجل درايف المحسنة - النسخة المحسنة مع إضافة وضع واتساب
+        // 🔗 دالة تنسيق روابط جوجل درايف المحسنة - النسخة الجديدة مع دعم واتساب
         // ==========================================
         function formatDriveUrl(url, mode = 'thumb') {
             if (!url) return 'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png';
@@ -1795,7 +1795,7 @@
                     return `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`;
                 
                 case 'raw':
-                    // الرابط المباشر للتحميل - هذا مهم جداً لفيسبوك
+                    // الرابط المباشر للتحميل - مهم لفيسبوك
                     return `https://drive.google.com/uc?export=view&id=${fileId}`;
                 
                 case 'embed':
@@ -1803,8 +1803,13 @@
                     return `https://drive.google.com/file/d/${fileId}/preview`;
                 
                 case 'whatsapp':
-                    // رابط خاص لواتساب - صورة متوسطة الحجم مع تحسين
-                    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+                    // رابط خاص لواتساب - رابط مباشر للصورة مع تحسينات
+                    // واتساب يتطلب رابطًا مباشرًا للصورة، لذا نستخدم raw مع جودة عالية
+                    return `https://drive.google.com/uc?export=download&id=${fileId}`;
+                
+                case 'direct':
+                    // الرابط المباشر الأفضل للواتساب - محاولة للحصول على رابط صورة مباشر
+                    return `https://lh3.googleusercontent.com/d/${fileId}=w1200-h630-p`;
                 
                 case 'preview':
                     // رابط المعاينة المناسب للمشاركة العامة
@@ -1813,6 +1818,52 @@
                 default:
                     return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
             }
+        }
+
+        // ==========================================
+        // 🔄 دالة جديدة: الحصول على رابط صورة مثالي للواتساب
+        // ==========================================
+        function getWhatsAppImageUrl(originalUrl) {
+            if (!originalUrl) return 'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png';
+            
+            // محاولة استخراج معرف الملف
+            let fileId = '';
+            
+            if (originalUrl.includes('/d/')) {
+                fileId = originalUrl.split('/d/')[1].split('/')[0];
+            } 
+            else if (originalUrl.includes('id=')) {
+                try { 
+                    fileId = new URLSearchParams(originalUrl.split('?')[1]).get('id') || ''; 
+                } catch { 
+                    return originalUrl; 
+                }
+            }
+            else if (originalUrl.includes('drive.google.com/uc?id=')) {
+                fileId = originalUrl.split('drive.google.com/uc?id=')[1].split('&')[0];
+            }
+            
+            if (!fileId) return originalUrl;
+            
+            // محاولات متعددة للحصول على رابط يعمل مع واتساب
+            const whatsappUrlAttempts = [
+                // المحاولة 1: رابط Google Photos View (الأفضل للواتساب)
+                `https://lh3.googleusercontent.com/d/${fileId}=s0`,
+                
+                // المحاولة 2: رابط مباشر من Google Drive
+                `https://drive.google.com/uc?export=download&id=${fileId}`,
+                
+                // المحاولة 3: رابط thumbnail بحجم مناسب
+                `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200-h630`,
+                
+                // المحاولة 4: رابط raw
+                `https://drive.google.com/uc?export=view&id=${fileId}`,
+                
+                // المحاولة 5: رابط الافتراضي
+                originalUrl
+            ];
+            
+            return whatsappUrlAttempts[0]; // نبدأ بأفضل محاولة
         }
 
         // ==========================================
@@ -2295,7 +2346,7 @@
             
             // الحصول على صورة المنتج
             const images = extractImageUrls(product);
-            currentShareProductImage = images.length > 0 ? formatDriveUrl(images[0], 'preview') : '';
+            currentShareProductImage = images.length > 0 ? getWhatsAppImageUrl(images[0]) : '';
             
             // تحديث معلومات المنتج في النافذة
             document.getElementById('shareProductName').textContent = product.name || 'منتج بدون اسم';
@@ -2308,7 +2359,7 @@
             // تحديث صورة المعاينة
             const previewImage = document.getElementById('sharePreviewImage');
             if (currentShareProductImage) {
-                previewImage.src = currentShareProductImage;
+                previewImage.src = formatDriveUrl(images[0], 'thumb');
                 previewImage.style.display = 'block';
                 previewImage.alt = product.name || 'صورة المنتج';
                 previewImage.onerror = function() {
@@ -2402,7 +2453,7 @@
         }
 
         // ==========================================
-        // 📱 مشاركة على WhatsApp - النسخة المحسنة لعرض الصورة
+        // 📱 مشاركة على WhatsApp - النسخة المحسنة مع رابط صور يعمل
         // ==========================================
         function shareOnWhatsApp(product, shareUrl) {
             try {
@@ -2410,24 +2461,25 @@
                 const merchantName = merchant ? (merchant.name || merchant.username) : 'تاجر';
                 const images = extractImageUrls(product);
                 
-                // استخدام رابط صورة مناسبة لواتساب
+                // الحصول على رابط الصورة المناسب لواتساب
                 let imageUrl = '';
                 if (images.length > 0) {
-                    imageUrl = formatDriveUrl(images[0], 'whatsapp');
+                    // استخدام الدالة الجديدة للحصول على رابط يعمل مع واتساب
+                    imageUrl = getWhatsAppImageUrl(images[0]);
                 } else {
                     imageUrl = 'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png';
                 }
                 
-                // نص الرسالة المحسن مع رابط الصورة في البداية (مهم لواتساب)
+                // نص الرسالة المحسن مع رابط الصورة في بداية الرسالة (مهم لواتساب)
                 const message = encodeURIComponent(
-                    `${imageUrl}\n\n` + // رابط الصورة في البداية لضمان عرضها
                     `🛍️ *${product.name || 'منتج رائع'}*\n\n` +
                     `💰 *السعر:* ${product.price ? `${product.price} ${product.currency || 'ريال يمني'}` : 'سعر مميز'}\n` +
                     `🏪 *التاجر:* ${merchantName}\n\n` +
                     `📝 ${product.description ? product.description.substring(0, 100) + '...' : 'منتج عالي الجودة'}\n\n` +
                     `🔗 *رابط المنتج:* ${shareUrl}\n\n` +
                     `✨ *AZ السوق الشامل* ✨\n` +
-                    `#AZ_السوق_الشامل #تسوق`
+                    `#AZ_السوق_الشامل #تسوق\n\n` +
+                    `${imageUrl}` // رابط الصورة في النهاية
                 );
                 
                 // رابط WhatsApp
@@ -2436,8 +2488,11 @@
                 console.log('📱 رابط مشاركة WhatsApp:', whatsappUrl);
                 console.log('🖼️ رابط الصورة لواتساب:', imageUrl);
                 
-                // فتح نافذة جديدة
-                window.open(whatsappUrl, '_blank');
+                // محاولة بديلة: استخدام رابط مختصر للصورة
+                setTimeout(() => {
+                    // فتح نافذة جديدة
+                    window.open(whatsappUrl, '_blank');
+                }, 100);
                 
                 showNotification('جارٍ فتح واتساب للمشاركة...', 'info');
                 
@@ -2809,4 +2864,4 @@
         console.log('🎉 تم تحميل الصفحة بنجاح');
     </script>
 </body>
-                </html>
+    </html>
