@@ -2309,13 +2309,18 @@
             try {
                 const merchant = allMerchants.find(m => m.id === product.userId);
                 const merchantName = merchant ? (merchant.name || merchant.username) : 'تاجر';
+                const images = extractImageUrls(product);
+                const mainImage = images.length > 0 ? formatDriveUrl(images[0], 'raw') : '';
                 
-                // نص المشاركة
+                // نص المشاركة المحسن
                 const quote = encodeURIComponent(
-                    `🛍️ ${product.name || 'منتج رائع'}\n\n` +
-                    `💰 السعر: ${product.price ? `${product.price} ${product.currency || 'ريال يمني'}` : 'سعر مميز'}\n` +
-                    `🏪 التاجر: ${merchantName}\n\n` +
-                    `✨ منصة AZ السوق الشامل ✨`
+                    `🛍️ *${product.name || 'منتج رائع'}*\n\n` +
+                    `💰 *السعر:* ${product.price ? `${product.price} ${product.currency || 'ريال يمني'}` : 'سعر مميز'}\n` +
+                    `🏪 *التاجر:* ${merchantName}\n\n` +
+                    `📝 ${product.description ? product.description.substring(0, 100) + '...' : 'منتج عالي الجودة'}\n\n` +
+                    `🔗 ${shareUrl}\n\n` +
+                    `✨ *AZ السوق الشامل* ✨\n` +
+                    `#AZ_السوق_الشامل #تسوق`
                 );
                 
                 // رابط Facebook مع جميع المعلمات
@@ -2344,10 +2349,13 @@
             try {
                 const merchant = allMerchants.find(m => m.id === product.userId);
                 const merchantName = merchant ? (merchant.name || merchant.username) : 'تاجر';
+                const images = extractImageUrls(product);
+                const mainImage = images.length > 0 ? formatDriveUrl(images[0], 'raw') : '';
                 
-                // نص الرسالة
+                // نص الرسالة المحسن مع رابط الصورة في الأعلى
                 const message = encodeURIComponent(
-                    `🛍️ *${product.name || 'منتج رائع'}* 🛍️\n\n` +
+                    `🖼️ *صورة المنتج:* ${mainImage}\n\n` +
+                    `🛍️ *${product.name || 'منتج رائع'}*\n\n` +
                     `💰 *السعر:* ${product.price ? `${product.price} ${product.currency || 'ريال يمني'}` : 'سعر مميز'}\n` +
                     `🏪 *التاجر:* ${merchantName}\n\n` +
                     `📝 ${product.description ? product.description.substring(0, 100) + '...' : 'منتج عالي الجودة'}\n\n` +
@@ -2382,9 +2390,12 @@
             try {
                 const merchant = allMerchants.find(m => m.id === product.userId);
                 const merchantName = merchant ? (merchant.name || merchant.username) : 'تاجر';
+                const images = extractImageUrls(product);
+                const mainImage = images.length > 0 ? formatDriveUrl(images[0], 'raw') : '';
                 
-                // نص الرسالة
+                // نص الرسالة المحسن
                 const message = encodeURIComponent(
+                    `🖼️ صورة المنتج: ${mainImage}\n\n` +
                     `🛍️ ${product.name || 'منتج رائع'}\n\n` +
                     `💰 السعر: ${product.price ? `${product.price} ${product.currency || 'ريال يمني'}` : 'سعر مميز'}\n` +
                     `🏪 التاجر: ${merchantName}\n\n` +
@@ -2476,7 +2487,9 @@
             const images = extractImageUrls(product);
             const mainImage = formatDriveUrl(images[0], 'raw'); // استخدام raw لضمان عرض الصورة في فيسبوك
             const title = product.name || 'منتج من AZ السوق الشامل';
-            const description = product.description || 'منتج عالي الجودة من AZ السوق الشامل';
+            const description = product.description ? 
+                (product.description.length > 150 ? product.description.substring(0, 150) + '...' : product.description) : 
+                'منتج عالي الجودة من AZ السوق الشامل';
             const url = `${window.location.origin}${window.location.pathname}?productId=${product.id}`;
             
             console.log('🏷️ تحديث Open Graph Tags:', {
@@ -2499,6 +2512,12 @@
             
             // تحديث عنوان الصفحة
             document.title = title + ' - AZ السوق الشامل';
+            
+            // إضافة وصف تفصيلي للصورة
+            const metaDescription = document.querySelector('meta[name="description"]');
+            if (metaDescription) {
+                metaDescription.setAttribute('content', description);
+            }
         }
 
         // ==========================================
@@ -2714,4 +2733,4 @@
         console.log('🎉 تم تحميل الصفحة بنجاح');
     </script>
 </body>
-                        </html>
+    </html>
