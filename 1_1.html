@@ -245,12 +245,14 @@
             }
         }
 
-        /* زر اطلب المنتج الان - التصميم الجديد */
+        /* ==========================================
+           🛒 زر "اطلب المنتج الان" - التعديلات الجديدة
+           ========================================== */
         .merchant-btn {
-            background: linear-gradient(135deg, #28a745, #20c997);
+            background: rgba(52, 152, 219, 0.15); /* لون أزرق خافت ضبابي */
             color: white;
             border: none;
-            padding: 12px 15px; /* زيادة ارتفاع الزر لاستيعاب النص الإضافي */
+            padding: 12px 15px;
             border-radius: 25px;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -263,10 +265,12 @@
             justify-content: center;
             width: 100%;
             margin: 10px 0;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
             position: relative;
             overflow: hidden;
             gap: 5px;
+            backdrop-filter: blur(10px); /* تأثير ضبابي */
+            border: 1px solid rgba(52, 152, 219, 0.3); /* حدود شفافة */
         }
 
         .merchant-btn::before {
@@ -276,28 +280,42 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             transition: 0.5s;
         }
 
         .merchant-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-            background: linear-gradient(135deg, #218838, #1e7e34);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+            background: rgba(52, 152, 219, 0.25); /* لون أزرق أغمق قليلاً عند التمرير */
         }
 
         .merchant-btn:hover::before {
             left: 100%;
         }
 
-        .merchant-name {
+        /* ==========================================
+           📝 تعديلات الألوان المطلوبة
+           ========================================== */
+        .merchant-name-center {
             display: block;
             font-size: 14px;
             font-weight: bold;
-            color: white; /* تم التعديل: لون النص أبيض */
+            color: #000000 !important; /* اللون الأسود الداكن كما طلب المستخدم */
             text-align: center;
             width: 100%;
             margin-top: 5px;
+        }
+
+        .underline-border {
+            display: block;
+            font-size: 16px;
+            font-weight: bold;
+            color: #e74c3c !important; /* اللون الأحمر كما طلب المستخدم */
+            text-align: center;
+            width: 100%;
+            padding-bottom: 5px;
+            border-bottom: 2px solid rgba(231, 76, 60, 0.3); /* استخدام اللون الأحمر في الحدود */
         }
 
         /* ==========================================
@@ -3125,6 +3143,11 @@
     </style>
 </head>
 <body>
+    <!-- إضافة عنصر الصوتي -->
+    <audio id="new-product-sound" preload="auto">
+        <source src="https://github.com/e772299420-hue/Call/raw/main/Sms.mp3" type="audio/mpeg">
+    </audio>
+
     <!-- شاشة التحميل - مخفية -->
     <div class="loading-overlay" id="loading-overlay">
         <div class="loading-spinner"></div>
@@ -3495,6 +3518,11 @@
         let isCommentsOpen = false;
         
         // ==========================================
+        // 📊 نظام تتبع مشاهدة المستخدم
+        // ==========================================
+        let userViewHistory = JSON.parse(localStorage.getItem('userViewHistory')) || {};
+        
+        // ==========================================
         // 🛒 متغيرات نظام نافذة اختيار التاجر الجديدة
         // ==========================================
         let selectedMerchantId = null;
@@ -3530,6 +3558,11 @@
         let currentAdIndex = 0;
         let adInterval = null;
         let currentAnimation = null;
+
+        // ==========================================
+        // 🔊 متغير الصوتي للإشعارات
+        // ==========================================
+        let notificationSound = document.getElementById('new-product-sound');
 
         // ==========================================
         // 🔄 نظام العداد العشوائي للمتصلين والمشاهدات
@@ -3706,7 +3739,81 @@
             
             // 14. استعادة موقع التمرير إذا كان محفوظاً
             restoreScrollPosition();
+            
+            // 15. إضافة مستمع حدث لإخفاء شريط الفلاتر عند النقر خارجها
+            setupFilterBarAutoHide();
         });
+
+        // ==========================================
+        // 🔧 إصلاح مشكلة شريط الفلاتر - الإصلاح الجديد
+        // ==========================================
+        function setupFilterBarAutoHide() {
+            document.addEventListener('click', function(event) {
+                const filterBar = document.getElementById('filter-bar');
+                const secondaryBar = document.querySelector('.secondary-bar');
+                const filterControlBtn = document.getElementById('filter-control');
+                const showMoreBtn = document.getElementById('show-more-btn');
+                
+                // التحقق إذا كان شريط الفلاتر ظاهراً
+                if (filterBar.style.display === 'flex') {
+                    // التحقق إذا كان النقر خارج شريط الفلاتر وخارج الشريط الثانوي
+                    const isClickInsideFilterBar = filterBar.contains(event.target);
+                    const isClickInsideSecondaryBar = secondaryBar.contains(event.target);
+                    const isClickOnFilterControl = filterControlBtn.contains(event.target);
+                    const isClickOnShowMoreBtn = showMoreBtn.contains(event.target);
+                    
+                    if (!isClickInsideFilterBar && !isClickInsideSecondaryBar && 
+                        !isClickOnFilterControl && !isClickOnShowMoreBtn) {
+                        hideFilterBar();
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // 🔧 إصلاح دالة toggleFilterBar
+        // ==========================================
+        function toggleFilterBar() {
+            if (filterBar.style.display === 'flex' || filterBar.style.display === '') {
+                hideFilterBar();
+            } else {
+                showFilterBar();
+            }
+        }
+
+        function hideFilterBar() {
+            filterBar.style.display = 'none';
+            document.body.style.paddingTop = '128px';
+            localStorage.setItem('filterBarHidden', 'true');
+            filterControlBtn.innerHTML = '<i class="fas fa-sliders-h"></i>';
+            filterControlBtn.title = 'إظهار شريط الفلاتر';
+            showMoreBtn.innerHTML = '<i class="fas fa-bars"></i> عرض أكثر';
+            showNotification('تم إخفاء شريط الفلاتر', 'info');
+        }
+
+        function showFilterBar() {
+            filterBar.style.display = 'flex';
+            document.body.style.paddingTop = '180px';
+            localStorage.setItem('filterBarHidden', 'false');
+            filterControlBtn.innerHTML = '<i class="fas fa-times"></i>';
+            filterControlBtn.title = 'إخفاء شريط الفلاتر';
+            showMoreBtn.innerHTML = '<i class="fas fa-times"></i> إخفاء';
+            showNotification('تم إظهار شريط الفلاتر', 'success');
+        }
+
+        // ==========================================
+        // 🔊 تشغيل صوت الإشعار
+        // ==========================================
+        function playNotificationSound() {
+            try {
+                notificationSound.currentTime = 0;
+                notificationSound.play().catch(e => {
+                    console.log('تعذر تشغيل الصوت:', e);
+                });
+            } catch (error) {
+                console.log('خطأ في تشغيل الصوت:', error);
+            }
+        }
 
         // ==========================================
         // 🔄 نظام إدارة التنقل والرجوع للصفحة الرئيسية
@@ -4784,17 +4891,6 @@
             }
         }
 
-        function toggleFilterBar() {
-            const isFilterBarHidden = localStorage.getItem('filterBarHidden');
-            if (isFilterBarHidden === 'true') {
-                showFilterBar();
-                showNotification('تم إظهار شريط الفلاتر', 'success');
-            } else {
-                hideFilterBar();
-                showNotification('تم إخفاء شريط الفلاتر', 'info');
-            }
-        }
-
         // فحص الرابط للمنتج المحدد
         function checkUrlForProduct() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -5140,7 +5236,7 @@
                 return sortProductsByOption(products, sortBy);
             }
             
-            // إذا كان الخيار هو "رغبتي" - نستخدم العرض الذكي فقط هنا
+            // إذا كان الخيار هو "رغبتي" - نستخدم العرض الذكي مع إعطاء الأولوية للمشاهدات الحديثة
             if (sortBy === 'preference') {
                 return sortProductsByPreference(products);
             }
@@ -5160,87 +5256,134 @@
             });
         }
 
-        // دالة الترتيب حسب خيارات المستخدم مع إضافة التاريخ كمعيار ثانوي
+        // ==========================================
+        // 🎯 إصلاح دالة الترتيب حسب خيارات المستخدم - التعديلات المطلوبة
+        // ==========================================
         function sortProductsByOption(products, sortBy) {
             return [...products].sort((a, b) => {
                 let result = 0;
                 
                 switch(sortBy) {
                     case 'name':
+                        // ترتيب أبجدي حسب الاسم ثم التاريخ
                         const nameA = (a.name || '').toLowerCase();
                         const nameB = (b.name || '').toLowerCase();
-                        result = nameA.localeCompare(nameB);
+                        result = nameA.localeCompare(nameB, 'ar');
+                        
+                        // إذا كانت الأسماء متساوية، نرتب حسب التاريخ (الأحدث أولاً)
+                        if (result === 0) {
+                            const aDate = new Date(a.publishDate || a.createdAt || a.date || 0);
+                            const bDate = new Date(b.publishDate || b.createdAt || b.date || 0);
+                            result = bDate - aDate;
+                        }
                         break;
                     
                     case 'category':
+                        // ترتيب أبجدي حسب القسم ثم التاريخ ثم الاسم
                         const categoryA = getCategoryName(a.categoryId) || '';
                         const categoryB = getCategoryName(b.categoryId) || '';
-                        result = categoryA.localeCompare(categoryB);
+                        result = categoryA.localeCompare(categoryB, 'ar');
+                        
+                        // إذا كانت الأقسام متساوية، نرتب حسب التاريخ
+                        if (result === 0) {
+                            const aDate = new Date(a.publishDate || a.createdAt || a.date || 0);
+                            const bDate = new Date(b.publishDate || b.createdAt || b.date || 0);
+                            result = bDate - aDate;
+                            
+                            // إذا كان التاريخ متساوي، نرتب أبجدياً حسب الاسم
+                            if (result === 0) {
+                                const nameA = (a.name || '').toLowerCase();
+                                const nameB = (b.name || '').toLowerCase();
+                                result = nameA.localeCompare(nameB, 'ar');
+                            }
+                        }
                         break;
                     
                     case 'price':
+                        // ترتيب حسب السعر (الأقل أولاً) ثم التاريخ
                         const priceA = parseFloat(a.price) || 0;
                         const priceB = parseFloat(b.price) || 0;
                         result = priceA - priceB;
+                        
+                        // إذا كانت الأسعار متساوية، نرتب حسب التاريخ (الأحدث أولاً)
+                        if (result === 0) {
+                            const aDate = new Date(a.publishDate || a.createdAt || a.date || 0);
+                            const bDate = new Date(b.publishDate || b.createdAt || b.date || 0);
+                            result = bDate - aDate;
+                        }
                         break;
                     
                     case 'merchant':
+                        // ترتيب أبجدي حسب التاجر ثم الاسم ثم التاريخ
                         const merchantA = getMerchantName(a.userId) || '';
                         const merchantB = getMerchantName(b.userId) || '';
-                        result = merchantA.localeCompare(merchantB);
+                        result = merchantA.localeCompare(merchantB, 'ar');
+                        
+                        // إذا كان التاجر متساوي، نرتب أبجدياً حسب الاسم
+                        if (result === 0) {
+                            const nameA = (a.name || '').toLowerCase();
+                            const nameB = (b.name || '').toLowerCase();
+                            result = nameA.localeCompare(nameB, 'ar');
+                            
+                            // إذا كان الاسم متساوي، نرتب حسب التاريخ
+                            if (result === 0) {
+                                const aDate = new Date(a.publishDate || a.createdAt || a.date || 0);
+                                const bDate = new Date(b.publishDate || b.createdAt || b.date || 0);
+                                result = bDate - aDate;
+                            }
+                        }
                         break;
                     
                     case 'date':
                     default:
+                        // ترتيب حسب التاريخ (الأحدث أولاً)
                         const dateA = new Date(a.publishDate || a.createdAt || a.date || 0);
                         const dateB = new Date(b.publishDate || b.createdAt || b.date || 0);
-                        result = dateB - aDate;
+                        result = dateB - dateA;
                         break;
-                }
-                
-                // إذا كانت النتيجة متساوية، نرتب حسب التاريخ (الأحدث أولاً)
-                if (result === 0) {
-                    const dateA = new Date(a.publishDate || a.createdAt || a.date || 0);
-                    const dateB = new Date(b.publishDate || b.createdAt || b.date || 0);
-                    return dateB - aDate;
                 }
                 
                 return result;
             });
         }
 
-        // دالة الترتيب حسب التفضيلات الشخصية - العرض الذكي
+        // دالة الترتيب حسب التفضيلات الشخصية - مع إعطاء الأولوية للمشاهدات الحديثة
         function sortProductsByPreference(products) {
             return [...products].sort((a, b) => {
-                // حساب نقاط التفضيل لكل منتج
-                const aPreferenceScore = calculatePreferenceScore(a);
-                const bPreferenceScore = calculatePreferenceScore(b);
+                // حساب نقاط التفضيل لكل منتج مع إعطاء وزن أكبر للمشاهدات الحديثة
+                const aPreferenceScore = calculatePreferenceScoreWithViews(a);
+                const bPreferenceScore = calculatePreferenceScoreWithViews(b);
                 
                 if (aPreferenceScore !== bPreferenceScore) {
                     return bPreferenceScore - aPreferenceScore;
                 }
                 
-                // إذا كانت النقاط متساوية، نرتب حسب التاريخ (الأحدث أولاً)
-                const aDate = new Date(a.publishDate || a.createdAt || a.date || 0);
-                const bDate = new Date(b.publishDate || b.createdAt || b.date || 0);
-                return bDate - aDate;
+                // إذا كانت النقاط متساوية، نرتب أبجدياً حسب الاسم
+                const nameA = (a.name || '').toLowerCase();
+                const nameB = (b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB, 'ar');
             });
         }
 
         // دالة الترتيب حسب العروض - العروض أولاً
         function sortProductsByOffers(products) {
-            // فلترة فقط المنتجات التي نوعها "عرض" وصالحة
-            const offerProducts = products.filter(p => p.productType === 'عرض' && isOfferValid(p));
-            
-            // ترتيب العروض حسب التاريخ (الأحدث أولاً)
-            return offerProducts.sort((a, b) => {
-                const aDate = new Date(a.publishDate || a.createdAt || a.date || 0);
-                const bDate = new Date(b.publishDate || b.createdAt || b.date || 0);
-                return bDate - aDate;
+            return [...products].sort((a, b) => {
+                // التحقق من العروض أولاً
+                const aIsOffer = isOfferValid(a);
+                const bIsOffer = isOfferValid(b);
+                
+                if (aIsOffer && !bIsOffer) return -1;
+                if (!aIsOffer && bIsOffer) return 1;
+                
+                // إذا كان كلاهما عرض أو ليسا عرض، نرتب أبجدياً حسب الاسم
+                const nameA = (a.name || '').toLowerCase();
+                const nameB = (b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB, 'ar');
             });
         }
 
-        function calculatePreferenceScore(product) {
+        // دالة حساب نقاط التفضيل مع إعطاء وزن للمشاهدات الحديثة
+        function calculatePreferenceScoreWithViews(product) {
             let score = 0;
             
             // إذا كانت الفئة من اهتمامات المستخدم
@@ -5264,7 +5407,28 @@
                 }
             });
             
+            // إعطاء وزن للمنتجات التي شاهدها المستخدم مؤخراً
+            if (userViewHistory[product.id]) {
+                const viewTime = new Date(userViewHistory[product.id]);
+                const now = new Date();
+                const hoursSinceView = (now - viewTime) / (1000 * 60 * 60);
+                
+                // كلما كان وقت المشاهدة أحدث، كلما زادت النقاط (تصل إلى 30 نقطة)
+                if (hoursSinceView < 1) {
+                    score += 30; // شاهد خلال الساعة الماضية
+                } else if (hoursSinceView < 24) {
+                    score += 20; // شاهد خلال اليوم الماضي
+                } else if (hoursSinceView < 72) {
+                    score += 10; // شاهد خلال 3 أيام
+                }
+            }
+            
             return score;
+        }
+
+        // دالة حساب النقاط القديمة (للتوافق)
+        function calculatePreferenceScore(product) {
+            return calculatePreferenceScoreWithViews(product);
         }
 
         function getCategoryName(categoryId) {
@@ -5513,6 +5677,8 @@
                     img.src = formatDriveUrl(url, 'thumb');
                     img.alt = `${productName} - صورة ${index + 1}`;
                     img.addEventListener('click', () => {
+                        // تسجيل مشاهدة المنتج
+                        recordProductView(product.id);
                         incrementViewCount(product.id);
                         openImageGallery(imageUrls, productName, index, product.id);
                     });
@@ -5568,6 +5734,8 @@
                     img.src = formatDriveUrl(imageUrl, 'thumb');
                     img.alt = productName;
                     img.addEventListener('click', () => {
+                        // تسجيل مشاهدة المنتج
+                        recordProductView(product.id);
                         incrementViewCount(product.id);
                         openImageGallery([imageUrl], productName, 0, product.id);
                     });
@@ -5577,6 +5745,8 @@
                     img.alt = 'صورة افتراضية';
                     img.style.border = '1px dashed #ccc';
                     img.addEventListener('click', () => {
+                        // تسجيل مشاهدة المنتج
+                        recordProductView(product.id);
                         incrementViewCount(product.id);
                         openImageGallery(['https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w1600'], productName, 0, product.id);
                     });
@@ -5620,6 +5790,8 @@
                     `;
                     
                     matchItem.addEventListener('click', () => {
+                        // تسجيل مشاهدة المنتج عند النقر على منتج مطابق
+                        recordProductView(match.id);
                         goToProduct(match.id);
                     });
                     
@@ -5676,7 +5848,7 @@
             infoDiv.appendChild(detailsDiv);
 
             // ==========================================
-            // 🛒 زر "اطلب المنتج الان" الجديد بدلاً من معلومات التاجر
+            // 🛒 زر "اطلب المنتج الان" الجديد المعدل باللون الأزرق الضبابي
             // ==========================================
             const merchantBtn = document.createElement('button');
             merchantBtn.className = 'merchant-btn';
@@ -5703,6 +5875,8 @@
                     productName: productName
                 });
                 
+                // تسجيل مشاهدة المنتج
+                recordProductView(product.id);
                 incrementViewCount(product.id);
                 saveScrollPosition(); // حفظ موقع التمرير قبل الانتقال
                 openMerchantPage(); 
@@ -5788,6 +5962,15 @@
             productCards[product.id] = card;
             
             return card;
+        }
+
+        // ==========================================
+        // 📊 دالة تسجيل مشاهدة المنتج
+        // ==========================================
+        function recordProductView(productId) {
+            userViewHistory[productId] = new Date().toISOString();
+            localStorage.setItem('userViewHistory', JSON.stringify(userViewHistory));
+            console.log('📊 تم تسجيل مشاهدة المنتج:', productId);
         }
 
         // ==========================================
@@ -6245,24 +6428,6 @@
             showNotification('تم إعادة تعيين جميع الفلاتر', 'success');
         }
 
-        function hideFilterBar() {
-            filterBar.style.display = 'none';
-            document.body.style.paddingTop = '128px';
-            localStorage.setItem('filterBarHidden', 'true');
-            filterControlBtn.innerHTML = '<i class="fas fa-sliders-h"></i>';
-            filterControlBtn.title = 'إظهار شريط الفلاتر';
-            showMoreBtn.innerHTML = '<i class="fas fa-bars"></i> أكثر';
-        }
-
-        function showFilterBar() {
-            filterBar.style.display = 'flex';
-            document.body.style.paddingTop = '180px';
-            localStorage.setItem('filterBarHidden', 'false');
-            filterControlBtn.innerHTML = '<i class="fas fa-times"></i>';
-            filterControlBtn.title = 'إخفاء شريط الفلاتر';
-            showMoreBtn.innerHTML = '<i class="fas fa-times"></i> إخفاء';
-        }
-
         // ==========================================
         // ❤️ تعديل وظيفة المفضلة مع الإشعارات
         // ==========================================
@@ -6292,7 +6457,7 @@
         }
 
         // ==========================================
-        // 🔔 وظيفة عرض الإشعارات
+        // 🔔 وظيفة عرض الإشعارات مع الصوت
         // ==========================================
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
@@ -6302,6 +6467,10 @@
             // تلوين الإشعار حسب النوع
             if (type === 'success') {
                 notification.style.background = 'var(--success-color)';
+                // تشغيل الصوت عند إشعار المنتجات الجديدة
+                if (message.includes('منتج جديد')) {
+                    playNotificationSound();
+                }
             } else if (type === 'info') {
                 notification.style.background = 'var(--primary-color)';
             } else if (type === 'error') {
@@ -6351,6 +6520,38 @@
             }
         }
 
+        // ==========================================
+        // 📊 دالة حساب المشاهدات الافتراضية بناءً على تاريخ النشر
+        // ==========================================
+        function getDefaultViews(product) {
+            if (!product) return 150;
+            
+            const today = new Date();
+            const publishDate = new Date(product.publishDate || product.createdAt || product.date || 0);
+            
+            // حساب الفرق بالأيام
+            const diffTime = Math.abs(today - publishDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            // تحديد المشاهدات الافتراضية بناءً على الفترة
+            if (diffDays <= 7) {
+                // قبل أسبوع أو أقل
+                return 2500;
+            } else if (diffDays <= 14) {
+                // قبل أسبوعين أو أقل
+                return 6500;
+            } else if (diffDays <= 21) {
+                // قبل ثلاثة أسابيع أو أقل
+                return 80000;
+            } else if (diffDays <= 35) {
+                // قبل 5 أسابيع أو أقل
+                return 900000;
+            } else {
+                // أكثر من 5 أسابيع
+                return 150;
+            }
+        }
+
         async function loadProductStats(productId, card) {
             try {
                 const [statsSnap, commentsSnap] = await Promise.all([
@@ -6362,8 +6563,13 @@
                 const comments = commentsSnap.val() || {};
 
                 const likeCount = Array.isArray(stats.likes) ? stats.likes.length : 0;
-                const viewCount = (stats.views || 0) + 150;
+                const realViews = stats.views || 0;
                 const commentCount = Object.keys(comments).length;
+                
+                // الحصول على المشاهدات الافتراضية بناءً على تاريخ النشر
+                const product = allProducts.find(p => p.id === productId);
+                const defaultViews = getDefaultViews(product);
+                const totalViews = defaultViews + realViews;
 
                 // تحديث الإحصائيات فوق الأزرار
                 const likeStatEl = document.getElementById(`like-stat-${productId}`);
@@ -6372,7 +6578,7 @@
                 const commentsCountEl = card.querySelector('.comments-count');
 
                 if (likeStatEl) likeStatEl.textContent = likeCount;
-                if (viewStatEl) viewStatEl.textContent = viewCount;
+                if (viewStatEl) viewStatEl.textContent = totalViews;
                 if (commentStatEl) commentStatEl.textContent = commentCount;
                 if (commentsCountEl) commentsCountEl.textContent = commentCount;
 
@@ -6633,7 +6839,7 @@
             merchants.sort((a, b) => {
                 const nameA = (a.name || a.username || '').toLowerCase();
                 const nameB = (b.name || b.username || '').toLowerCase();
-                return nameA.localeCompare(nameB);
+                return nameA.localeCompare(nameB, 'ar');
             });
             
             merchants.forEach(merchant => {
@@ -6993,7 +7199,7 @@
         }
 
         // ==========================================
-        // 🔄 نظام التحديث التلقائي للمنتجات الجديدة - تم الإصلاح
+        // 🔄 نظام التحديث التلقائي للمنتجات الجديدة - تم الإصلاح مع الصوت
         // ==========================================
         function startAutoUpdate() {
             // الاستماع للتغييرات في قاعدة البيانات في الوقت الحقيقي
@@ -7020,7 +7226,11 @@
                         // عرض إشعار إذا كانت هناك منتجات جديدة مضافة
                         if (newProducts.length > previousCount) {
                             const newProductsCount = newProducts.length - previousCount;
-                            showNotification(`تم تحديث ${newProductsCount} منتج جديد`, 'success');
+                            const notificationMessage = `تم تحديث ${newProductsCount} منتج جديد`;
+                            showNotification(notificationMessage, 'success');
+                            
+                            // تشغيل الصوت عند إضافة منتجات جديدة
+                            playNotificationSound();
                         }
                     }
                 }
