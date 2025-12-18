@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -20,9 +21,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- إضافة Service Worker للإشعارات -->
-    <link rel="manifest" href="manifest.json">
     
     <style>
         * {
@@ -2536,18 +2534,16 @@
 
     <script>
         // ==========================================
-        // 🔔 نظام الإشعارات المتقدم - يعمل حتى عند إغلاق المتصفح
+        // 🔔 نظام الإشعارات المحسّن والمبسط
         // ==========================================
         
-        // متغيرات نظام الإشعارات
         let notificationPermission = Notification.permission;
         let notificationInterval = null;
         let lastProductCheckTime = localStorage.getItem('lastProductCheckTime') || new Date().toISOString();
         let newProductsNotificationCount = 0;
-        let serviceWorkerRegistration = null;
 
         // ==========================================
-        // 🔧 تهيئة إشعارات المتصفح
+        // 🔧 تهيئة إشعارات المتصفح - النسخة المبسطة
         // ==========================================
         function initializeBrowserNotifications() {
             console.log('🔔 تهيئة نظام الإشعارات...');
@@ -2555,23 +2551,15 @@
             // التحقق من دعم الإشعارات
             if (!('Notification' in window)) {
                 console.log('⚠️ هذا المتصفح لا يدعم إشعارات الويب');
+                showNotification('المتصفح لا يدعم الإشعارات', 'error');
                 return;
             }
             
             // التحقق من حالة الإذن
             updateNotificationPermission();
             
-            // إظهار زر التفويض إذا لم يكن مسموحاً
-            const permissionBtn = document.getElementById('notification-permission-btn');
-            if (notificationPermission === 'default') {
-                permissionBtn.classList.remove('hidden');
-            }
-            
             // إعداد مستمعي الأحداث
             setupNotificationListeners();
-            
-            // تسجيل Service Worker للإشعارات الدفعية
-            registerServiceWorker();
             
             // بدء فحص المنتجات الجديدة
             startNewProductsNotificationCheck();
@@ -2589,9 +2577,11 @@
             if (notificationPermission === 'granted') {
                 permissionBtn.classList.add('hidden');
                 console.log('✅ الإذن مُمنح للإشعارات');
+                showNotification('الإشعارات مفعلة! ستتلقى إشعارات عند إضافة منتجات جديدة.', 'success');
             } else if (notificationPermission === 'denied') {
                 permissionBtn.classList.add('hidden');
                 console.log('❌ الإذن مرفوض للإشعارات');
+                showNotification('تم رفض الإذن. يمكنك تفعيل الإشعارات يدوياً من إعدادات المتصفح.', 'info');
             } else {
                 permissionBtn.classList.remove('hidden');
                 console.log('⏳ في انتظار إذن الإشعارات');
@@ -2602,7 +2592,7 @@
         // 🔧 إعداد مستمعي أحداث الإشعارات
         // ==========================================
         function setupNotificationListeners() {
-            // زر طلب الإذن
+            // زر طلب الإذن - النسخة المبسطة
             document.getElementById('notification-permission-btn').addEventListener('click', requestNotificationPermission);
             
             // زر إغلاق الإشعار العلوي
@@ -2625,7 +2615,7 @@
         }
 
         // ==========================================
-        // 🔧 طلب إذن الإشعارات
+        // 🔧 طلب إذن الإشعارات - النسخة المبسطة
         // ==========================================
         function requestNotificationPermission() {
             if (!('Notification' in window)) {
@@ -2633,30 +2623,46 @@
                 return;
             }
             
-            Notification.requestPermission().then(permission => {
-                updateNotificationPermission();
-                
-                if (permission === 'granted') {
-                    showNotification('تم تفعيل إشعارات المنتجات الجديدة بنجاح!', 'success');
-                    showBrowserNotification(
-                        'AZ السوق الشامل',
-                        'تم تفعيل الإشعارات! ستتلقى إشعارات عند إضافة منتجات جديدة.',
-                        'welcome'
-                    );
-                } else if (permission === 'denied') {
-                    showNotification('تم رفض الإذن. يمكنك تفعيل الإشعارات يدوياً من إعدادات المتصفح.', 'info');
-                }
-            }).catch(error => {
-                console.error('خطأ في طلب إذن الإشعارات:', error);
-                showNotification('حدث خطأ في طلب إذن الإشعارات', 'error');
-            });
+            // إذا كان الموقع يعمل على HTTP بدلاً من HTTPS، قد لا تعمل الإشعارات
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                showNotification('لتفعيل الإشعارات، يجب أن يكون الموقع على HTTPS', 'info');
+                console.warn('⚠️ الإشعارات تتطلب HTTPS للعمل بشكل صحيح');
+            }
+            
+            // استخدام النسخة المبسطة من طلب الإذن
+            Notification.requestPermission()
+                .then(permission => {
+                    updateNotificationPermission();
+                    
+                    if (permission === 'granted') {
+                        showNotification('تم تفعيل إشعارات المنتجات الجديدة بنجاح!', 'success');
+                        
+                        // عرض إشعار ترحيبي
+                        showBrowserNotification(
+                            'AZ السوق الشامل',
+                            'تم تفعيل الإشعارات! ستتلقى إشعارات عند إضافة منتجات جديدة.',
+                            'welcome'
+                        );
+                        
+                        // حفظ حالة الإذن
+                        localStorage.setItem('notificationPermission', 'granted');
+                    } else if (permission === 'denied') {
+                        showNotification('تم رفض الإذن. يمكنك تفعيل الإشعارات يدوياً من إعدادات المتصفح.', 'info');
+                        localStorage.setItem('notificationPermission', 'denied');
+                    }
+                })
+                .catch(error => {
+                    console.error('خطأ في طلب إذن الإشعارات:', error);
+                    showNotification('حدث خطأ في طلب إذن الإشعارات. يرجى المحاولة مرة أخرى.', 'error');
+                });
         }
 
         // ==========================================
-        // 🔔 عرض إشعار المتصفح
+        // 🔔 عرض إشعار المتصفح - النسخة المبسطة
         // ==========================================
         function showBrowserNotification(title, body, tag = 'new-product', data = {}) {
             if (!('Notification' in window) || notificationPermission !== 'granted') {
+                console.log('❌ لا يمكن عرض الإشعار: الإذن غير مُمنح');
                 return;
             }
             
@@ -2674,30 +2680,34 @@
             // إضافة صوت الإشعار
             playNotificationSound();
             
-            // عرض الإشعار
-            const notification = new Notification(title, options);
-            
-            // عند النقر على الإشعار
-            notification.onclick = function(event) {
-                event.preventDefault();
-                window.focus();
-                this.close();
+            try {
+                // عرض الإشعار
+                const notification = new Notification(title, options);
                 
-                // إذا كان هناك رابط، نفتحه
-                if (data.url) {
-                    window.open(data.url, '_blank');
-                } else if (data.productId) {
-                    // فتح المنتج المحدد
-                    highlightProduct(data.productId);
-                }
-            };
-            
-            // إغلاق الإشعار بعد 10 ثواني
-            setTimeout(() => {
-                notification.close();
-            }, 10000);
-            
-            console.log('🔔 تم عرض إشعار المتصفح:', title);
+                // عند النقر على الإشعار
+                notification.onclick = function(event) {
+                    event.preventDefault();
+                    window.focus();
+                    this.close();
+                    
+                    // إذا كان هناك رابط، نفتحه
+                    if (data.url) {
+                        window.open(data.url, '_blank');
+                    } else if (data.productId) {
+                        // فتح المنتج المحدد
+                        highlightProduct(data.productId);
+                    }
+                };
+                
+                // إغلاق الإشعار بعد 10 ثواني
+                setTimeout(() => {
+                    notification.close();
+                }, 10000);
+                
+                console.log('🔔 تم عرض إشعار المتصفح:', title);
+            } catch (error) {
+                console.error('❌ خطأ في عرض الإشعار:', error);
+            }
         }
 
         // ==========================================
@@ -2857,84 +2867,18 @@
         }
 
         // ==========================================
-        // 🔧 تسجيل Service Worker للإشعارات الدفعية
+        // 🔊 تشغيل صوت الإشعار
         // ==========================================
-        function registerServiceWorker() {
-            if ('serviceWorker' in navigator && 'PushManager' in window) {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        serviceWorkerRegistration = registration;
-                        console.log('✅ تم تسجيل Service Worker:', registration.scope);
-                        
-                        // تفعيل الإشعارات الدفعية
-                        enablePushNotifications();
-                    })
-                    .catch(error => {
-                        console.error('❌ فشل تسجيل Service Worker:', error);
-                    });
+        function playNotificationSound() {
+            try {
+                const sound = document.getElementById('new-product-sound');
+                sound.currentTime = 0;
+                sound.play().catch(e => {
+                    console.log('تعذر تشغيل الصوت:', e);
+                });
+            } catch (error) {
+                console.log('خطأ في تشغيل الصوت:', error);
             }
-        }
-
-        // ==========================================
-        // 🔧 تفعيل الإشعارات الدفعية
-        // ==========================================
-        function enablePushNotifications() {
-            if (!serviceWorkerRegistration || !('PushManager' in window)) {
-                return;
-            }
-            
-            // طلب إذن الإشعارات الدفعية
-            serviceWorkerRegistration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array('BHjGt4QN7LtZ3q1K8wX2cV5fR6yH9uJ0mP3aE1sD4gT7bF2nM8qW5vC6xY9zA0')
-            })
-            .then(subscription => {
-                console.log('✅ تم تفعيل الإشعارات الدفعية:', subscription);
-                
-                // إرسال الاشتراك للخادم (يمكنك تخزينه في Firebase)
-                savePushSubscription(subscription);
-            })
-            .catch(error => {
-                console.error('❌ فشل تفعيل الإشعارات الدفعية:', error);
-            });
-        }
-
-        // ==========================================
-        // 🔧 تحويل مفتاح الخادم
-        // ==========================================
-        function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding)
-                .replace(/\-/g, '+')
-                .replace(/_/g, '/');
-            
-            const rawData = window.atob(base64);
-            const outputArray = new Uint8Array(rawData.length);
-            
-            for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
-            }
-            return outputArray;
-        }
-
-        // ==========================================
-        // 🔧 حفظ اشتراك الإشعارات الدفعية
-        // ==========================================
-        function savePushSubscription(subscription) {
-            const subscriptionJson = subscription.toJSON();
-            
-            // حفظ في Firebase
-            db.ref('push_subscriptions/' + currentUserId).set({
-                endpoint: subscriptionJson.endpoint,
-                keys: subscriptionJson.keys,
-                timestamp: new Date().toISOString()
-            })
-            .then(() => {
-                console.log('✅ تم حفظ اشتراك الإشعارات الدفعية');
-            })
-            .catch(error => {
-                console.error('❌ خطأ في حفظ اشتراك الإشعارات:', error);
-            });
         }
 
         // ==========================================
@@ -2999,9 +2943,6 @@
         let currentAdIndex = 0;
         let adInterval = null;
         let currentAnimation = null;
-
-        // متغير الصوتي للإشعارات
-        let notificationSound = document.getElementById('new-product-sound');
 
         // نظام العداد العشوائي للمتصلين والمشاهدات
         let onlineUsersCount = 0;
@@ -3162,20 +3103,6 @@
             // 16. إضافة مستمع حدث لإخفاء شريط الفلاتر عند النقر خارجها
             setupFilterBarAutoHide();
         });
-
-        // ==========================================
-        // 🔊 تشغيل صوت الإشعار
-        // ==========================================
-        function playNotificationSound() {
-            try {
-                notificationSound.currentTime = 0;
-                notificationSound.play().catch(e => {
-                    console.log('تعذر تشغيل الصوت:', e);
-                });
-            } catch (error) {
-                console.log('خطأ في تشغيل الصوت:', error);
-            }
-        }
 
         // ==========================================
         // 🔄 نظام إدارة التنقل والرجوع للصفحة الرئيسية
