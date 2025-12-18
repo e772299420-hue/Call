@@ -1,83 +1,142 @@
-const CACHE_NAME = 'az-souk-al-shamel-v1.0.0';
+// Service Worker المتكامل للإشعارات وتخزين الملفات
+const CACHE_NAME = 'az-souk-al-shamel-notifications-v1';
 
-// الملفات التي سيتم تخزينها في الكاش
+// ==========================================
+// 1️⃣ تثبيت وتفعيل Service Worker
+// ==========================================
+self.addEventListener('install', (event) => {
+    console.log('🚀 Service Worker: تم التثبيت بنجاح');
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    console.log('🔥 Service Worker: تم التفعيل وجاهز لاستقبال الإشعارات');
+    event.waitUntil(self.clients.claim());
+});
+
+// ==========================================
+// 🔔 2️⃣ الجزء الأهم: استقبال وعرض الإشعارات
+// ==========================================
+self.addEventListener('push', (event) => {
+    console.log('🔔 Service Worker: تم استقبال إشعار جديد!');
+    
+    // البيانات تأتي من Firebase أو الخادم
+    let data = {};
+    try {
+        data = event.data ? event.data.json() : {};
+    } catch (e) {
+        console.warn('⚠️ لم تصل بيانات الإشعار بصيغة JSON، استخدام بيانات افتراضية');
+        data = {
+            title: 'AZ السوق الشامل',
+            body: 'تم اكتشاف منتجات جديدة!',
+            icon: 'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png',
+            data: { url: 'https://e772299420-hue.github.io/Call/1_1.html' }
+        };
+    }
+
+    const title = data.title || 'AZ السوق الشامل';
+    const body = data.body || 'عرض جديد أو منتج مضاف';
+    const icon = data.icon || 'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png';
+    const badge = 'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png';
+
+    // إعدادات الإشعار المميزة
+    const options = {
+        body: body,
+        icon: icon,
+        badge: badge,
+        vibrate: [200, 100, 200, 100, 200], // نمط اهتزاز جذاب
+        timestamp: Date.now(),
+        data: data.data || {
+            url: 'https://e772299420-hue.github.io/Call/1_1.html',
+            productId: null,
+            merchantId: null,
+            type: 'general'
+        },
+        actions: [
+            {
+                action: 'open',
+                title: 'فتح التطبيق'
+            },
+            {
+                action: 'close',
+                title: 'إغلاق'
+            }
+        ],
+        requireInteraction: true, // يبقى الإشعار حتى ينقر عليه المستخدم
+        tag: 'az-market-notification' // لمنع التكرار
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+    );
+});
+
+// ==========================================
+// 🖱️ 3️⃣ معالجة نقر المستخدم على الإشعار
+// ==========================================
+self.addEventListener('notificationclick', (event) => {
+    console.log('🖱️ Service Worker: تم النقر على الإشعار - الإجراء:', event.action);
+    
+    event.notification.close();
+
+    const urlToOpen = event.notification.data.url || 'https://e772299420-hue.github.io/Call/1_1.html';
+
+    if (event.action === 'open' || event.action === '') {
+        event.waitUntil(
+            clients.matchAll({
+                type: 'window',
+                includeUncontrolled: true
+            }).then((windowClients) => {
+                // إذا كان التطبيق مفتوحاً بالفعل، ركز على النافذة
+                for (let client of windowClients) {
+                    if (client.url.includes('e772299420-hue.github.io/Call') && 'focus' in client) {
+                        return client.focus();
+                    }
+                }
+                // إذا لم يكن مفتوحاً، افتح نافذة جديدة
+                if (clients.openWindow) {
+                    return clients.openWindow(urlToOpen);
+                }
+            })
+        );
+    }
+});
+
+// ==========================================
+// 💾 4️⃣ تخزين الملفات في الكاش (Cache) - نسخة مبسطة
+// ==========================================
 const urlsToCache = [
-  '/Call/',
-  '/Call/index.html',
-  '/Call/manifest.json'
+    '/Call/1_1.html',
+    '/Call/manifest.json',
+    'https://raw.githubusercontent.com/e772299420-hue/Call/main/icon-512x5122.png'
 ];
 
-// تثبيت Service Worker
-self.addEventListener('install', (event) => {
-  console.log('🚀 Service Worker: تم التثبيت');
-  
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('✅ Service Worker: فتح الكاش وتخزين الملفات');
-        return cache.addAll(urlsToCache);
-      })
-      .then(() => {
-        console.log('✅ Service Worker: تم تخزين جميع الملفات بنجاح');
-        return self.skipWaiting();
-      })
-  );
-});
-
-// تفعيل Service Worker
-self.addEventListener('activate', (event) => {
-  console.log('🔥 Service Worker: تم التفعيل');
-  
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Service Worker: حذف الكاش القديم:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      console.log('✅ Service Worker: تم تنظيف الكاش القديم');
-      return self.clients.claim();
-    })
-  );
-});
-
-// اعتراض الطلبات
 self.addEventListener('fetch', (event) => {
-  // تجاهل طلبات Firebase وطلبات POST
-  if (event.request.url.includes('firebase') || event.request.method === 'POST') {
-    return;
-  }
+    // تجاهل طلبات Firebase لتجنب المشاكل
+    if (event.request.url.includes('firebase') || event.request.method === 'POST') {
+        return;
+    }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // إذا وجد الملف في الكاش، استخدمه
-        if (response) {
-          return response;
-        }
-
-        // إذا لم يوجد في الكاش، حمله من الشبكة
-        return fetch(event.request)
-          .then((response) => {
-            return response;
-          })
-          .catch((error) => {
-            console.error('❌ Service Worker: فشل في تحميل الملف:', error);
-            
-            // إذا فشل التحميل، حاول تقديم الصفحة الرئيسية
-            if (event.request.destination === 'document') {
-              return caches.match('/Call/index.html');
-            }
-            
-            return new Response('فشل في تحميل الملف. يرجى التحقق من اتصال الإنترنت.', {
-              status: 408,
-              headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-            });
-          });
-      })
-  );
+    // فقط للملفات الأساسية
+    if (event.request.destination === 'document' || 
+        event.request.url.includes('1_1.html') ||
+        event.request.url.includes('manifest.json')) {
+        
+        event.respondWith(
+            caches.match(event.request)
+                .then((cachedResponse) => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    return fetch(event.request);
+                })
+                .catch(() => {
+                    // إذا فشل كل شيء، حاول تقديم الصفحة الرئيسية
+                    if (event.request.destination === 'document') {
+                        return caches.match('/Call/1_1.html');
+                    }
+                    return new Response('يرجى التحقق من اتصال الإنترنت');
+                })
+        );
+    }
 });
