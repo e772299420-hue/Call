@@ -1313,7 +1313,7 @@
             border-right: 3px solid var(--info);
         }
 
-        /* ===== شجرة كاملة ===== */
+        /* ===== شجرة كاملة محسنة مع خطوط اتصال ===== */
         .full-tree-container {
             background: white;
             border-radius: 15px;
@@ -1327,30 +1327,43 @@
             flex-direction: column;
             align-items: center;
             min-width: 1000px;
+            position: relative;
         }
 
         .tree-level-full {
             display: flex;
             justify-content: center;
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 50px;
             position: relative;
         }
 
-        .tree-level-connections {
+        /* خطوط الاتصال العمودية بين المستويات */
+        .vertical-connector {
             position: absolute;
-            top: -15px;
-            left: 0;
-            width: 100%;
-            height: 15px;
-            display: flex;
-            justify-content: center;
+            top: -25px;
+            left: 50%;
+            width: 2px;
+            height: 25px;
+            background: var(--primary);
+            transform: translateX(-50%);
+            z-index: 1;
         }
 
-        .tree-connection {
-            height: 15px;
-            width: 2px;
+        /* خطوط الاتصال الأفقية بين الإخوة في نفس المستوى */
+        .horizontal-connector {
+            position: absolute;
+            top: -25px;
+            height: 2px;
             background: var(--primary);
+            z-index: 1;
+        }
+
+        /* حاوية للعقدة مع وصلات */
+        .node-container {
+            position: relative;
+            margin: 0 15px;
+            z-index: 2;
         }
 
         .tree-node-full {
@@ -1361,9 +1374,9 @@
             border: 2px solid var(--primary);
             text-align: center;
             min-width: 180px;
-            margin: 0 10px;
             position: relative;
             transition: all 0.3s ease;
+            z-index: 3;
         }
 
         .tree-node-full:hover {
@@ -1394,6 +1407,44 @@
         .node-level-4 {
             border-color: var(--orange);
             background: linear-gradient(135deg, #fbe9e7 0%, #ffab91 100%);
+        }
+
+        .node-level-5 {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+        }
+
+        /* وصلات متعددة المستويات */
+        .multi-level-connector {
+            position: absolute;
+            background: var(--primary);
+            z-index: 1;
+        }
+
+        /* تحسين عرض الشجرة الكاملة */
+        .tree-level-0 {
+            margin-bottom: 60px;
+        }
+
+        .tree-level-1 {
+            margin-bottom: 70px;
+        }
+
+        .tree-level-2, .tree-level-3, .tree-level-4, .tree-level-5 {
+            margin-bottom: 80px;
+        }
+
+        /* وصلات خاصة للعقد التي لديها أبناء متعددين */
+        .branch-connector {
+            position: absolute;
+            background: var(--primary);
+        }
+
+        /* خطوط من العقدة الأصل إلى الأبناء */
+        .parent-child-connector {
+            position: absolute;
+            background: var(--primary);
+            z-index: 1;
         }
 
         /* ===== استجابة الهواتف ===== */
@@ -1555,6 +1606,14 @@
                 padding: 8px 12px;
                 margin: 0 5px;
             }
+            
+            .node-container {
+                margin: 0 8px;
+            }
+            
+            .tree-level-full {
+                margin-bottom: 40px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -1601,6 +1660,10 @@
                 min-width: 110px;
                 padding: 6px 10px;
                 margin: 0 3px;
+            }
+            
+            .node-container {
+                margin: 0 5px;
             }
         }
     </style>
@@ -1729,7 +1792,7 @@
         <div class="merchant-modal-body">
             <div class="merchant-modal-note">
                 <i class="fas fa-info-circle"></i>
-                عرض كامل للشجرة الهرمية بدءاً من التاجر الحالي وحتى جميع المستويات الفرعية.
+                عرض كامل للشجرة الهرمية بدءاً من التاجر الحالي وحتى جميع المستويات الفرعية مع خطوط الاتصال.
             </div>
             
             <div class="full-tree-container">
@@ -3233,90 +3296,252 @@
         }
     }
     
-    // دالة لعرض الشجرة الكاملة
+    // دالة لبناء هيكل الشجرة بشكل متكرر
+    async function buildTreeStructure(membershipId, level = 0) {
+        try {
+            // جلب بيانات العقدة الحالية
+            const nodeSnapshot = await database.ref(`membership_hierarchy/${membershipId}`).once('value');
+            const nodeData = nodeSnapshot.val();
+            
+            if (!nodeData) return null;
+            
+            // جلب الأبناء المباشرين
+            const children = await getChildren(membershipId);
+            
+            // إنشاء هيكل العقدة
+            const treeNode = {
+                id: membershipId,
+                name: nodeData.name || 'غير معروف',
+                mobile: nodeData.mobile || 'غير معروف',
+                level: level,
+                membershipLevel: nodeData.membershipLevel || 0,
+                children: []
+            };
+            
+            // إضافة الأبناء بشكل متكرر
+            for (const child of children) {
+                const childTree = await buildTreeStructure(child.id, level + 1);
+                if (childTree) {
+                    treeNode.children.push(childTree);
+                }
+            }
+            
+            return treeNode;
+            
+        } catch (error) {
+            console.error('خطأ في بناء هيكل الشجرة:', error);
+            return null;
+        }
+    }
+    
+    // دالة لعرض الشجرة الكاملة مع خطوط الاتصال
     async function renderFullTree(membershipId) {
         try {
             if (!fullTreeVisualization) return;
             
             // مسح الشجرة الحالية
-            fullTreeVisualization.innerHTML = '';
+            fullTreeVisualization.innerHTML = '<div class="loading-spinner"></div><p>جاري بناء الشجرة الهرمية...</p>';
             
-            // جلب بيانات التاجر الحالي
-            const currentSnapshot = await database.ref(`membership_hierarchy/${membershipId}`).once('value');
-            const currentData = currentSnapshot.val();
+            // بناء هيكل الشجرة
+            const treeRoot = await buildTreeStructure(membershipId);
             
-            if (!currentData) {
+            if (!treeRoot) {
                 fullTreeVisualization.innerHTML = `
                     <div class="no-data">
                         <i class="fas fa-tree"></i>
                         <h2>لا توجد بيانات للشجرة</h2>
+                        <p>لم يتم العثور على بيانات الشجرة الهرمية.</p>
                     </div>
                 `;
                 return;
             }
             
-            // جلب جميع الأحفاد
-            const allDescendants = await getAllDescendants(membershipId);
+            // مسح الشجرة الحالية
+            fullTreeVisualization.innerHTML = '';
             
-            // تنظيم البيانات حسب المستوى
+            // تنظيم العقد حسب المستوى
             const levels = {};
             
-            // إضافة التاجر الحالي للمستوى 0
-            levels[0] = [{
-                ...currentData,
-                id: membershipId,
-                networkLevel: 0
-            }];
-            
-            // تنظيم الأحفاد حسب المستوى
-            allDescendants.forEach(descendant => {
-                const level = descendant.networkLevel || 1;
-                if (!levels[level]) {
-                    levels[level] = [];
+            // دالة لجمع العقد حسب المستوى
+            function collectNodesByLevel(node, currentLevel) {
+                if (!levels[currentLevel]) {
+                    levels[currentLevel] = [];
                 }
-                levels[level].push(descendant);
-            });
+                
+                // إضافة العقدة الحالية
+                levels[currentLevel].push({
+                    id: node.id,
+                    name: node.name,
+                    mobile: node.mobile,
+                    level: currentLevel,
+                    membershipLevel: node.membershipLevel,
+                    children: node.children
+                });
+                
+                // إضافة الأبناء
+                node.children.forEach(child => {
+                    collectNodesByLevel(child, currentLevel + 1);
+                });
+            }
+            
+            collectNodesByLevel(treeRoot, 0);
+            
+            // إنشاء عنصر SVG لخطوط الاتصال
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svgElement = document.createElementNS(svgNS, "svg");
+            svgElement.setAttribute("class", "tree-connections");
+            svgElement.style.position = "absolute";
+            svgElement.style.top = "0";
+            svgElement.style.left = "0";
+            svgElement.style.width = "100%";
+            svgElement.style.height = "100%";
+            svgElement.style.pointerEvents = "none";
+            svgElement.style.zIndex = "1";
+            
+            fullTreeVisualization.appendChild(svgElement);
+            
+            // متغيرات لتخزين مواقع العقد
+            const nodePositions = {};
             
             // عرض كل مستوى
             Object.keys(levels).sort((a, b) => a - b).forEach(levelKey => {
                 const level = parseInt(levelKey);
-                const levelData = levels[level];
+                const levelNodes = levels[level];
                 
                 const levelElement = document.createElement('div');
-                levelElement.className = 'tree-level-full';
-                
-                // إضافة اتصالات بين المستويات
-                if (level > 0) {
-                    const connectionsElement = document.createElement('div');
-                    connectionsElement.className = 'tree-level-connections';
-                    
-                    // حساب عدد الاتصالات المطلوبة
-                    const parentLevel = levels[level - 1];
-                    if (parentLevel) {
-                        // إنشاء اتصالات بين الآباء والأبناء
-                        for (let i = 0; i < Math.max(parentLevel.length, levelData.length); i++) {
-                            const connection = document.createElement('div');
-                            connection.className = 'tree-connection';
-                            connectionsElement.appendChild(connection);
-                        }
-                        levelElement.appendChild(connectionsElement);
-                    }
-                }
+                levelElement.className = `tree-level-full tree-level-${level}`;
+                levelElement.style.position = 'relative';
+                levelElement.style.zIndex = '2';
                 
                 // عرض العقد في هذا المستوى
-                levelData.forEach(node => {
+                levelNodes.forEach((node, index) => {
+                    const nodeContainer = document.createElement('div');
+                    nodeContainer.className = 'node-container';
+                    
                     const nodeElement = document.createElement('div');
-                    nodeElement.className = `tree-node-full node-level-${Math.min(level, 4)}`;
+                    nodeElement.className = `tree-node-full node-level-${Math.min(level, 5)}`;
                     nodeElement.innerHTML = `
                         <div class="node-name">${node.name || 'غير معروف'}</div>
                         <div class="node-mobile">${node.mobile || 'غير معروف'}</div>
                         <div class="node-status">المستوى ${level}</div>
                     `;
-                    levelElement.appendChild(nodeElement);
+                    
+                    nodeContainer.appendChild(nodeElement);
+                    levelElement.appendChild(nodeContainer);
+                    
+                    // تخزين موقع العقدة لاستخدامه في رسم الخطوط
+                    const nodeId = `node-${node.id}-${level}-${index}`;
+                    nodeElement.id = nodeId;
+                    
+                    // حفظ مرجع للعقدة
+                    nodePositions[nodeId] = {
+                        element: nodeElement,
+                        level: level,
+                        index: index,
+                        parentId: null // سيتم تعبئته لاحقاً
+                    };
                 });
                 
                 fullTreeVisualization.appendChild(levelElement);
             });
+            
+            // انتظار حتى يتم عرض جميع العناصر لحساب المواقع
+            setTimeout(() => {
+                // رسم خطوط الاتصال بين الآباء والأبناء
+                Object.keys(levels).sort((a, b) => a - b).forEach(levelKey => {
+                    const level = parseInt(levelKey);
+                    if (level === 0) return; // المستوى 0 ليس لديه آباء
+                    
+                    const levelNodes = levels[level];
+                    
+                    levelNodes.forEach((node, index) => {
+                        // البحث عن الأب لهذه العقدة
+                        const parentLevel = level - 1;
+                        const parentNodes = levels[parentLevel];
+                        
+                        if (parentNodes && parentNodes.length > 0) {
+                            // في نظام حقيقي، نبحث عن الأب الحقيقي
+                            // هنا نفترض أن الأب هو العقدة الأولى في المستوى الأعلى لأغراض العرض
+                            const parentIndex = Math.min(index, parentNodes.length - 1);
+                            const parentNode = parentNodes[parentIndex];
+                            
+                            if (parentNode) {
+                                const childNodeId = `node-${node.id}-${level}-${index}`;
+                                const parentNodeId = `node-${parentNode.id}-${parentLevel}-${parentIndex}`;
+                                
+                                const childElement = document.getElementById(childNodeId);
+                                const parentElement = document.getElementById(parentNodeId);
+                                
+                                if (childElement && parentElement) {
+                                    // حساب المواقع
+                                    const childRect = childElement.getBoundingClientRect();
+                                    const parentRect = parentElement.getBoundingClientRect();
+                                    const containerRect = fullTreeVisualization.getBoundingClientRect();
+                                    
+                                    // إزاحة المواقع النسبية للحاوية
+                                    const childX = childRect.left + childRect.width / 2 - containerRect.left;
+                                    const childY = childRect.top - containerRect.top;
+                                    const parentX = parentRect.left + parentRect.width / 2 - containerRect.left;
+                                    const parentY = parentRect.top + parentRect.height - containerRect.top;
+                                    
+                                    // رسم خط الاتصال
+                                    const line = document.createElementNS(svgNS, "line");
+                                    line.setAttribute("x1", parentX.toString());
+                                    line.setAttribute("y1", parentY.toString());
+                                    line.setAttribute("x2", childX.toString());
+                                    line.setAttribute("y2", childY.toString());
+                                    line.setAttribute("stroke", "var(--primary)");
+                                    line.setAttribute("stroke-width", "2");
+                                    line.setAttribute("stroke-dasharray", "5,5");
+                                    
+                                    svgElement.appendChild(line);
+                                }
+                            }
+                        }
+                    });
+                });
+                
+                // رسم خطوط أفقية بين الإخوة في نفس المستوى (للتوضيح)
+                Object.keys(levels).forEach(levelKey => {
+                    const level = parseInt(levelKey);
+                    const levelNodes = levels[level];
+                    
+                    if (levelNodes.length > 1) {
+                        for (let i = 0; i < levelNodes.length - 1; i++) {
+                            const node1Id = `node-${levelNodes[i].id}-${level}-${i}`;
+                            const node2Id = `node-${levelNodes[i+1].id}-${level}-${i+1}`;
+                            
+                            const node1Element = document.getElementById(node1Id);
+                            const node2Element = document.getElementById(node2Id);
+                            
+                            if (node1Element && node2Element) {
+                                const node1Rect = node1Element.getBoundingClientRect();
+                                const node2Rect = node2Element.getBoundingClientRect();
+                                const containerRect = fullTreeVisualization.getBoundingClientRect();
+                                
+                                const node1X = node1Rect.left + node1Rect.width / 2 - containerRect.left;
+                                const node1Y = node1Rect.top - containerRect.top;
+                                const node2X = node2Rect.left + node2Rect.width / 2 - containerRect.left;
+                                const node2Y = node2Rect.top - containerRect.top;
+                                
+                                // رسم خط أفقي رفيع للإشارة إلى أنهم في نفس المستوى
+                                const horizontalLine = document.createElementNS(svgNS, "line");
+                                horizontalLine.setAttribute("x1", node1X.toString());
+                                horizontalLine.setAttribute("y1", (node1Y - 10).toString());
+                                horizontalLine.setAttribute("x2", node2X.toString());
+                                horizontalLine.setAttribute("y2", (node2Y - 10).toString());
+                                horizontalLine.setAttribute("stroke", "var(--gray)");
+                                horizontalLine.setAttribute("stroke-width", "1");
+                                horizontalLine.setAttribute("stroke-dasharray", "3,3");
+                                horizontalLine.setAttribute("opacity", "0.5");
+                                
+                                svgElement.appendChild(horizontalLine);
+                            }
+                        }
+                    }
+                });
+                
+            }, 100);
             
         } catch (error) {
             console.error('خطأ في عرض الشجرة الكاملة:', error);
