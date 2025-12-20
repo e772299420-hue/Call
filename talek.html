@@ -447,6 +447,11 @@
             background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
         }
         
+        .node-parent {
+            border-color: var(--orange);
+            background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 100%);
+        }
+        
         .node-child {
             border-color: var(--info);
             background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
@@ -2210,6 +2215,7 @@
     let filteredMerchants = [];
     let selectedMerchantId = null;
     let fullNetworkData = [];
+    let parentData = null;
     
     // ===== نظام الجلوبالات المحسن =====
     const globalUser = {
@@ -2725,70 +2731,6 @@
         }
     }
     
-    // دالة لجلب جميع أحفاد التاجر (الشبكة الكاملة)
-    async function getAllDescendants(membershipId) {
-        try {
-            if (!membershipId) return [];
-            
-            const allDescendants = [];
-            
-            // دالة متكررة لجلب جميع الأحفاد
-            async function getDescendantsRecursive(parentId, level = 1) {
-                const children = await getChildren(parentId);
-                
-                for (const child of children) {
-                    // إضافة معلومات المستوى
-                    child.networkLevel = level;
-                    allDescendants.push(child);
-                    
-                    // الاستمرار في الأحفاد
-                    await getDescendantsRecursive(child.id, level + 1);
-                }
-            }
-            
-            await getDescendantsRecursive(membershipId);
-            return allDescendants;
-            
-        } catch (error) {
-            console.error('خطأ في جلب جميع الأحفاد:', error);
-            return [];
-        }
-    }
-    
-    // دالة لحساب إحصائيات الشبكة
-    async function calculateNetworkStats(membershipId) {
-        try {
-            if (!membershipId) return { total: 0, depth: 0 };
-            
-            const allDescendants = await getAllDescendants(membershipId);
-            
-            // حساب أقصى عمق
-            let maxDepth = 0;
-            if (allDescendants.length > 0) {
-                maxDepth = Math.max(...allDescendants.map(d => d.networkLevel || 0));
-            }
-            
-            // حساب متوسط العمولة للأبناء المباشرين فقط
-            const directChildren = await getChildren(membershipId);
-            let avgCommission = 0;
-            if (directChildren.length > 0) {
-                const totalCommission = directChildren.reduce((sum, child) => sum + (parseInt(child.commissionRate) || 0), 0);
-                avgCommission = Math.round(totalCommission / directChildren.length);
-            }
-            
-            return {
-                direct: directChildren.length,
-                total: allDescendants.length,
-                depth: maxDepth,
-                avgCommission: avgCommission
-            };
-            
-        } catch (error) {
-            console.error('خطأ في حساب إحصائيات الشبكة:', error);
-            return { total: 0, depth: 0, direct: 0, avgCommission: 0 };
-        }
-    }
-    
     // دالة لجلب بيانات الوالد
     async function getParentData(parentId) {
         try {
@@ -2800,6 +2742,51 @@
         } catch (error) {
             console.error('خطأ في جلب بيانات الوالد:', error);
             return null;
+        }
+    }
+    
+    // دالة لجلب جميع التجار المرتبطين بالتاجر الحالي (الأبناء والأحفاد)
+    async function getAllConnectedMerchants() {
+        try {
+            if (!currentMembership || !currentMembership.id) {
+                return new Set();
+            }
+            
+            const connectedMobiles = new Set();
+            
+            // إضافة التاجر الحالي
+            if (currentMerchant && currentMerchant.mobile) {
+                const cleanMobile = validateMobile(currentMerchant.mobile);
+                if (cleanMobile) {
+                    connectedMobiles.add(cleanMobile);
+                }
+            }
+            
+            // دالة متكررة لجلب جميع الأبناء والأحفاد
+            async function getDescendantsRecursive(parentId) {
+                const children = await getChildren(parentId);
+                
+                for (const child of children) {
+                    if (child.mobile) {
+                        const cleanMobile = validateMobile(child.mobile);
+                        if (cleanMobile) {
+                            connectedMobiles.add(cleanMobile);
+                        }
+                    }
+                    
+                    // الاستمرار في الأحفاد
+                    await getDescendantsRecursive(child.id);
+                }
+            }
+            
+            // جلب جميع الأبناء والأحفاد
+            await getDescendantsRecursive(currentMembership.id);
+            
+            return connectedMobiles;
+            
+        } catch (error) {
+            console.error('خطأ في جلب التجار المرتبطين:', error);
+            return new Set();
         }
     }
     
@@ -2833,19 +2820,8 @@
                 }
             });
             
-            // الحصول على رقم جوال التاجر الحالي
-            const currentUserMobile = currentMerchant ? validateMobile(currentMerchant.mobile) : null;
-            
-            // الحصول على أرقام هواتف الأبناء الحاليين (جميع المستويات)
-            const currentChildrenMobiles = new Set();
-            if (currentMembership) {
-                const allDescendants = await getAllDescendants(currentMembership.id);
-                allDescendants.forEach(descendant => {
-                    if (descendant.mobile) {
-                        currentChildrenMobiles.add(validateMobile(descendant.mobile));
-                    }
-                });
-            }
+            // الحصول على جميع التجار المرتبطين بالتاجر الحالي
+            const connectedMerchants = await getAllConnectedMerchants();
             
             // تصفية التجار المتاحين للإضافة
             const availableMerchants = [];
@@ -2859,11 +2835,10 @@
                 const cleanMobile = validateMobile(merchant.mobile);
                 if (!cleanMobile) return;
                 
-                // استبعاد التاجر الحالي
-                if (currentUserMobile && cleanMobile === currentUserMobile) return;
-                
-                // استبعاد التجار المرتبطين مسبقاً (أبناء حالين)
-                if (currentChildrenMobiles.has(cleanMobile)) return;
+                // استبعاد التجار المرتبطين بالتاجر الحالي (بما فيهم التاجر الحالي نفسه)
+                if (connectedMerchants.has(cleanMobile)) {
+                    return;
+                }
                 
                 // استبعاد التجار الذين لديهم والد مسبق
                 const membership = membershipMap[cleanMobile];
@@ -3129,8 +3104,8 @@
         }
     }
     
-    // دالة لعرض الشجرة الهرمية البسيطة
-    function renderHierarchyTree(membership, children) {
+    // دالة لعرض الشجرة الهرمية مع الوالد إذا كان موجوداً
+    async function renderHierarchyTree(membership, children) {
         if (!hierarchyTree) return;
         
         // إخفاء رسالة عدم وجود بيانات
@@ -3141,6 +3116,28 @@
         // مسح الشجرة الحالية
         hierarchyTree.innerHTML = '';
         
+        // إذا كان هناك والد، نعرضه أولاً
+        if (parentData && membership.parentId) {
+            const parentLevel = document.createElement('div');
+            parentLevel.className = 'tree-level';
+            
+            const parentNode = document.createElement('div');
+            parentNode.className = 'tree-node node-parent';
+            parentNode.innerHTML = `
+                <div class="node-name">${parentData.name || 'غير معروف'}</div>
+                <div class="node-mobile">${parentData.mobile || 'غير معروف'}</div>
+                <div class="node-status">الأب (المستوى ${parentData.membershipLevel || 0})</div>
+            `;
+            
+            parentLevel.appendChild(parentNode);
+            hierarchyTree.appendChild(parentLevel);
+            
+            // إضافة خط اتصال من الوالد إلى الابن
+            const parentConnector = document.createElement('div');
+            parentConnector.className = 'node-connector';
+            parentNode.appendChild(parentConnector);
+        }
+        
         // مستوى التاجر الرئيسي
         const mainLevel = document.createElement('div');
         mainLevel.className = 'tree-level';
@@ -3150,7 +3147,7 @@
         mainNode.innerHTML = `
             <div class="node-name">${membership.name || 'غير معروف'}</div>
             <div class="node-mobile">${membership.mobile || 'غير معروف'}</div>
-            <div class="node-status status-active">المستوى ${membership.membershipLevel || 0}</div>
+            <div class="node-status">أنت (المستوى ${membership.membershipLevel || 0})</div>
         `;
         
         mainLevel.appendChild(mainNode);
@@ -3161,7 +3158,7 @@
             const childrenLevel = document.createElement('div');
             childrenLevel.className = 'tree-level';
             
-            // إضافة خطوط الاتصال
+            // إضافة خطوط الاتصال للأبناء
             const connector = document.createElement('div');
             connector.className = 'node-connector';
             mainNode.appendChild(connector);
@@ -3172,15 +3169,15 @@
                 childNode.innerHTML = `
                     <div class="node-name">${child.name || 'غير معروف'}</div>
                     <div class="node-mobile">${child.mobile || 'غير معروف'}</div>
-                    <div class="node-status">المستوى ${child.membershipLevel || 1}</div>
+                    <div class="node-status">ابن ${index + 1} (المستوى ${child.membershipLevel || 1})</div>
                 `;
                 
                 childrenLevel.appendChild(childNode);
             });
             
             hierarchyTree.appendChild(childrenLevel);
-        } else {
-            // عرض رسالة عدم وجود أبناء
+        } else if (!parentData) {
+            // إذا لم يكن هناك أبناء ولا والد، نعرض رسالة عدم وجود بيانات
             if (treeNoData) {
                 treeNoData.style.display = 'block';
             }
@@ -3209,8 +3206,24 @@
                 return;
             }
             
-            // جلب جميع الأحفاد
-            const allDescendants = await getAllDescendants(membershipId);
+            // جلب جميع أحفاد التاجر الحالي
+            const allDescendants = [];
+            
+            // دالة متكررة لجلب جميع الأحفاد
+            async function getDescendantsRecursive(parentId, level = 1) {
+                const children = await getChildren(parentId);
+                
+                for (const child of children) {
+                    // إضافة معلومات المستوى
+                    child.networkLevel = level;
+                    allDescendants.push(child);
+                    
+                    // الاستمرار في الأحفاد
+                    await getDescendantsRecursive(child.id, level + 1);
+                }
+            }
+            
+            await getDescendantsRecursive(membershipId);
             
             // تنظيم البيانات حسب المستوى
             const levels = {};
@@ -3468,7 +3481,7 @@
     }
     
     // دالة لعرض إحصائيات العضوية
-    function renderMembershipStats(membership, children, networkStats) {
+    async function renderMembershipStats(membership, children) {
         if (!membership) return;
         
         // معلومات العضوية الأساسية
@@ -3485,27 +3498,78 @@
         if (directChildrenCount) {
             directChildrenCount.textContent = children ? children.length : 0;
         }
-        if (totalNetworkCount) {
-            totalNetworkCount.textContent = networkStats.total || 0;
+        
+        // حساب إجمالي الشبكة (الأبناء + الأحفاد)
+        let totalNetwork = children ? children.length : 0;
+        
+        // دالة متكررة لحساب الأحفاد
+        async function countDescendants(parentId) {
+            const children = await getChildren(parentId);
+            let count = children.length;
+            
+            for (const child of children) {
+                count += await countDescendants(child.id);
+            }
+            
+            return count;
         }
+        
+        if (currentMembership && currentMembership.id) {
+            totalNetwork = await countDescendants(currentMembership.id);
+        }
+        
+        if (totalNetworkCount) {
+            totalNetworkCount.textContent = totalNetwork;
+        }
+        
+        // حساب أقصى عمق
+        let maxDepthValue = 0;
+        
+        // دالة متكررة لحساب العمق
+        async function calculateDepth(parentId, currentDepth) {
+            const children = await getChildren(parentId);
+            
+            if (children.length === 0) {
+                return currentDepth;
+            }
+            
+            let maxChildDepth = currentDepth;
+            for (const child of children) {
+                const childDepth = await calculateDepth(child.id, currentDepth + 1);
+                maxChildDepth = Math.max(maxChildDepth, childDepth);
+            }
+            
+            return maxChildDepth;
+        }
+        
+        if (currentMembership && currentMembership.id) {
+            maxDepthValue = await calculateDepth(currentMembership.id, 0);
+        }
+        
         if (maxDepth) {
-            maxDepth.textContent = networkStats.depth || 0;
+            maxDepth.textContent = maxDepthValue;
         }
         
         // متوسط العمولة
         if (avgCommission) {
-            avgCommission.textContent = `${networkStats.avgCommission || 0}%`;
+            if (children && children.length > 0) {
+                const totalCommission = children.reduce((sum, child) => sum + (parseInt(child.commissionRate) || 0), 0);
+                const average = Math.round(totalCommission / children.length);
+                avgCommission.textContent = `${average}%`;
+            } else {
+                avgCommission.textContent = '0%';
+            }
         }
         
         // إجمالي العمولات (محاكاة)
         if (totalCommissions) {
-            const totalCommissionsValue = networkStats.total ? networkStats.total * 50 : 0; // قيمة افتراضية
+            const totalCommissionsValue = totalNetwork * 50; // قيمة افتراضية
             totalCommissions.textContent = `${totalCommissionsValue} ر.س`;
         }
         
         // المكافآت (محاكاة)
         if (pendingRewards) {
-            const pendingValue = networkStats.total ? Math.floor(networkStats.total / 10) * 100 : 0;
+            const pendingValue = totalNetwork ? Math.floor(totalNetwork / 10) * 100 : 0;
             pendingRewards.textContent = `${pendingValue} ر.س`;
         }
         if (paidRewards) {
@@ -3640,8 +3704,6 @@
             
             if (!membershipCheck.isMember) {
                 // إنشاء عضوية جديدة تلقائياً
-                showToast('جاري إنشاء عضوية جديدة لك...', 'info');
-                
                 const createResult = await createMembership(currentMerchant, merchantCheck.id);
                 if (!createResult.success) {
                     throw new Error(`فشل إنشاء العضوية: ${createResult.message}`);
@@ -3650,7 +3712,7 @@
                 currentMembership = createResult.membershipData;
                 currentMembership.id = createResult.membershipId;
                 
-                showToast('تم إنشاء عضوية جديدة لك بنجاح', 'success');
+                // لا نعرض إشعار إنشاء العضوية
             } else {
                 currentMembership = membershipCheck.membership;
                 currentMembership.id = membershipCheck.id;
@@ -3659,15 +3721,19 @@
             // جلب الأبناء المباشرين
             merchantChildren = await getChildren(currentMembership.id);
             
-            // حساب إحصائيات الشبكة
-            const networkStats = await calculateNetworkStats(currentMembership.id);
+            // جلب بيانات الوالد إذا كان موجوداً
+            if (currentMembership.parentId) {
+                parentData = await getParentData(currentMembership.parentId);
+            } else {
+                parentData = null;
+            }
             
             // تحديث واجهة المستخدم
             updateUserDisplay();
             await renderMerchantData(currentMerchant, currentMembership);
-            renderHierarchyTree(currentMembership, merchantChildren);
+            await renderHierarchyTree(currentMembership, merchantChildren);
             renderChildrenList(merchantChildren);
-            renderMembershipStats(currentMembership, merchantChildren, networkStats);
+            await renderMembershipStats(currentMembership, merchantChildren);
             
             // إظهار الأقسام
             if (loadingIndicator) loadingIndicator.style.display = 'none';
@@ -3676,7 +3742,7 @@
             if (childrenSection) childrenSection.style.display = 'block';
             if (membershipStats) membershipStats.style.display = 'block';
             
-            showToast('تم تحميل بيانات العضوية بنجاح', 'success');
+            // تم إخفاء إشعار تحميل البيانات بنجاح
             
         } catch (error) {
             console.error('خطأ في تحميل بيانات العضوية:', error);
@@ -3818,7 +3884,6 @@
     // زر تحديث البيانات
     globalsRefreshBtn.addEventListener('click', function() {
         loadMerchantMembership();
-        showToast('جاري تحديث البيانات...', 'info');
     });
     
     // زر عرض الشجرة البسيطة
@@ -3885,8 +3950,7 @@
         // تحميل بيانات العضوية
         loadMerchantMembership();
         
-        // عرض رسالة ترحيبية
-        showToast('مرحباً بك في نظام العضويات الهرمي', 'info');
+        // تم إخفاء إشعار الترحيب
     });
 </script>
 
