@@ -1321,6 +1321,111 @@
         .image-slider-dot.active {
             background: white;
         }
+
+        /* أنماط جديدة للبحث والتصفية */
+        .search-filter-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+            border: 2px solid #667eea;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-box input {
+            padding-right: 2.5rem;
+            border-radius: 50px;
+            border: 2px solid var(--primary-color);
+            background: white;
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-color);
+            font-size: 1rem;
+        }
+
+        .search-info {
+            font-size: 12px;
+            color: var(--gray-color);
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        .sort-options {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .sort-btn {
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--primary-color);
+            border: 1px solid #667eea;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .sort-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .sort-btn:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .product-date-display {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: rgba(100, 116, 139, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            width: fit-content;
+        }
+
+        .product-price-display {
+            display: flex;
+            align-items: baseline;
+            gap: 0.3rem;
+            margin-top: 0.4rem;
+        }
+
+        .product-price-amount {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .product-price-currency {
+            font-size: 0.9rem;
+            color: var(--gray-color);
+        }
     </style>
 </head>
 <body>
@@ -1492,6 +1597,26 @@
             <div id="view-products-tab" class="tab-content">
                 <div class="form-section">
                     <h3><i class="fas fa-list"></i> الأصناف والمنتجات</h3>
+                    
+                    <!-- قسم البحث والتصفية -->
+                    <div class="search-filter-container">
+                        <div class="search-box">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="product-search" placeholder="ابحث عن صنف بالاسم أو الوصف..." autocomplete="off">
+                        </div>
+                        
+                        <div class="sort-options">
+                            <button class="sort-btn active" data-sort="newest">الأحدث أولاً</button>
+                            <button class="sort-btn" data-sort="oldest">الأقدم أولاً</button>
+                            <button class="sort-btn" data-sort="name">حسب الاسم</button>
+                            <button class="sort-btn" data-sort="price-high">السعر الأعلى</button>
+                            <button class="sort-btn" data-sort="price-low">السعر الأقل</button>
+                        </div>
+                        
+                        <div class="search-info" id="search-info">
+                            جاري تحميل المنتجات...
+                        </div>
+                    </div>
 
                     <div id="products-container" class="products-container-expanded">
                         <div class="no-products">
@@ -1585,6 +1710,8 @@
         let currentProductImages = []; // الصور الحالية للمنتج عند التعديل
         let productsListener = null; // مستمع للتحديثات الفورية
         let userUsedCategories = new Set(); // الأقسام التي استخدمها التاجر
+        let currentSortOption = 'newest'; // خيار الترتيب الحالي
+        let currentSearchQuery = ''; // استعلام البحث الحالي
 
         // ===== نظام الجلوبالات المحسن =====
         const globalUser = {
@@ -1738,6 +1865,35 @@
             
             document.getElementById('product-date').value = todayFormatted;
             return todayFormatted;
+        }
+
+        // دالة لتهيئة التاريخ لعرضه
+        function formatDate(timestamp) {
+            if (!timestamp) return 'غير محدد';
+            
+            let date;
+            if (typeof timestamp === 'number') {
+                date = new Date(timestamp);
+            } else if (typeof timestamp === 'string') {
+                // إذا كان التاريخ بصيغة YYYY-MM-DD
+                if (timestamp.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    const [year, month, day] = timestamp.split('-');
+                    return `${day}/${month}/${year}`;
+                }
+                date = new Date(timestamp);
+            } else {
+                return 'غير محدد';
+            }
+            
+            // التحقق من أن التاريخ صالح
+            if (isNaN(date.getTime())) {
+                return 'غير محدد';
+            }
+            
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${day}/${month}/${year}`;
         }
 
         // ضغط الصور مع دقة منخفضة لتحسين السرعة
@@ -2179,6 +2335,98 @@
             suggestionBtn.classList.add('show');
         }
 
+        // ===== دالة البحث والتصفية =====
+        function filterAndSortProducts(products, searchQuery, sortOption) {
+            let filteredProducts = [...products];
+            
+            // البحث في المنتجات
+            if (searchQuery && searchQuery.trim() !== '') {
+                const query = searchQuery.toLowerCase().trim();
+                filteredProducts = filteredProducts.filter(product => {
+                    // البحث في الاسم
+                    if (product.name && product.name.toLowerCase().includes(query)) {
+                        return true;
+                    }
+                    
+                    // البحث في الوصف
+                    if (product.description && product.description.toLowerCase().includes(query)) {
+                        return true;
+                    }
+                    
+                    // البحث في اسم القسم
+                    const categoryName = getCategoryName(product.category);
+                    if (categoryName && categoryName.toLowerCase().includes(query)) {
+                        return true;
+                    }
+                    
+                    // البحث في السعر
+                    if (product.price && product.price.toString().includes(query)) {
+                        return true;
+                    }
+                    
+                    // البحث في العملة
+                    if (product.currency && product.currency.toLowerCase().includes(query)) {
+                        return true;
+                    }
+                    
+                    return false;
+                });
+            }
+            
+            // ترتيب المنتجات حسب الخيار المحدد
+            switch (sortOption) {
+                case 'newest':
+                    // الأحدث أولاً حسب createdAt أو date
+                    filteredProducts.sort((a, b) => {
+                        const dateA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
+                        const dateB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
+                        return dateB - dateA;
+                    });
+                    break;
+                    
+                case 'oldest':
+                    // الأقدم أولاً
+                    filteredProducts.sort((a, b) => {
+                        const dateA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
+                        const dateB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
+                        return dateA - dateB;
+                    });
+                    break;
+                    
+                case 'name':
+                    // حسب الاسم أبجدياً
+                    filteredProducts.sort((a, b) => {
+                        return a.name.localeCompare(b.name);
+                    });
+                    break;
+                    
+                case 'price-high':
+                    // السعر الأعلى أولاً
+                    filteredProducts.sort((a, b) => {
+                        return (b.price || 0) - (a.price || 0);
+                    });
+                    break;
+                    
+                case 'price-low':
+                    // السعر الأقل أولاً
+                    filteredProducts.sort((a, b) => {
+                        return (a.price || 0) - (b.price || 0);
+                    });
+                    break;
+                    
+                default:
+                    // الافتراضي: الأحدث أولاً
+                    filteredProducts.sort((a, b) => {
+                        const dateA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
+                        const dateB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
+                        return dateB - dateA;
+                    });
+                    break;
+            }
+            
+            return filteredProducts;
+        }
+
         // تحميل المنتجات مع التحديث الفوري - مع ضبط الترتيب للأحدث أولاً
         async function loadProducts() {
             try {
@@ -2214,15 +2462,17 @@
                     const realTimeBadge = document.getElementById('real-time-badge');
                     realTimeBadge.style.display = 'inline-flex';
                     
-                    // ترتيب المنتجات حسب الأحدث أولاً
-                    allProducts.sort((a, b) => {
-                        const dateA = a.createdAt || a.date || 0;
-                        const dateB = b.createdAt || b.date || 0;
-                        return dateB - dateA; // الأحدث أولاً
-                    });
+                    // الحصول على استعلام البحث الحالي وترتيب المنتجات
+                    const searchQuery = document.getElementById('product-search')?.value || '';
+                    const sortOption = currentSortOption;
+                    
+                    const filteredProducts = filterAndSortProducts(allProducts, searchQuery, sortOption);
+                    
+                    // تحديث معلومات البحث
+                    updateSearchInfo(filteredProducts.length, allProducts.length, searchQuery);
                     
                     // عرض المنتجات
-                    displayProducts(allProducts);
+                    displayProducts(filteredProducts);
                     
                     showGlobalLoading(false);
                     
@@ -2236,6 +2486,24 @@
                 console.error('خطأ في تحميل المنتجات:', error);
                 showToast('حدث خطأ في تحميل المنتجات', 'error');
                 showGlobalLoading(false);
+            }
+        }
+
+        // تحديث معلومات البحث
+        function updateSearchInfo(filteredCount, totalCount, searchQuery) {
+            const searchInfo = document.getElementById('search-info');
+            
+            if (searchQuery && searchQuery.trim() !== '') {
+                if (filteredCount === 0) {
+                    searchInfo.innerHTML = `<i class="fas fa-search"></i> لا توجد نتائج لـ "${searchQuery}"`;
+                    searchInfo.style.color = 'var(--danger-color)';
+                } else {
+                    searchInfo.innerHTML = `<i class="fas fa-check-circle"></i> تم العثور على ${filteredCount} منتج من أصل ${totalCount} لـ "${searchQuery}"`;
+                    searchInfo.style.color = 'var(--success-color)';
+                }
+            } else {
+                searchInfo.innerHTML = `<i class="fas fa-info-circle"></i> عرض ${totalCount} منتج`;
+                searchInfo.style.color = 'var(--info-color)';
             }
         }
 
@@ -2253,6 +2521,7 @@
                     <div class="no-products">
                         <i class="fas fa-box-open"></i>
                         <p>لا توجد أصناف مسجلة بعد</p>
+                        ${currentSearchQuery ? `<p style="margin-top: 10px; font-size: 14px;">لم يتم العثور على نتائج لـ "${currentSearchQuery}"</p>` : ''}
                     </div>
                 `;
                 return;
@@ -2276,6 +2545,10 @@
                     `<div class="offer-dates">
                         <i class="fas fa-calendar-alt"></i> ${product.startDate} - ${product.endDate}
                     </div>` : '';
+                
+                // تنسيق تاريخ الإضافة
+                const productDate = product.date || product.createdAt;
+                const formattedDate = formatDate(productDate);
                 
                 // بناء HTML للصور
                 let imageHTML = '';
@@ -2308,8 +2581,12 @@
                         <span class="product-status ${product.availability === 'available' ? 'status-available' : 'status-unavailable'}">
                             ${product.availability === 'available' ? 'متوفر' : 'غير متوفر'}
                         </span>
-                        <div style="margin-top: 0.4rem;">
-                            <strong style="color: var(--primary-color);">${product.price} ${product.currency || 'ريال يمني'}</strong>
+                        <div class="product-price-display">
+                            <span class="product-price-amount">${product.price}</span>
+                            <span class="product-price-currency">${product.currency || 'ريال يمني'}</span>
+                        </div>
+                        <div class="product-date-display">
+                            <i class="fas fa-calendar-plus"></i> ${formattedDate}
                         </div>
                         ${isOfferProduct ? offerDates : ''}
                         <div class="product-actions-simple">
@@ -2822,6 +3099,51 @@
                     !suggestionBtn.contains(e.target)) {
                     suggestionsContainer.style.display = 'none';
                 }
+            });
+            
+            // أحداث البحث والتصفية
+            const productSearchInput = document.getElementById('product-search');
+            if (productSearchInput) {
+                let searchTimeout;
+                productSearchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    currentSearchQuery = this.value;
+                    searchTimeout = setTimeout(() => {
+                        // تحديث عرض المنتجات مع البحث
+                        const filteredProducts = filterAndSortProducts(allProducts, currentSearchQuery, currentSortOption);
+                        updateSearchInfo(filteredProducts.length, allProducts.length, currentSearchQuery);
+                        displayProducts(filteredProducts);
+                    }, 300);
+                });
+            }
+            
+            // أحداث خيارات الترتيب
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // إزالة النشاط من جميع الأزرار
+                    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                    
+                    // إضافة النشاط للزر المحدد
+                    this.classList.add('active');
+                    
+                    // تحديث خيار الترتيب الحالي
+                    currentSortOption = this.dataset.sort;
+                    
+                    // تحديث عرض المنتجات مع الترتيب الجديد
+                    const filteredProducts = filterAndSortProducts(allProducts, currentSearchQuery, currentSortOption);
+                    displayProducts(filteredProducts);
+                    
+                    // عرض رسالة تأكيد
+                    let sortMessage = '';
+                    switch (currentSortOption) {
+                        case 'newest': sortMessage = 'تم ترتيب المنتجات حسب الأحدث أولاً'; break;
+                        case 'oldest': sortMessage = 'تم ترتيب المنتجات حسب الأقدم أولاً'; break;
+                        case 'name': sortMessage = 'تم ترتيب المنتجات حسب الاسم أبجدياً'; break;
+                        case 'price-high': sortMessage = 'تم ترتيب المنتجات حسب السعر الأعلى أولاً'; break;
+                        case 'price-low': sortMessage = 'تم ترتيب المنتجات حسب السعر الأقل أولاً'; break;
+                    }
+                    showToast(sortMessage, 'info');
+                });
             });
             
             // أحداث نافذة تأكيد الحذف
