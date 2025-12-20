@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -388,7 +387,7 @@
             color: #721c24;
         }
         
-        /* تبويب بياناتي */
+        /* تبويب بياناتي - مخفي */
         .profile-card {
             background: white;
             border-radius: 8px;
@@ -612,7 +611,7 @@
     <!-- شاشة تسجيل الدخول -->
     <div id="login-screen">
         <div class="login-container">
-            <button class="close-btn" onclick="closePage()">
+            <button class="close-btn" id="login-close-btn">
                 <i class="fas fa-times"></i>
             </button>
             <div class="login-tabs">
@@ -718,7 +717,7 @@
             <div class="tab active" onclick="switchTab('add')">التقديم لطلب وظيفة</div>
             <div class="tab" onclick="switchTab('vacancies')">إضافة وظيفة شاغرة</div>
             <div class="tab" onclick="switchTab('my-jobs')">عرض وظائفي</div>
-            <div class="tab" onclick="switchTab('profile')">بياناتي</div>
+            <!-- تبويب بياناتي تم إخفاؤه -->
         </div>
         
         <!-- تبويب التقديم لطلب وظيفة -->
@@ -861,7 +860,7 @@
                 <input type="hidden" id="userId">
                 
                 <button type="submit" class="btn" id="save-job-btn">حفظ طلب الوظيفة</button>
-                <button type="button" class="btn" onclick="resetForm()" style="background-color: #95a5a6;">إلغاء</button>
+                <button type="button" class="btn" id="cancel-job-btn" style="background-color: #95a5a6;">إلغاء</button>
             </form>
         </div>
         
@@ -969,7 +968,7 @@
                 <input type="hidden" id="vacancyPostDate">
                 
                 <button type="submit" class="btn">نشر الوظيفة</button>
-                <button type="button" class="btn" onclick="resetVacancyForm()" style="background-color: #95a5a6;">إلغاء</button>
+                <button type="button" class="btn" id="cancel-vacancy-btn" style="background-color: #95a5a6;">إلغاء</button>
             </form>
         </div>
         
@@ -1016,8 +1015,8 @@
             </div>
         </div>
         
-        <!-- تبويب بياناتي -->
-        <div id="profile-tab" class="tab-content">
+        <!-- تبويب بياناتي - تم إخفاؤه -->
+        <div id="profile-tab" class="tab-content" style="display: none;">
             <div class="profile-card">
                 <div class="profile-field">
                     <div class="profile-label">الاسم الكامل</div>
@@ -1125,16 +1124,32 @@
             document.getElementById('job-form').addEventListener('submit', handleFormSubmit);
             document.getElementById('vacancy-form').addEventListener('submit', handleVacancySubmit);
             document.getElementById('logout-btn').addEventListener('click', handleLogout);
-            document.getElementById('update-profile-form').addEventListener('submit', handleProfileUpdate);
+            
+            // إعداد أزرار الإغلاق والعودة
+            document.getElementById('login-close-btn').addEventListener('click', goToMainPage);
+            document.getElementById('cancel-job-btn').addEventListener('click', goToMainPage);
+            document.getElementById('cancel-vacancy-btn').addEventListener('click', goToMainPage);
+            
+            // منع التبديل إلى تبويب البيانات إذا كان مخفيًا
+            document.querySelectorAll('.tab').forEach(tab => {
+                if (tab.textContent === 'بياناتي') {
+                    tab.style.display = 'none';
+                }
+            });
             
             // تحميل بيانات التذكر إذا كانت موجودة
             loadRememberedData();
+            
+            // الاستماع لحدث الرجوع في المتصفح
+            window.addEventListener('popstate', function(event) {
+                goToMainPage();
+            });
         });
 
-        // إغلاق الصفحة
-        function closePage() {
-            if (confirm('هل تريد إغلاق الصفحة؟')) {
-                window.close();
+        // دالة للعودة إلى الصفحة الرئيسية 1_6.html
+        function goToMainPage() {
+            if (confirm('هل تريد العودة إلى الصفحة الرئيسية؟ سيتم فقدان أي بيانات غير محفوظة.')) {
+                window.location.href = '1_6.html';
             }
         }
         
@@ -1569,25 +1584,8 @@
             document.getElementById('userId').value = currentUser.id;
             document.getElementById('applicationDate').value = new Date().toISOString().split('T')[0];
             
-            loadProfileData();
-        }
-        
-        // تحميل بيانات المستخدم لتبويب "بياناتي"
-        function loadProfileData() {
-            document.getElementById('profile-name').textContent = currentUser.name;
-            document.getElementById('profile-phone').textContent = currentUser.phone;
-            
-            // تحويل تاريخ الإنشاء إلى تنسيق مقروء
-            const createdDate = currentUser.createdAt ? new Date(currentUser.createdAt) : new Date();
-            document.getElementById('profile-created').textContent = createdDate.toLocaleDateString('ar-SA');
-            
-            document.getElementById('profile-status').textContent = currentUser.status === 1 ? 'نشط' : 'موقف';
-            
-            // إعداد حقل عرض رقم الجوال - مع معالجة القيمة بشكل صحيح
-            const phoneVisibility = parseInt(currentUser.phoneVisibility) || 1;
-            document.getElementById('profile-phone-visibility').checked = phoneVisibility === 1;
-            document.getElementById('phone-visibility-label').textContent = 
-                phoneVisibility === 1 ? 'عرض رقم الجوال للآخرين' : 'لم يتم عرض رقم الجوال للآخرين';
+            // إخفاء تبويب بياناتي بشكل كامل
+            document.getElementById('profile-tab').style.display = 'none';
         }
         
         // فتح نموذج تعديل البيانات
@@ -1656,7 +1654,6 @@
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     
                     // تحديث واجهة المستخدم
-                    loadProfileData();
                     document.getElementById('user-info').innerHTML = 
                         `مرحباً ${currentUser.name} - رقم الجوال: ${currentUser.phone} 
                         <span class="user-status status-active">الحالة: نشط</span>`;
@@ -1673,11 +1670,13 @@
         
         // معالجة تسجيل الخروج
         function handleLogout() {
-            currentUser = null;
-            localStorage.removeItem('currentUser');
-            hideMainContent();
-            resetForm();
-            showLoginScreen();
+            if (confirm('هل تريد تسجيل الخروج؟')) {
+                currentUser = null;
+                localStorage.removeItem('currentUser');
+                hideMainContent();
+                resetForm();
+                showLoginScreen();
+            }
         }
         
         // إخفاء المحتوى الرئيسي
@@ -1695,6 +1694,11 @@
         
         // التبديل بين التبويبات
         function switchTab(tabName) {
+            // منع التبديل إلى تبويب البيانات
+            if (tabName === 'profile') {
+                return;
+            }
+            
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -1706,9 +1710,7 @@
             document.getElementById(tabName + '-tab').classList.add('active');
             document.querySelector('.tab[onclick="switchTab(\'' + tabName + '\')"]').classList.add('active');
             
-            if (tabName === 'profile') {
-                loadProfileData();
-            } else if (tabName === 'my-jobs') {
+            if (tabName === 'my-jobs') {
                 loadMyJobsData();
             }
         }
