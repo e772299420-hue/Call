@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -73,11 +74,70 @@
             margin-bottom: 30px;
         }
         
+        .message-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+            display: none; /* مخفي افتراضيًا */
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .message-header h3 {
+            color: #333;
+            font-size: 1.2rem;
+        }
+        
+        .message-counter {
+            background: #6a11cb;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .message-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        .message-textarea:focus {
+            border-color: #6a11cb;
+            outline: none;
+        }
+        
+        .message-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+        
+        .message-chars {
+            color: #666;
+            font-size: 14px;
+        }
+        
         .tabs {
             display: flex;
             margin-bottom: 20px;
             border-bottom: 2px solid #eee;
             flex-wrap: wrap;
+            overflow-x: auto;
         }
         
         .tab {
@@ -87,6 +147,7 @@
             color: #666;
             transition: all 0.3s;
             position: relative;
+            white-space: nowrap;
         }
         
         .tab.active {
@@ -243,6 +304,14 @@
         
         .btn-location:hover {
             background: #0b7dda;
+        }
+        
+        .btn-send {
+            background: #9c27b0;
+        }
+        
+        .btn-send:hover {
+            background: #7b1fa2;
         }
         
         .tree-view {
@@ -613,6 +682,64 @@
             vertical-align: middle;
         }
         
+        /* تنسيقات جديدة لرسائل التجار */
+        .merchants-message-list {
+            margin-top: 20px;
+        }
+        
+        .merchant-message-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .merchant-message-item:hover {
+            background: #e9ecef;
+        }
+        
+        .merchant-message-info {
+            flex: 1;
+        }
+        
+        .merchant-message-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .merchant-message-contact {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .merchant-message-contact i {
+            color: #25D366;
+            margin-left: 5px;
+        }
+        
+        .merchant-message-products {
+            font-size: 14px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .merchant-message-products span {
+            color: #6a11cb;
+        }
+        
+        .merchant-message-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -669,6 +796,16 @@
             .simple-action-buttons {
                 align-self: flex-end;
             }
+            
+            .merchant-message-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .merchant-message-actions {
+                align-self: flex-end;
+            }
         }
     </style>
 </head>
@@ -684,7 +821,8 @@
     
     <div class="container">
         <div class="tabs">
-            <div class="tab active" data-tab="add">إضافة تاجر جديد</div>
+            <div class="tab active" data-tab="messages">إرسال رسائل <span class="tab-badge" id="messagesBadge" style="display: none;">0</span></div>
+            <div class="tab" data-tab="add">إضافة تاجر جديد</div>
             <div class="tab" data-tab="view">عرض التجار النشطين</div>
             <div class="tab" data-tab="requests">
                 طلبات الانضمام
@@ -696,7 +834,135 @@
             </div>
         </div>
         
-        <div class="tab-content active" id="addTab">
+        <!-- تبويب إرسال رسائل -->
+        <div class="tab-content active" id="messagesTab">
+            <!-- حقل نص الرسالة داخل تبويب الرسائل -->
+            <div class="message-container" id="messageContainer">
+                <div class="message-header">
+                    <h3><i class="fas fa-envelope"></i> نص الرسالة المخصصة</h3>
+                    <span class="message-counter" id="messageCounter">0 حرف</span>
+                </div>
+                <textarea class="message-textarea" id="customMessage" placeholder="أدخل نص الرسالة المخصصة التي ترغب في إرسالها إلى التجار..."
+                >
+عزيزي التاجر/ [اسم التاجر] المحترم،
+
+بمناسبة وصولنا إلى ١,٠٠٠,٠٠٠ مليون مستخدم 🎊
+
+🎁 هديتك الخاصة: نظام العضويات الهرمية
+
+لقد قمنا بتفعيل نظام العضويات الحصري للتجار، وسيصلك رقم عضويتك قريبًا.
+هذه العضوية لا تتيح لك فقط البيع لمليون مستخدم، بل تمنحك عمولة شهرية عن كل تاجر جديد تُضمّه تحت عضويتك!
+
+---
+
+📊 لنلقي نظرة على حسابك:
+
+أنت الآن جزء من أكبر منصة تجارية تصل إلى مليون مستخدم نشط
+وكلهم ينتظرون منتجاتك!
+
+· عدد منتجاتك الحالية: [عدد المنتجات]
+· جمهورك المستهدف: ١,٠٠٠,٠٠٠ مليون مشتري حقيقين
+· مصدر دخل إضافي: العضويات الهرمية (عمولة شهرية عن كل تاجر جديد)
+
+---
+
+🎯 خُطواتك الثلاث لبدء الربح السريع:
+
+1. انشر رابط متجرك الذهبي:
+      👇 هذا هو جسرك إلى المليون مستخدم 👇
+```
+
+https://e772299420-hue.github.io/Call/index.html
+
+```
+2. سجّل دخولك وأضف منتجاتك في دقائق:
+   · ادخل قسم "المنتجات الجديدة"
+   · اضغط "تسجيل الدخول" (أعلى الشاشة)
+   · اسم المستخدم: [اسم المستخدم]
+   · كلمة المرور: 123
+3. حوّل متجرك إلى آلة أرباح مزدوجة:
+   · من شاشة الأصناف: أضِف/عدِّل/وقِّف منتجاتك (واحرص على عرضها للمليون مشتري)
+   · من شاشة التاجر: حدّث بياناتك + أضف موقعك على الخريطة + حمِّل شعارك + اخفِ رقم واتسابك إن أردت
+   · ترقّب رقم عضويتك الهرمية لتبدأ بجني العمولات الشهرية!
+
+---
+
+💡 نصائح ذهبية لتحقيق أقصى استفادة:
+
+· لا تؤجل رفع المنتجات: كل يوم تأخير = فرص بيع ضائعة أمام المليون مستخدم.
+· احترافية الصور = مبيعات أكثر: المنتجات ذات الصور الجذابة تتصدر نتائج البحث.
+· نشّط متجرك أسبوعيًا: الزيارات المتكررة تزيد فرص الظهور للمتابعين الجدد.
+· استعد للعضويات الهرمية: كل تاجر تجلبه = دخل شهري إضافي مستمر.
+
+---
+
+⚠️ تنبيه هام:
+
+لقد أطلقنا ميزة العضويات الهرمية رسميًا، وسيصلك رقم عضويتك قريبًا.
+هذه العضولة ستضمن لك عائدًا شهريًا (مبلغًا ماليًا) مقابل كل تاجر يشترك تحت عضويتك.
+
+---
+
+🔥 تخيل مستقبلك مع AZ:
+
+· منتجاتك → معروضة لمليون عين تبحث عن الشراء.
+· عضويتك → تجلب لك أرباحًا شهرية إضافية.
+· متجرك → أصبح مصدر دخل مزدوج: مبيعات + عمولات.
+
+---
+
+نتمنى لك رحلة بيع ناجحة وأرباحًا متزايدة كل شهر!
+
+للإستفسار أو الدعم الفني:
+📱 772299420
+
+---
+
+متجر منصة AZ
+حيث تلتقي منتجاتك بمليون عميل محتمل، وتلتقي عضويتك بأرباح شهرية مضمونة!
+
+وشكرًا... لثقتك بمنصة تجعل نجاحك غايتها الأولى! 💰✨</textarea>
+                <div class="message-footer">
+                    <div class="message-chars">
+                        <i class="fas fa-info-circle"></i> سيتم استبدال النماذج بالبيانات الفعلية للتاجر تلقائياً
+                    </div>
+                </div>
+            </div>
+            
+            <div class="search-sort-container">
+                <div class="search-box">
+                    <input type="text" id="searchMessagesInput" class="search-input" placeholder="ابحث عن تاجر بالاسم، المستخدم، رقم الجوال...">
+                </div>
+                <div class="sort-box">
+                    <select id="sortMessagesSelect" class="sort-select">
+                        <option value="name-asc">الاسم (أ-ي)</option>
+                        <option value="name-desc">الاسم (ي-أ)</option>
+                        <option value="products-desc">الأكثر منتجات</option>
+                        <option value="products-asc">الأقل منتجات</option>
+                        <option value="date-desc">الأحدث أولاً</option>
+                        <option value="date-asc">الأقدم أولاً</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="messagesLoadingIndicator" style="text-align: center; padding: 20px;">
+                <div class="loading-spinner"></div>
+                <p>جاري تحميل بيانات التجار...</p>
+            </div>
+            
+            <div class="merchants-message-list" id="merchantsMessageList" style="display: none;">
+                <!-- سيتم ملء هذه المنطقة بقائمة التجار للرسائل -->
+            </div>
+            
+            <div id="noMerchantsMessage" style="display: none; text-align: center; padding: 40px 20px;">
+                <i class="fas fa-users-slash" style="font-size: 60px; color: #ddd; margin-bottom: 15px;"></i>
+                <h3 style="color: #666; margin-bottom: 10px;">لا توجد تجار نشطين</h3>
+                <p style="color: #888;">يجب أن يكون هناك تجار نشطين لإرسال الرسائل إليهم</p>
+            </div>
+        </div>
+        
+        <!-- تبويب إضافة تاجر جديد -->
+        <div class="tab-content" id="addTab">
             <div class="form-row">
                 <div class="form-group">
                     <label for="merchant-username" class="required">اسم المستخدم</label>
@@ -760,8 +1026,6 @@
                     <label for="merchant-mobile" class="required">رقم الجوال/واتساب</label>
                     <input type="tel" id="merchant-mobile" placeholder="أدخل رقم الجوال/واتساب" required>
                 </div>
-                
-                <!-- تم إخفاء حقل الأيبي -->
             </div>
             
             <div class="form-row">
@@ -811,6 +1075,7 @@
             </button>
         </div>
         
+        <!-- تبويب عرض التجار النشطين -->
         <div class="tab-content" id="viewTab">
             <div class="search-sort-container">
                 <div class="search-box">
@@ -822,6 +1087,8 @@
                         <option value="date-asc">الأقدم أولاً</option>
                         <option value="name-asc">الاسم (أ-ي)</option>
                         <option value="name-desc">الاسم (ي-أ)</option>
+                        <option value="products-desc">الأكثر منتجات</option>
+                        <option value="products-asc">الأقل منتجات</option>
                     </select>
                 </div>
             </div>
@@ -835,6 +1102,7 @@
             </div>
         </div>
         
+        <!-- تبويب طلبات الانضمام -->
         <div class="tab-content" id="requestsTab">
             <div class="search-sort-container">
                 <div class="search-box">
@@ -846,6 +1114,8 @@
                         <option value="date-asc">الأقدم أولاً</option>
                         <option value="name-asc">الاسم (أ-ي)</option>
                         <option value="name-desc">الاسم (ي-أ)</option>
+                        <option value="products-desc">الأكثر منتجات</option>
+                        <option value="products-asc">الأقل منتجات</option>
                     </select>
                 </div>
             </div>
@@ -859,6 +1129,7 @@
             </div>
         </div>
         
+        <!-- تبويب التجار الموقوفين -->
         <div class="tab-content" id="suspendedTab">
             <div class="search-sort-container">
                 <div class="search-box">
@@ -870,6 +1141,8 @@
                         <option value="date-asc">الأقدم أولاً</option>
                         <option value="name-asc">الاسم (أ-ي)</option>
                         <option value="name-desc">الاسم (ي-أ)</option>
+                        <option value="products-desc">الأكثر منتجات</option>
+                        <option value="products-asc">الأقل منتجات</option>
                     </select>
                 </div>
             </div>
@@ -943,7 +1216,7 @@
                     <label for="edit-merchant-area" class="required">المنطقة</label>
                     <select id="edit-merchant-area" required>
                         <option value="">اختر المنطقة</option>
-                        </select>
+                    </select>
                 </div>
                 
                 <div class="form-group">
@@ -957,8 +1230,6 @@
                     <label for="edit-merchant-mobile" class="required">رقم الجوال/واتساب</label>
                     <input type="tel" id="edit-merchant-mobile" required>
                 </div>
-                
-                <!-- تم إخفاء حقل الأيبي -->
             </div>
             
             <div class="form-row">
@@ -1031,6 +1302,33 @@
         </div>
     </div>
     
+    <!-- نموذج تأكيد إرسال رسالة مخصصة -->
+    <div class="modal" id="sendMessageModal">
+        <div class="modal-content">
+            <button class="close-modal" id="closeSendMessageModal">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <h2>تأكيد إرسال الرسالة</h2>
+            
+            <p id="sendMessageText">هل ترغب بإرسال الرسالة المخصصة إلى التاجر عبر الواتساب؟</p>
+            
+            <div style="margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border-right: 4px solid #6a11cb;">
+                <h4 style="margin-bottom: 10px; color: #333;">معاينة الرسالة:</h4>
+                <div id="messagePreview" style="font-size: 14px; line-height: 1.6; color: #555; max-height: 200px; overflow-y: auto; white-space: pre-wrap;"></div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-send" id="confirmSendMessageBtn" style="flex: 1;">
+                    <span>نعم، إرسال</span>
+                </button>
+                <button class="btn btn-delete" id="cancelSendMessageBtn" style="flex: 1;">
+                    <span>لا، إلغاء</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <a href="mnjr_admin.html" class="back-btn">
         <i class="fas fa-arrow-right"></i> العودة إلى صفحة الإدارة
     </a>
@@ -1053,7 +1351,24 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
-        // عناصر DOM
+        // عناصر DOM العامة
+        const customMessageInput = document.getElementById('customMessage');
+        const messageCounter = document.getElementById('messageCounter');
+        const messageContainer = document.getElementById('messageContainer');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const messagesBadge = document.getElementById('messagesBadge');
+        const requestsBadge = document.getElementById('requestsBadge');
+        const suspendedBadge = document.getElementById('suspendedBadge');
+        
+        // عناصر تبويب الرسائل
+        const searchMessagesInput = document.getElementById('searchMessagesInput');
+        const sortMessagesSelect = document.getElementById('sortMessagesSelect');
+        const messagesLoadingIndicator = document.getElementById('messagesLoadingIndicator');
+        const merchantsMessageList = document.getElementById('merchantsMessageList');
+        const noMerchantsMessage = document.getElementById('noMerchantsMessage');
+        
+        // عناصر تبويب إضافة تاجر
         const usernameInput = document.getElementById('merchant-username');
         const passwordInput = document.getElementById('merchant-password');
         const nameInput = document.getElementById('merchant-name');
@@ -1071,10 +1386,6 @@
         const googleInput = document.getElementById('merchant-google');
         const getLocationBtn = document.getElementById('get-location-btn');
         const addMerchantBtn = document.getElementById('addMerchantBtn');
-        const tabs = document.querySelectorAll('.tab');
-        const tabContents = document.querySelectorAll('.tab-content');
-        const requestsBadge = document.getElementById('requestsBadge');
-        const suspendedBadge = document.getElementById('suspendedBadge');
         
         // عناصر النماذج
         const editMerchantModal = document.getElementById('editMerchantModal');
@@ -1110,17 +1421,33 @@
         const cancelActivationBtn = document.getElementById('cancelActivationBtn');
         const activationMessage = document.getElementById('activationMessage');
         
+        // عناصر نموذج إرسال الرسالة المخصصة
+        const sendMessageModal = document.getElementById('sendMessageModal');
+        const closeSendMessageModal = document.getElementById('closeSendMessageModal');
+        const confirmSendMessageBtn = document.getElementById('confirmSendMessageBtn');
+        const cancelSendMessageBtn = document.getElementById('cancelSendMessageBtn');
+        const sendMessageText = document.getElementById('sendMessageText');
+        const messagePreview = document.getElementById('messagePreview');
+        
         // متغيرات التعديل
         let currentEditMerchantId = null;
         let governoratesData = {};
         let allMerchants = []; // لتخزين جميع التجار للبحث والترتيب
         let lastAddedMerchant = null; // لتخزين بيانات آخر تاجر تم إضافته
         let merchantToActivate = null; // لتخزين بيانات التاجر المراد تفعيله
+        let merchantToSendMessage = null; // لتخزين بيانات التاجر المراد إرسال رسالة له
         let productsData = {}; // لتخزين بيانات المنتجات
+        let restaurantProductsData = {}; // لتخزين بيانات منتجات المطاعم
         
         // ثوابت
         const DEFAULT_PASSWORD = 'default_password';
         const NEW_PASSWORD = '123';
+        
+        // متغيرات البحث والترتيب
+        let currentMessagesData = [];
+        let currentActiveMerchantsData = [];
+        let currentRequestsData = [];
+        let currentSuspendedData = [];
         
         // تهيئة الصفحة
         document.addEventListener('DOMContentLoaded', function() {
@@ -1128,25 +1455,24 @@
             setupEventListeners();
             setupManualLocationInput();
             
+            // تحديث عداد الأحرف في حقل الرسالة
+            updateMessageCounter();
+            
             // بدء مراقبة طلبات الانضمام والتجار الموقوفين لتحديث العدادات
             startMonitoring();
             
-            // الاستماع للتغييرات في التبويبات
-            document.querySelector('[data-tab="view"]').addEventListener('click', function() {
-                renderActiveMerchants();
-            });
+            // تحميل بيانات التجار للرسائل عند فتح الصفحة
+            renderMerchantsForMessages();
             
-            document.querySelector('[data-tab="requests"]').addEventListener('click', function() {
-                renderJoinRequests();
-            });
-            
-            document.querySelector('[data-tab="suspended"]').addEventListener('click', function() {
-                renderSuspendedMerchants();
-            });
+            // إظهار حقل الرسالة عند فتح تبويب الرسائل
+            showMessageContainerForMessagesTab();
         });
         
         // إعداد مستمعي الأحداث
         function setupEventListeners() {
+            // تحديث عداد الأحرف في حقل الرسالة
+            customMessageInput.addEventListener('input', updateMessageCounter);
+            
             // التبويبات
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
@@ -1157,6 +1483,13 @@
                     
                     tab.classList.add('active');
                     document.getElementById(`${tabId}Tab`).classList.add('active');
+                    
+                    // إظهار/إخفاء حقل الرسالة بناءً على التبويب النشط
+                    if (tabId === 'messages') {
+                        messageContainer.style.display = 'block';
+                    } else {
+                        messageContainer.style.display = 'none';
+                    }
                 });
             });
             
@@ -1187,17 +1520,59 @@
                 if (e.target === activationModal) {
                     activationModal.style.display = 'none';
                 }
+                if (e.target === sendMessageModal) {
+                    sendMessageModal.style.display = 'none';
+                }
             });
             
-            // البحث والترتيب في التبويبات المختلفة
-            document.getElementById('searchViewInput').addEventListener('input', filterAndSortActiveMerchants);
-            document.getElementById('sortViewSelect').addEventListener('change', filterAndSortActiveMerchants);
+            // البحث والترتيب في التبويبات المختلفة - تحديث فوري
+            searchMessagesInput.addEventListener('input', () => {
+                if (currentMessagesData.length > 0) {
+                    filterAndSortMerchantsForMessages();
+                }
+            });
             
-            document.getElementById('searchRequestsInput').addEventListener('input', filterAndSortRequests);
-            document.getElementById('sortRequestsSelect').addEventListener('change', filterAndSortRequests);
+            sortMessagesSelect.addEventListener('change', () => {
+                if (currentMessagesData.length > 0) {
+                    filterAndSortMerchantsForMessages();
+                }
+            });
             
-            document.getElementById('searchSuspendedInput').addEventListener('input', filterAndSortSuspended);
-            document.getElementById('sortSuspendedSelect').addEventListener('change', filterAndSortSuspended);
+            document.getElementById('searchViewInput').addEventListener('input', () => {
+                if (currentActiveMerchantsData.length > 0) {
+                    filterAndSortActiveMerchants();
+                }
+            });
+            
+            document.getElementById('sortViewSelect').addEventListener('change', () => {
+                if (currentActiveMerchantsData.length > 0) {
+                    filterAndSortActiveMerchants();
+                }
+            });
+            
+            document.getElementById('searchRequestsInput').addEventListener('input', () => {
+                if (currentRequestsData.length > 0) {
+                    filterAndSortRequests();
+                }
+            });
+            
+            document.getElementById('sortRequestsSelect').addEventListener('change', () => {
+                if (currentRequestsData.length > 0) {
+                    filterAndSortRequests();
+                }
+            });
+            
+            document.getElementById('searchSuspendedInput').addEventListener('input', () => {
+                if (currentSuspendedData.length > 0) {
+                    filterAndSortSuspended();
+                }
+            });
+            
+            document.getElementById('sortSuspendedSelect').addEventListener('change', () => {
+                if (currentSuspendedData.length > 0) {
+                    filterAndSortSuspended();
+                }
+            });
             
             // أحداث نموذج التفعيل
             closeActivationModal.addEventListener('click', () => {
@@ -1209,15 +1584,83 @@
             cancelActivationBtn.addEventListener('click', () => {
                 activationModal.style.display = 'none';
             });
+            
+            // أحداث نموذج إرسال الرسالة المخصصة
+            closeSendMessageModal.addEventListener('click', () => {
+                sendMessageModal.style.display = 'none';
+            });
+            
+            confirmSendMessageBtn.addEventListener('click', sendCustomMessage);
+            
+            cancelSendMessageBtn.addEventListener('click', () => {
+                sendMessageModal.style.display = 'none';
+            });
         }
         
-        // مراقبة طلبات الانضمام والتجار الموقوفين لتحديث العدادات
+        // إظهار حقل الرسالة عند فتح تبويب الرسائل
+        function showMessageContainerForMessagesTab() {
+            if (document.querySelector('[data-tab="messages"]').classList.contains('active')) {
+                messageContainer.style.display = 'block';
+            } else {
+                messageContainer.style.display = 'none';
+            }
+        }
+        
+        // تحديث عداد الأحرف في حقل الرسالة
+        function updateMessageCounter() {
+            const text = customMessageInput.value;
+            const charCount = text.length;
+            messageCounter.textContent = `${charCount} حرف`;
+            
+            // تغيير اللون بناءً على عدد الأحرف
+            if (charCount === 0) {
+                messageCounter.style.background = '#dc3545';
+            } else if (charCount < 100) {
+                messageCounter.style.background = '#ffc107';
+            } else {
+                messageCounter.style.background = '#6a11cb';
+            }
+        }
+        
+        // مراقبة طلبات الانضمام والتجار الموقوفين وتجار الرسائل لتحديث العدادات
         function startMonitoring() {
             database.ref('merchants').on('value', (snapshot) => {
                 const merchants = snapshot.val();
+                updateMessagesBadge(merchants);
                 updateRequestsBadge(merchants);
                 updateSuspendedBadge(merchants);
             });
+        }
+        
+        // تحديث عداد التجار للرسائل
+        function updateMessagesBadge(merchants) {
+            if (!merchants) {
+                messagesBadge.style.display = 'none';
+                return;
+            }
+            
+            let activeMerchantsCount = 0;
+            
+            Object.keys(merchants).forEach(key => {
+                const merchant = merchants[key];
+                
+                // شروط عرض التاجر في تبويب الرسائل:
+                // 1. الحالة نشط (active)
+                // 2. لديه رقم جوال
+                const isActive = merchant.status === 'active';
+                const hasMobile = merchant.mobile && merchant.mobile.trim() !== '';
+                
+                if (isActive && hasMobile) {
+                    activeMerchantsCount++;
+                }
+            });
+            
+            if (activeMerchantsCount > 0) {
+                messagesBadge.textContent = activeMerchantsCount;
+                messagesBadge.style.display = 'flex';
+            } else {
+                messagesBadge.style.display = 'none';
+            }
         }
         
         // تحديث عداد طلبات الانضمام
@@ -1565,6 +2008,11 @@
                 
                 showToast('تم إضافة التاجر بنجاح', 'success');
                 
+                // إذا كان التاجر نشطاً، تحديث قائمة الرسائل
+                if (status === 'active') {
+                    renderMerchantsForMessages();
+                }
+                
                 // عرض نموذج إرسال رسالة التفعيل
                 setTimeout(() => {
                     activationModal.style.display = 'flex';
@@ -1699,43 +2147,268 @@ https://e772299420-hue.github.io/Call/index.html
         // 🔥 التعديلات الجديدة لحساب عدد المنتجات
         // ==========================================
         
-        // جلب عدد المنتجات المرتبطة بالتاجر
-        async function getProductsCountForMerchant(merchantId) {
-            try {
-                // البحث عن المنتجات المرتبطة بالتاجر باستخدام userId
-                const productsSnapshot = await database.ref('products').orderByChild('userId').equalTo(merchantId).once('value');
-                const products = productsSnapshot.val();
-                return products ? Object.keys(products).length : 0;
-            } catch (error) {
-                console.error('خطأ في جلب عدد المنتجات:', error);
-                return 0;
-            }
-        }
-        
         // جلب جميع المنتجات مرة واحدة لتحسين الأداء
         async function loadAllProducts() {
             try {
-                const snapshot = await database.ref('products').once('value');
-                productsData = snapshot.val() || {};
-                return productsData;
+                const [productsSnapshot, restaurantProductsSnapshot] = await Promise.all([
+                    database.ref('products').once('value'),
+                    database.ref('snf_mt').once('value')
+                ]);
+                
+                productsData = productsSnapshot.val() || {};
+                restaurantProductsData = restaurantProductsSnapshot.val() || {};
+                
+                return { productsData, restaurantProductsData };
             } catch (error) {
                 console.error('خطأ في تحميل المنتجات:', error);
-                return {};
+                return { productsData: {}, restaurantProductsData: {} };
             }
         }
         
         // حساب عدد المنتجات المرتبطة بالتاجر من البيانات المحملة مسبقاً
-        function calculateProductsCountForMerchant(merchantId) {
-            if (!productsData) return 0;
+        function calculateProductsCountForMerchant(merchant) {
+            if (!merchant) return 0;
             
             let count = 0;
-            Object.keys(productsData).forEach(key => {
-                // البحث باستخدام userId الذي هو معرف التاجر
-                if (productsData[key].userId === merchantId) {
-                    count++;
+            
+            // إذا كانت الوظيفة "مطعم"، نبحث في بيانات المطاعم (snf_mt)
+            if (merchant.job === 'مطعم') {
+                if (restaurantProductsData) {
+                    Object.keys(restaurantProductsData).forEach(key => {
+                        // البحث باستخدام userId الذي هو معرف التاجر
+                        if (restaurantProductsData[key].userId === merchant.id) {
+                            count++;
+                        }
+                    });
                 }
-            });
+            } else {
+                // غير المطاعم نبحث في المنتجات العادية
+                if (productsData) {
+                    Object.keys(productsData).forEach(key => {
+                        // البحث باستخدام userId الذي هو معرف التاجر
+                        if (productsData[key].userId === merchant.id) {
+                            count++;
+                        }
+                    });
+                }
+            }
             return count;
+        }
+        
+        // ==========================================
+        // 🆕 تبويب إرسال الرسائل المخصصة
+        // ==========================================
+        
+        // عرض التجار النشطين لإرسال الرسائل
+        async function renderMerchantsForMessages() {
+            messagesLoadingIndicator.style.display = 'block';
+            merchantsMessageList.style.display = 'none';
+            noMerchantsMessage.style.display = 'none';
+            merchantsMessageList.innerHTML = '';
+            
+            try {
+                // جلب التجار من قاعدة البيانات
+                const merchantsSnapshot = await database.ref('merchants').once('value');
+                const merchants = merchantsSnapshot.val();
+                
+                if (!merchants) {
+                    messagesLoadingIndicator.style.display = 'none';
+                    noMerchantsMessage.style.display = 'block';
+                    return;
+                }
+                
+                // تحويل البيانات إلى مصفوفة
+                allMerchants = Object.keys(merchants).map(key => ({
+                    id: key,
+                    ...merchants[key]
+                }));
+                
+                // تحميل جميع المنتجات لتحسين الأداء
+                await loadAllProducts();
+                
+                // تصفية التجار النشطين فقط ولديهم رقم جوال
+                const activeMerchants = allMerchants.filter(merchant => 
+                    merchant.status === 'active' && 
+                    merchant.mobile && 
+                    merchant.mobile.trim() !== ''
+                );
+                
+                if (activeMerchants.length === 0) {
+                    messagesLoadingIndicator.style.display = 'none';
+                    noMerchantsMessage.style.display = 'block';
+                    return;
+                }
+                
+                // حفظ البيانات الحالية
+                currentMessagesData = activeMerchants;
+                
+                // تطبيق البحث والترتيب
+                filterAndSortMerchantsForMessages();
+                
+            } catch (error) {
+                console.error('خطأ في تحميل البيانات:', error);
+                showToast('حدث خطأ في تحميل البيانات', 'error');
+                messagesLoadingIndicator.style.display = 'none';
+            }
+        }
+        
+        // تصفية وترتيب التجار للرسائل
+        function filterAndSortMerchantsForMessages() {
+            let filteredMerchants = [...currentMessagesData];
+            
+            const searchTerm = searchMessagesInput.value.trim().toLowerCase();
+            
+            // تطبيق البحث
+            if (searchTerm) {
+                filteredMerchants = filteredMerchants.filter(merchant => {
+                    return (
+                        (merchant.name && merchant.name.toLowerCase().includes(searchTerm)) ||
+                        (merchant.username && merchant.username.toLowerCase().includes(searchTerm)) ||
+                        (merchant.mobile && merchant.mobile.includes(searchTerm))
+                    );
+                });
+            }
+            
+            // تطبيق الترتيب
+            const sortOption = sortMessagesSelect.value;
+            switch (sortOption) {
+                case 'name-asc':
+                    filteredMerchants.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+                    break;
+                case 'name-desc':
+                    filteredMerchants.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'ar'));
+                    break;
+                case 'products-desc':
+                    filteredMerchants.sort((a, b) => calculateProductsCountForMerchant(b) - calculateProductsCountForMerchant(a));
+                    break;
+                case 'products-asc':
+                    filteredMerchants.sort((a, b) => calculateProductsCountForMerchant(a) - calculateProductsCountForMerchant(b));
+                    break;
+                case 'date-desc':
+                    filteredMerchants.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    break;
+                case 'date-asc':
+                    filteredMerchants.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+                    break;
+            }
+            
+            // عرض التجار المصفاة
+            displayMerchantsForMessages(filteredMerchants);
+        }
+        
+        // عرض التجار للرسائل
+        function displayMerchantsForMessages(merchants) {
+            merchantsMessageList.innerHTML = '';
+            
+            if (merchants.length === 0) {
+                merchantsMessageList.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: #666;">
+                        <i class="fas fa-search" style="font-size: 60px; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <h3 style="margin-bottom: 10px;">لا توجد نتائج مطابقة</h3>
+                        <p>حاول استخدام كلمات بحث أخرى</p>
+                    </div>
+                `;
+                merchantsMessageList.style.display = 'block';
+                messagesLoadingIndicator.style.display = 'none';
+                return;
+            }
+            
+            merchants.forEach(merchant => {
+                const merchantElement = document.createElement('div');
+                merchantElement.className = 'merchant-message-item';
+                
+                const merchantInfo = document.createElement('div');
+                merchantInfo.className = 'merchant-message-info';
+                
+                const merchantName = document.createElement('div');
+                merchantName.className = 'merchant-message-name';
+                merchantName.textContent = merchant.name;
+                
+                const merchantContact = document.createElement('div');
+                merchantContact.className = 'merchant-message-contact';
+                merchantContact.innerHTML = `<i class="fab fa-whatsapp"></i> ${merchant.mobile || 'غير محدد'}`;
+                
+                const merchantProducts = document.createElement('div');
+                merchantProducts.className = 'merchant-message-products';
+                const productsCount = calculateProductsCountForMerchant(merchant);
+                merchantProducts.innerHTML = `عدد المنتجات: <span>${productsCount}</span>`;
+                
+                merchantInfo.appendChild(merchantName);
+                merchantInfo.appendChild(merchantContact);
+                merchantInfo.appendChild(merchantProducts);
+                
+                const merchantActions = document.createElement('div');
+                merchantActions.className = 'merchant-message-actions';
+                
+                // زر إرسال الرسالة المخصصة
+                const sendBtn = document.createElement('button');
+                sendBtn.className = 'btn btn-send btn-sm';
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال';
+                sendBtn.title = 'إرسال الرسالة المخصصة';
+                sendBtn.addEventListener('click', () => prepareCustomMessage(merchant));
+                merchantActions.appendChild(sendBtn);
+                
+                merchantElement.appendChild(merchantInfo);
+                merchantElement.appendChild(merchantActions);
+                
+                merchantsMessageList.appendChild(merchantElement);
+            });
+            
+            merchantsMessageList.style.display = 'block';
+            messagesLoadingIndicator.style.display = 'none';
+        }
+        
+        // تحضير الرسالة المخصصة
+        function prepareCustomMessage(merchant) {
+            merchantToSendMessage = merchant;
+            
+            // تحديث نص رسالة التأكيد
+            sendMessageText.textContent = `هل ترغب بإرسال الرسالة المخصصة إلى التاجر ${merchant.name} عبر الواتساب؟`;
+            
+            // إعداد معاينة الرسالة
+            const customMessage = customMessageInput.value;
+            const productsCount = calculateProductsCountForMerchant(merchant);
+            const registerDate = new Date(merchant.createdAt).toLocaleDateString('ar-EG');
+            
+            // استبدال النماذج في الرسالة
+            let finalMessage = customMessage
+                .replace(/\[اسم التاجر\]/g, merchant.name)
+                .replace(/\[تاريخ التسجيل\]/g, registerDate)
+                .replace(/\[عدد المنتجات\]/g, productsCount)
+                .replace(/\[اسم المستخدم\]/g, merchant.username);
+            
+            // عرض معاينة الرسالة
+            messagePreview.textContent = finalMessage;
+            
+            // عرض نموذج التأكيد
+            sendMessageModal.style.display = 'flex';
+        }
+        
+        // إرسال الرسالة المخصصة
+        function sendCustomMessage() {
+            if (!merchantToSendMessage) {
+                showToast('لا توجد بيانات للتاجر', 'error');
+                return;
+            }
+            
+            const customMessage = customMessageInput.value;
+            const productsCount = calculateProductsCountForMerchant(merchantToSendMessage);
+            const registerDate = new Date(merchantToSendMessage.createdAt).toLocaleDateString('ar-EG');
+            
+            // استبدال النماذج في الرسالة
+            let finalMessage = customMessage
+                .replace(/\[اسم التاجر\]/g, merchantToSendMessage.name)
+                .replace(/\[تاريخ التسجيل\]/g, registerDate)
+                .replace(/\[عدد المنتجات\]/g, productsCount)
+                .replace(/\[اسم المستخدم\]/g, merchantToSendMessage.username);
+            
+            // فتح الواتساب مع الرسالة
+            const whatsappUrl = `https://wa.me/${merchantToSendMessage.mobile.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(finalMessage)}`;
+            window.open(whatsappUrl, '_blank');
+            
+            showToast(`تم إرسال الرسالة إلى ${merchantToSendMessage.name}`, 'success');
+            sendMessageModal.style.display = 'none';
+            merchantToSendMessage = null;
         }
         
         // عرض التجار النشطين
@@ -1771,8 +2444,11 @@ https://e772299420-hue.github.io/Call/index.html
                 // تصفية التجار النشطين فقط
                 const activeMerchants = allMerchants.filter(merchant => merchant.status === 'active');
                 
+                // حفظ البيانات الحالية
+                currentActiveMerchantsData = activeMerchants;
+                
                 // تطبيق البحث والترتيب
-                filterAndSortActiveMerchants(activeMerchants);
+                filterAndSortActiveMerchants();
                 
             } catch (error) {
                 console.error('خطأ في تحميل البيانات:', error);
@@ -1782,23 +2458,26 @@ https://e772299420-hue.github.io/Call/index.html
         }
         
         // تصفية وترتيب التجار النشطين
-        function filterAndSortActiveMerchants(merchantsToFilter = null) {
+        function filterAndSortActiveMerchants() {
             const merchantsList = document.getElementById('activeMerchantsList');
             const loadingIndicator = document.getElementById('viewLoadingIndicator');
             
-            let filteredMerchants = merchantsToFilter || allMerchants.filter(merchant => merchant.status === 'active');
+            let filteredMerchants = [...currentActiveMerchantsData];
             const searchTerm = document.getElementById('searchViewInput').value.trim().toLowerCase();
             
             // تطبيق البحث
             if (searchTerm) {
                 filteredMerchants = filteredMerchants.filter(merchant => {
                     return (
-                        merchant.name?.toLowerCase().includes(searchTerm) ||
-                        merchant.username?.toLowerCase().includes(searchTerm) ||
-                        merchant.job?.toLowerCase().includes(searchTerm) ||
-                        (governoratesData[merchant.governorate]?.name?.toLowerCase() || '').includes(searchTerm) ||
-                        (governoratesData[merchant.governorate]?.areas?.[merchant.area]?.toLowerCase() || '').includes(searchTerm) ||
-                        merchant.mobile?.includes(searchTerm)
+                        (merchant.name && merchant.name.toLowerCase().includes(searchTerm)) ||
+                        (merchant.username && merchant.username.toLowerCase().includes(searchTerm)) ||
+                        (merchant.job && merchant.job.toLowerCase().includes(searchTerm)) ||
+                        (governoratesData[merchant.governorate] && governoratesData[merchant.governorate].name && 
+                         governoratesData[merchant.governorate].name.toLowerCase().includes(searchTerm)) ||
+                        (governoratesData[merchant.governorate] && governoratesData[merchant.governorate].areas && 
+                         governoratesData[merchant.governorate].areas[merchant.area] && 
+                         governoratesData[merchant.governorate].areas[merchant.area].toLowerCase().includes(searchTerm)) ||
+                        (merchant.mobile && merchant.mobile.includes(searchTerm))
                     );
                 });
             }
@@ -1807,10 +2486,16 @@ https://e772299420-hue.github.io/Call/index.html
             const sortOption = document.getElementById('sortViewSelect').value;
             switch (sortOption) {
                 case 'name-asc':
-                    filteredMerchants.sort((a, b) => a.name?.localeCompare(b.name, 'ar'));
+                    filteredMerchants.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
                     break;
                 case 'name-desc':
-                    filteredMerchants.sort((a, b) => b.name?.localeCompare(a.name, 'ar'));
+                    filteredMerchants.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'ar'));
+                    break;
+                case 'products-desc':
+                    filteredMerchants.sort((a, b) => calculateProductsCountForMerchant(b) - calculateProductsCountForMerchant(a));
+                    break;
+                case 'products-asc':
+                    filteredMerchants.sort((a, b) => calculateProductsCountForMerchant(a) - calculateProductsCountForMerchant(b));
                     break;
                 case 'date-desc':
                     filteredMerchants.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -1865,8 +2550,11 @@ https://e772299420-hue.github.io/Call/index.html
                     return isInactive && hasDefaultPassword;
                 });
                 
+                // حفظ البيانات الحالية
+                currentRequestsData = requests;
+                
                 // تطبيق البحث والترتيب
-                filterAndSortRequests(requests);
+                filterAndSortRequests();
                 
             } catch (error) {
                 console.error('خطأ في تحميل البيانات:', error);
@@ -1876,20 +2564,20 @@ https://e772299420-hue.github.io/Call/index.html
         }
         
         // تصفية وترتيب طلبات الانضمام
-        function filterAndSortRequests(requestsToFilter = null) {
+        function filterAndSortRequests() {
             const requestsList = document.getElementById('requestsList');
             const loadingIndicator = document.getElementById('requestsLoadingIndicator');
             
-            let filteredRequests = requestsToFilter || [];
+            let filteredRequests = [...currentRequestsData];
             const searchTerm = document.getElementById('searchRequestsInput').value.trim().toLowerCase();
             
             // تطبيق البحث
             if (searchTerm) {
                 filteredRequests = filteredRequests.filter(merchant => {
                     return (
-                        merchant.name?.toLowerCase().includes(searchTerm) ||
-                        merchant.username?.toLowerCase().includes(searchTerm) ||
-                        merchant.mobile?.includes(searchTerm)
+                        (merchant.name && merchant.name.toLowerCase().includes(searchTerm)) ||
+                        (merchant.username && merchant.username.toLowerCase().includes(searchTerm)) ||
+                        (merchant.mobile && merchant.mobile.includes(searchTerm))
                     );
                 });
             }
@@ -1898,10 +2586,16 @@ https://e772299420-hue.github.io/Call/index.html
             const sortOption = document.getElementById('sortRequestsSelect').value;
             switch (sortOption) {
                 case 'name-asc':
-                    filteredRequests.sort((a, b) => a.name?.localeCompare(b.name, 'ar'));
+                    filteredRequests.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
                     break;
                 case 'name-desc':
-                    filteredRequests.sort((a, b) => b.name?.localeCompare(a.name, 'ar'));
+                    filteredRequests.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'ar'));
+                    break;
+                case 'products-desc':
+                    filteredRequests.sort((a, b) => calculateProductsCountForMerchant(b) - calculateProductsCountForMerchant(a));
+                    break;
+                case 'products-asc':
+                    filteredRequests.sort((a, b) => calculateProductsCountForMerchant(a) - calculateProductsCountForMerchant(b));
                     break;
                 case 'date-desc':
                     filteredRequests.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -1956,8 +2650,11 @@ https://e772299420-hue.github.io/Call/index.html
                     return isInactive && hasNonDefaultPassword;
                 });
                 
+                // حفظ البيانات الحالية
+                currentSuspendedData = suspended;
+                
                 // تطبيق البحث والترتيب
-                filterAndSortSuspended(suspended);
+                filterAndSortSuspended();
                 
             } catch (error) {
                 console.error('خطأ في تحميل البيانات:', error);
@@ -1967,20 +2664,20 @@ https://e772299420-hue.github.io/Call/index.html
         }
         
         // تصفية وترتيب التجار الموقوفين
-        function filterAndSortSuspended(suspendedToFilter = null) {
+        function filterAndSortSuspended() {
             const suspendedList = document.getElementById('suspendedList');
             const loadingIndicator = document.getElementById('suspendedLoadingIndicator');
             
-            let filteredSuspended = suspendedToFilter || [];
+            let filteredSuspended = [...currentSuspendedData];
             const searchTerm = document.getElementById('searchSuspendedInput').value.trim().toLowerCase();
             
             // تطبيق البحث
             if (searchTerm) {
                 filteredSuspended = filteredSuspended.filter(merchant => {
                     return (
-                        merchant.name?.toLowerCase().includes(searchTerm) ||
-                        merchant.username?.toLowerCase().includes(searchTerm) ||
-                        merchant.mobile?.includes(searchTerm)
+                        (merchant.name && merchant.name.toLowerCase().includes(searchTerm)) ||
+                        (merchant.username && merchant.username.toLowerCase().includes(searchTerm)) ||
+                        (merchant.mobile && merchant.mobile.includes(searchTerm))
                     );
                 });
             }
@@ -1989,10 +2686,16 @@ https://e772299420-hue.github.io/Call/index.html
             const sortOption = document.getElementById('sortSuspendedSelect').value;
             switch (sortOption) {
                 case 'name-asc':
-                    filteredSuspended.sort((a, b) => a.name?.localeCompare(b.name, 'ar'));
+                    filteredSuspended.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
                     break;
                 case 'name-desc':
-                    filteredSuspended.sort((a, b) => b.name?.localeCompare(a.name, 'ar'));
+                    filteredSuspended.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'ar'));
+                    break;
+                case 'products-desc':
+                    filteredSuspended.sort((a, b) => calculateProductsCountForMerchant(b) - calculateProductsCountForMerchant(a));
+                    break;
+                case 'products-asc':
+                    filteredSuspended.sort((a, b) => calculateProductsCountForMerchant(a) - calculateProductsCountForMerchant(b));
                     break;
                 case 'date-desc':
                     filteredSuspended.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -2026,7 +2729,11 @@ https://e772299420-hue.github.io/Call/index.html
                         message = 'لا توجد تجار موقوفين';
                         break;
                 }
-                container.innerHTML = `<p>${message}</p>`;
+                container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: #666;">
+                    <i class="fas fa-search" style="font-size: 60px; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <h3 style="margin-bottom: 10px;">${message}</h3>
+                    <p>حاول استخدام كلمات بحث أخرى</p>
+                </div>`;
                 return;
             }
             
@@ -2041,7 +2748,7 @@ https://e772299420-hue.github.io/Call/index.html
                 merchantName.className = 'simple-merchant-name';
                 
                 // حساب عدد المنتجات المرتبطة بالتاجر
-                const productsCount = calculateProductsCountForMerchant(merchant.id);
+                const productsCount = calculateProductsCountForMerchant(merchant);
                 
                 // إضافة عداد المنتجات بجانب اسم التاجر
                 if (type === 'active') {
@@ -2068,13 +2775,11 @@ https://e772299420-hue.github.io/Call/index.html
                 dateDetail.className = 'simple-detail';
                 dateDetail.innerHTML = `<strong>تاريخ التسجيل:</strong> ${new Date(merchant.createdAt).toLocaleDateString('ar-EG')}`;
                 
-                // إضافة عدد المنتجات في تبويب التجار النشطين
-                if (type === 'active') {
-                    const productsDetail = document.createElement('div');
-                    productsDetail.className = 'simple-detail';
-                    productsDetail.innerHTML = `<strong>عدد المنتجات:</strong> ${productsCount}`;
-                    merchantDetails.appendChild(productsDetail);
-                }
+                // إضافة عدد المنتجات في جميع التبويبات
+                const productsDetail = document.createElement('div');
+                productsDetail.className = 'simple-detail';
+                productsDetail.innerHTML = `<strong>عدد المنتجات:</strong> ${productsCount}`;
+                merchantDetails.appendChild(productsDetail);
                 
                 merchantDetails.appendChild(usernameDetail);
                 merchantDetails.appendChild(mobileDetail);
@@ -2129,7 +2834,7 @@ https://e772299420-hue.github.io/Call/index.html
                 deleteBtn.className = 'btn btn-delete btn-sm';
                 deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
                 deleteBtn.title = 'حذف التاجر';
-                deleteBtn.addEventListener('click', () => deleteMerchant(merchant.id, merchant.name));
+                deleteBtn.addEventListener('click', () => deleteMerchant(merchant.id, merchant.name, merchant.job));
                 actionButtons.appendChild(deleteBtn);
                 
                 merchantElement.appendChild(merchantInfo);
@@ -2240,6 +2945,7 @@ https://e772299420-hue.github.io/Call/index.html
                 // إعادة تحميل العرض
                 if (status === 'active') {
                     await renderActiveMerchants();
+                    await renderMerchantsForMessages();
                 } else {
                     await renderSuspendedMerchants();
                 }
@@ -2258,10 +2964,19 @@ https://e772299420-hue.github.io/Call/index.html
         }
         
         // حذف التاجر
-        async function deleteMerchant(id, name) {
+        async function deleteMerchant(id, name, job) {
             try {
                 // التحقق من وجود منتجات مرتبطة بالتاجر باستخدام userId
-                const productsSnapshot = await database.ref('products').orderByChild('userId').equalTo(id).once('value');
+                let productsSnapshot;
+                
+                if (job === 'مطعم') {
+                    // البحث في بيانات المطاعم
+                    productsSnapshot = await database.ref('snf_mt').orderByChild('userId').equalTo(id).once('value');
+                } else {
+                    // البحث في المنتجات العادية
+                    productsSnapshot = await database.ref('products').orderByChild('userId').equalTo(id).once('value');
+                }
+                
                 const products = productsSnapshot.val();
                 
                 if (products) {
@@ -2276,6 +2991,7 @@ https://e772299420-hue.github.io/Call/index.html
                     await renderActiveMerchants();
                     await renderJoinRequests();
                     await renderSuspendedMerchants();
+                    await renderMerchantsForMessages();
                     
                     showToast('تم حذف التاجر بنجاح', 'success');
                 }
