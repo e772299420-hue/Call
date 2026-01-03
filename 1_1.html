@@ -47,6 +47,31 @@
             width: 100%;
             overflow-x: hidden;
         }
+        /* إضافة شارة عرض خاص للصور المصغرة المطابقة */
+        .matching-product-offer {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: linear-gradient(135deg, #2ecc71, #27ae60, #1e8449);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            z-index: 3;
+            box-shadow: 0 3px 10px rgba(46, 204, 113, 0.5);
+            animation: pulseOffer 2s infinite;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            white-space: nowrap;
+        }
+        .matching-product-offer i {
+            font-size: 9px;
+            animation: spinStar 3s linear infinite;
+        }
+        
         .matching-products-container {
             width: 100%;
             overflow-x: auto;
@@ -86,10 +111,18 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             border: 2px solid #e74c3c;
         }
+        .matching-product-item.has-offer {
+            border: 2px solid #2ecc71;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.2);
+        }
         .matching-product-item:hover {
             transform: translateY(-5px) scale(1.03);
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             border-color: var(--primary-color);
+        }
+        .matching-product-item.has-offer:hover {
+            border-color: #2ecc71;
+            box-shadow: 0 8px 25px rgba(46, 204, 113, 0.3);
         }
         .matching-product-image {
             width: 100%;
@@ -98,6 +131,9 @@
             border-radius: 8px;
             border: 2px solid var(--primary-color);
             transition: var(--transition);
+        }
+        .matching-product-item.has-offer .matching-product-image {
+            border: 2px solid #2ecc71;
         }
         .matching-product-item:hover .matching-product-image { border-color: #667eea; transform: scale(1.05); }
         .matching-product-name {
@@ -125,6 +161,10 @@
             border-radius: 12px;
             display: inline-block;
         }
+        .matching-product-item.has-offer .matching-product-price {
+            color: #2ecc71;
+            background: rgba(46, 204, 113, 0.1);
+        }
         .no-matches {
             color: #7f8c8d;
             font-style: italic;
@@ -137,6 +177,12 @@
             height: 100%;
             direction: rtl;
         }
+        
+        /* تحسينات للأداء */
+        .loading-overlay {
+            display: none !important; /* إخفاء شاشة التحميل */
+        }
+        
         .merchant-btn {
             background: rgba(52, 152, 219, 0.15);
             color: white;
@@ -156,7 +202,7 @@
             box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
             position: relative;
             overflow: hidden;
-            gap: 10px;
+            gap: 15px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(52, 152, 219, 0.3);
         }
@@ -191,6 +237,82 @@
             padding-bottom: 5px;
             border-bottom: 2px solid rgba(231, 76, 60, 0.3);
         }
+        
+        /* تحديث شكل صورة الشعار - أكبر وأكثر دائرية مع إطار شفاف */
+        .merchant-logo-rectangle {
+            width: 85px; /* أكبر من السابق */
+            height: 85px; /* مربع الشكل */
+            object-fit: cover;
+            border-radius: 18px; /* حواف دائرية أكثر */
+            border: 2px solid rgba(231, 76, 60, 0.3); /* إطار شفاف بنفس لون الخط */
+            box-shadow: 0 3px 15px rgba(231, 76, 60, 0.15);
+            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 5px;
+            flex-shrink: 0;
+        }
+        
+        .merchant-logo-rectangle:hover {
+            transform: scale(1.05);
+            border-color: rgba(231, 76, 60, 0.5);
+            box-shadow: 0 5px 20px rgba(231, 76, 60, 0.25);
+        }
+        
+        .merchant-with-logo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            width: 100%;
+        }
+        
+        .merchant-btn-content {
+            text-align: right;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        /* تعديل موقع نص عرض أكثر/عرض أقل */
+        .read-more-toggle {
+            background: none;
+            border: none;
+            color: #3498db;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 5px; /* تغيير من margin-right إلى margin-left */
+            padding: 0;
+            text-decoration: none;
+            float: left; /* جعله على اليسار */
+            direction: ltr; /* تغيير الاتجاه */
+            order: -1; /* جعله يظهر أولاً في ترتيب العرض */
+        }
+        
+        .read-more-toggle:hover { color: #2980b9; }
+        
+        .product-detail-item {
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 5px;
+            direction: ltr; /* تغيير الاتجاه */
+            flex-direction: row-reverse; /* عكس الترتيب */
+        }
+        
+        .product-detail-item .label {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-left: 10px; /* تغيير من margin-right إلى margin-left */
+            text-align: left; /* محاذاة لليسار */
+            flex-shrink: 0;
+        }
+        
+        .description-text {
+            flex: 1;
+            text-align: right; /* النص الأصلي يبقى على اليمين */
+            direction: rtl;
+        }
+        
         .merchant-modal-overlay {
             position: fixed;
             top: 0;
@@ -420,7 +542,6 @@
         .category-modal-item.selected { background-color: #d1fae5; border-color: #10b981; }
         .category-modal-item-name { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 5px; }
         .category-modal-item-count { font-size: 14px; color: #64748b; display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-        .loading-overlay { display: none !important; }
         .header {
             position: fixed;
             top: 0;
@@ -1357,49 +1478,6 @@
             max-height: none;
             overflow: visible;
         }
-        .product-detail-item { margin-bottom: 8px; display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 5px; direction: ltr; }
-        .product-detail-item .label { font-weight: bold; color: var(--primary-color); margin-right: 10px; }
-        .read-more-toggle {
-            background: none;
-            border: none;
-            color: #3498db;
-            cursor: pointer;
-            font-weight: bold;
-            margin-right: 5px;
-            padding: 0;
-            text-decoration: none;
-        }
-        .read-more-toggle:hover { color: #2980b9; }
-        .merchant-info {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin: 10px 0;
-            padding: 12px;
-            background: linear-gradient(135deg, var(--light-color), #d5dbdb);
-            border-radius: 10px;
-            width: 100%;
-            transition: var(--transition);
-            border: 1px solid rgba(52, 152, 219, 0.2);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-        .merchant-info:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); transform: translateY(-1px); }
-        .merchant-name-old {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            cursor: pointer;
-            color: var(--primary-color);
-            font-weight: bold;
-            transition: var(--transition);
-            text-align: center;
-            font-size: 16px;
-            padding: 5px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.5);
-        }
-        .merchant-name-old:hover { color: var(--secondary-color); text-decoration: underline; background: rgba(255, 255, 255, 0.8); }
         .comments-section {
             width: 100%;
             margin-top: 15px;
@@ -1615,25 +1693,6 @@
         .share-other i { color: white; }
         .share-other span { color: white; }
         
-        /* تحديث شكل شعار التاجر بجانب اسم التاجر */
-        .merchant-logo-rectangle {
-            width: 60px;
-            height: 45px;
-            object-fit: cover;
-            border-radius: 12px;
-            border: 2px solid #e74c3c;
-            box-shadow: 0 3px 10px rgba(231, 76, 60, 0.2);
-            transition: var(--transition);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 3px;
-        }
-        
-        .merchant-logo-rectangle:hover {
-            transform: scale(1.05);
-            border-color: #c0392b;
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
-        }
-        
         .image-watermark {
             position: absolute;
             top: 10px;
@@ -1744,15 +1803,6 @@
         }
         .merchant-logo:hover { transform: scale(1.05); border-color: var(--primary-color); }
         .merchant-logo-wrapper { display: inline-block; }
-        .merchant-with-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-            margin: 10px 0;
-        }
-        
         .merchant-logo-small {
             width: 60px;
             height: 45px;
@@ -1780,6 +1830,14 @@
             .gallery-corner-watermark {
                 max-width: 160px;
                 padding: 3px 6px;
+            }
+            .matching-product-offer {
+                font-size: 9px;
+                padding: 5px 10px;
+            }
+            .merchant-logo-rectangle {
+                width: 75px;
+                height: 75px;
             }
         }
         @media (max-width: 768px) {
@@ -1829,7 +1887,6 @@
             .merchant-modal-controls { flex-wrap: wrap; }
             .category-modal-btn,
             .merchant-modal-btn { padding: 10px 15px; font-size: 14px; }
-            .merchant-logo-rectangle,
             .merchant-logo-small { width: 50px; height: 38px; }
             .corner-watermark-logo,
             .watermark-logo,
@@ -1842,6 +1899,15 @@
             .gallery-corner-watermark {
                 max-width: 140px;
                 padding: 3px 6px;
+            }
+            .matching-product-offer {
+                font-size: 8px;
+                padding: 4px 8px;
+            }
+            .merchant-logo-rectangle {
+                width: 65px;
+                height: 65px;
+                border-radius: 15px;
             }
         }
         @media (max-width: 480px) {
@@ -1872,7 +1938,6 @@
             .footer { height: 35px; padding: 5px 10px; }
             .footer-text { font-size: 12px; padding: 5px 10px; min-height: 25px; }
             .offer-dates { font-size: 10px; max-width: 150px; padding: 4px 8px; }
-            .merchant-logo-rectangle,
             .merchant-logo-small { width: 45px; height: 34px; }
             .corner-watermark-logo,
             .watermark-logo,
@@ -1886,6 +1951,15 @@
                 max-width: 120px;
                 padding: 2px 5px;
                 gap: 4px;
+            }
+            .matching-product-offer {
+                font-size: 7px;
+                padding: 3px 6px;
+            }
+            .merchant-logo-rectangle {
+                width: 60px;
+                height: 60px;
+                border-radius: 12px;
             }
         }
         
@@ -2361,6 +2435,16 @@
         let productCards = {};
         let currentCategoryFilter = '';
 
+        // إضافة متغير لحفظ حالة الفلاتر
+        let currentFilters = JSON.parse(localStorage.getItem('currentFilters')) || {
+            governorate: '',
+            region: '',
+            category: '',
+            search: '',
+            sortBy: 'date',
+            merchant: ''
+        };
+
         const productsContainer = document.getElementById('products-container');
         const governorateSelect = document.getElementById('governorate');
         const regionSelect = document.getElementById('region');
@@ -2377,7 +2461,6 @@
         const realOnlineUsersEl = document.getElementById('real-online-users');
         const voiceSearchBtn = document.getElementById('voice-search-btn');
         const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingProgressBar = document.getElementById('loading-progress-bar');
         const footerTextEl = document.getElementById('footer-text');
         const merchantModalOverlay = document.getElementById('merchant-modal-overlay');
         const merchantTextInput = document.getElementById('merchant-text-input');
@@ -2413,7 +2496,9 @@
         let isBackButtonPressed = false;
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadCachedData();
+            // إخفاء شاشة التحميل مباشرة
+            hideLoading();
+            
             initializeNavigationManager();
             initializeStableUserId();
             startRandomOnlineUsers();
@@ -2422,12 +2507,44 @@
             initializeSpeechRecognition();
             initializeApp();
             setupEventListeners();
-            loadAllData().then(() => {
+            
+            // تحميل البيانات المخزنة محلياً أولاً
+            if (loadCachedData()) {
+                // إذا تم تحميل البيانات المخزنة، نعرضها مباشرة
                 checkUrlForProduct();
                 displayPersonalizedProducts();
-            }).catch(error => {
-                console.error('❌ خطأ في تحميل البيانات:', error);
-            });
+                
+                // ثم نبدأ التحميل من Firebase في الخلفية للتحديث
+                setTimeout(() => {
+                    loadAllData().then(() => {
+                        saveDataToCache();
+                        if (!showFavoritesOnly) {
+                            filterProducts();
+                        }
+                        showNotification('تم تحديث البيانات بنجاح', 'success');
+                    }).catch(error => {
+                        console.error('❌ خطأ في تحديث البيانات:', error);
+                    });
+                }, 1000);
+            } else {
+                // إذا لم توجد بيانات مخزنة، نحمل من Firebase
+                loadAllData().then(() => {
+                    saveDataToCache();
+                    checkUrlForProduct();
+                    displayPersonalizedProducts();
+                }).catch(error => {
+                    console.error('❌ خطأ في تحميل البيانات:', error);
+                    productsContainer.innerHTML = `
+                        <div class="error">
+                            <h3>حدث خطأ في تحميل البيانات</h3>
+                            <p>${error.message || 'تعذر التحميل'}</p>
+                            <p>يرجاء التحقق من اتصال الإنترنت وإعادة تحميل الصفحة</p>
+                            <button onclick="location.reload()">إعادة تحميل</button>
+                        </div>
+                    `;
+                });
+            }
+            
             startAutoUpdate();
             loadAdvertisementTexts();
             startAutoInteractions();
@@ -2435,7 +2552,18 @@
             restoreScrollPosition();
             setupFilterBarAutoHide();
             initializeGallery();
+            restoreCurrentFilters(); // استعادة الفلاتر المحفوظة
         });
+
+        // دالة لعرض مؤشر التحميل
+        function showLoading(progress) {
+            // تم إزالة هذه الدالة لأننا لا نريد عرض شاشة التحميل
+        }
+
+        // دالة لإخفاء مؤشر التحميل
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
 
         function loadCachedData() {
             try {
@@ -2443,7 +2571,7 @@
                 if (cached) {
                     const cacheData = JSON.parse(cached);
                     const cacheAge = Date.now() - (cacheData.timestamp || 0);
-                    const maxAge = 30 * 60 * 1000;
+                    const maxAge = 30 * 60 * 1000; // نصف ساعة
                     
                     if (cacheAge < maxAge) {
                         allProducts = cacheData.products || [];
@@ -2455,9 +2583,9 @@
                         if (allProducts.length > 0) {
                             populateFilterOptions();
                             displayProducts(allProducts);
+                            productsContainer.querySelector('.loading').style.display = 'none';
+                            return true;
                         }
-                        
-                        return true;
                     } else {
                         localStorage.removeItem('marketplaceCache');
                     }
@@ -2481,6 +2609,59 @@
                 localStorage.setItem('marketplaceCache', JSON.stringify(cacheData));
             } catch (e) { 
                 console.warn('⚠️ تعذر حفظ التخزين المحلي', e); 
+            }
+        }
+
+        // دالة لحفظ الفلاتر الحالية
+        function saveCurrentFilters() {
+            currentFilters = {
+                governorate: governorateSelect.value,
+                region: regionSelect.value,
+                category: selectedCategoryId,
+                search: searchInput.value,
+                sortBy: sortSelect.value,
+                merchant: selectedMerchantId
+            };
+            localStorage.setItem('currentFilters', JSON.stringify(currentFilters));
+        }
+
+        // دالة لاستعادة الفلاتر
+        function restoreCurrentFilters() {
+            const savedFilters = JSON.parse(localStorage.getItem('currentFilters'));
+            if (savedFilters) {
+                currentFilters = savedFilters;
+                
+                // تطبيق الفلاتر على عناصر الواجهة
+                governorateSelect.value = currentFilters.governorate || '';
+                regionSelect.value = currentFilters.region || '';
+                searchInput.value = currentFilters.search || '';
+                sortSelect.value = currentFilters.sortBy || 'date';
+                selectedMerchantId = currentFilters.merchant || null;
+                selectedCategoryId = currentFilters.category || null;
+                
+                // تحديث حقول النص للتاجر والقسم
+                if (selectedMerchantId) {
+                    const merchant = allMerchants.find(m => m.id === selectedMerchantId);
+                    if (merchant) {
+                        merchantTextInput.value = merchant.name || merchant.username || '';
+                        selectedMerchantName = merchant.name || merchant.username || '';
+                    }
+                }
+                
+                if (selectedCategoryId) {
+                    const category = allCategories.find(c => c.id === selectedCategoryId);
+                    if (category) {
+                        categoryTextInput.value = category.name || '';
+                        secondaryCategoryTextInput.value = category.name || '';
+                        selectedCategoryName = category.name || '';
+                    }
+                }
+                
+                // تحديث خيارات المناطق
+                updateRegionOptions();
+                
+                // تطبيق الفلاتر
+                filterProducts();
             }
         }
 
@@ -3285,7 +3466,6 @@
         }
 
         function initializeGallery() {
-            // تهيئة أحداث معرض الصور
             galleryViewport.addEventListener('mousedown', startGalleryDrag);
             galleryViewport.addEventListener('touchstart', startGalleryDragTouch);
             
@@ -3367,6 +3547,7 @@
             window.addEventListener('beforeunload', () => {
                 cleanupAllIntervals();
                 saveDataToCache();
+                saveCurrentFilters();
             });
         }
 
@@ -3457,7 +3638,6 @@
                 }
             }
             
-            // العودة إلى المركز
             sliderTranslateX = -currentGalleryIndex * viewportWidth;
             gallerySlider.style.transform = `translateX(${sliderTranslateX}px)`;
             gallerySlider.style.transition = 'transform 0.3s ease';
@@ -3538,7 +3718,7 @@
                     db.ref("regions").once("value"),
                     db.ref("categories").once("value")
                 ]);
-
+                
                 allProducts = convertFirebaseData(productsSnap.val()) || [];
                 allMerchants = convertFirebaseData(merchantsSnap.val()) || [];
                 allGovernorates = convertFirebaseData(governoratesSnap.val()) || [];
@@ -3547,18 +3727,12 @@
 
                 saveDataToCache();
                 populateFilterOptions();
-                displayProducts(allProducts);
+                
+                productsContainer.querySelector('.loading').style.display = 'none';
                 
             } catch (error) {
                 console.error("خطأ في تحميل البيانات:", error);
-                productsContainer.innerHTML = `
-                    <div class="error">
-                        <h3>حدث خطأ في تحميل البيانات</h3>
-                        <p>${error.message || 'تعذر التحميل'}</p>
-                        <p>يرجاء التحقق من اتصال الإنترنت وإعادة تحميل الصفحة</p>
-                        <button onclick="location.reload()">إعادة تحميل</button>
-                    </div>
-                `;
+                throw error;
             }
         }
 
@@ -3641,10 +3815,12 @@
 
         function handleGovernorateChange() { 
             updateRegionOptions(); 
+            saveCurrentFilters(); // حفظ الفلاتر
             filterProducts(); 
         }
 
         function handleRegionChange() { 
+            saveCurrentFilters(); // حفظ الفلاتر
             filterProducts(); 
         }
 
@@ -4135,7 +4311,6 @@
                         img.src = formatDriveUrl(url, 'thumb');
                         img.alt = `${productName} - صورة ${index + 1}`;
                         
-                        // إضافة العلامة المائية الصغيرة للتاجر في الزاوية
                         const merchantLogoUrl = merchant.logo || merchant.logoUrl || merchant.image;
                         const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
                                       merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
@@ -4214,7 +4389,6 @@
                         img.src = formatDriveUrl(imageUrl, 'thumb');
                         img.alt = productName;
                         
-                        // إضافة العلامة المائية الصغيرة للتاجر في الزاوية
                         const merchantLogoUrl = merchant.logo || merchant.logoUrl || merchant.image;
                         const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
                                       merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
@@ -4280,7 +4454,25 @@
                         
                         const matchItem = document.createElement('div');
                         matchItem.className = 'matching-product-item';
+                        
+                        // التحقق مما إذا كان المنتج المطابق عرضاً خاصاً
+                        const isMatchOffer = isOfferValid(match);
+                        if (isMatchOffer) {
+                            matchItem.classList.add('has-offer');
+                        }
+                        
+                        let offerBadgeHTML = '';
+                        if (isMatchOffer) {
+                            offerBadgeHTML = `
+                                <div class="matching-product-offer">
+                                    <i class="fas fa-tag"></i>
+                                    عرض خاص
+                                </div>
+                            `;
+                        }
+                        
                         matchItem.innerHTML = `
+                            ${offerBadgeHTML}
                             <img src="${formattedImageUrl}" alt="${match.name || 'منتج'}" class="matching-product-image">
                             <div class="matching-product-name">${match.name || 'منتج بدون اسم'}</div>
                             <div class="matching-product-price">${match.price ? match.price + ' ريال' : 'بدون سعر'}</div>
@@ -4346,28 +4538,25 @@
                 const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
                               merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
                 
-                let logoHtml = '';
                 if (hasLogo) {
                     const formattedLogoUrl = formatDriveUrl(merchantLogoUrl, 'thumb');
-                    logoHtml = `
+                    merchantBtn.innerHTML = `
                         <div class="merchant-with-logo">
                             <img src="${formattedLogoUrl}" alt="شعار التاجر" class="merchant-logo-rectangle">
-                            <div style="text-align: right; flex: 1;">
+                            <div class="merchant-btn-content">
                                 <div class="underline-border">اطلب المنتج الان</div>
                                 <div class="merchant-name-center">${merchantName}</div>
                             </div>
                         </div>
                     `;
                 } else {
-                    logoHtml = `
+                    merchantBtn.innerHTML = `
                         <div style="text-align: center; width: 100%;">
                             <div class="underline-border">اطلب المنتج الان</div>
                             <div class="merchant-name-center">${merchantName}</div>
                         </div>
                     `;
                 }
-                
-                merchantBtn.innerHTML = logoHtml;
                 
                 merchantBtn.addEventListener('click', () => { 
                     const merchantName = merchant.name || merchant.username || "تاجر";
@@ -4711,10 +4900,8 @@
                 const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
                               merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
                 
-                // إخفاء العلامة المائية المركزية الكبيرة
                 galleryMerchantWatermark.innerHTML = '';
                 
-                // العلامة المائية الصغيرة في الزاوية
                 let cornerWatermarkHTML = '';
                 if (hasLogo) {
                     const formattedLogoUrl = formatDriveUrl(merchantLogoUrl, 'thumb');
@@ -4919,6 +5106,9 @@
                     return true;
                 });
 
+                // حفظ الفلاتر الحالية
+                saveCurrentFilters();
+                
                 displayProducts(result);
             }
 
@@ -4950,6 +5140,7 @@
                 secondaryCategoryTextInput.value = '';
                 
                 updateRegionOptions();
+                saveCurrentFilters(); // حفظ الفلاتر بعد الإعادة
                 displayProducts(allProducts);
                 showNotification('تم إعادة تعيين جميع الفلاتر', 'success');
             }
@@ -4961,6 +5152,7 @@
                 
                 closeMerchantModal();
                 
+                saveCurrentFilters(); // حفظ الفلاتر
                 filterProducts();
                 
                 showNotification('تم عرض جميع التجار', 'success');
@@ -4974,6 +5166,7 @@
                 
                 closeCategoryModal();
                 
+                saveCurrentFilters(); // حفظ الفلاتر
                 filterProducts();
                 
                 showNotification('تم عرض جميع الأقسام', 'success');
@@ -5401,6 +5594,7 @@
                 
                 closeMerchantModal();
                 
+                saveCurrentFilters(); // حفظ الفلاتر
                 filterProducts();
                 
                 showNotification(`تم تصفية المنتجات حسب التاجر: ${selectedMerchantName}`, 'success');
@@ -5514,6 +5708,7 @@
                 
                 closeCategoryModal();
                 
+                saveCurrentFilters(); // حفظ الفلاتر
                 filterProducts();
                 
                 showNotification(`تم تصفية المنتجات حسب القسم: ${selectedCategoryName}`, 'success');
@@ -5655,7 +5850,8 @@
                         saveDataToCache();
                         
                         if (!showFavoritesOnly) {
-                            displayProducts(allProducts);
+                            // تطبيق الفلاتر الحالية على البيانات الجديدة
+                            filterProducts();
                             
                             if (newProducts.length > previousCount) {
                                 const newProductsCount = newProducts.length - previousCount;
@@ -5683,6 +5879,7 @@
             window.addEventListener('beforeunload', () => {
                 cleanupAllIntervals();
                 saveDataToCache();
+                saveCurrentFilters();
             });
     </script>
 </body>
