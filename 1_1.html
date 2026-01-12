@@ -178,11 +178,6 @@
             direction: rtl;
         }
         
-        /* تحسينات للأداء */
-        .loading-overlay {
-            display: none !important; /* إخفاء شاشة التحميل */
-        }
-        
         .merchant-btn {
             background: rgba(52, 152, 219, 0.15);
             color: white;
@@ -1984,14 +1979,6 @@
         <source src="https://github.com/e772299420-hue/Call/raw/main/Sms.mp3" type="audio/mpeg">
     </audio>
 
-    <div class="loading-overlay" id="loading-overlay">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">جاري تحميل البيانات...</div>
-        <div class="loading-progress">
-            <div class="loading-progress-bar" id="loading-progress-bar"></div>
-        </div>
-    </div>
-
     <header class="header">
         <div class="header-content">
             <div class="brand">
@@ -2306,6 +2293,8 @@
         try {
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
+            } else {
+                firebase.app();
             }
         } catch (error) {
             console.error("❌ خطأ في تهيئة Firebase:", error);
@@ -2435,16 +2424,6 @@
         let productCards = {};
         let currentCategoryFilter = '';
 
-        // إضافة متغير لحفظ حالة الفلاتر
-        let currentFilters = JSON.parse(localStorage.getItem('currentFilters')) || {
-            governorate: '',
-            region: '',
-            category: '',
-            search: '',
-            sortBy: 'date',
-            merchant: ''
-        };
-
         const productsContainer = document.getElementById('products-container');
         const governorateSelect = document.getElementById('governorate');
         const regionSelect = document.getElementById('region');
@@ -2460,7 +2439,6 @@
         const headerUsersCountEl = document.getElementById('header-users-count');
         const realOnlineUsersEl = document.getElementById('real-online-users');
         const voiceSearchBtn = document.getElementById('voice-search-btn');
-        const loadingOverlay = document.getElementById('loading-overlay');
         const footerTextEl = document.getElementById('footer-text');
         const merchantModalOverlay = document.getElementById('merchant-modal-overlay');
         const merchantTextInput = document.getElementById('merchant-text-input');
@@ -2495,10 +2473,27 @@
         const galleryCornerWatermark = document.getElementById('gallery-corner-watermark');
         let isBackButtonPressed = false;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // إخفاء شاشة التحميل مباشرة
-            hideLoading();
+        // دالة لتفريغ حقول الفلاتر
+        function resetFiltersFields() {
+            if (governorateSelect) governorateSelect.value = '';
+            if (regionSelect) regionSelect.value = '';
+            if (searchInput) searchInput.value = '';
+            if (sortSelect) sortSelect.value = 'date';
+            if (categoryValueDisplay) categoryValueDisplay.textContent = '';
             
+            selectedMerchantId = null;
+            selectedMerchantName = null;
+            if (merchantTextInput) merchantTextInput.value = '';
+            
+            selectedCategoryId = null;
+            selectedCategoryName = null;
+            if (categoryTextInput) categoryTextInput.value = '';
+            if (secondaryCategoryTextInput) secondaryCategoryTextInput.value = '';
+            
+            updateRegionOptions();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
             initializeNavigationManager();
             initializeStableUserId();
             startRandomOnlineUsers();
@@ -2508,9 +2503,17 @@
             initializeApp();
             setupEventListeners();
             
+            // تفريغ حقول الفلاتر عند فتح الصفحة
+            resetFiltersFields();
+            
+            // إخفاء رسالة التحميل فوراً
+            const loadingElement = productsContainer.querySelector('.loading');
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
+            }
+            
             // تحميل البيانات المخزنة محلياً أولاً
             if (loadCachedData()) {
-                // إذا تم تحميل البيانات المخزنة، نعرضها مباشرة
                 checkUrlForProduct();
                 displayPersonalizedProducts();
                 
@@ -2521,11 +2524,10 @@
                         if (!showFavoritesOnly) {
                             filterProducts();
                         }
-                        showNotification('تم تحديث البيانات بنجاح', 'success');
                     }).catch(error => {
                         console.error('❌ خطأ في تحديث البيانات:', error);
                     });
-                }, 1000);
+                }, 100);
             } else {
                 // إذا لم توجد بيانات مخزنة، نحمل من Firebase
                 loadAllData().then(() => {
@@ -2539,7 +2541,7 @@
                             <h3>حدث خطأ في تحميل البيانات</h3>
                             <p>${error.message || 'تعذر التحميل'}</p>
                             <p>يرجاء التحقق من اتصال الإنترنت وإعادة تحميل الصفحة</p>
-                            <button onclick="location.reload()">إعادة تحميل</button>
+                            <button onclick="location.reload()" style="margin-top:10px;padding:10px 20px;background:var(--primary-color);color:#fff;border:none;border-radius:5px;cursor:pointer;">إعادة تحميل</button>
                         </div>
                     `;
                 });
@@ -2552,175 +2554,35 @@
             restoreScrollPosition();
             setupFilterBarAutoHide();
             initializeGallery();
-            restoreCurrentFilters(); // استعادة الفلاتر المحفوظة
-        });
-
-        // دالة لعرض مؤشر التحميل
-        function showLoading(progress) {
-            // تم إزالة هذه الدالة لأننا لا نريد عرض شاشة التحميل
-        }
-
-        // دالة لإخفاء مؤشر التحميل
-        function hideLoading() {
-            loadingOverlay.style.display = 'none';
-        }
-
-        function loadCachedData() {
-            try {
-                const cached = localStorage.getItem('marketplaceCache');
-                if (cached) {
-                    const cacheData = JSON.parse(cached);
-                    const cacheAge = Date.now() - (cacheData.timestamp || 0);
-                    const maxAge = 30 * 60 * 1000; // نصف ساعة
-                    
-                    if (cacheAge < maxAge) {
-                        allProducts = cacheData.products || [];
-                        allMerchants = cacheData.merchants || [];
-                        allGovernorates = cacheData.governorates || [];
-                        allRegions = cacheData.regions || [];
-                        allCategories = cacheData.categories || [];
+            
+            // إضافة كود Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/service-worker.js').then(() => {
+                    // إخطار Service Worker بالصفحات الفرعية المحتملة
+                    if (navigator.serviceWorker.controller) {
+                        const childPages = ['manjr_tagr_snf.html', 'ard_tagr.html'];
+                        const fullUrls = childPages.map(page => new URL(page, window.location.origin).href);
                         
-                        if (allProducts.length > 0) {
-                            populateFilterOptions();
-                            displayProducts(allProducts);
-                            productsContainer.querySelector('.loading').style.display = 'none';
-                            return true;
-                        }
-                    } else {
-                        localStorage.removeItem('marketplaceCache');
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'PREFETCH_PAGES',
+                            pages: fullUrls
+                        });
                     }
-                }
-            } catch (e) {
-                console.warn('⚠️ تعذر تحميل البيانات المخزنة:', e);
+                }).catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
             }
-            return false;
-        }
-
-        function saveDataToCache() {
-            try {
-                const cacheData = {
-                    products: allProducts,
-                    merchants: allMerchants,
-                    governorates: allGovernorates,
-                    regions: allRegions,
-                    categories: allCategories,
-                    timestamp: Date.now()
-                };
-                localStorage.setItem('marketplaceCache', JSON.stringify(cacheData));
-            } catch (e) { 
-                console.warn('⚠️ تعذر حفظ التخزين المحلي', e); 
-            }
-        }
-
-        // دالة لحفظ الفلاتر الحالية
-        function saveCurrentFilters() {
-            currentFilters = {
-                governorate: governorateSelect.value,
-                region: regionSelect.value,
-                category: selectedCategoryId,
-                search: searchInput.value,
-                sortBy: sortSelect.value,
-                merchant: selectedMerchantId
-            };
-            localStorage.setItem('currentFilters', JSON.stringify(currentFilters));
-        }
-
-        // دالة لاستعادة الفلاتر
-        function restoreCurrentFilters() {
-            const savedFilters = JSON.parse(localStorage.getItem('currentFilters'));
-            if (savedFilters) {
-                currentFilters = savedFilters;
-                
-                // تطبيق الفلاتر على عناصر الواجهة
-                governorateSelect.value = currentFilters.governorate || '';
-                regionSelect.value = currentFilters.region || '';
-                searchInput.value = currentFilters.search || '';
-                sortSelect.value = currentFilters.sortBy || 'date';
-                selectedMerchantId = currentFilters.merchant || null;
-                selectedCategoryId = currentFilters.category || null;
-                
-                // تحديث حقول النص للتاجر والقسم
-                if (selectedMerchantId) {
-                    const merchant = allMerchants.find(m => m.id === selectedMerchantId);
-                    if (merchant) {
-                        merchantTextInput.value = merchant.name || merchant.username || '';
-                        selectedMerchantName = merchant.name || merchant.username || '';
-                    }
-                }
-                
-                if (selectedCategoryId) {
-                    const category = allCategories.find(c => c.id === selectedCategoryId);
-                    if (category) {
-                        categoryTextInput.value = category.name || '';
-                        secondaryCategoryTextInput.value = category.name || '';
-                        selectedCategoryName = category.name || '';
-                    }
-                }
-                
-                // تحديث خيارات المناطق
-                updateRegionOptions();
-                
-                // تطبيق الفلاتر
-                filterProducts();
-            }
-        }
-
-        function setupFilterBarAutoHide() {
-            document.addEventListener('click', function(event) {
-                const filterBar = document.getElementById('filter-bar');
-                const secondaryBar = document.querySelector('.secondary-bar');
-                const filterControlBtn = document.getElementById('filter-control');
-                const showMoreBtn = document.getElementById('show-more-btn');
-                
-                if (filterBar.style.display === 'flex') {
-                    const isClickInsideFilterBar = filterBar.contains(event.target);
-                    const isClickInsideSecondaryBar = secondaryBar.contains(event.target);
-                    const isClickOnFilterControl = filterControlBtn.contains(event.target);
-                    const isClickOnShowMoreBtn = showMoreBtn.contains(event.target);
-                    
-                    if (!isClickInsideFilterBar && !isClickInsideSecondaryBar && 
-                        !isClickOnFilterControl && !isClickOnShowMoreBtn) {
-                        hideFilterBar();
-                    }
-                }
-            });
-        }
-
-        function toggleFilterBar() {
-            if (filterBar.style.display === 'flex' || filterBar.style.display === '') {
-                hideFilterBar();
-            } else {
-                showFilterBar();
-            }
-        }
-
-        function hideFilterBar() {
-            filterBar.style.display = 'none';
-            document.body.style.paddingTop = '128px';
-            localStorage.setItem('filterBarHidden', 'true');
-            filterControlBtn.innerHTML = '<i class="fas fa-sliders-h"></i>';
-            filterControlBtn.title = 'إظهار شريط الفلاتر';
-            showMoreBtn.innerHTML = '<i class="fas fa-bars"></i> عرض أكثر';
-            showNotification('تم إخفاء شريط الفلاتر', 'info');
-        }
-
-        function showFilterBar() {
-            filterBar.style.display = 'flex';
-            document.body.style.paddingTop = '180px';
-            localStorage.setItem('filterBarHidden', 'false');
-            filterControlBtn.innerHTML = '<i class="fas fa-times"></i>';
-            filterControlBtn.title = 'إخفاء شريط الفلاتر';
-            showMoreBtn.innerHTML = '<i class="fas fa-times"></i> إخفاء';
-            showNotification('تم إظهار شريط الفلاتر', 'success');
-        }
+        });
 
         function playNotificationSound() {
             try {
                 const notificationSound = document.getElementById('new-product-sound');
-                notificationSound.currentTime = 0;
-                notificationSound.play().catch(e => {
-                    console.log('تعذر تشغيل الصوت:', e);
-                });
+                if (notificationSound) {
+                    notificationSound.currentTime = 0;
+                    notificationSound.play().catch(e => {
+                        console.log('تعذر تشغيل الصوت:', e);
+                    });
+                }
             } catch (error) {
                 console.log('خطأ في تشغيل الصوت:', error);
             }
@@ -2775,33 +2637,33 @@
 
         function closeAllModals() {
             const gallery = document.getElementById('image-gallery');
-            if (gallery.classList.contains('active')) {
+            if (gallery && gallery.classList.contains('active')) {
                 closeImageGallery();
             }
             
             const shareModal = document.getElementById('share-modal');
-            if (shareModal.classList.contains('active')) {
+            if (shareModal && shareModal.classList.contains('active')) {
                 closeShareModal();
             }
             
             const newProductsModal = document.getElementById('new-products-modal');
-            if (newProductsModal.classList.contains('active')) {
+            if (newProductsModal && newProductsModal.classList.contains('active')) {
                 closeNewProductsModal();
             }
             
             const merchantModal = document.getElementById('merchant-modal-overlay');
-            if (merchantModal.classList.contains('active')) {
+            if (merchantModal && merchantModal.classList.contains('active')) {
                 closeMerchantModal();
             }
             
             const categoryModal = document.getElementById('category-modal-overlay');
-            if (categoryModal.classList.contains('active')) {
+            if (categoryModal && categoryModal.classList.contains('active')) {
                 closeCategoryModal();
             }
             
             closeAllComments();
             
-            if (filterBar.style.display === 'flex') {
+            if (filterBar && filterBar.style.display === 'flex') {
                 hideFilterBar();
             }
         }
@@ -2853,6 +2715,8 @@
             const modal = document.getElementById('new-products-modal');
             const list = document.getElementById('new-products-list');
             
+            if (!modal || !list) return;
+            
             list.innerHTML = '';
             
             Object.keys(productsByMerchant).forEach(merchantId => {
@@ -2887,8 +2751,10 @@
 
         function closeNewProductsModal() {
             const modal = document.getElementById('new-products-modal');
-            modal.classList.remove('active');
-            document.body.style.overflow = '';
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
         }
 
         function saveScrollPosition() {
@@ -3133,7 +2999,7 @@
         function updateOnlineUsersCount(newCount, oldCount = null) {
             const onlineUsersEl = document.getElementById('header-online-users');
             
-            if (oldCount !== null) {
+            if (oldCount !== null && onlineUsersEl) {
                 if (newCount > oldCount) {
                     onlineUsersEl.classList.add('increase');
                     setTimeout(() => onlineUsersEl.classList.remove('increase'), 1000);
@@ -3143,8 +3009,8 @@
                 }
             }
             
-            usersCountEl.textContent = newCount;
-            headerUsersCountEl.textContent = newCount;
+            if (usersCountEl) usersCountEl.textContent = newCount;
+            if (headerUsersCountEl) headerUsersCountEl.textContent = newCount;
         }
 
         function startRandomOnlineUsers() {
@@ -3250,7 +3116,9 @@
             onlineUsersRef.on('value', (snapshot) => {
                 const onlineUsers = snapshot.val();
                 const realOnlineCount = onlineUsers ? Object.keys(onlineUsers).length : 0;
-                document.getElementById('real-online-users').textContent = realOnlineCount;
+                if (realOnlineUsersEl) {
+                    realOnlineUsersEl.textContent = realOnlineCount;
+                }
             });
         }
 
@@ -3317,14 +3185,20 @@
                     if (advertisementTexts.length > 0) {
                         startAdvertisementRotation();
                     } else {
-                        footerTextEl.textContent = 'جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة';
+                        if (footerTextEl) {
+                            footerTextEl.textContent = 'جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة';
+                        }
                     }
                 } else {
-                    footerTextEl.textContent = 'جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة';
+                    if (footerTextEl) {
+                        footerTextEl.textContent = 'جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة';
+                    }
                 }
             } catch (error) {
                 console.error('❌ خطأ في تحميل الإعلانات النصية:', error);
-                footerTextEl.textContent = 'جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة';
+                if (footerTextEl) {
+                    footerTextEl.textContent = 'جميع الحقوق محفوظة لدى المميز سوفت للأنظمة المحاسبية المتكاملة';
+                }
             }
         }
 
@@ -3341,27 +3215,31 @@
             currentAdIndex = (currentAdIndex + 1) % advertisementTexts.length;
             const currentAd = advertisementTexts[currentAdIndex];
             
-            footerTextEl.textContent = currentAd;
-            
-            const textLength = currentAd.length;
-            const baseDuration = 5000;
-            const charDuration = 100;
-            const totalDuration = baseDuration + (textLength * charDuration);
-            
-            footerTextEl.style.animation = 'none';
-            void footerTextEl.offsetWidth;
-            footerTextEl.style.animation = `slideText ${totalDuration}ms linear`;
-            
-            setTimeout(() => {
-                showNextAdvertisement();
-            }, totalDuration);
+            if (footerTextEl) {
+                footerTextEl.textContent = currentAd;
+                
+                const textLength = currentAd.length;
+                const baseDuration = 5000;
+                const charDuration = 100;
+                const totalDuration = baseDuration + (textLength * charDuration);
+                
+                footerTextEl.style.animation = 'none';
+                void footerTextEl.offsetWidth;
+                footerTextEl.style.animation = `slideText ${totalDuration}ms linear`;
+                
+                setTimeout(() => {
+                    showNextAdvertisement();
+                }, totalDuration);
+            }
         }
 
         function initializeSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             
-            if (!SpeechRecognition) {
-                voiceSearchBtn.style.display = 'none';
+            if (!SpeechRecognition || !voiceSearchBtn) {
+                if (voiceSearchBtn) {
+                    voiceSearchBtn.style.display = 'none';
+                }
                 return;
             }
             
@@ -3430,9 +3308,11 @@
             try {
                 recognition.start();
                 isListening = true;
-                voiceSearchBtn.classList.add('listening');
-                voiceSearchBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
-                voiceSearchBtn.title = 'إيقاف التعرف الصوتي';
+                if (voiceSearchBtn) {
+                    voiceSearchBtn.classList.add('listening');
+                    voiceSearchBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                    voiceSearchBtn.title = 'إيقاف التعرف الصوتي';
+                }
                 showNotification('جاري الاستماع... تحدث الآن', 'info');
             } catch (error) {
                 console.error('خطأ في بدء التعرف الصوتي:', error);
@@ -3443,9 +3323,11 @@
 
         function stopListening() {
             isListening = false;
-            voiceSearchBtn.classList.remove('listening');
-            voiceSearchBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-            voiceSearchBtn.title = 'البحث الصوتي';
+            if (voiceSearchBtn) {
+                voiceSearchBtn.classList.remove('listening');
+                voiceSearchBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                voiceSearchBtn.title = 'البحث الصوتي';
+            }
         }
 
         function initializeApp() {
@@ -3457,72 +3339,83 @@
             hideFilterBar();
             
             newProductsModal = document.getElementById('new-products-modal');
-            document.getElementById('new-products-close').addEventListener('click', closeNewProductsModal);
-            newProductsModal.addEventListener('click', (e) => {
-                if (e.target.id === 'new-products-modal') {
-                    closeNewProductsModal();
-                }
-            });
+            if (newProductsModal) {
+                document.getElementById('new-products-close').addEventListener('click', closeNewProductsModal);
+                newProductsModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'new-products-modal') {
+                        closeNewProductsModal();
+                    }
+                });
+            }
         }
 
         function initializeGallery() {
+            if (!galleryViewport) return;
+            
             galleryViewport.addEventListener('mousedown', startGalleryDrag);
             galleryViewport.addEventListener('touchstart', startGalleryDragTouch);
             
             galleryViewport.addEventListener('wheel', handleGalleryWheel);
             
-            galleryPrevBtn.addEventListener('click', () => navigateGallery(-1));
-            galleryNextBtn.addEventListener('click', () => navigateGallery(1));
-            galleryZoomBtn.addEventListener('click', toggleImageZoom);
-            galleryRotateBtn.addEventListener('click', rotateImage);
-            galleryCloseBtn.addEventListener('click', closeImageGallery);
+            if (galleryPrevBtn) galleryPrevBtn.addEventListener('click', () => navigateGallery(-1));
+            if (galleryNextBtn) galleryNextBtn.addEventListener('click', () => navigateGallery(1));
+            if (galleryZoomBtn) galleryZoomBtn.addEventListener('click', toggleImageZoom);
+            if (galleryRotateBtn) galleryRotateBtn.addEventListener('click', rotateImage);
+            if (galleryCloseBtn) galleryCloseBtn.addEventListener('click', closeImageGallery);
             
             document.addEventListener('keydown', handleGalleryKeydown);
             
-            document.getElementById('image-gallery').addEventListener('click', (e) => {
-                if (e.target.id === 'image-gallery') {
-                    closeImageGallery();
-                }
-            });
+            const gallery = document.getElementById('image-gallery');
+            if (gallery) {
+                gallery.addEventListener('click', (e) => {
+                    if (e.target.id === 'image-gallery') {
+                        closeImageGallery();
+                    }
+                });
+            }
         }
 
         function setupEventListeners() {
-            searchInput.addEventListener('input', filterProducts);
-            governorateSelect.addEventListener('change', handleGovernorateChange);
-            regionSelect.addEventListener('change', handleRegionChange);
-            sortSelect.addEventListener('change', filterProducts);
-            resetButton.addEventListener('click', resetFilters);
-            filterControlBtn.addEventListener('click', toggleFilterBar);
+            if (searchInput) searchInput.addEventListener('input', filterProducts);
+            if (governorateSelect) governorateSelect.addEventListener('change', handleGovernorateChange);
+            if (regionSelect) regionSelect.addEventListener('change', handleRegionChange);
+            if (sortSelect) sortSelect.addEventListener('change', filterProducts);
+            if (resetButton) resetButton.addEventListener('click', resetFilters);
+            if (filterControlBtn) filterControlBtn.addEventListener('click', toggleFilterBar);
             
-            merchantTextInput.addEventListener('click', openMerchantModal);
-            merchantModalSearchInput.addEventListener('input', filterMerchantModalList);
-            merchantModalCancel.addEventListener('click', closeMerchantModal);
-            merchantModalConfirm.addEventListener('click', applyMerchantFilter);
-            merchantModalAll.addEventListener('click', applyAllMerchants);
+            if (merchantTextInput) merchantTextInput.addEventListener('click', openMerchantModal);
+            if (merchantModalSearchInput) merchantModalSearchInput.addEventListener('input', filterMerchantModalList);
+            if (merchantModalCancel) merchantModalCancel.addEventListener('click', closeMerchantModal);
+            if (merchantModalConfirm) merchantModalConfirm.addEventListener('click', applyMerchantFilter);
+            if (merchantModalAll) merchantModalAll.addEventListener('click', applyAllMerchants);
             
-            merchantModalOverlay.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeMerchantModal();
-                }
-            });
+            if (merchantModalOverlay) {
+                merchantModalOverlay.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeMerchantModal();
+                    }
+                });
+            }
 
-            categoryTextInput.addEventListener('click', openCategoryModal);
-            secondaryCategoryTextInput.addEventListener('click', openCategoryModal);
-            categoryModalSearchInput.addEventListener('input', filterCategoryModalList);
-            categoryModalCancel.addEventListener('click', closeCategoryModal);
-            categoryModalConfirm.addEventListener('click', applyCategoryFilter);
-            categoryModalAll.addEventListener('click', applyAllCategories);
+            if (categoryTextInput) categoryTextInput.addEventListener('click', openCategoryModal);
+            if (secondaryCategoryTextInput) secondaryCategoryTextInput.addEventListener('click', openCategoryModal);
+            if (categoryModalSearchInput) categoryModalSearchInput.addEventListener('input', filterCategoryModalList);
+            if (categoryModalCancel) categoryModalCancel.addEventListener('click', closeCategoryModal);
+            if (categoryModalConfirm) categoryModalConfirm.addEventListener('click', applyCategoryFilter);
+            if (categoryModalAll) categoryModalAll.addEventListener('click', applyAllCategories);
             
-            categoryModalOverlay.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeCategoryModal();
-                }
-            });
+            if (categoryModalOverlay) {
+                categoryModalOverlay.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeCategoryModal();
+                    }
+                });
+            }
 
-            showMoreBtn.addEventListener('click', toggleFilterBar);
-            secondaryFavoritesBtn.addEventListener('click', toggleFavoritesView);
+            if (showMoreBtn) showMoreBtn.addEventListener('click', toggleFilterBar);
+            if (secondaryFavoritesBtn) secondaryFavoritesBtn.addEventListener('click', toggleFavoritesView);
 
-            voiceSearchBtn.addEventListener('click', toggleVoiceSearch);
+            if (voiceSearchBtn) voiceSearchBtn.addEventListener('click', toggleVoiceSearch);
 
             document.addEventListener('click', (e) => {
                 if (isCommentsOpen && !e.target.closest('.comments-section') && 
@@ -3532,28 +3425,31 @@
             });
 
             window.addEventListener('scroll', handleScroll);
-            scrollToTopBtn.addEventListener('click', scrollToTop);
+            if (scrollToTopBtn) scrollToTopBtn.addEventListener('click', scrollToTop);
 
-            shareModalClose.addEventListener('click', closeShareModal);
-            shareOptions.forEach(option => {
-                option.addEventListener('click', handleShareOption);
-            });
-            shareModal.addEventListener('click', (e) => {
-                if (e.target.id === 'share-modal') {
-                    closeShareModal();
-                }
-            });
+            if (shareModalClose) shareModalClose.addEventListener('click', closeShareModal);
+            if (shareOptions) {
+                shareOptions.forEach(option => {
+                    option.addEventListener('click', handleShareOption);
+                });
+            }
+            if (shareModal) {
+                shareModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'share-modal') {
+                        closeShareModal();
+                    }
+                });
+            }
 
             window.addEventListener('beforeunload', () => {
                 cleanupAllIntervals();
                 saveDataToCache();
-                saveCurrentFilters();
             });
         }
 
         function handleGalleryKeydown(e) {
             const gallery = document.getElementById('image-gallery');
-            if (!gallery.classList.contains('active')) return;
+            if (!gallery || !gallery.classList.contains('active')) return;
             
             switch(e.key) {
                 case 'Escape':
@@ -3577,7 +3473,7 @@
         }
 
         function startGalleryDrag(e) {
-            if (galleryImages.length <= 1) return;
+            if (!galleryViewport || galleryImages.length <= 1) return;
             
             isGalleryDragging = true;
             dragStartX = e.clientX - sliderTranslateX;
@@ -3588,7 +3484,7 @@
         }
 
         function startGalleryDragTouch(e) {
-            if (galleryImages.length <= 1) return;
+            if (!galleryViewport || galleryImages.length <= 1) return;
             
             isGalleryDragging = true;
             dragStartX = e.touches[0].clientX - sliderTranslateX;
@@ -3599,7 +3495,7 @@
         }
 
         function dragGallery(e) {
-            if (!isGalleryDragging) return;
+            if (!isGalleryDragging || !gallerySlider) return;
             
             e.preventDefault();
             const x = e.clientX - dragStartX;
@@ -3608,7 +3504,7 @@
         }
 
         function dragGalleryTouch(e) {
-            if (!isGalleryDragging) return;
+            if (!isGalleryDragging || !gallerySlider) return;
             
             e.preventDefault();
             const x = e.touches[0].clientX - dragStartX;
@@ -3620,12 +3516,16 @@
             if (!isGalleryDragging) return;
             
             isGalleryDragging = false;
-            galleryViewport.style.cursor = 'grab';
+            if (galleryViewport) {
+                galleryViewport.style.cursor = 'grab';
+            }
             
             document.removeEventListener('mousemove', dragGallery);
             document.removeEventListener('mouseup', stopGalleryDrag);
             document.removeEventListener('touchmove', dragGalleryTouch);
             document.removeEventListener('touchend', stopGalleryDrag);
+            
+            if (!galleryViewport || !gallerySlider) return;
             
             const viewportWidth = galleryViewport.offsetWidth;
             const threshold = viewportWidth / 4;
@@ -3643,7 +3543,9 @@
             gallerySlider.style.transition = 'transform 0.3s ease';
             
             setTimeout(() => {
-                gallerySlider.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                if (gallerySlider) {
+                    gallerySlider.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                }
             }, 300);
         }
 
@@ -3664,6 +3566,8 @@
         }
 
         function handleScroll() {
+            if (!scrollToTopBtn) return;
+            
             if (window.pageYOffset > 300) {
                 scrollToTopBtn.classList.add('visible');
             } else {
@@ -3728,7 +3632,10 @@
                 saveDataToCache();
                 populateFilterOptions();
                 
-                productsContainer.querySelector('.loading').style.display = 'none';
+                const loadingElement = productsContainer.querySelector('.loading');
+                if (loadingElement) {
+                    loadingElement.style.display = 'none';
+                }
                 
             } catch (error) {
                 console.error("خطأ في تحميل البيانات:", error);
@@ -3748,23 +3655,29 @@
         }
 
         function populateFilterOptions() {
+            if (!governorateSelect) return;
+            
             governorateSelect.innerHTML = '<option value="">جميع المحافظات</option>';
-            allGovernorates.forEach(g => {
-                const opt = document.createElement('option');
-                opt.value = g.id || g.name;
-                opt.textContent = g.name || g.id;
-                governorateSelect.appendChild(opt);
-            });
+            if (allGovernorates && allGovernorates.length > 0) {
+                allGovernorates.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g.id || g.name;
+                    opt.textContent = g.name || g.id;
+                    governorateSelect.appendChild(opt);
+                });
+            }
 
             updateRegionOptions();
             updateModalCategoryList();
         }
 
         function updateRegionOptions() {
+            if (!regionSelect) return;
+            
             const selectedGovernorate = governorateSelect.value;
             regionSelect.innerHTML = '<option value="">جميع المناطق</option>';
 
-            if (selectedGovernorate) {
+            if (selectedGovernorate && allGovernorates) {
                 const gov = allGovernorates.find(g => 
                     (g.id === selectedGovernorate) || (g.name === selectedGovernorate));
                 if (gov && gov.areas) {
@@ -3775,7 +3688,7 @@
                         regionSelect.appendChild(opt);
                     });
                 }
-            } else {
+            } else if (allRegions && allRegions.length > 0) {
                 allRegions.forEach(r => {
                     const opt = document.createElement('option');
                     opt.value = r.id || r.name;
@@ -3815,12 +3728,10 @@
 
         function handleGovernorateChange() { 
             updateRegionOptions(); 
-            saveCurrentFilters(); // حفظ الفلاتر
             filterProducts(); 
         }
 
         function handleRegionChange() { 
-            saveCurrentFilters(); // حفظ الفلاتر
             filterProducts(); 
         }
 
@@ -3829,6 +3740,8 @@
                 displayFavoriteProducts();
                 return;
             }
+            
+            if (!productsContainer) return;
             
             productsContainer.innerHTML = '';
             
@@ -3851,7 +3764,9 @@
                 return;
             }
 
-            productsCountEl.textContent = ` ${filteredProducts.length}`;
+            if (productsCountEl) {
+                productsCountEl.textContent = ` ${filteredProducts.length}`;
+            }
 
             const sorted = sortProductsByPriority(filteredProducts);
             const groupedProducts = groupProductsByCategory(sorted);
@@ -3889,6 +3804,8 @@
         }
 
         function displayGroupedProducts(groupedProducts) {
+            if (!productsContainer) return;
+            
             const grid = document.createElement('div');
             grid.className = 'products';
 
@@ -3938,7 +3855,7 @@
         }
 
         function sortProductsByPriority(products) {
-            const sortBy = sortSelect.value;
+            const sortBy = sortSelect ? sortSelect.value : 'date';
             
             if (sortBy && sortBy !== 'date' && sortBy !== 'preference' && sortBy !== 'offers') {
                 return sortProductsByOption(products, sortBy);
@@ -4029,7 +3946,7 @@
                         default:
                             const dateA = new Date(a.publishDate || a.createdAt || a.date || 0);
                             const dateB = new Date(b.publishDate || b.createdAt || b.date || 0);
-                            result = dateB - aDate;
+                            result = dateB - dateA;
                             break;
                     }
                     
@@ -4115,6 +4032,8 @@
             }
 
             function displayFavoriteProducts() {
+                if (!productsContainer) return;
+                
                 productsContainer.innerHTML = '';
                 
                 const favoriteProductIds = Object.keys(favoriteProducts);
@@ -4823,7 +4742,9 @@
                     }
                 }
 
-                document.getElementById('gallery-product-name').textContent = productName;
+                if (document.getElementById('gallery-product-name')) {
+                    document.getElementById('gallery-product-name').textContent = productName;
+                }
                 createGallerySlides();
                 createGalleryThumbnails();
                 updateGalleryCounter();
@@ -4831,19 +4752,23 @@
                 addMerchantWatermarks(merchant);
 
                 const gallery = document.getElementById('image-gallery');
-                if (images.length === 1) {
-                    gallery.classList.add('single-image');
-                    galleryViewport.style.cursor = 'default';
-                } else {
-                    gallery.classList.remove('single-image');
-                    galleryViewport.style.cursor = 'grab';
-                }
+                if (gallery) {
+                    if (images.length === 1) {
+                        gallery.classList.add('single-image');
+                        if (galleryViewport) galleryViewport.style.cursor = 'default';
+                    } else {
+                        gallery.classList.remove('single-image');
+                        if (galleryViewport) galleryViewport.style.cursor = 'grab';
+                    }
 
-                gallery.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                    gallery.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
             }
 
             function createGallerySlides() {
+                if (!gallerySlider || !galleryViewport) return;
+                
                 gallerySlider.innerHTML = '';
                 sliderTranslateX = -currentGalleryIndex * galleryViewport.offsetWidth;
                 
@@ -4867,6 +4792,8 @@
             }
 
             function createGalleryThumbnails() {
+                if (!galleryThumbnails) return;
+                
                 galleryThumbnails.innerHTML = '';
                 
                 galleryImages.forEach((imageUrl, index) => {
@@ -4889,9 +4816,7 @@
             }
 
             function addMerchantWatermarks(merchant) {
-                if (!merchant) {
-                    galleryMerchantWatermark.innerHTML = '';
-                    galleryCornerWatermark.innerHTML = '';
+                if (!merchant || !galleryMerchantWatermark || !galleryCornerWatermark) {
                     return;
                 }
                 
@@ -4919,17 +4844,19 @@
 
             function closeImageGallery() {
                 const gallery = document.getElementById('image-gallery');
-                gallery.classList.remove('active');
-                document.body.style.overflow = '';
-                isImageZoomed = false;
-                currentScale = 1;
-                currentRotation = 0;
-                
-                gallery.classList.remove('single-image');
+                if (gallery) {
+                    gallery.classList.remove('active');
+                    document.body.style.overflow = '';
+                    isImageZoomed = false;
+                    currentScale = 1;
+                    currentRotation = 0;
+                    
+                    gallery.classList.remove('single-image');
+                }
             }
 
             function goToGalleryImage(index) {
-                if (index < 0 || index >= galleryImages.length) return;
+                if (index < 0 || index >= galleryImages.length || !galleryViewport || !gallerySlider) return;
                 
                 currentGalleryIndex = index;
                 sliderTranslateX = -index * galleryViewport.offsetWidth;
@@ -4946,10 +4873,14 @@
             }
 
             function updateGalleryCounter() {
+                if (!galleryCounter) return;
+                
                 galleryCounter.textContent = `${currentGalleryIndex + 1} من ${galleryImages.length}`;
             }
 
             function updateGalleryThumbnails() {
+                if (!galleryThumbnails) return;
+                
                 const thumbs = galleryThumbnails.querySelectorAll('.gallery-thumbnail');
                 thumbs.forEach((thumb, index) => {
                     thumb.classList.toggle('active', index === currentGalleryIndex);
@@ -4958,6 +4889,8 @@
 
             function updateGalleryControls() {
                 const gallery = document.getElementById('image-gallery');
+                if (!gallery) return;
+                
                 if (galleryImages.length <= 1) {
                     gallery.classList.add('single-image');
                 } else {
@@ -4974,7 +4907,7 @@
                 if (isImageZoomed) {
                     currentScale = 2;
                     currentImage.classList.add('zoomed');
-                    galleryViewport.style.cursor = 'grab';
+                    if (galleryViewport) galleryViewport.style.cursor = 'grab';
                     updateImageTransform();
                 } else {
                     currentScale = 1;
@@ -4983,14 +4916,20 @@
                     currentTranslateY = 0;
                     currentImage.classList.remove('zoomed');
                     currentImage.style.transform = '';
-                    galleryViewport.style.cursor = galleryImages.length > 1 ? 'grab' : 'default';
+                    if (galleryViewport) {
+                        galleryViewport.style.cursor = galleryImages.length > 1 ? 'grab' : 'default';
+                    }
                 }
                 
-                const zoomIcon = galleryZoomBtn.querySelector('i');
-                if (isImageZoomed) {
-                    zoomIcon.className = 'fas fa-search-minus';
-                } else {
-                    zoomIcon.className = 'fas fa-search-plus';
+                if (galleryZoomBtn) {
+                    const zoomIcon = galleryZoomBtn.querySelector('i');
+                    if (zoomIcon) {
+                        if (isImageZoomed) {
+                            zoomIcon.className = 'fas fa-search-minus';
+                        } else {
+                            zoomIcon.className = 'fas fa-search-plus';
+                        }
+                    }
                 }
             }
 
@@ -5023,14 +4962,22 @@
                     currentImage.style.transform = '';
                 }
                 
-                const zoomIcon = galleryZoomBtn.querySelector('i');
-                zoomIcon.className = 'fas fa-search-plus';
+                if (galleryZoomBtn) {
+                    const zoomIcon = galleryZoomBtn.querySelector('i');
+                    if (zoomIcon) {
+                        zoomIcon.className = 'fas fa-search-plus';
+                    }
+                }
                 isImageZoomed = false;
-                galleryViewport.style.cursor = galleryImages.length > 1 ? 'grab' : 'default';
+                if (galleryViewport) {
+                    galleryViewport.style.cursor = galleryImages.length > 1 ? 'grab' : 'default';
+                }
             }
 
             function navigateSlider(productId, direction) {
                 const slider = document.getElementById(`slider-${productId}`);
+                if (!slider) return;
+                
                 const container = slider.querySelector('.slider-container');
                 const slides = container.querySelectorAll('.slider-image');
 
@@ -5043,6 +4990,8 @@
 
             function goToSlide(productId, index) {
                 const slider = document.getElementById(`slider-${productId}`);
+                if (!slider) return;
+                
                 const container = slider.querySelector('.slider-container');
                 const dots = slider.querySelectorAll('.slider-dot');
 
@@ -5052,11 +5001,11 @@
 
             function filterProducts() {
                 const filters = {
-                    governorate: governorateSelect.value,
-                    region: regionSelect.value,
+                    governorate: governorateSelect ? governorateSelect.value : '',
+                    region: regionSelect ? regionSelect.value : '',
                     category: selectedCategoryId,
-                    search: (searchInput.value || '').trim(),
-                    sortBy: sortSelect.value
+                    search: (searchInput ? searchInput.value : '').trim(),
+                    sortBy: sortSelect ? sortSelect.value : 'date'
                 };
 
                 if (filters.search) {
@@ -5105,9 +5054,6 @@
 
                     return true;
                 });
-
-                // حفظ الفلاتر الحالية
-                saveCurrentFilters();
                 
                 displayProducts(result);
             }
@@ -5124,23 +5070,7 @@
             }
 
             function resetFilters() {
-                governorateSelect.value = '';
-                regionSelect.value = '';
-                searchInput.value = '';
-                sortSelect.value = 'date';
-                categoryValueDisplay.textContent = '';
-                
-                selectedMerchantId = null;
-                selectedMerchantName = null;
-                merchantTextInput.value = '';
-                
-                selectedCategoryId = null;
-                selectedCategoryName = null;
-                categoryTextInput.value = '';
-                secondaryCategoryTextInput.value = '';
-                
-                updateRegionOptions();
-                saveCurrentFilters(); // حفظ الفلاتر بعد الإعادة
+                resetFiltersFields();
                 displayProducts(allProducts);
                 showNotification('تم إعادة تعيين جميع الفلاتر', 'success');
             }
@@ -5148,11 +5078,10 @@
             function applyAllMerchants() {
                 selectedMerchantId = null;
                 selectedMerchantName = null;
-                merchantTextInput.value = '';
+                if (merchantTextInput) merchantTextInput.value = '';
                 
                 closeMerchantModal();
                 
-                saveCurrentFilters(); // حفظ الفلاتر
                 filterProducts();
                 
                 showNotification('تم عرض جميع التجار', 'success');
@@ -5161,12 +5090,11 @@
             function applyAllCategories() {
                 selectedCategoryId = null;
                 selectedCategoryName = null;
-                categoryTextInput.value = '';
-                secondaryCategoryTextInput.value = '';
+                if (categoryTextInput) categoryTextInput.value = '';
+                if (secondaryCategoryTextInput) secondaryCategoryTextInput.value = '';
                 
                 closeCategoryModal();
                 
-                saveCurrentFilters(); // حفظ الفلاتر
                 filterProducts();
                 
                 showNotification('تم عرض جميع الأقسام', 'success');
@@ -5175,11 +5103,11 @@
             function toggleFavorite(productId, button, productName = '') {
                 if (favoriteProducts[productId]) { 
                     delete favoriteProducts[productId]; 
-                    button.classList.remove('active'); 
+                    if (button) button.classList.remove('active'); 
                     showNotification('تم إزالة المنتج من المفضلة', 'info');
                 } else { 
                     favoriteProducts[productId] = true; 
-                    button.classList.add('active'); 
+                    if (button) button.classList.add('active'); 
                     showNotification('تم إضافة المنتج إلى المفضلة', 'success');
                     
                     const product = allProducts.find(p => p.id === productId);
@@ -5349,7 +5277,7 @@
 
             function toggleComments(productId) {
                 const el = document.getElementById(`comments-${productId}`);
-                if (el.classList.contains('active')) {
+                if (el && el.classList.contains('active')) {
                     closeComments(productId);
                 } else {
                     openComments(productId);
@@ -5360,17 +5288,21 @@
                 closeAllComments();
                 
                 const el = document.getElementById(`comments-${productId}`); 
-                el.classList.add('active'); 
-                loadComments(productId);
-                isCommentsOpen = true;
+                if (el) {
+                    el.classList.add('active'); 
+                    loadComments(productId);
+                    isCommentsOpen = true;
+                }
             }
 
             function closeComments(productId) { 
                 const el = document.getElementById(`comments-${productId}`); 
-                el.classList.remove('active'); 
-                const t = document.getElementById(`comment-text-${productId}`); 
-                if (t) t.value=''; 
-                isCommentsOpen = false;
+                if (el) {
+                    el.classList.remove('active'); 
+                    const t = document.getElementById(`comment-text-${productId}`); 
+                    if (t) t.value=''; 
+                    isCommentsOpen = false;
+                }
             }
 
             function closeAllComments() {
@@ -5382,6 +5314,8 @@
 
             async function loadComments(productId) {
                 const list = document.getElementById(`comments-list-${productId}`);
+                if (!list) return;
+                
                 list.innerHTML = '<div class="loading">جاري تحميل التعليقات...</div>';
                 try {
                     const snapshot = await db.ref(`comments/${productId}`).once('value');
@@ -5396,9 +5330,13 @@
 
             function displayComments(comments, productId) {
                 const list = document.getElementById(`comments-list-${productId}`);
+                if (!list) return;
+                
                 const countEl = document.querySelector(`#comments-${productId} .comments-count`);
                 list.innerHTML = '';
-                countEl.textContent = comments.length;
+                if (countEl) {
+                    countEl.textContent = comments.length;
+                }
 
                 if (comments.length === 0) { 
                     list.innerHTML = '<div class="no-comments">لا توجد تعليقات بعد</div>'; 
@@ -5422,7 +5360,7 @@
 
             async function addComment(productId) {
                 const textarea = document.getElementById(`comment-text-${productId}`);
-                const text = (textarea.value || '').trim();
+                const text = (textarea && textarea.value || '').trim();
                 if (!text) { 
                     alert('يرجى كتابة تعليق قبل الإرسال'); 
                     return; 
@@ -5432,7 +5370,7 @@
                     const commentId = Date.now().toString();
                     const comment = { text, author: 'مستخدم', date: new Date().toISOString() };
                     await db.ref(`comments/${productId}/${commentId}`).set(comment);
-                    textarea.value = '';
+                    if (textarea) textarea.value = '';
                     loadComments(productId);
                     showNotification('تم إضافة التعليق بنجاح', 'success');
 
@@ -5447,24 +5385,32 @@
             function openMerchantModal() {
                 updateModalMerchantList();
                 
-                merchantModalOverlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
-                
-                setTimeout(() => {
-                    merchantModalSearchInput.focus();
-                }, 300);
+                if (merchantModalOverlay) {
+                    merchantModalOverlay.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                    
+                    setTimeout(() => {
+                        if (merchantModalSearchInput) {
+                            merchantModalSearchInput.focus();
+                        }
+                    }, 300);
+                }
             }
 
             function closeMerchantModal() {
-                merchantModalOverlay.classList.remove('active');
-                document.body.style.overflow = '';
-                
-                merchantModalSearchInput.value = '';
+                if (merchantModalOverlay) {
+                    merchantModalOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                    
+                    if (merchantModalSearchInput) {
+                        merchantModalSearchInput.value = '';
+                    }
+                }
             }
 
             function updateModalMerchantList() {
-                const selectedGovernorate = governorateSelect.value;
-                const selectedRegion = regionSelect.value;
+                const selectedGovernorate = governorateSelect ? governorateSelect.value : '';
+                const selectedRegion = regionSelect ? regionSelect.value : '';
                 
                 filteredModalMerchants = allMerchants.filter(m => {
                     const isActive = m.status === "active" || m.status === "نشط";
@@ -5499,6 +5445,8 @@
             }
 
             function displayMerchantModalList(merchants) {
+                if (!merchantsModalList) return;
+                
                 merchantsModalList.innerHTML = '';
                 
                 if (merchants.length === 0) {
@@ -5552,7 +5500,9 @@
                         
                         selectedMerchantId = this.dataset.merchantId;
                         
-                        merchantModalConfirm.disabled = false;
+                        if (merchantModalConfirm) {
+                            merchantModalConfirm.disabled = false;
+                        }
                     });
                     
                     merchantsModalList.appendChild(merchantItem);
@@ -5560,6 +5510,8 @@
             }
 
             function filterMerchantModalList() {
+                if (!merchantModalSearchInput) return;
+                
                 const searchTerm = merchantModalSearchInput.value.toLowerCase();
                 
                 if (!searchTerm) {
@@ -5590,11 +5542,12 @@
                 const merchant = allMerchants.find(m => m.id === selectedMerchantId);
                 selectedMerchantName = merchant ? (merchant.name || merchant.username) : '';
                 
-                merchantTextInput.value = selectedMerchantName;
+                if (merchantTextInput) {
+                    merchantTextInput.value = selectedMerchantName;
+                }
                 
                 closeMerchantModal();
                 
-                saveCurrentFilters(); // حفظ الفلاتر
                 filterProducts();
                 
                 showNotification(`تم تصفية المنتجات حسب التاجر: ${selectedMerchantName}`, 'success');
@@ -5603,22 +5556,32 @@
             function openCategoryModal() {
                 updateModalCategoryList();
                 
-                categoryModalOverlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
-                
-                setTimeout(() => {
-                    categoryModalSearchInput.focus();
-                }, 300);
+                if (categoryModalOverlay) {
+                    categoryModalOverlay.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                    
+                    setTimeout(() => {
+                        if (categoryModalSearchInput) {
+                            categoryModalSearchInput.focus();
+                        }
+                    }, 300);
+                }
             }
 
             function closeCategoryModal() {
-                categoryModalOverlay.classList.remove('active');
-                document.body.style.overflow = '';
-                
-                categoryModalSearchInput.value = '';
+                if (categoryModalOverlay) {
+                    categoryModalOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                    
+                    if (categoryModalSearchInput) {
+                        categoryModalSearchInput.value = '';
+                    }
+                }
             }
 
             function displayCategoryModalList(categories) {
+                if (!categoriesModalList) return;
+                
                 categoriesModalList.innerHTML = '';
                 
                 if (categories.length === 0) {
@@ -5667,7 +5630,9 @@
                         
                         selectedCategoryId = this.dataset.categoryId;
                         
-                        categoryModalConfirm.disabled = false;
+                        if (categoryModalConfirm) {
+                            categoryModalConfirm.disabled = false;
+                        }
                     });
                     
                     categoriesModalList.appendChild(categoryItem);
@@ -5675,6 +5640,8 @@
             }
 
             function filterCategoryModalList() {
+                if (!categoryModalSearchInput) return;
+                
                 const searchTerm = categoryModalSearchInput.value.toLowerCase();
                 
                 if (!searchTerm) {
@@ -5703,12 +5670,15 @@
                 const category = allCategories.find(c => c.id === selectedCategoryId);
                 selectedCategoryName = category ? category.name : '';
                 
-                categoryTextInput.value = selectedCategoryName || 'جميع الأقسام';
-                secondaryCategoryTextInput.value = selectedCategoryName || 'جميع الأقسام';
+                if (categoryTextInput) {
+                    categoryTextInput.value = selectedCategoryName || 'جميع الأقسام';
+                }
+                if (secondaryCategoryTextInput) {
+                    secondaryCategoryTextInput.value = selectedCategoryName || 'جميع الأقسام';
+                }
                 
                 closeCategoryModal();
                 
-                saveCurrentFilters(); // حفظ الفلاتر
                 filterProducts();
                 
                 showNotification(`تم تصفية المنتجات حسب القسم: ${selectedCategoryName}`, 'success');
@@ -5720,13 +5690,17 @@
             function openShareModal(productId, productName) {
                 currentShareProductId = productId;
                 currentShareProductName = productName;
-                shareModal.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                if (shareModal) {
+                    shareModal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
             }
 
             function closeShareModal() {
-                shareModal.classList.remove('active');
-                document.body.style.overflow = '';
+                if (shareModal) {
+                    shareModal.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
                 currentShareProductId = null;
                 currentShareProductName = '';
             }
@@ -5838,6 +5812,115 @@
                 return div.innerHTML; 
             }
 
+            function loadCachedData() {
+                try {
+                    const cached = localStorage.getItem('marketplaceCache');
+                    if (cached) {
+                        const cacheData = JSON.parse(cached);
+                        const cacheAge = Date.now() - (cacheData.timestamp || 0);
+                        const maxAge = 30 * 60 * 1000; // نصف ساعة
+                        
+                        if (cacheAge < maxAge) {
+                            allProducts = cacheData.products || [];
+                            allMerchants = cacheData.merchants || [];
+                            allGovernorates = cacheData.governorates || [];
+                            allRegions = cacheData.regions || [];
+                            allCategories = cacheData.categories || [];
+                            
+                            if (allProducts.length > 0) {
+                                populateFilterOptions();
+                                displayProducts(allProducts);
+                                return true;
+                            }
+                        } else {
+                            localStorage.removeItem('marketplaceCache');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('⚠️ تعذر تحميل البيانات المخزنة:', e);
+                }
+                return false;
+            }
+
+            function saveDataToCache() {
+                try {
+                    const cacheData = {
+                        products: allProducts,
+                        merchants: allMerchants,
+                        governorates: allGovernorates,
+                        regions: allRegions,
+                        categories: allCategories,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('marketplaceCache', JSON.stringify(cacheData));
+                } catch (e) { 
+                    console.warn('⚠️ تعذر حفظ التخزين المحلي', e); 
+                }
+            }
+
+            function setupFilterBarAutoHide() {
+                document.addEventListener('click', function(event) {
+                    const filterBar = document.getElementById('filter-bar');
+                    const secondaryBar = document.querySelector('.secondary-bar');
+                    const filterControlBtn = document.getElementById('filter-control');
+                    const showMoreBtn = document.getElementById('show-more-btn');
+                    
+                    if (filterBar && filterBar.style.display === 'flex') {
+                        const isClickInsideFilterBar = filterBar.contains(event.target);
+                        const isClickInsideSecondaryBar = secondaryBar.contains(event.target);
+                        const isClickOnFilterControl = filterControlBtn.contains(event.target);
+                        const isClickOnShowMoreBtn = showMoreBtn.contains(event.target);
+                        
+                        if (!isClickInsideFilterBar && !isClickInsideSecondaryBar && 
+                            !isClickOnFilterControl && !isClickOnShowMoreBtn) {
+                            hideFilterBar();
+                        }
+                    }
+                });
+            }
+
+            function toggleFilterBar() {
+                if (!filterBar) return;
+                
+                if (filterBar.style.display === 'flex' || filterBar.style.display === '') {
+                    hideFilterBar();
+                } else {
+                    showFilterBar();
+                }
+            }
+
+            function hideFilterBar() {
+                if (!filterBar) return;
+                
+                filterBar.style.display = 'none';
+                document.body.style.paddingTop = '128px';
+                localStorage.setItem('filterBarHidden', 'true');
+                if (filterControlBtn) {
+                    filterControlBtn.innerHTML = '<i class="fas fa-sliders-h"></i>';
+                    filterControlBtn.title = 'إظهار شريط الفلاتر';
+                }
+                if (showMoreBtn) {
+                    showMoreBtn.innerHTML = '<i class="fas fa-bars"></i> عرض أكثر';
+                }
+                showNotification('تم إخفاء شريط الفلاتر', 'info');
+            }
+
+            function showFilterBar() {
+                if (!filterBar) return;
+                
+                filterBar.style.display = 'flex';
+                document.body.style.paddingTop = '180px';
+                localStorage.setItem('filterBarHidden', 'false');
+                if (filterControlBtn) {
+                    filterControlBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    filterControlBtn.title = 'إخفاء شريط الفلاتر';
+                }
+                if (showMoreBtn) {
+                    showMoreBtn.innerHTML = '<i class="fas fa-times"></i> إخفاء';
+                }
+                showNotification('تم إظهار شريط الفلاتر', 'success');
+            }
+
             function startAutoUpdate() {
                 db.ref("products").on("value", (snapshot) => {
                     const newProducts = convertFirebaseData(snapshot.val()) || [];
@@ -5850,7 +5933,6 @@
                         saveDataToCache();
                         
                         if (!showFavoritesOnly) {
-                            // تطبيق الفلاتر الحالية على البيانات الجديدة
                             filterProducts();
                             
                             if (newProducts.length > previousCount) {
@@ -5874,13 +5956,26 @@
             });
             
             window.addEventListener('offline', () => { 
+                showNotification('تم الانتقال إلى وضع عدم الاتصال. يتم عرض البيانات المخزنة محلياً.', 'info');
             });
 
             window.addEventListener('beforeunload', () => {
                 cleanupAllIntervals();
                 saveDataToCache();
-                saveCurrentFilters();
             });
+    </script>
+    
+    <script>
+        // إخطار Service Worker بالصفحات الفرعية المحتملة
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            const childPages = ['manjr_tagr_snf.html', 'ard_tagr.html'];
+            const fullUrls = childPages.map(page => new URL(page, window.location.origin).href);
+            
+            navigator.serviceWorker.controller.postMessage({
+                type: 'PREFETCH_PAGES',
+                pages: fullUrls
+            });
+        }
     </script>
 </body>
 </html>
