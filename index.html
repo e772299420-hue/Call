@@ -110,8 +110,6 @@ body {
 }
 
 .header:hover {
-
-    
     box-shadow:0 20px 50px rgba(0,0,0,0.35);
     border-color: var(--accent-color);
     transform: translateY(-5px);
@@ -3466,114 +3464,6 @@ function setupPageAnimations() {
     }
 }
 
-// ===== نظام الاتصال مع Service Worker - تم الإضافة =====
-class ServiceWorkerMessenger {
-    constructor() {
-        this.currentPage = this.getCurrentPage();
-        this.init();
-    }
-    
-    getCurrentPage() {
-        return window.location.pathname.split('/').pop() || 'index.html';
-    }
-    
-    init() {
-        this.setupServiceWorker();
-        this.setupClickListeners();
-        console.log('🚀 تم تهيئة نظام اتصال Service Worker');
-    }
-    
-    setupServiceWorker() {
-        // إرسال رسالة إلى Service Worker عند فتح صفحة جديدة
-        this.notifyServiceWorker(this.currentPage);
-        
-        // استمع لرسائل Service Worker
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.addEventListener('message', (event) => {
-                console.log('📨 رسالة من Service Worker:', event.data);
-                this.handleServiceWorkerMessage(event.data);
-            });
-        }
-    }
-    
-    setupClickListeners() {
-        // عند النقر على أي رابط، نحاول تحميل الصفحة مسبقاً
-        document.addEventListener('click', (e) => {
-            const link = e.target.closest('a');
-            if (link && link.href && link.href.includes('/Call/') && link.href.endsWith('.html')) {
-                const pageName = link.href.split('/').pop();
-                
-                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.controller.postMessage({
-                        type: 'PREFETCH_PAGES',
-                        pages: [link.href],
-                        timestamp: new Date().toISOString()
-                    });
-                    
-                    console.log(`🚀 طلب تحميل مسبق للصفحة: ${pageName}`);
-                }
-            }
-        }, true);
-    }
-    
-    notifyServiceWorker(pageName) {
-        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: 'CURRENT_PAGE',
-                page: pageName,
-                timestamp: new Date().toISOString(),
-                url: window.location.href
-            });
-            
-            console.log(`📢 تم إخطار Service Worker بالصفحة الحالية: ${pageName}`);
-        }
-    }
-    
-    handleServiceWorkerMessage(message) {
-        switch (message.type) {
-            case 'PREFETCH_COMPLETED':
-                console.log(`✅ Service Worker أكمل تحميل الصفحات مسبقاً: ${message.pages}`);
-                break;
-                
-            case 'CACHE_UPDATED':
-                console.log('🔄 Service Worker قام بتحديث الذاكرة المؤقتة');
-                showNotification('🔄 تم تحديث التطبيق بنسخة أحدث', 'info');
-                break;
-                
-            case 'INSTALLATION_STATUS':
-                console.log('📱 حالة التثبيت من Service Worker:', message.status);
-                break;
-                
-            default:
-                console.log('📨 رسالة غير معروفة من Service Worker:', message);
-        }
-    }
-    
-    requestPrefetch(pages) {
-        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: 'PREFETCH_PAGES',
-                pages: pages,
-                priority: 'high',
-                timestamp: new Date().toISOString()
-            });
-            
-            console.log(`🚀 طلب تحميل مسبق لـ ${pages.length} صفحة`);
-            return true;
-        }
-        return false;
-    }
-    
-    checkCacheStatus() {
-        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: 'CHECK_CACHE_STATUS',
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-}
-
 // ===== أحداث تحميل الصفحة والتفاعل - مصححة =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 بدء تحميل تطبيق AZ السوق الشامل');
@@ -3585,9 +3475,6 @@ document.addEventListener('DOMContentLoaded', function() {
         pwaDetector = new PWAInstallationDetector();
         const merchantMonitor = new MerchantMonitor();
         const joinNotification = new JoinRequestNotification();
-        
-        // تهيئة نظام اتصال Service Worker
-        const serviceWorkerMessenger = new ServiceWorkerMessenger();
         
         setupAdminLogin();
         setupAdBanner();
@@ -3601,20 +3488,6 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             if (imageOptimizer) {
                 imageOptimizer.optimizeAllImages();
-            }
-            
-            // طلب تحميل الصفحات المهمة مسبقاً
-            if (serviceWorkerMessenger) {
-                const importantPages = [
-                    '/Call/mr.html',
-                    '/Call/as.html',
-                    '/Call/dm.html',
-                    '/Call/help.html',
-                    '/Call/seasa.html',
-                    '/Call/mrwan.html'
-                ];
-                
-                serviceWorkerMessenger.requestPrefetch(importantPages);
             }
         }, 1000);
         
@@ -3675,26 +3548,6 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/Call/sw.js')
             .then((registration) => {
                 console.log('✅ Service Worker مسجل بنجاح:', registration);
-                
-                // إرسال رسالة ترحيبية إلى Service Worker
-                if (registration.active) {
-                    registration.active.postMessage({
-                        type: 'APP_LOADED',
-                        timestamp: new Date().toISOString(),
-                        version: '2.0.0'
-                    });
-                }
-                
-                // استمع لتحديثات Service Worker
-                registration.addEventListener('updatefound', () => {
-                    const newWorker = registration.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            showNotification('🔄 يتوفر تحديث جديد للتطبيق', 'info');
-                            console.log('🔄 Service Worker جديد مثبت وجاهز');
-                        }
-                    });
-                });
             })
             .catch((error) => {
                 console.log('❌ فشل تسجيل Service Worker:', error);
