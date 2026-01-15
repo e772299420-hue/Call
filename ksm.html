@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -49,7 +50,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 30px auto;
             padding: 0 20px;
         }
@@ -95,6 +96,14 @@
             color: #2c3e50;
             padding-bottom: 10px;
             border-bottom: 2px solid #f0f4f8;
+        }
+        
+        .section-subtitle {
+            font-size: 18px;
+            margin: 25px 0 15px;
+            color: #4a6580;
+            padding-right: 10px;
+            border-right: 4px solid #4a6580;
         }
         
         .departments-table {
@@ -143,6 +152,7 @@
             cursor: pointer;
             font-weight: 600;
             transition: background-color 0.3s ease;
+            margin-left: 5px;
         }
         
         .btn-edit {
@@ -214,6 +224,7 @@
         .search-container {
             display: flex;
             margin-bottom: 20px;
+            gap: 10px;
         }
         
         .search-input {
@@ -225,7 +236,6 @@
         }
         
         .search-btn {
-            margin-right: 10px;
             padding: 0 20px;
             background-color: #4a6580;
             color: white;
@@ -349,6 +359,69 @@
             border: 1px solid #ffcdd2;
         }
         
+        /* تخطيط عرض الأقسام الفرعية */
+        .sub-departments-view {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-right: 4px solid #17a2b8;
+        }
+        
+        .back-to-main {
+            display: inline-block;
+            margin-bottom: 15px;
+            color: #4a6580;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .back-to-main:hover {
+            text-decoration: underline;
+        }
+        
+        .department-info {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e1e5eb;
+        }
+        
+        .department-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .sub-department-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eaeaea;
+            transition: background-color 0.2s;
+        }
+        
+        .sub-department-row:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .sub-department-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .sub-department-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .sub-department-status {
+            margin-left: 15px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+        }
+        
         @media (max-width: 768px) {
             .departments-table {
                 display: block;
@@ -374,7 +447,6 @@
             }
             
             .search-btn {
-                margin-right: 0;
                 margin-top: 10px;
                 padding: 12px;
             }
@@ -392,6 +464,39 @@
                 flex-direction: column;
                 gap: 0;
             }
+            
+            .sub-department-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .sub-department-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+        
+        /* تحسينات للأداء */
+        .data-loaded {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 13px;
+        }
+        
+        .no-data-message {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
         }
     </style>
 </head>
@@ -409,38 +514,68 @@
         <div class="tabs">
             <div class="tab active" onclick="showTab('view')">عرض الأقسام</div>
             <div class="tab" onclick="showTab('add')">إضافة قسم جديد</div>
-            <div class="tab" onclick="showTab('stats')">إحصائيات</div>
         </div>
         
         <div class="content" id="viewTab">
-            <h2 class="section-title">قائمة الأقسام</h2>
-            
-            <div class="search-container">
-                <input type="text" class="search-input" id="searchInput" placeholder="ابحث باسم القسم...">
-                <button class="search-btn" onclick="filterDepartments()">
-                    <i class="fas fa-search"></i> بحث
-                </button>
+            <div id="mainDepartmentsView">
+                <h2 class="section-title">قائمة الأقسام الرئيسية</h2>
+                
+                <div class="search-container">
+                    <input type="text" class="search-input" id="searchInput" placeholder="ابحث باسم القسم...">
+                    <button class="search-btn" onclick="filterDepartments()">
+                        <i class="fas fa-search"></i> بحث
+                    </button>
+                </div>
+                
+                <table class="departments-table">
+                    <thead>
+                        <tr>
+                            <th>اسم القسم</th>
+                            <th>عدد الأقسام الفرعية</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="departmentsTableBody">
+                        <tr>
+                            <td colspan="4">
+                                <div class="loading">
+                                    <i class="fas fa-spinner fa-spin"></i> جاري تحميل البيانات...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
             
-            <table class="departments-table">
-                <thead>
-                    <tr>
-                        <th>اسم القسم</th>
-                        <th>عدد المنتجات</th>
-                        <th>الحالة</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="departmentsTableBody">
-                    <tr>
-                        <td colspan="4">
-                            <div class="loading">
-                                <i class="fas fa-spinner fa-spin"></i> جاري تحميل البيانات...
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div id="subDepartmentsView" style="display: none;">
+                <div class="back-to-main" onclick="showMainDepartments()">
+                    <i class="fas fa-arrow-right"></i> العودة إلى قائمة الأقسام
+                </div>
+                
+                <div class="department-info" id="departmentInfo">
+                    <h3 id="deptNameDisplay"></h3>
+                    <div id="deptStatsDisplay"></div>
+                </div>
+                
+                <h3 class="section-subtitle">الأقسام الفرعية التابعة</h3>
+                
+                <div class="search-container">
+                    <input type="text" class="search-input" id="searchSubInput" placeholder="ابحث باسم القسم الفرعي...">
+                    <button class="search-btn" onclick="filterSubDepartments()">
+                        <i class="fas fa-search"></i> بحث
+                    </button>
+                    <button class="btn btn-add btn-small" onclick="addSubDepartment()">
+                        <i class="fas fa-plus"></i> إضافة قسم فرعي
+                    </button>
+                </div>
+                
+                <div id="subDepartmentsList">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> جاري تحميل الأقسام الفرعية...
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div class="content" id="addTab" style="display: none;">
@@ -477,6 +612,12 @@
                     <input type="url" id="departmentImage" class="form-input" placeholder="https://example.com/image.jpg">
                 </div>
                 
+                <div class="form-group">
+                    <label for="departmentIcon" class="form-label">أيقونة القسم (رابط)</label>
+                    <input type="url" id="departmentIcon" class="form-input" placeholder="https://example.com/icon.png">
+                    <small style="color: #6c757d;">(اختياري) رابط أيقونة تمثل القسم</small>
+                </div>
+                
                 <div class="form-actions">
                     <button type="reset" class="btn btn-cancel">مسح النموذج</button>
                     <button type="submit" class="btn btn-add">
@@ -484,15 +625,6 @@
                     </button>
                 </div>
             </form>
-        </div>
-        
-        <div class="content" id="statsTab" style="display: none;">
-            <h2 class="section-title">إحصائيات الأقسام</h2>
-            <div id="statsContent">
-                <div class="loading">
-                    <i class="fas fa-spinner fa-spin"></i> جاري تحميل الإحصائيات...
-                </div>
-            </div>
         </div>
     </div>
 
@@ -529,9 +661,62 @@
                     <input type="url" id="editImage" class="form-input" placeholder="https://example.com/image.jpg">
                 </div>
                 
+                <div class="form-group">
+                    <label for="editIcon" class="form-label">أيقونة القسم (رابط)</label>
+                    <input type="url" id="editIcon" class="form-input" placeholder="https://example.com/icon.png">
+                </div>
+                
                 <div class="form-actions">
                     <button type="button" class="btn btn-cancel" onclick="closeEditModal()">إلغاء</button>
                     <button type="submit" class="btn btn-save">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نموذج إضافة/تعديل القسم الفرعي -->
+    <div class="modal" id="editSubModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="subModalTitle">إضافة قسم فرعي</h3>
+                <button class="close-btn" onclick="closeEditSubModal()">&times;</button>
+            </div>
+            <form id="editSubForm">
+                <input type="hidden" id="editSubcategoryId">
+                <input type="hidden" id="editSubParentId">
+                
+                <div class="form-group">
+                    <label for="editSubName" class="form-label">اسم القسم الفرعي *</label>
+                    <input type="text" id="editSubName" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editSubStatus" class="form-label">الحالة *</label>
+                    <select id="editSubStatus" class="form-select" required>
+                        <option value="active">نشط</option>
+                        <option value="inactive">غير نشط</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editSubDescription" class="form-label">وصف القسم الفرعي</label>
+                    <textarea id="editSubDescription" class="form-input" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editSubOrder" class="form-label">ترتيب العرض</label>
+                    <input type="number" id="editSubOrder" class="form-input" min="0" value="0">
+                    <small style="color: #6c757d;">(اختياري) الأقل قيمة يعرض أولاً</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editSubImage" class="form-label">صورة القسم الفرعي (رابط)</label>
+                    <input type="url" id="editSubImage" class="form-input" placeholder="https://example.com/image.jpg">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeEditSubModal()">إلغاء</button>
+                    <button type="submit" class="btn btn-save" id="subModalSubmitBtn">إضافة</button>
                 </div>
             </form>
         </div>
@@ -550,11 +735,15 @@
         };
         
         // تهيئة Firebase
-        firebase.initializeApp(firebaseConfig);
+        const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
         // متغيرات عامة
         let currentEditingId = null;
+        let currentViewingDeptId = null;
+        let currentViewingDeptName = null;
+        let allDepartments = {};
+        let allSubDepartments = {};
         
         // وظائف التبويب
         function showTab(tabName) {
@@ -567,54 +756,54 @@
             
             document.getElementById(tabName + 'Tab').style.display = 'block';
             event.currentTarget.classList.add('active');
-            
-            // إذا كان التبويب هو الإحصائيات، قم بتحميلها
-            if (tabName === 'stats') {
-                loadStats();
-            }
         }
         
-        // جلب وعرض البيانات من Firebase
+        // تحميل سريع للأقسام من Firebase
         function loadDepartments() {
             const departmentsRef = database.ref('categories');
-            const productsRef = database.ref('products');
+            const subDepartmentsRef = database.ref('subcategories');
             
-            // جلب كل من الأقسام والمنتجات
+            // استخدام Promise.all لتحميل البيانات بشكل متوازي
             Promise.all([
                 departmentsRef.once('value'),
-                productsRef.once('value')
-            ]).then(([departmentsSnapshot, productsSnapshot]) => {
-                const departments = departmentsSnapshot.val();
-                const products = productsSnapshot.val();
+                subDepartmentsRef.once('value')
+            ])
+            .then(([departmentsSnapshot, subDepartmentsSnapshot]) => {
+                allDepartments = departmentsSnapshot.val() || {};
+                allSubDepartments = subDepartmentsSnapshot.val() || {};
+                
                 const tableBody = document.getElementById('departmentsTableBody');
                 
-                if (departments && Object.keys(departments).length > 0) {
+                if (Object.keys(allDepartments).length > 0) {
                     let html = '';
                     
-                    // حساب عدد المنتجات لكل قسم
-                    const productCounts = {};
-                    if (products) {
-                        Object.values(products).forEach(product => {
-                            if (product.categoryId) {
-                                productCounts[product.categoryId] = (productCounts[product.categoryId] || 0) + 1;
+                    // حساب عدد الأقسام الفرعية لكل قسم
+                    const subCounts = {};
+                    if (allSubDepartments) {
+                        Object.values(allSubDepartments).forEach(sub => {
+                            if (sub.parentId) {
+                                subCounts[sub.parentId] = (subCounts[sub.parentId] || 0) + 1;
                             }
                         });
                     }
                     
-                    Object.keys(departments).forEach(key => {
-                        const dept = departments[key];
-                        const productCount = productCounts[key] || 0;
+                    Object.keys(allDepartments).forEach(key => {
+                        const dept = allDepartments[key];
+                        const subCount = subCounts[key] || 0;
                         
                         html += `
                             <tr>
-                                <td>${dept.name || 'بدون اسم'}</td>
-                                <td>${productCount}</td>
+                                <td><strong>${dept.name || 'بدون اسم'}</strong></td>
+                                <td>${subCount}</td>
                                 <td>
                                     <span class="status-${dept.status === 'active' ? 'active' : 'inactive'}">
                                         ${dept.status === 'active' ? 'نشط' : 'غير نشط'}
                                     </span>
                                 </td>
                                 <td>
+                                    <button class="btn btn-edit" onclick="viewSubDepartments('${key}', '${dept.name || 'بدون اسم'}')">
+                                        <i class="fas fa-list"></i> الأقسام الفرعية
+                                    </button>
                                     <button class="btn btn-edit" onclick="editDepartment('${key}')">
                                         <i class="fas fa-edit"></i> تعديل
                                     </button>
@@ -627,6 +816,7 @@
                     });
                     
                     tableBody.innerHTML = html;
+                    tableBody.parentElement.classList.add('data-loaded');
                 } else {
                     tableBody.innerHTML = `
                         <tr>
@@ -640,7 +830,8 @@
                         </tr>
                     `;
                 }
-            }).catch((error) => {
+            })
+            .catch((error) => {
                 console.error('Error loading data:', error);
                 document.getElementById('departmentsTableBody').innerHTML = `
                     <tr>
@@ -648,7 +839,7 @@
                             <div class="empty-state">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <h3>حدث خطأ في تحميل البيانات</h3>
-                                <p>تعذر تحميل قائمة الأقسام. يرجى المحاولة مرة أخرى لاحقاً.</p>
+                                <p>تعذر تحميل قائمة الأقسام. يرجى التحقق من اتصال الإنترنت.</p>
                             </div>
                         </td>
                     </tr>
@@ -656,45 +847,209 @@
             });
         }
         
-        // وظيفة البحث والتصفية
+        // عرض الأقسام الفرعية لقسم معين
+        function viewSubDepartments(departmentId, departmentName) {
+            currentViewingDeptId = departmentId;
+            currentViewingDeptName = departmentName;
+            
+            // إخفاء عرض الأقسام الرئيسية وإظهار عرض الأقسام الفرعية
+            document.getElementById('mainDepartmentsView').style.display = 'none';
+            document.getElementById('subDepartmentsView').style.display = 'block';
+            
+            // تحديث معلومات القسم
+            document.getElementById('deptNameDisplay').textContent = `الأقسام الفرعية لقسم: ${departmentName}`;
+            
+            // تحميل الأقسام الفرعية
+            loadSubDepartments(departmentId);
+        }
+        
+        // العودة إلى عرض الأقسام الرئيسية
+        function showMainDepartments() {
+            document.getElementById('mainDepartmentsView').style.display = 'block';
+            document.getElementById('subDepartmentsView').style.display = 'none';
+            currentViewingDeptId = null;
+            currentViewingDeptName = null;
+        }
+        
+        // تحميل الأقسام الفرعية لقسم معين
+        function loadSubDepartments(departmentId) {
+            const subDepartmentsList = document.getElementById('subDepartmentsList');
+            
+            // فلترة الأقسام الفرعية التابعة للقسم المحدد
+            const subDepartments = Object.entries(allSubDepartments || {})
+                .filter(([id, subDept]) => subDept.parentId === departmentId)
+                .sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+            
+            if (subDepartments.length > 0) {
+                let html = '';
+                
+                subDepartments.forEach(([id, subDept]) => {
+                    // التحقق من عدم تكرار الاسم ضمن نفس القسم
+                    const isDuplicate = subDepartments.some(([otherId, otherSubDept]) => 
+                        otherId !== id && otherSubDept.name === subDept.name
+                    );
+                    
+                    const nameDisplay = subDept.name || 'بدون اسم';
+                    const duplicateBadge = isDuplicate ? '<span style="color: #dc3545; font-size: 12px; margin-right: 5px;" title="اسم مكرر"><i class="fas fa-exclamation-triangle"></i></span>' : '';
+                    
+                    html += `
+                        <div class="sub-department-row">
+                            <div class="sub-department-name">
+                                ${duplicateBadge}
+                                ${nameDisplay}
+                                ${subDept.description ? `<br><small style="color: #6c757d;">${subDept.description}</small>` : ''}
+                            </div>
+                            <span class="sub-department-status status-${subDept.status === 'active' ? 'active' : 'inactive'}">
+                                ${subDept.status === 'active' ? 'نشط' : 'غير نشط'}
+                            </span>
+                            <div class="sub-department-actions">
+                                <button class="btn btn-edit btn-small" onclick="editSubDepartment('${id}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-delete btn-small" onclick="deleteSubDepartment('${id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                subDepartmentsList.innerHTML = html;
+                subDepartmentsList.classList.add('data-loaded');
+                
+                // تحديث إحصائيات القسم
+                updateDepartmentStats(departmentId);
+            } else {
+                subDepartmentsList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <h3>لا توجد أقسام فرعية</h3>
+                        <p>لم يتم إضافة أي أقسام فرعية لهذا القسم بعد.</p>
+                        <button class="btn btn-add" onclick="addSubDepartment()" style="margin-top: 15px;">
+                            <i class="fas fa-plus"></i> إضافة قسم فرعي
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // إضافة قسم فرعي جديد
+        function addSubDepartment() {
+            document.getElementById('subModalTitle').textContent = 'إضافة قسم فرعي';
+            document.getElementById('subModalSubmitBtn').textContent = 'إضافة';
+            
+            // تنظيف النموذج
+            document.getElementById('editSubForm').reset();
+            document.getElementById('editSubcategoryId').value = '';
+            document.getElementById('editSubParentId').value = currentViewingDeptId;
+            document.getElementById('editSubOrder').value = 0;
+            
+            // إظهار النموذج
+            document.getElementById('editSubModal').style.display = 'flex';
+        }
+        
+        // تحديث إحصائيات القسم المعروض
+        function updateDepartmentStats(departmentId) {
+            // حساب عدد الأقسام الفرعية النشطة
+            const activeSubCount = Object.values(allSubDepartments || {}).filter(sub => 
+                sub.parentId === departmentId && sub.status === 'active'
+            ).length;
+            
+            const totalSubCount = Object.values(allSubDepartments || {}).filter(sub => 
+                sub.parentId === departmentId
+            ).length;
+            
+            const statsHtml = `
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px;">
+                    <div style="background: #e8f5e9; padding: 8px 15px; border-radius: 5px;">
+                        <strong>إجمالي الأقسام الفرعية:</strong> ${totalSubCount}
+                    </div>
+                    <div style="background: #e3f2fd; padding: 8px 15px; border-radius: 5px;">
+                        <strong>الأقسام الفرعية النشطة:</strong> ${activeSubCount}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('deptStatsDisplay').innerHTML = statsHtml;
+        }
+        
+        // وظيفة البحث والتصفية للأقسام
         function filterDepartments() {
             const searchText = document.getElementById('searchInput').value.toLowerCase();
             const rows = document.querySelectorAll('#departmentsTableBody tr');
             
+            let visibleCount = 0;
+            
             rows.forEach(row => {
-                const name = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-                if (name.includes(searchText)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
+                const nameCell = row.querySelector('td:nth-child(1)');
+                if (nameCell) {
+                    const name = nameCell.textContent.toLowerCase();
+                    if (name.includes(searchText)) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+            
+            // إظهار رسالة إذا لم توجد نتائج
+            if (visibleCount === 0 && searchText) {
+                const tableBody = document.getElementById('departmentsTableBody');
+                if (!tableBody.querySelector('.no-results-message')) {
+                    const noResultsRow = document.createElement('tr');
+                    noResultsRow.className = 'no-results-message';
+                    noResultsRow.innerHTML = `
+                        <td colspan="4" style="text-align: center; padding: 40px; color: #6c757d;">
+                            <i class="fas fa-search"></i>
+                            <h4>لا توجد نتائج لـ "${searchText}"</h4>
+                        </td>
+                    `;
+                    tableBody.appendChild(noResultsRow);
+                }
+            } else {
+                const noResultsMessage = document.querySelector('.no-results-message');
+                if (noResultsMessage) {
+                    noResultsMessage.remove();
+                }
+            }
+        }
+        
+        // وظيفة البحث والتصفية للأقسام الفرعية
+        function filterSubDepartments() {
+            const searchText = document.getElementById('searchSubInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#subDepartmentsList .sub-department-row');
+            
+            rows.forEach(row => {
+                const nameElement = row.querySelector('.sub-department-name');
+                if (nameElement) {
+                    const name = nameElement.textContent.toLowerCase();
+                    if (name.includes(searchText)) {
+                        row.style.display = 'flex';
+                    } else {
+                        row.style.display = 'none';
+                    }
                 }
             });
         }
         
-        // وظائف التعديل
+        // وظائف التعديل للأقسام
         function editDepartment(departmentId) {
             currentEditingId = departmentId;
             
-            // جلب بيانات القسم من Firebase
-            const departmentRef = database.ref('categories/' + departmentId);
-            departmentRef.once('value')
-                .then((snapshot) => {
-                    const department = snapshot.val();
-                    
-                    // تعبئة النموذج بالبيانات الحالية
-                    document.getElementById('editDepartmentId').value = departmentId;
-                    document.getElementById('editName').value = department.name || '';
-                    document.getElementById('editStatus').value = department.status || 'active';
-                    document.getElementById('editDescription').value = department.description || '';
-                    document.getElementById('editImage').value = department.image || '';
-                    
-                    // عرض النموذج
-                    document.getElementById('editModal').style.display = 'flex';
-                })
-                .catch((error) => {
-                    console.error('Error fetching department data:', error);
-                    alert('حدث خطأ أثناء تحميل بيانات القسم: ' + error.message);
-                });
+            const department = allDepartments[departmentId];
+            if (!department) return;
+            
+            // تعبئة النموذج بالبيانات الحالية
+            document.getElementById('editDepartmentId').value = departmentId;
+            document.getElementById('editName').value = department.name || '';
+            document.getElementById('editStatus').value = department.status || 'active';
+            document.getElementById('editDescription').value = department.description || '';
+            document.getElementById('editImage').value = department.image || '';
+            document.getElementById('editIcon').value = department.icon || '';
+            
+            // عرض النموذج
+            document.getElementById('editModal').style.display = 'flex';
         }
         
         function closeEditModal() {
@@ -703,30 +1058,152 @@
             currentEditingId = null;
         }
         
-        // حفظ التعديلات
+        // حفظ تعديلات القسم
         document.getElementById('editForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             if (!currentEditingId) return;
             
             const updatedData = {
-                name: document.getElementById('editName').value,
+                name: document.getElementById('editName').value.trim(),
                 status: document.getElementById('editStatus').value,
-                description: document.getElementById('editDescription').value,
-                image: document.getElementById('editImage').value
+                description: document.getElementById('editDescription').value.trim(),
+                image: document.getElementById('editImage').value.trim(),
+                icon: document.getElementById('editIcon').value.trim(),
+                updatedAt: new Date().toISOString()
             };
+            
+            // التحقق من عدم تكرار الاسم
+            const isDuplicate = Object.entries(allDepartments).some(([id, dept]) => 
+                id !== currentEditingId && dept.name === updatedData.name
+            );
+            
+            if (isDuplicate) {
+                alert('هذا الاسم مستخدم بالفعل. يرجى اختيار اسم آخر.');
+                return;
+            }
             
             // تحديث البيانات في Firebase
             const departmentRef = database.ref('categories/' + currentEditingId);
             departmentRef.update(updatedData)
                 .then(() => {
-                    alert('تم تحديث القسم بنجاح');
+                    // تحديث البيانات المحلية
+                    allDepartments[currentEditingId] = { ...allDepartments[currentEditingId], ...updatedData };
+                    
+                    showAlert('تم تحديث القسم بنجاح', 'success', 'addAlert');
                     closeEditModal();
                     loadDepartments(); // إعادة تحميل البيانات لرؤية التغييرات
                 })
                 .catch((error) => {
                     console.error('Error updating department:', error);
-                    alert('حدث خطأ أثناء تحديث القسم: ' + error.message);
+                    showAlert('حدث خطأ أثناء تحديث القسم: ' + error.message, 'error', 'addAlert');
+                });
+        });
+        
+        // تعديل قسم فرعي
+        function editSubDepartment(subDepartmentId) {
+            currentEditingId = subDepartmentId;
+            
+            const subDept = allSubDepartments[subDepartmentId];
+            if (!subDept) return;
+            
+            // تعبئة النموذج بالبيانات الحالية
+            document.getElementById('subModalTitle').textContent = 'تعديل قسم فرعي';
+            document.getElementById('subModalSubmitBtn').textContent = 'حفظ';
+            
+            document.getElementById('editSubcategoryId').value = subDepartmentId;
+            document.getElementById('editSubParentId').value = subDept.parentId || '';
+            document.getElementById('editSubName').value = subDept.name || '';
+            document.getElementById('editSubStatus').value = subDept.status || 'active';
+            document.getElementById('editSubDescription').value = subDept.description || '';
+            document.getElementById('editSubOrder').value = subDept.order || 0;
+            document.getElementById('editSubImage').value = subDept.image || '';
+            
+            // عرض النموذج
+            document.getElementById('editSubModal').style.display = 'flex';
+        }
+        
+        function closeEditSubModal() {
+            document.getElementById('editSubModal').style.display = 'none';
+            document.getElementById('editSubForm').reset();
+            currentEditingId = null;
+        }
+        
+        // حفظ تعديلات القسم الفرعي
+        document.getElementById('editSubForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const subId = document.getElementById('editSubcategoryId').value;
+            const parentId = document.getElementById('editSubParentId').value;
+            const name = document.getElementById('editSubName').value.trim();
+            
+            if (!name) {
+                alert('يرجى إدخال اسم القسم الفرعي');
+                return;
+            }
+            
+            // التحقق من عدم تكرار الاسم ضمن نفس القسم الرئيسي
+            const isDuplicate = Object.values(allSubDepartments).some(sub => 
+                sub.parentId === parentId && 
+                sub.name === name && 
+                (!subId || Object.keys(allSubDepartments).find(key => allSubDepartments[key] === sub) !== subId)
+            );
+            
+            if (isDuplicate) {
+                alert('هذا الاسم مستخدم بالفعل في هذا القسم. يرجى اختيار اسم آخر.');
+                return;
+            }
+            
+            const subData = {
+                name: name,
+                parentId: parentId,
+                status: document.getElementById('editSubStatus').value,
+                description: document.getElementById('editSubDescription').value.trim(),
+                order: parseInt(document.getElementById('editSubOrder').value) || 0,
+                image: document.getElementById('editSubImage').value.trim(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            // إذا كان جديداً، أضف تاريخ الإنشاء
+            if (!subId) {
+                subData.createdAt = new Date().toISOString();
+            }
+            
+            const updates = {};
+            
+            if (subId) {
+                // تحديث موجود
+                updates[`subcategories/${subId}`] = { ...allSubDepartments[subId], ...subData };
+            } else {
+                // إضافة جديد
+                const newId = database.ref('subcategories').push().key;
+                updates[`subcategories/${newId}`] = subData;
+            }
+            
+            database.ref().update(updates)
+                .then(() => {
+                    // تحديث البيانات المحلية
+                    if (subId) {
+                        allSubDepartments[subId] = { ...allSubDepartments[subId], ...subData };
+                    } else {
+                        const newId = Object.keys(updates)[0].split('/')[1];
+                        allSubDepartments[newId] = subData;
+                    }
+                    
+                    showAlert(subId ? 'تم تحديث القسم الفرعي بنجاح' : 'تم إضافة القسم الفرعي بنجاح', 'success', 'addAlert');
+                    closeEditSubModal();
+                    
+                    // إعادة تحميل الأقسام الفرعية
+                    if (currentViewingDeptId) {
+                        loadSubDepartments(currentViewingDeptId);
+                    }
+                    
+                    // إعادة تحميل الأقسام الرئيسية لتحديث عدد الأقسام الفرعية
+                    loadDepartments();
+                })
+                .catch((error) => {
+                    console.error('Error saving sub department:', error);
+                    showAlert('حدث خطأ أثناء الحفظ: ' + error.message, 'error', 'addAlert');
                 });
         });
         
@@ -734,12 +1211,30 @@
         document.getElementById('addDepartmentForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            const departmentName = document.getElementById('departmentName').value.trim();
+            if (!departmentName) {
+                showAlert('يرجى إدخال اسم القسم', 'error', 'addAlert');
+                return;
+            }
+            
+            // التحقق من عدم تكرار الاسم
+            const isDuplicate = Object.values(allDepartments).some(dept => 
+                dept.name === departmentName
+            );
+            
+            if (isDuplicate) {
+                showAlert('هذا الاسم مستخدم بالفعل. يرجى اختيار اسم آخر.', 'error', 'addAlert');
+                return;
+            }
+            
             const departmentData = {
-                name: document.getElementById('departmentName').value,
+                name: departmentName,
                 status: document.getElementById('departmentStatus').value,
                 description: document.getElementById('departmentDescription').value,
                 image: document.getElementById('departmentImage').value,
-                createdAt: new Date().toISOString()
+                icon: document.getElementById('departmentIcon').value,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             };
             
             // إضافة قسم جديد إلى Firebase
@@ -747,7 +1242,7 @@
             newDepartmentRef.set(departmentData)
                 .then(() => {
                     // إظهار رسالة النجاح
-                    showAlert('تم إضافة القسم الجديد بنجاح', 'success');
+                    showAlert('تم إضافة القسم الجديد بنجاح', 'success', 'addAlert');
                     
                     // مسح النموذج
                     document.getElementById('addDepartmentForm').reset();
@@ -757,13 +1252,13 @@
                 })
                 .catch((error) => {
                     console.error('Error adding department:', error);
-                    showAlert('حدث خطأ أثناء إضافة القسم: ' + error.message, 'error');
+                    showAlert('حدث خطأ أثناء إضافة القسم: ' + error.message, 'error', 'addAlert');
                 });
         });
         
         // عرض رسائل التنبيه
-        function showAlert(message, type) {
-            const alertDiv = document.getElementById('addAlert');
+        function showAlert(message, type, alertId = 'addAlert') {
+            const alertDiv = document.getElementById(alertId);
             alertDiv.textContent = message;
             alertDiv.className = type === 'success' ? 'alert alert-success' : 'alert alert-error';
             alertDiv.style.display = 'block';
@@ -774,163 +1269,95 @@
             }, 5000);
         }
         
-        // وظيفة الحذف
+        // وظيفة حذف القسم
         function deleteDepartment(departmentId) {
-            if (confirm('هل أنت متأكد من رغبتك في حذف هذا القسم؟ لا يمكن التراجع عن هذه العملية.')) {
-                // تنفيذ عملية الحذف من Firebase
-                database.ref('categories/' + departmentId).remove()
-                    .then(() => {
-                        alert('تم حذف القسم بنجاح');
-                        loadDepartments(); // إعادة تحميل البيانات
-                    })
-                    .catch(error => {
-                        alert('حدث خطأ أثناء الحذف: ' + error.message);
-                    });
+            if (!confirm('هل أنت متأكد من رغبتك في حذف هذا القسم؟ سيتم حذف جميع الأقسام الفرعية التابعة له أيضاً. لا يمكن التراجع عن هذه العملية.')) {
+                return;
             }
-        }
-        
-        // تحميل الإحصائيات
-        function loadStats() {
-            const departmentsRef = database.ref('categories');
-            const productsRef = database.ref('products');
             
-            Promise.all([
-                departmentsRef.once('value'),
-                productsRef.once('value')
-            ]).then(([departmentsSnapshot, productsSnapshot]) => {
-                const departments = departmentsSnapshot.val();
-                const products = productsSnapshot.val();
-                const statsContent = document.getElementById('statsContent');
-                
-                if (departments && Object.keys(departments).length > 0) {
-                    let totalDepartments = 0;
-                    let activeDepartments = 0;
-                    let inactiveDepartments = 0;
-                    let totalProducts = 0;
-                    
-                    // حساب عدد المنتجات لكل قسم
-                    const productCounts = {};
-                    if (products) {
-                        Object.values(products).forEach(product => {
-                            if (product.categoryId) {
-                                productCounts[product.categoryId] = (productCounts[product.categoryId] || 0) + 1;
-                            }
-                        });
-                        totalProducts = Object.keys(products).length;
-                    }
-                    
-                    Object.keys(departments).forEach(key => {
-                        const dept = departments[key];
-                        totalDepartments++;
-                        
-                        if (dept.status === 'active') {
-                            activeDepartments++;
-                        } else {
-                            inactiveDepartments++;
+            // التحقق من وجود أقسام فرعية تابعة للقسم
+            const hasSubDepartments = Object.values(allSubDepartments).some(sub => sub.parentId === departmentId);
+            
+            if (hasSubDepartments) {
+                if (!confirm('هذا القسم يحتوي على أقسام فرعية تابعة. حذف القسم سيحذف جميع الأقسام الفرعية أيضاً. هل تريد المتابعة؟')) {
+                    return;
+                }
+            }
+            
+            const updates = {};
+            updates[`categories/${departmentId}`] = null;
+            
+            // حذف جميع الأقسام الفرعية التابعة
+            Object.keys(allSubDepartments).forEach(key => {
+                if (allSubDepartments[key].parentId === departmentId) {
+                    updates[`subcategories/${key}`] = null;
+                }
+            });
+            
+            database.ref().update(updates)
+                .then(() => {
+                    // تحديث البيانات المحلية
+                    delete allDepartments[departmentId];
+                    Object.keys(allSubDepartments).forEach(key => {
+                        if (allSubDepartments[key].parentId === departmentId) {
+                            delete allSubDepartments[key];
                         }
                     });
                     
-                    statsContent.innerHTML = `
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                            <div style="background: linear-gradient(135deg, #4a6580, #2c3e50); color: white; padding: 20px; border-radius: 10px; text-align: center;">
-                                <h3 style="font-size: 18px; margin-bottom: 10px;">إجمالي الأقسام</h3>
-                                <p style="font-size: 32px; font-weight: bold;">${totalDepartments}</p>
-                            </div>
-                            <div style="background: linear-gradient(135deg, #28a745, #218838); color: white; padding: 20px; border-radius: 10px; text-align: center;">
-                                <h3 style="font-size: 18px; margin-bottom: 10px;">الأقسام النشطة</h3>
-                                <p style="font-size: 32px; font-weight: bold;">${activeDepartments}</p>
-                            </div>
-                            <div style="background: linear-gradient(135deg, #dc3545, #c82333); color: white; padding: 20px; border-radius: 10px; text-align: center;">
-                                <h3 style="font-size: 18px; margin-bottom: 10px;">الأقسام غير النشطة</h3>
-                                <p style="font-size: 32px; font-weight: bold;">${inactiveDepartments}</p>
-                            </div>
-                            <div style="background: linear-gradient(135deg, #ffc107, #e0a800); color: #333; padding: 20px; border-radius: 10px; text-align: center;">
-                                <h3 style="font-size: 18px; margin-bottom: 10px;">إجمالي المنتجات</h3>
-                                <p style="font-size: 32px; font-weight: bold;">${totalProducts}</p>
-                            </div>
-                        </div>
-                        
-                        <h3 style="margin-bottom: 15px; color: #2c3e50;">نسبة الأقسام النشطة إلى غير النشطة</h3>
-                        <div style="background-color: #f0f4f8; height: 30px; border-radius: 15px; margin-bottom: 30px; overflow: hidden;">
-                            <div style="background-color: #28a745; height: 100%; width: ${activeDepartments/totalDepartments*100}%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
-                                ${activeDepartments > 0 ? Math.round(activeDepartments/totalDepartments*100) + '%' : ''}
-                            </div>
-                        </div>
-                        
-                        <h3 style="margin-bottom: 15px; color: #2c3e50;">الأقسام الحديثة</h3>
-                        <div style="background-color: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                            ${getRecentDepartments(departments)}
-                        </div>
-                    `;
-                } else {
-                    statsContent.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-chart-pie"></i>
-                            <h3>لا توجد بيانات إحصائية</h3>
-                            <p>لم يتم إضافة أي أقسام بعد، لذلك لا توجد إحصائيات لعرضها.</p>
-                        </div>
-                    `;
-                }
-            }).catch((error) => {
-                console.error('Error loading stats:', error);
-                document.getElementById('statsContent').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <h3>حدث خطأ في تحميل الإحصائيات</h3>
-                        <p>تعذر تحميل البيانات الإحصائية. يرجى المحاولة مرة أخرى لاحقاً.</p>
-                    </div>
-                `;
-            });
+                    alert('تم حذف القسم بنجاح');
+                    loadDepartments();
+                    
+                    // إذا كنا نعرض أقسام هذا القسم، عد للقائمة الرئيسية
+                    if (currentViewingDeptId === departmentId) {
+                        showMainDepartments();
+                    }
+                })
+                .catch(error => {
+                    alert('حدث خطأ أثناء الحذف: ' + error.message);
+                });
         }
         
-        // الحصول على الأقسام الحديثة
-        function getRecentDepartments(departments) {
-            let deptArray = [];
-            
-            Object.keys(departments).forEach(key => {
-                deptArray.push({
-                    id: key,
-                    ...departments[key]
-                });
-            });
-            
-            // ترتيب الأقسام حسب تاريخ الإنشاء (الأحدث أولاً)
-            deptArray.sort((a, b) => {
-                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-            });
-            
-            // أخذ أول 5 أقسام فقط
-            deptArray = deptArray.slice(0, 5);
-            
-            if (deptArray.length === 0) {
-                return '<p>لا توجد أقسام حديثة</p>';
+        // وظيفة حذف القسم الفرعي
+        function deleteSubDepartment(subDepartmentId) {
+            if (!confirm('هل أنت متأكد من رغبتك في حذف هذا القسم الفرعي؟ لا يمكن التراجع عن هذه العملية.')) {
+                return;
             }
             
-            let html = '';
-            deptArray.forEach(dept => {
-                html += `
-                    <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f4f8;">
-                        <div>${dept.name || 'بدون اسم'}</div>
-                        <div>
-                            <span class="status-${dept.status === 'active' ? 'active' : 'inactive'}">
-                                ${dept.status === 'active' ? 'نشط' : 'غير نشط'}
-                            </span>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            return html;
+            database.ref('subcategories/' + subDepartmentId).remove()
+                .then(() => {
+                    // تحديث البيانات المحلية
+                    delete allSubDepartments[subDepartmentId];
+                    
+                    alert('تم حذف القسم الفرعي بنجاح');
+                    
+                    // إعادة تحميل الأقسام الفرعية إذا كنا نعرضها
+                    if (currentViewingDeptId) {
+                        loadSubDepartments(currentViewingDeptId);
+                    }
+                    
+                    // إعادة تحميل الأقسام الرئيسية لتحديث عدد الأقسام الفرعية
+                    loadDepartments();
+                })
+                .catch(error => {
+                    alert('حدث خطأ أثناء الحذف: ' + error.message);
+                });
         }
         
         // تحميل البيانات عند بدء التشغيل
         window.onload = function() {
             loadDepartments();
             
-            // إضافة إمكانية البحث عند الضغط على Enter
+            // إضافة إمكانية البحث عند الضغط على Enter للأقسام
             document.getElementById('searchInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     filterDepartments();
+                }
+            });
+            
+            // إضافة إمكانية البحث عند الضغط على Enter للأقسام الفرعية
+            document.getElementById('searchSubInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    filterSubDepartments();
                 }
             });
             
@@ -938,6 +1365,13 @@
             document.getElementById('editModal').addEventListener('click', function(e) {
                 if (e.target === this) {
                     closeEditModal();
+                }
+            });
+            
+            // إغلاق النموذج عند النقر خارج المحتوى (للأقسام الفرعية)
+            document.getElementById('editSubModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeEditSubModal();
                 }
             });
         };
