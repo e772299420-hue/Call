@@ -37,6 +37,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            padding-top: 140px; /* مساحة للعناصر الثابتة في الأعلى */
         }
 
         /* شاشة البداية */
@@ -138,8 +139,12 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* الشريط العلوي - أبيض */
+        /* الشريط العلوي - ثابت ومثبت في الأعلى */
         .top-bar {
+            position: fixed; /* تغيير من relative إلى fixed */
+            top: 0;
+            left: 0;
+            width: 100%;
             height: 60px;
             background: #ffffff;
             display: flex;
@@ -147,11 +152,19 @@
             justify-content: space-between;
             padding: 0 20px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-            position: relative;
-            z-index: 100;
+            z-index: 1000; /* زيادة z-index */
             border-radius: 0 0 15px 15px;
             animation: slideDown 0.5s ease-out;
             border-bottom: 1px solid #eee;
+            transition: all 0.3s ease; /* إضافة انتقال سلس */
+        }
+
+        /* تأثير التمرير على الشريط العلوي */
+        .top-bar.scrolled {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            height: 55px; /* تصغير قليل عند التمرير */
         }
 
         @keyframes slideDown {
@@ -366,12 +379,13 @@
             color: #2980b9;
         }
 
-        /* صورة القائمة الجديدة */
+        /* صورة القائمة الجديدة - تم تحسينها */
         .menu-item-image {
             width: 45px;
             height: 45px;
             border-radius: 10px;
-            object-fit: cover;
+            object-fit: cover; /* تغيير من contain إلى cover */
+            object-position: center; /* ضبط موضع الصورة */
             border: 2px solid #e9ecef;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
@@ -543,10 +557,22 @@
             box-shadow: 0 5px 12px rgba(41, 128, 185, 0.4);
         }
 
+        /* حاوية البانر والأزرار الثابتة */
+        .sticky-header-container {
+            position: fixed;
+            top: 60px; /* أسفل الشريط العلوي مباشرة */
+            left: 0;
+            width: 100%;
+            z-index: 900;
+            background: white;
+            padding: 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
         /* شاشة العرض - التعديلات الجديدة */
         #content-area {
             width: 100%;
-            height: calc(100vh - 280px); /* تم تعديل الارتفاع لحل المشكلة */
+            height: calc(100vh - 280px);
             display: flex;
             justify-content: center;
             align-items: stretch;
@@ -555,6 +581,7 @@
             overflow: hidden;
             border-radius: 15px;
             margin: 10px;
+            margin-top: 180px; /* مساحة للعناصر الثابتة */
             margin-bottom: 80px;
             
             background: transparent;
@@ -582,7 +609,7 @@
             border-radius: 10px;
             display: block;
             background: transparent;
-            overflow: auto; /* تم إضافة هذه الخاصية لحل مشكلة المحتوى المخفي */
+            overflow: auto;
         }
 
         .welcome-image-container {
@@ -720,7 +747,7 @@
             font-size: 16px;
         }
 
-        /* التذييل - تم تغييره إلى relative ليظهر بعد المحتوى */
+        /* التذييل */
         .footer {
             background: linear-gradient(135deg, #2980b9 0%, #1c6ea4 100%);
             color: white;
@@ -1153,11 +1180,10 @@
         }
 
         /* ========== تنسيقات البانر الرئيسي الجديد ========== */
-        /* تم تعديل البانر ليكون من أقصى اليمين إلى أقصى اليسار */
         .main-banner-container {
             position: relative;
-            width: 100%; /* تغيير من max-width: 95% إلى 100% */
-            margin: 10px 0; /* إزالة margin الجانبي */
+            width: 100%;
+            margin: 0;
             overflow: hidden;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -1174,7 +1200,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: cover; /* تغطية كاملة للخلفية */
+            object-position: center; /* توسيط الصورة */
             z-index: 1;
             transition: opacity 0.8s ease-in-out;
             animation: zoomIn 8s ease-in-out infinite alternate;
@@ -1373,9 +1400,21 @@
 
         /* تحسينات للشاشات الصغيرة */
         @media (max-width: 768px) {
+            body {
+                padding-top: 120px; /* تقليل المساحة للشاشات الصغيرة */
+            }
+            
+            .sticky-header-container {
+                top: 50px; /* تقليل المسافة للشاشات الصغيرة */
+            }
+            
             .top-bar {
                 height: 50px;
                 padding: 0 10px;
+            }
+            
+            .top-bar.scrolled {
+                height: 48px; /* تصغير أكثر للشاشات الصغيرة */
             }
             
             .menu-btn {
@@ -1438,7 +1477,7 @@
             .main-banner-container {
                 height: 180px;
                 border-radius: 10px;
-                margin: 5px 0;
+                margin: 0;
             }
             
             .banner-content h2 {
@@ -1451,7 +1490,7 @@
             
             .navbar {
                 height: 58px;
-                margin: 6px auto;
+                margin: 8px auto;
                 padding: 6px 8px;
                 max-width: 95%;
             }
@@ -1467,6 +1506,14 @@
                 font-size: 14px;
             }
             
+            #content-area {
+                height: calc(100vh - 240px);
+                margin: 8px;
+                border-width: 4px;
+                margin-top: 150px; /* تعديل للمساحة */
+                margin-bottom: 70px;
+            }
+
             .login-bar {
                 padding: 6px 12px;
                 max-width: 95%;
@@ -1501,13 +1548,6 @@
             .settings-box input {
                 width: 95%;
             }
-            
-            #content-area {
-                height: calc(100vh - 240px); /* تعديل الارتفاع للشاشات الصغيرة */
-                margin: 8px;
-                border-width: 4px;
-                margin-bottom: 70px;
-            }
 
             .share-buttons {
                 grid-template-columns: 1fr;
@@ -1527,9 +1567,21 @@
         }
         
         @media (max-width: 480px) {
+            body {
+                padding-top: 100px; /* تقليل أكثر للشاشات الصغيرة جداً */
+            }
+            
+            .sticky-header-container {
+                top: 45px;
+            }
+            
             .top-bar {
                 height: 45px;
                 padding: 0 8px;
+            }
+            
+            .top-bar.scrolled {
+                height: 42px;
             }
             
             .menu-btn {
@@ -1592,7 +1644,7 @@
             .main-banner-container {
                 height: 150px;
                 border-radius: 8px;
-                margin: 3px 0;
+                margin: 0;
             }
             
             .banner-content h2 {
@@ -1605,7 +1657,7 @@
             
             .navbar {
                 height: 52px;
-                margin: 5px auto;
+                margin: 8px auto;
                 padding: 5px 6px;
                 max-width: 95%;
             }
@@ -1622,6 +1674,14 @@
                 font-size: 13px;
             }
             
+            #content-area {
+                height: calc(100vh - 210px);
+                margin: 5px;
+                border-width: 3px;
+                margin-top: 130px;
+                margin-bottom: 60px;
+            }
+
             .login-bar {
                 padding: 5px 10px;
                 margin: 5px auto;
@@ -1630,13 +1690,6 @@
             .login-bar-btn {
                 padding: 5px 10px;
                 font-size: 12px;
-            }
-            
-            #content-area {
-                height: calc(100vh - 210px); /* تعديل الارتفاع للشاشات الصغيرة جداً */
-                margin: 5px;
-                border-width: 3px;
-                margin-bottom: 60px;
             }
 
             .share-buttons {
@@ -1767,8 +1820,8 @@
         </div>
     </div>
 
-    <!-- الشريط العلوي -->
-    <div class="top-bar">
+    <!-- الشريط العلوي - تم إضافة id topBar -->
+    <div class="top-bar" id="topBar">
         <button class="menu-btn" onclick="openSideMenu()">
             <i class="fas fa-bars"></i>
         </button>
@@ -1827,9 +1880,9 @@
                 الأقسام الرئيسية
             </div>
             
-            <!-- المنتجات التجارية الجديدة -->
+            <!-- المنتجات التجارية الجديدة - رابط محسن -->
             <div class="menu-item" onclick="openEcommercePage('1_1.html', 'قسم المنتجات التجارية الجديدة')">
-                <img src="https://drive.google.com/uc?export=view&id=1wAn2GWZxxv6d0mY-cLSV3oryNt1QZaCR"
+                <img src="https://drive.google.com/thumbnail?id=1wAn2GWZxxv6d0mY-cLSV3oryNt1QZaCR&sz=w200"
                      alt="منتجات تجارية" 
                      class="menu-item-image"
                      onerror="this.src='https://via.placeholder.com/45x45/2980b9/ffffff?text=AZ'">
@@ -1839,9 +1892,9 @@
                 </div>
             </div>
             
-            <!-- المنتجات المستعملة - الحراج -->
+            <!-- المنتجات المستعملة - الحراج - رابط محسن -->
             <div class="menu-item" onclick="openEcommercePage('1_2.html', 'قسم المنتجات المستعملة - الحراج')">
-                <img src="https://drive.google.com/uc?export=view&id=1AUf5d-XQCKqGjw_kXN3cJFuepsKyEEkc"
+                <img src="https://drive.google.com/thumbnail?id=1AUf5d-XQCKqGjw_kXN3cJFuepsKyEEkc&sz=w200"
                      alt="منتجات مستعملة" 
                      class="menu-item-image"
                      onerror="this.src='https://via.placeholder.com/45x45/2ecc71/ffffff?text=AZ'">
@@ -1851,9 +1904,9 @@
                 </div>
             </div>
             
-            <!-- المباني والعقارات -->
+            <!-- المباني والعقارات - رابط محسن -->
             <div class="menu-item" onclick="openEcommercePage('1_5.html', 'قسم المباني والعقارات')">
-                <img src="https://drive.google.com/uc?export=view&id=1Msxt4CiPc-j-eSOawoXfTch08BcMRCV1"
+                <img src="https://drive.google.com/thumbnail?id=1Msxt4CiPc-j-eSOawoXfTch08BcMRCV1&sz=w200"
                      alt="عقارات" 
                      class="menu-item-image"
                      onerror="this.src='https://via.placeholder.com/45x45/e67e22/ffffff?text=AZ'">
@@ -1863,9 +1916,9 @@
                 </div>
             </div>
             
-            <!-- الوظائف الشاغرة -->
+            <!-- الوظائف الشاغرة - رابط محسن -->
             <div class="menu-item" onclick="openEcommercePage('1_6.html', 'قسم الوظائف الشاغرة')">
-                <img src="https://drive.google.com/uc?export=view&id=1f4a7Te4DbN7DqLTHc_-DOstlFiZ7nDoS"
+                <img src="https://drive.google.com/thumbnail?id=1f4a7Te4DbN7DqLTHc_-DOstlFiZ7nDoS&sz=w200"
                      alt="وظائف" 
                      class="menu-item-image"
                      onerror="this.src='https://via.placeholder.com/45x45/9b59b6/ffffff?text=AZ'">
@@ -1875,9 +1928,9 @@
                 </div>
             </div>
             
-            <!-- الطلب والتوصيل السريع -->
+            <!-- الطلب والتوصيل السريع - رابط محسن -->
             <div class="menu-item" onclick="openEcommercePage('index_mt.html', 'قسم الطلب والتوصيل السريع')">
-                <img src="https://drive.google.com/uc?export=view&id=1aLMNf5VLLcRddT7joU7NF8eOjP8e-82H"
+                <img src="https://drive.google.com/thumbnail?id=1aLMNf5VLLcRddT7joU7NF8eOjP8e-82H&sz=w200"
                      alt="توصيل" 
                      class="menu-item-image"
                      onerror="this.src='https://via.placeholder.com/45x45/e74c3c/ffffff?text=AZ'">
@@ -1887,9 +1940,9 @@
                 </div>
             </div>
             
-            <!-- أرقام ومواقع أشخاص تهمك -->
+            <!-- أرقام ومواقع أشخاص تهمك - رابط محسن -->
             <div class="menu-item" onclick="openEcommercePage('txtx.html', 'أرقام ومواقع أشخاص تهمك')">
-                <img src="https://drive.google.com/uc?export=view&id=10LHD22zlnPn3SCGn3JHuQDqBFPxkQdUr"
+                <img src="https://drive.google.com/thumbnail?id=10LHD22zlnPn3SCGn3JHuQDqBFPxkQdUr&sz=w200"
                      alt="أرقام" 
                      class="menu-item-image"
                      onerror="this.src='https://via.placeholder.com/45x45/1abc9c/ffffff?text=AZ'">
@@ -2004,53 +2057,56 @@
         </div>
     </div>
 
-    <!-- ========== البانر الرئيسي (بدلاً من الكاروسيل) ========== -->
-    <div class="main-banner-container" id="mainBanner">
-        <img id="bannerImage" src="" 
-             alt="بانر AZ السوق الشامل" 
-             class="banner-image"
-             loading="lazy"
-             onerror="this.src='https://via.placeholder.com/1200x220/2980b9/ffffff?text=AZ+السوق+الشامل'">
-        <div class="banner-overlay"></div>
-        <div class="banner-content">
-            <h2 id="bannerTitle">AZ السوق الشامل</h2>
-            <p id="bannerDescription">لتلبية احتياجك بالكامل</p>
+    <!-- ========== حاوية البانر والأزرار الثابتة ========== -->
+    <div class="sticky-header-container" id="stickyHeader">
+        <!-- البانر الرئيسي -->
+        <div class="main-banner-container" id="mainBanner">
+            <img id="bannerImage" src="" 
+                 alt="بانر AZ السوق الشامل" 
+                 class="banner-image"
+                 loading="lazy"
+                 onerror="this.src='https://via.placeholder.com/1200x220/2980b9/ffffff?text=AZ+السوق+الشامل'">
+            <div class="banner-overlay"></div>
+            <div class="banner-content">
+                <h2 id="bannerTitle">AZ السوق الشامل</h2>
+                <p id="bannerDescription">لتلبية احتياجك بالكامل</p>
+            </div>
         </div>
-    </div>
 
-    <!-- ========== شريط الأزرار - معدل للسحب الأفقي (أسفل البانر) ========== -->
-    <div class="navbar" id="navbar">
-        <div class="navbar-container">
-            <button onclick="openPage('new', this)" id="newProductsBtn">
-                <i class="fas fa-shopping-bag"></i> المنتجات الجديدة
-            </button>
-            <button onclick="openPage('haraj', this)">
-                <i class="fas fa-recycle"></i> منتجات الحراج
-            </button>
-            <button onclick="openPage('restaurants', this)">
-                <i class="fas fa-shipping-fast"></i> طلبات المطاعم
-            </button>
-            <button onclick="openPage('realestate', this)">
-                <i class="fas fa-building"></i> العقارات
-            </button>
-            <button onclick="openPage('jobs', this)">
-                <i class="fas fa-briefcase"></i> الوظائف
-            </button>
-            <button onclick="openPage('settings', this)">
-                <i class="fas fa-address-book"></i> أرقام ومواقع
-            </button>
-            <button onclick="openPage('electronics', this)">
-                <i class="fas fa-laptop"></i> إلكترونيات
-            </button>
-            <button onclick="openPage('vehicles', this)">
-                <i class="fas fa-car"></i> مركبات
-            </button>
-            <button onclick="openPage('services', this)">
-                <i class="fas fa-tools"></i> خدمات
-            </button>
-            <button onclick="openPage('fashion', this)">
-                <i class="fas fa-tshirt"></i> أزياء
-            </button>
+        <!-- شريط الأزرار -->
+        <div class="navbar" id="navbar">
+            <div class="navbar-container">
+                <button onclick="openPage('new', this)" id="newProductsBtn">
+                    <i class="fas fa-shopping-bag"></i> المنتجات الجديدة
+                </button>
+                <button onclick="openPage('haraj', this)">
+                    <i class="fas fa-recycle"></i> منتجات الحراج
+                </button>
+                <button onclick="openPage('restaurants', this)">
+                    <i class="fas fa-shipping-fast"></i> طلبات المطاعم
+                </button>
+                <button onclick="openPage('realestate', this)">
+                    <i class="fas fa-building"></i> العقارات
+                </button>
+                <button onclick="openPage('jobs', this)">
+                    <i class="fas fa-briefcase"></i> الوظائف
+                </button>
+                <button onclick="openPage('settings', this)">
+                    <i class="fas fa-address-book"></i> أرقام ومواقع
+                </button>
+                <button onclick="openPage('electronics', this)">
+                    <i class="fas fa-laptop"></i> إلكترونيات
+                </button>
+                <button onclick="openPage('vehicles', this)">
+                    <i class="fas fa-car"></i> مركبات
+                </button>
+                <button onclick="openPage('services', this)">
+                    <i class="fas fa-tools"></i> خدمات
+                </button>
+                <button onclick="openPage('fashion', this)">
+                    <i class="fas fa-tshirt"></i> أزياء
+                </button>
+            </div>
         </div>
     </div>
 
@@ -2076,7 +2132,7 @@
         </div>
     </div>
 
-    <!-- التذييل - تم تغييره إلى relative ليظهر بعد المحتوى -->
+    <!-- التذييل -->
     <div class="footer">
         <p>إعداد وبرمجة/ المميز سوفت للأنظمة المحاسبية المتكاملة</p>
     </div>
@@ -2084,7 +2140,7 @@
     <script>
         // ===== نظام إدارة صور Google Drive المحسن (محسّن) =====
         const EnhancedDriveImageManager = {
-            // الصور المحددة للبانر مع روابط محسّنة
+            // الصور المحددة للبانر مع روابط محسّنة - تم إضافة object-fit: cover لجميع الجهات
             bannerImages: [
                 {
                     url: "https://drive.google.com/thumbnail?id=1wAn2GWZxxv6d0mY-cLSV3oryNt1QZaCR&sz=w1200",
@@ -2234,6 +2290,33 @@
 
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+
+        // ===== نظام الشريط العلوي الثابت =====
+        class StickyTopBar {
+            constructor() {
+                this.topBar = document.getElementById('topBar');
+                this.lastScrollTop = 0;
+                this.init();
+            }
+            
+            init() {
+                window.addEventListener('scroll', () => this.handleScroll());
+                this.handleScroll();
+                console.log('✅ تم تهيئة نظام الشريط العلوي الثابت');
+            }
+            
+            handleScroll() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                if (scrollTop > 10) {
+                    this.topBar.classList.add('scrolled');
+                } else {
+                    this.topBar.classList.remove('scrolled');
+                }
+                
+                this.lastScrollTop = scrollTop;
+            }
+        }
 
         // ===== نظام البانر المعدل =====
         class StaticBannerManager {
@@ -2788,6 +2871,7 @@
         let visitorTracker;
         let horizontalScrollNavbar;
         let bannerManager;
+        let stickyTopBar;
 
         function hideIntroScreen() {
             const introScreen = document.getElementById('introScreen');
@@ -2810,15 +2894,12 @@
         function adjustContentAreaHeight() {
             const contentArea = document.getElementById('content-area');
             const windowHeight = window.innerHeight;
-            const topBarHeight = document.querySelector('.top-bar').offsetHeight;
-            const bannerHeight = document.getElementById('mainBanner').offsetHeight;
-            const navbarHeight = document.getElementById('navbar').offsetHeight;
-            const loginBar = document.getElementById('loginBar');
-            const loginBarHeight = loginBar.style.display !== 'none' ? loginBar.offsetHeight : 0;
+            const topBarHeight = document.getElementById('topBar').offsetHeight;
+            const stickyHeaderHeight = document.getElementById('stickyHeader').offsetHeight;
             const footerHeight = document.querySelector('.footer').offsetHeight;
             
             // حساب الارتفاع المناسب
-            const calculatedHeight = windowHeight - topBarHeight - bannerHeight - navbarHeight - loginBarHeight - footerHeight - 30;
+            const calculatedHeight = windowHeight - topBarHeight - stickyHeaderHeight - footerHeight - 40;
             
             // تطبيق الارتفاع مع حد أدنى
             contentArea.style.height = Math.max(calculatedHeight, 300) + 'px';
@@ -3241,6 +3322,11 @@
             setTimeout(() => {
                 horizontalScrollNavbar = new HorizontalScrollNavbar();
             }, 1000);
+            
+            // تهيئة نظام الشريط العلوي الثابت
+            setTimeout(() => {
+                stickyTopBar = new StickyTopBar();
+            }, 500);
             
             // ضبط ارتفاع منطقة المحتوى عند تحميل الصفحة
             setTimeout(() => {
