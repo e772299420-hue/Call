@@ -2493,6 +2493,113 @@
             updateRegionOptions();
         }
 
+        // دالة جديدة لتفريغ جميع الفلاتر عند فتح الصفحة
+        function clearAllFiltersOnLoad() {
+            // تفريغ حقول الفلاتر
+            resetFiltersFields();
+            
+            // إخفاء شريط الفلاتر
+            hideFilterBar();
+            
+            // إعادة تعيين عدد المنتجات المعروضة
+            if (productsCountEl) {
+                productsCountEl.textContent = ` ${allProducts.length}`;
+            }
+            
+            // عرض جميع المنتجات
+            displayProducts(allProducts);
+        }
+
+        // دالة محسنة للتحقق من أن التاجر نشط وتاجر (مرنة جداً)
+        function isActiveMerchant(merchant) {
+            if (!merchant) return true; // إذا لم يكن هناك تاجر، نعرض المنتج
+            
+            // تحسين: افتراض أن التاجر نشط ما لم يكن هناك دليل واضح على العكس
+            let isActive = true;
+            
+            // فقط إذا كان هناك حقل status صريح وقيمته تشير إلى غير نشط
+            if (merchant.status !== undefined && merchant.status !== null && merchant.status !== "") {
+                const status = merchant.status.toString().toLowerCase().trim();
+                const inactiveStatuses = ["غير نشط", "inactive", "0", "false", "معطل", "محظور", "موقوف", "غير مفعل", "suspended", "banned", "deactivated"];
+                
+                if (inactiveStatuses.includes(status)) {
+                    isActive = false;
+                }
+            }
+            
+            // تحسين: افتراض أن التاجر تاجر ما لم يكن هناك دليل واضح على العكس
+            let isMerchantType = true;
+            
+            // فقط إذا كان هناك حقل job أو type صريح وقيمته تشير إلى أنه ليس تاجراً
+            const merchantTypeFields = ['job', 'type', 'role', 'userType'];
+            let foundNonMerchant = false;
+            
+            merchantTypeFields.forEach(field => {
+                if (merchant[field] !== undefined && merchant[field] !== null && merchant[field] !== "") {
+                    const value = merchant[field].toString().toLowerCase().trim();
+                    const nonMerchantValues = ["موظف", "عميل", "زبون", "مستخدم", "admin", "employee", "user", "client", "customer", "زائر", "visitor"];
+                    
+                    if (nonMerchantValues.includes(value)) {
+                        foundNonMerchant = true;
+                    }
+                }
+            });
+            
+            // إذا كان هناك دليل واضح على أنه ليس تاجراً
+            if (foundNonMerchant) {
+                isMerchantType = false;
+            }
+            
+            // تحسين إضافي: إذا كان التاجر لديه منتجات، فهو بالتأكيد تاجر
+            const merchantProducts = allProducts.filter(p => p.userId === merchant.id);
+            if (merchantProducts.length > 0) {
+                isMerchantType = true;
+            }
+            
+            return isActive && isMerchantType;
+        }
+
+        // حساب عدد التجار النشطين
+        function countActiveMerchants() {
+            return allMerchants.filter(merchant => {
+                return isActiveMerchant(merchant);
+            }).length;
+        }
+
+        // دالة لفحص وتحسين بيانات التاجر
+        function validateMerchantData(merchant) {
+            if (!merchant) return false;
+            
+            // تحسين: التأكد من وجود الحقول الأساسية
+            if (!merchant.id || merchant.id.trim() === '') {
+                return false;
+            }
+            
+            // تحسين: إذا كان التاجر لا يحتوي على اسم، نعطيه اسم افتراضي
+            if (!merchant.name && !merchant.username) {
+                merchant.name = 'تاجر ' + merchant.id.substring(0, 5);
+            }
+            
+            return true;
+        }
+
+        // دالة للحصول على التجار الذين لديهم منتجات فقط
+        function getMerchantsWithProducts() {
+            const merchantsWithProducts = {};
+            
+            // جمع جميع المنتجات حسب التاجر
+            allProducts.forEach(product => {
+                if (product.userId) {
+                    merchantsWithProducts[product.userId] = true;
+                }
+            });
+            
+            // تصفية التجار للحصول على أولئك الذين لديهم منتجات فقط
+            return allMerchants.filter(merchant => {
+                return merchantsWithProducts[merchant.id] && isActiveMerchant(merchant);
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             initializeNavigationManager();
             initializeStableUserId();
@@ -2503,8 +2610,10 @@
             initializeApp();
             setupEventListeners();
             
-            // تفريغ حقول الفلاتر عند فتح الصفحة
-            resetFiltersFields();
+            // تفريغ جميع حقول الفلاتر عند فتح الصفحة
+            setTimeout(() => {
+                clearAllFiltersOnLoad();
+            }, 500);
             
             // إخفاء رسالة التحميل فوراً
             const loadingElement = productsContainer.querySelector('.loading');
@@ -3629,6 +3738,14 @@
                 allRegions = convertFirebaseData(regionsSnap.val()) || [];
                 allCategories = convertFirebaseData(categoriesSnap.val()) || [];
 
+                // تحسين: تنظيف وتحسين بيانات التجار
+                allMerchants = allMerchants.map(merchant => {
+                    if (!validateMerchantData(merchant)) {
+                        return null;
+                    }
+                    return merchant;
+                }).filter(Boolean);
+
                 saveDataToCache();
                 populateFilterOptions();
                 
@@ -3705,10 +3822,9 @@
                 if (product.categoryId) {
                     const merchant = allMerchants.find(m => m.id === product.userId);
                     if (merchant) {
-                        const isActive = merchant.status === "active" || merchant.status === "نشط";
-                        const isMerchant = merchant.job === "تاجر" || merchant.type === "تاجر";
+                        const isActive = isActiveMerchant(merchant);
                         
-                        if (isActive && isMerchant) {
+                        if (isActive) {
                             categoryCounts[product.categoryId] = (categoryCounts[product.categoryId] || 0) + 1;
                         }
                     }
@@ -3749,15 +3865,23 @@
                 if (product.productType === 'عرض' && !isOfferValid(product)) {
                     return false;
                 }
-                return true;
+                
+                // تحسين: إظهار المنتج حتى لو لم يتم العثور على تاجره
+                const merchant = allMerchants.find(m => m.id === product.userId);
+                if (!merchant) {
+                    return true; // إظهار المنتج حتى بدون تاجر
+                }
+                
+                return isActiveMerchant(merchant);
             });
             
             if (!filteredProducts || filteredProducts.length === 0) {
+                const activeMerchantsCount = countActiveMerchants();
                 productsContainer.innerHTML = `
                     <div class="no-products">
                         <p>لا توجد منتجات متاحة حالياً</p>
                         <p>المنتجات الإجمالية: ${allProducts.length}</p>
-                        <p>التجار النشطين: ${allMerchants.filter(m => (m.status === "active" || m.status === "نشط") && (m.job === "تاجر" || m.type === "تاجر")).length}</p>
+                        <p>التجار النشطين: ${activeMerchantsCount}</p>
                         <button onclick="resetFilters()" style="margin-top:10px;padding:10px 20px;background:var(--primary-color);color:#fff;border:none;border-radius:5px;cursor:pointer">إعادة تعيين الفلاتر</button>
                     </div>
                 `;
@@ -3779,12 +3903,14 @@
             
             products.forEach(p => {
                 const merchant = allMerchants.find(m => m.id === p.userId);
-                if (!merchant) return;
                 
-                const isActive = merchant.status === "active" || merchant.status === "نشط";
-                const isMerchant = merchant.job === "تاجر" || merchant.type === "تاجر";
+                // تحسين: إذا لم يكن هناك تاجر، نعرض المنتج تحت قسم "غير مصنف"
+                let isActive = true;
+                if (merchant) {
+                    isActive = isActiveMerchant(merchant);
+                }
                 
-                if (!isActive || !isMerchant) return;
+                if (!isActive) return;
                 
                 const categoryId = p.categoryId || 'غير مصنف';
                 const categoryName = p.categoryId ? 
@@ -3833,8 +3959,8 @@
                 
                 group.products.forEach(p => {
                     const merchant = allMerchants.find(m => m.id === p.userId);
-                    if (!merchant) return;
                     
+                    // تحسين: إذا لم يكن هناك تاجر، نعرض المنتج بدون بيانات التاجر
                     const card = createProductCard(p, merchant);
                     categoryContainer.appendChild(card);
                 });
@@ -3843,9 +3969,12 @@
             });
 
             if (grid.children.length === 0) {
+                const activeMerchantsCount = countActiveMerchants();
                 productsContainer.innerHTML = `
                     <div class="no-products">
                         <p>لا توجد منتجات تطابق معايير البحث</p>
+                        <p>المنتجات الإجمالية: ${allProducts.length}</p>
+                        <p>التجار النشطين: ${activeMerchantsCount}</p>
                         <button onclick="resetFilters()" style="margin-top:10px;padding:10px 20px;background:var(--primary-color);color:#fff;border:none;border-radius:5px;cursor:pointer">عرض جميع المنتجات</button>
                     </div>
                 `;
@@ -3946,7 +4075,7 @@
                         default:
                             const dateA = new Date(a.publishDate || a.createdAt || a.date || 0);
                             const dateB = new Date(b.publishDate || b.createdAt || b.date || 0);
-                            result = dateB - dateA;
+                            result = dateB - aDate;
                             break;
                     }
                     
@@ -4093,9 +4222,8 @@
                 return allProducts.filter(p => {
                     const merchant = allMerchants.find(m => m.id === p.userId);
                     if (!merchant) return false;
-                    const isActive = merchant.status === "active" || merchant.status === "نشط";
-                    const isMerchant = merchant.job === "تاجر" || merchant.type === "تاجر";
-                    if (!isActive || !isMerchant) return false;
+                    const isActive = isActiveMerchant(merchant);
+                    if (!isActive) return false;
 
                     return favoriteCategories.includes(p.categoryId);
                 });
@@ -4170,7 +4298,7 @@
             }
 
             function createProductCard(product, merchant) {
-                const merchantName = merchant.name || merchant.username || "تاجر";
+                const merchantName = merchant ? (merchant.name || merchant.username || "تاجر") : "تاجر";
                 const productName = product.name || 'منتج بدون اسم';
                 const categoryName = product.categoryId ? 
                     (allCategories.find(c => c.id === product.categoryId)?.name || '') : '';
@@ -4230,26 +4358,29 @@
                         img.src = formatDriveUrl(url, 'thumb');
                         img.alt = `${productName} - صورة ${index + 1}`;
                         
-                        const merchantLogoUrl = merchant.logo || merchant.logoUrl || merchant.image;
-                        const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
-                                      merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
-                        
-                        if (hasLogo) {
-                            const watermark = document.createElement('div');
-                            watermark.className = 'slider-watermark';
-                            const formattedLogoUrl = formatDriveUrl(merchantLogoUrl, 'thumb');
-                            watermark.innerHTML = `
-                                <div class="slider-merchant-name">${merchantName}</div>
-                                <img src="${formattedLogoUrl}" alt="${merchantName}" class="slider-merchant-logo">
-                            `;
-                            sliderDiv.appendChild(watermark);
-                        } else {
-                            const watermark = document.createElement('div');
-                            watermark.className = 'slider-watermark';
-                            watermark.innerHTML = `
-                                <div class="slider-merchant-name">${merchantName}</div>
-                            `;
-                            sliderDiv.appendChild(watermark);
+                        // تحسين: فقط إذا كان هناك تاجر وشعار
+                        if (merchant) {
+                            const merchantLogoUrl = merchant.logo || merchant.logoUrl || merchant.image;
+                            const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
+                                          merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
+                            
+                            if (hasLogo) {
+                                const watermark = document.createElement('div');
+                                watermark.className = 'slider-watermark';
+                                const formattedLogoUrl = formatDriveUrl(merchantLogoUrl, 'thumb');
+                                watermark.innerHTML = `
+                                    <div class="slider-merchant-name">${merchantName}</div>
+                                    <img src="${formattedLogoUrl}" alt="${merchantName}" class="slider-merchant-logo">
+                                `;
+                                sliderDiv.appendChild(watermark);
+                            } else {
+                                const watermark = document.createElement('div');
+                                watermark.className = 'slider-watermark';
+                                watermark.innerHTML = `
+                                    <div class="slider-merchant-name">${merchantName}</div>
+                                `;
+                                sliderDiv.appendChild(watermark);
+                            }
                         }
                         
                         img.addEventListener('click', () => {
@@ -4308,26 +4439,29 @@
                         img.src = formatDriveUrl(imageUrl, 'thumb');
                         img.alt = productName;
                         
-                        const merchantLogoUrl = merchant.logo || merchant.logoUrl || merchant.image;
-                        const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
-                                      merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
-                        
-                        if (hasLogo) {
-                            const watermark = document.createElement('div');
-                            watermark.className = 'image-watermark';
-                            const formattedLogoUrl = formatDriveUrl(merchantLogoUrl, 'thumb');
-                            watermark.innerHTML = `
-                                <div class="watermark-merchant-name">${merchantName}</div>
-                                <img src="${formattedLogoUrl}" alt="${merchantName}" class="watermark-logo">
-                            `;
-                            imageDiv.appendChild(watermark);
-                        } else {
-                            const watermark = document.createElement('div');
-                            watermark.className = 'image-watermark';
-                            watermark.innerHTML = `
-                                <div class="watermark-merchant-name">${merchantName}</div>
-                            `;
-                            imageDiv.appendChild(watermark);
+                        // تحسين: فقط إذا كان هناك تاجر وشعار
+                        if (merchant) {
+                            const merchantLogoUrl = merchant.logo || merchant.logoUrl || merchant.image;
+                            const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
+                                          merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
+                            
+                            if (hasLogo) {
+                                const watermark = document.createElement('div');
+                                watermark.className = 'image-watermark';
+                                const formattedLogoUrl = formatDriveUrl(merchantLogoUrl, 'thumb');
+                                watermark.innerHTML = `
+                                    <div class="watermark-merchant-name">${merchantName}</div>
+                                    <img src="${formattedLogoUrl}" alt="${merchantName}" class="watermark-logo">
+                                `;
+                                imageDiv.appendChild(watermark);
+                            } else {
+                                const watermark = document.createElement('div');
+                                watermark.className = 'image-watermark';
+                                watermark.innerHTML = `
+                                    <div class="watermark-merchant-name">${merchantName}</div>
+                                `;
+                                imageDiv.appendChild(watermark);
+                            }
                         }
                         
                         img.addEventListener('click', () => {
@@ -4453,44 +4587,57 @@
                 merchantBtn.className = 'merchant-btn';
                 merchantBtn.id = 'merchant-btn';
                 
-                const merchantLogoUrl = merchant.logo || merchant.logoUrl || merchant.image;
-                const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
-                              merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
-                
-                if (hasLogo) {
-                    const formattedLogoUrl = formatDriveUrl(merchantLogoUrl, 'thumb');
-                    merchantBtn.innerHTML = `
-                        <div class="merchant-with-logo">
-                            <img src="${formattedLogoUrl}" alt="شعار التاجر" class="merchant-logo-rectangle">
-                            <div class="merchant-btn-content">
+                // تحسين: عرض زر التاجر فقط إذا كان هناك تاجر
+                if (merchant) {
+                    const merchantLogoUrl = merchant.logo || merchant.logoUrl || merchant.image;
+                    const hasLogo = merchantLogoUrl && merchantLogoUrl.trim() !== '' && 
+                                  merchantLogoUrl !== 'https://drive.google.com/thumbnail?id=1-qn1bTCIhgF1E5wm5RVRdm1pYLeNZCNC&sz=w200';
+                    
+                    if (hasLogo) {
+                        const formattedLogoUrl = formatDriveUrl(merchantLogoUrl, 'thumb');
+                        merchantBtn.innerHTML = `
+                            <div class="merchant-with-logo">
+                                <img src="${formattedLogoUrl}" alt="شعار التاجر" class="merchant-logo-rectangle">
+                                <div class="merchant-btn-content">
+                                    <div class="underline-border">اطلب المنتج الان</div>
+                                    <div class="merchant-name-center">${merchantName}</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        merchantBtn.innerHTML = `
+                            <div style="text-align: center; width: 100%;">
                                 <div class="underline-border">اطلب المنتج الان</div>
                                 <div class="merchant-name-center">${merchantName}</div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    }
+                    
+                    merchantBtn.addEventListener('click', () => { 
+                        const merchantName = merchant.name || merchant.username || "تاجر";
+                        const merchantId = product.userId;
+                        const productName = product.name || 'منتج بدون اسم';
+                        
+                        localStorage.setItem('selectedMerchantName', merchantName);
+                        localStorage.setItem('selectedMerchantId', merchantId);
+                        localStorage.setItem('selectedProductName', productName);
+                        
+                        recordProductView(product.id);
+                        incrementViewCount(product.id);
+                        saveScrollPosition();
+                        openMerchantPage(); 
+                    });
                 } else {
+                    // إذا لم يكن هناك تاجر، نعرض زر بديل
                     merchantBtn.innerHTML = `
                         <div style="text-align: center; width: 100%;">
-                            <div class="underline-border">اطلب المنتج الان</div>
-                            <div class="merchant-name-center">${merchantName}</div>
+                            <div class="underline-border">عرض المنتج</div>
+                            <div class="merchant-name-center">منتج بدون تاجر</div>
                         </div>
                     `;
+                    merchantBtn.style.opacity = '0.7';
+                    merchantBtn.style.cursor = 'not-allowed';
                 }
-                
-                merchantBtn.addEventListener('click', () => { 
-                    const merchantName = merchant.name || merchant.username || "تاجر";
-                    const merchantId = product.userId;
-                    const productName = product.name || 'منتج بدون اسم';
-                    
-                    localStorage.setItem('selectedMerchantName', merchantName);
-                    localStorage.setItem('selectedMerchantId', merchantId);
-                    localStorage.setItem('selectedProductName', productName);
-                    
-                    recordProductView(product.id);
-                    incrementViewCount(product.id);
-                    saveScrollPosition();
-                    openMerchantPage(); 
-                });
                 infoDiv.appendChild(merchantBtn);
 
                 const commentsSection = document.createElement('div');
@@ -5015,13 +5162,6 @@
 
                 const result = allProducts.filter(product => {
                     if (!product) return false;
-                    const merchant = allMerchants.find(m => m.id === product.userId);
-                    if (!merchant) return false;
-
-                    const isActive = merchant.status === "active" || merchant.status === "نشط";
-                    const isMerchant = merchant.job === "تاجر" || merchant.type === "تاجر";
-                    
-                    if (!isActive || !isMerchant) return false;
 
                     if (product.productType === 'عرض' && !isOfferValid(product)) {
                         return false;
@@ -5044,12 +5184,18 @@
                     if (selectedMerchantId && product.userId !== selectedMerchantId) return false;
 
                     if (filters.governorate) {
-                        const merchantGovernorate = merchant.governorate || merchant.region;
-                        if (merchantGovernorate !== filters.governorate) return false;
+                        const merchant = allMerchants.find(m => m.id === product.userId);
+                        if (merchant) {
+                            const merchantGovernorate = merchant.governorate || merchant.region;
+                            if (merchantGovernorate !== filters.governorate) return false;
+                        }
                     }
                     if (filters.region) {
-                        const merchantArea = merchant.area || merchant.city;
-                        if (merchantArea !== filters.region) return false;
+                        const merchant = allMerchants.find(m => m.id === product.userId);
+                        if (merchant) {
+                            const merchantArea = merchant.area || merchant.city;
+                            if (merchantArea !== filters.region) return false;
+                        }
                     }
 
                     return true;
@@ -5412,9 +5558,11 @@
                 const selectedGovernorate = governorateSelect ? governorateSelect.value : '';
                 const selectedRegion = regionSelect ? regionSelect.value : '';
                 
-                filteredModalMerchants = allMerchants.filter(m => {
-                    const isActive = m.status === "active" || m.status === "نشط";
-                    const isMerchant = m.job === "تاجر" || m.type === "تاجر";
+                // الحصول على التجار الذين لديهم منتجات فقط
+                const merchantsWithProducts = getMerchantsWithProducts();
+                
+                filteredModalMerchants = merchantsWithProducts.filter(m => {
+                    const isActive = isActiveMerchant(m);
                     
                     if (selectedGovernorate) {
                         const merchantGovernorate = m.governorate || m.region;
@@ -5430,14 +5578,13 @@
                         }
                     }
                     
-                    return isActive && isMerchant;
+                    return isActive;
                 });
                 
                 if (filteredModalMerchants.length === 0 && (selectedGovernorate || selectedRegion)) {
-                    filteredModalMerchants = allMerchants.filter(m => {
-                        const isActive = m.status === "active" || m.status === "نشط";
-                        const isMerchant = m.job === "تاجر" || m.type === "تاجر";
-                        return isActive && isMerchant;
+                    filteredModalMerchants = merchantsWithProducts.filter(m => {
+                        const isActive = isActiveMerchant(m);
+                        return isActive;
                     });
                 }
                 
@@ -5453,7 +5600,7 @@
                     merchantsModalList.innerHTML = `
                         <div style="text-align: center; padding: 30px; color: #64748b;">
                             <i class="fas fa-store" style="font-size: 40px; margin-bottom: 10px; display: block;"></i>
-                            <p>لا يوجد تجار لعرضهم</p>
+                            <p>لا يوجد تجار لديهم منتجات لعرضها</p>
                         </div>
                     `;
                     return;
@@ -5902,7 +6049,7 @@
                 if (showMoreBtn) {
                     showMoreBtn.innerHTML = '<i class="fas fa-bars"></i> عرض أكثر';
                 }
-                showNotification('تم إخفاء شريط الفلاتر', 'info');
+                // تم إزالة الإشعار هنا
             }
 
             function showFilterBar() {
