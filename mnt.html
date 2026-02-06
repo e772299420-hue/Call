@@ -1,4 +1,3 @@
-٥٥٥٥٥
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1972,7 +1971,7 @@
             }
             // نمط 3: https://drive.google.com/uc?id=FILE_ID
             else if (driveUrl.includes('drive.google.com/uc?id=')) {
-                fileId = urlPath.split('drive.google.com/uc?id=')[1].split('&')[0];
+                fileId = driveUrl.split('drive.google.com/uc?id=')[1].split('&')[0];
             }
             // نمط 4: https://drive.google.com/thumbnail?id=FILE_ID
             else if (driveUrl.includes('drive.google.com/thumbnail?id=')) {
@@ -2428,7 +2427,7 @@
             console.log('عدد المنتجات لكل قسم فرعي:', subcategoryProductCounts);
         }
 
-        // ✅ شرط عرض المنتجات الخاص بالتاجر - الإصدار المصحح
+        // ✅ شرط عرض المنتجات الخاص بالتاجر - الإصدار المصحح والمحسن
         function shouldDisplayProduct(product, productId) {
             const merchantId = merchantGlobal.getMerchantId();
             
@@ -2437,33 +2436,47 @@
                 return false;
             }
 
-            // ✅ الشروط الأساسية للتصفية
-            // الشرط 1: أن يكون المنتج مرتبط بالتاجر
+            // ✅ التحقق من ارتباط المنتج بالتاجر - إصدارة أوسع
             const isMerchantProduct = 
                 product.merchantId === merchantId ||
                 product.userId === merchantId ||
                 product.merchant === merchantId ||
                 product.owner === merchantId ||
-                product.seller === merchantId;
+                product.seller === merchantId ||
+                product.merchantName === merchantGlobal.getMerchantName() ||
+                (product.merchantData && product.merchantData.id === merchantId);
             
-            // الشرط 2: أن يكون المنتج متاحاً
-            const isAvailable = product.availability === 'available' || 
-                              product.availability === 'متاح' ||
-                              product.status === 'available' ||
-                              !product.availability; // إذا لم يكن هناك حقل availability نعتبره متاح
+            if (!isMerchantProduct) {
+                return false;
+            }
             
-            // الشرط 3: أن يكون المنتج فعالاً (غير محذوف)
-            const isActive = product.status !== 'deleted' && 
-                           product.isDeleted !== true &&
-                           product.status !== 'محذوف';
+            // ✅ التحقق من حالة المنتج - مرن أكثر
+            const isDeleted = product.status === 'deleted' || 
+                           product.isDeleted === true ||
+                           product.status === 'محذوف' ||
+                           product.isActive === false;
             
-            // الشرط 4: أن يحتوي المنتج على بيانات أساسية
-            const hasBasicData = product.name && product.price;
+            if (isDeleted) {
+                return false;
+            }
             
-            // تطبيق جميع الشروط
-            const shouldInclude = isMerchantProduct && isAvailable && isActive && hasBasicData;
+            // ✅ التحقق من توفر المنتج - إصدارة مرنة
+            const isUnavailable = product.availability === 'unavailable' || 
+                                product.availability === 'غير متاح' ||
+                                product.status === 'unavailable';
             
-            return shouldInclude;
+            if (isUnavailable) {
+                return false;
+            }
+            
+            // ✅ التحقق من البيانات الأساسية
+            const hasBasicData = product.name && (product.price || product.price === 0);
+            
+            if (!hasBasicData) {
+                return false;
+            }
+            
+            return true;
         }
 
         // التحقق مما إذا كان التاجر له وظيفة "تاجر"
@@ -2476,33 +2489,66 @@
                     (merchantData.categories && Object.keys(merchantData.categories).length > 0));
         }
 
-        // عرض الأقسام الرئيسية مع تحديث الأعداد وإخفاء الفارغة
+        // ✅ عرض الأقسام الرئيسية - تم التعديل لعرض جميع الأقسام المرتبطة بالتاجر
         function displayMainCategories() {
             mainCategoriesBar.innerHTML = '';
             
-            // ترتيب الأقسام حسب عدد المنتجات (من الأكثر إلى الأقل) وإخفاء الفارغة
-            const sortedCategories = Object.keys(allCategories)
-                .filter(catId => {
-                    // إخفاء الأقسام التي ليس لها منتجات
-                    const productCount = categoryProductCounts[catId] || 0;
-                    return productCount > 0;
-                })
+            const merchantId = merchantGlobal.getMerchantId();
+            if (!merchantId) {
+                console.log('❌ لا يوجد معرف تاجر');
+                return;
+            }
+            
+            // جلب بيانات التاجر لمعرفة الأقسام المرتبطة به
+            const merchantData = allMerchants[merchantId];
+            
+            // تحديد الأقسام المرتبطة بالتاجر
+            let merchantCategories = new Set();
+            
+            if (merchantData && merchantData.categories) {
+                // إذا كان للتاجر أقسام محددة
+                Object.keys(merchantData.categories).forEach(catId => {
+                    merchantCategories.add(catId);
+                });
+            }
+            
+            // إذا لم يكن للتاجر أقسام محددة، نعرض جميع الأقسام
+            let categoriesToShow = merchantCategories.size > 0 
+                ? Array.from(merchantCategories)
+                : Object.keys(allCategories);
+            
+            // ترتيب الأقسام حسب عدد المنتجات (من الأكثر إلى الأقل)
+            categoriesToShow = categoriesToShow
+                .filter(catId => allCategories[catId]) // التأكد من وجود القسم
                 .sort((a, b) => {
                     return (categoryProductCounts[b] || 0) - (categoryProductCounts[a] || 0);
                 });
             
-            // إذا لم توجد أقسام، عرض رسالة
-            if (sortedCategories.length === 0) {
-                mainCategoriesBar.innerHTML = `
-                    <div style="color: rgba(255,255,255,0.7); font-style: italic; padding: 10px;">
-                        لا توجد أقسام تحتوي على منتجات
-                    </div>
-                `;
-                return;
-            }
+            // إضافة قسم "الكل" في البداية
+            const allDiv = document.createElement("div");
+            allDiv.className = "category main-category active";
+            const totalProducts = Object.keys(allProducts).filter(id => 
+                shouldDisplayProduct(allProducts[id], id)
+            ).length;
+            allDiv.innerHTML = `
+                الكل
+                <span class="category-count">${totalProducts}</span>
+            `;
+            allDiv.onclick = () => {
+                activeMainCategoryId = null;
+                activeSubcategoryId = null;
+                document.querySelectorAll(".category").forEach(c => c.classList.remove("active"));
+                allDiv.classList.add("active");
+                subCategoriesBar.classList.remove("active");
+                filterProducts();
+            };
+            mainCategoriesBar.appendChild(allDiv);
             
-            sortedCategories.forEach(catId => {
+            // عرض الأقسام
+            categoriesToShow.forEach(catId => {
                 const category = allCategories[catId];
+                if (!category) return;
+                
                 const productCount = categoryProductCounts[catId] || 0;
                 
                 const div = document.createElement("div");
@@ -2514,6 +2560,16 @@
                 div.onclick = () => selectMainCategory(catId);
                 mainCategoriesBar.appendChild(div);
             });
+            
+            // إذا لم توجد أقسام، عرض رسالة
+            if (categoriesToShow.length === 0) {
+                mainCategoriesBar.innerHTML = `
+                    <div style="color: rgba(255,255,255,0.7); font-style: italic; padding: 10px;">
+                        لا توجد أقسام مرتبطة بالتاجر
+                    </div>
+                `;
+                return;
+            }
             
             // تحديث أزرار التمرير بعد إعادة العرض
             setTimeout(() => {
@@ -2539,7 +2595,7 @@
             
             const categoryElements = mainCategoriesBar.querySelectorAll('.category');
             categoryElements.forEach((element, index) => {
-                if (element.textContent.includes(allCategories[categoryId].name)) {
+                if (element.textContent.includes(allCategories[categoryId]?.name || '')) {
                     element.classList.add("active");
                 }
             });
@@ -2589,16 +2645,15 @@
                 subcategoriesForMain.forEach(subcategory => {
                     const productCount = subcategoryProductCounts[subcategory.id] || 0;
                     
-                    if (productCount > 0) {
-                        const div = document.createElement("div");
-                        div.className = "category sub-category";
-                        div.innerHTML = `
-                            ${subcategory.name}
-                            <span class="category-count">${productCount}</span>
-                        `;
-                        div.onclick = () => selectSubCategory(subcategory.id, mainCategoryId);
-                        subCategoriesBar.appendChild(div);
-                    }
+                    // عرض القسم الفرعي حتى لو كان عدد المنتجات صفر
+                    const div = document.createElement("div");
+                    div.className = "category sub-category";
+                    div.innerHTML = `
+                        ${subcategory.name}
+                        <span class="category-count">${productCount}</span>
+                    `;
+                    div.onclick = () => selectSubCategory(subcategory.id, mainCategoryId);
+                    subCategoriesBar.appendChild(div);
                 });
                 
                 // إظهار شريط الأقسام الفرعية
@@ -2619,7 +2674,7 @@
             const subCategoryElements = subCategoriesBar.querySelectorAll('.category');
             if (subcategoryId) {
                 subCategoryElements.forEach(element => {
-                    if (element.textContent.includes(allSubcategories[subcategoryId]?.name)) {
+                    if (element.textContent.includes(allSubcategories[subcategoryId]?.name || '')) {
                         element.classList.add("active");
                     }
                 });
