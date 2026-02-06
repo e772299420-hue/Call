@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -398,27 +399,53 @@
             font-size: 18px;
         }
 
-        /* شريط الأقسام */
-        .category-bar {
-            display: flex; 
-            gap: 8px; 
-            padding: 12px 40px; 
-            overflow-x: auto;
-            background: linear-gradient(135deg, #1a2530, #2c3e50);
-            color: white; 
-            white-space: nowrap;
+        /* شريط الأقسام - تم تعديله لدعم الهرمية */
+        .category-section {
             position: fixed;
             top: 140px;
             left: 0;
             right: 0;
             z-index: 100;
+            background: linear-gradient(135deg, #1a2530, #2c3e50);
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .main-categories-bar {
+            display: flex; 
+            gap: 8px; 
+            padding: 12px 40px; 
+            overflow-x: auto;
+            color: white; 
+            white-space: nowrap;
             scroll-behavior: smooth;
             -ms-overflow-style: none;
             scrollbar-width: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .category-bar::-webkit-scrollbar {
+        .main-categories-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .sub-categories-bar {
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px; 
+            padding: 10px 40px; 
+            overflow-x: auto;
+            color: white; 
+            white-space: nowrap;
+            scroll-behavior: smooth;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .sub-categories-bar.active {
+            display: flex;
+        }
+
+        .sub-categories-bar::-webkit-scrollbar {
             display: none;
         }
 
@@ -442,6 +469,18 @@
             background: #007bff; 
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,123,255,0.4);
+        }
+
+        .category.main-category {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .category.sub-category {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            font-size: 13px;
+            padding: 6px 12px;
         }
 
         .category-count {
@@ -1287,14 +1326,23 @@
                 font-size: 12px;
             }
 
-            .category-bar {
+            .category-section {
                 top: 120px;
-                padding: 12px 35px;
+            }
+
+            .main-categories-bar,
+            .sub-categories-bar {
+                padding: 10px 35px;
             }
 
             .category {
                 padding: 6px 12px;
                 font-size: 12px;
+            }
+
+            .category.sub-category {
+                font-size: 11px;
+                padding: 5px 10px;
             }
 
             .scroll-btn {
@@ -1464,6 +1512,11 @@
                 width: 100%;
                 justify-content: flex-start;
             }
+
+            .main-categories-bar,
+            .sub-categories-bar {
+                padding: 8px 30px;
+            }
         }
     </style>
 </head>
@@ -1562,8 +1615,14 @@
         <span>القائمة الرئيسية</span>
     </button>
 
-    <!-- ✅ شريط الأقسام -->
-    <div id="categories" class="category-bar">جارِ التحميل...</div>
+    <!-- ✅ قسم الأقسام الهرمي (أقسام رئيسية وفرعية) -->
+    <div class="category-section">
+        <!-- شريط الأقسام الرئيسية -->
+        <div id="main-categories" class="main-categories-bar">جارِ التحميل...</div>
+        
+        <!-- شريط الأقسام الفرعية -->
+        <div id="sub-categories" class="sub-categories-bar"></div>
+    </div>
 
     <!-- ✅ أزرار تمرير الأقسام -->
     <button class="scroll-btn scroll-left" id="scroll-left" style="display: none;">
@@ -1829,10 +1888,12 @@
         };
 
         const categoriesRef = ref(db, "categories");
+        const subcategoriesRef = ref(db, "subcategories");
         const productsRef = ref(db, "products");
         const merchantsRef = ref(db, "merchants");
         
-        const categoriesBar = document.getElementById("categories");
+        const mainCategoriesBar = document.getElementById("main-categories");
+        const subCategoriesBar = document.getElementById("sub-categories");
         const productsContainer = document.getElementById("products");
         const filterToggle = document.getElementById("filter-toggle");
         const filterBar = document.getElementById("filter-bar");
@@ -1863,8 +1924,10 @@
 
         let allProducts = {};
         let allCategories = {};
+        let allSubcategories = {};
         let allMerchants = {};
         let categoryProductCounts = {};
+        let subcategoryProductCounts = {};
 
         // متغيرات معرض الصور
         let galleryImages = [];
@@ -1879,6 +1942,10 @@
             id: "",
             productName: ""
         };
+
+        // متغيرات التصفية
+        let activeMainCategoryId = null;
+        let activeSubcategoryId = null;
 
         // المفضلة والإعجابات
         let favoriteProducts = JSON.parse(localStorage.getItem('favoriteProducts')) || {};
@@ -1994,7 +2061,7 @@
                 if (!metaTag) {
                     metaTag = document.createElement('meta');
                     metaTag.setAttribute('name', property);
-                    document.head.appendChild(etaTag);
+                    document.head.appendChild(metaTag);
                 }
             }
             
@@ -2216,8 +2283,14 @@
                 if (shouldDisplayProduct(product, id)) {
                     productsCount++;
                     
+                    // إضافة القسم الرئيسي
                     if (product.category) {
                         categoriesSet.add(product.category);
+                    }
+                    
+                    // إضافة القسم الفرعي
+                    if (product.subcategory) {
+                        categoriesSet.add(product.subcategory);
                     }
                     
                     // حساب التقييمات
@@ -2271,13 +2344,23 @@
                 // ثم تحميل باقي البيانات من Firebase
                 onValue(categoriesRef, (snapshot) => {
                     allCategories = snapshot.val() || {};
-                    console.log('✅ تم تحميل الأقسام:', Object.keys(allCategories).length);
+                    console.log('✅ تم تحميل الأقسام الرئيسية:', Object.keys(allCategories).length);
+                    calculateProductCounts();
+                    displayMainCategories();
+                });
+                
+                onValue(subcategoriesRef, (snapshot) => {
+                    allSubcategories = snapshot.val() || {};
+                    console.log('✅ تم تحميل الأقسام الفرعية:', Object.keys(allSubcategories).length);
                 });
                 
                 onValue(productsRef, (snapshot) => {
                     allProducts = snapshot.val() || {};
                     console.log('✅ تم تحميل المنتجات:', Object.keys(allProducts).length);
-                    initializePage();
+                    calculateProductCounts();
+                    if (Object.keys(allCategories).length > 0) {
+                        initializePage();
+                    }
                 });
                 
                 onValue(merchantsRef, (snapshot) => {
@@ -2290,14 +2373,15 @@
         function initializePage() {
             // ✅ تأكد من تحديث اسم التاجر أولاً
             updateMerchantNameInTopBar();
-            calculateProductCounts();
-            displayCategories();
+            
+            // عرض الأقسام الرئيسية
+            displayMainCategories();
+            
+            // تحميل الفلاتر
             populateFilters();
             
-            const firstCategory = Object.keys(allCategories)[0];
-            if (firstCategory) {
-                loadProductsByCategory(firstCategory);
-            }
+            // تحميل جميع المنتجات أولاً
+            filterProducts();
             
             setupScrollButtons();
             merchantGlobal.debug();
@@ -2319,6 +2403,7 @@
         // حساب عدد المنتجات لكل قسم
         function calculateProductCounts() {
             categoryProductCounts = {};
+            subcategoryProductCounts = {};
             
             for (let productId in allProducts) {
                 const product = allProducts[productId];
@@ -2328,13 +2413,19 @@
                     continue;
                 }
                 
-                // عد المنتجات لكل قسم
+                // عد المنتجات لكل قسم رئيسي
                 if (product.category) {
                     categoryProductCounts[product.category] = (categoryProductCounts[product.category] || 0) + 1;
                 }
+                
+                // عد المنتجات لكل قسم فرعي
+                if (product.subcategory) {
+                    subcategoryProductCounts[product.subcategory] = (subcategoryProductCounts[product.subcategory] || 0) + 1;
+                }
             }
 
-            console.log('عدد المنتجات لكل قسم:', categoryProductCounts);
+            console.log('عدد المنتجات لكل قسم رئيسي:', categoryProductCounts);
+            console.log('عدد المنتجات لكل قسم فرعي:', subcategoryProductCounts);
         }
 
         // ✅ شرط عرض المنتجات الخاص بالتاجر - الإصدار المصحح
@@ -2385,9 +2476,9 @@
                     (merchantData.categories && Object.keys(merchantData.categories).length > 0));
         }
 
-        // عرض الأقسام مع تحديث الأعداد وإخفاء الفارغة
-        function displayCategories() {
-            categoriesBar.innerHTML = '';
+        // عرض الأقسام الرئيسية مع تحديث الأعداد وإخفاء الفارغة
+        function displayMainCategories() {
+            mainCategoriesBar.innerHTML = '';
             
             // ترتيب الأقسام حسب عدد المنتجات (من الأكثر إلى الأقل) وإخفاء الفارغة
             const sortedCategories = Object.keys(allCategories)
@@ -2402,7 +2493,7 @@
             
             // إذا لم توجد أقسام، عرض رسالة
             if (sortedCategories.length === 0) {
-                categoriesBar.innerHTML = `
+                mainCategoriesBar.innerHTML = `
                     <div style="color: rgba(255,255,255,0.7); font-style: italic; padding: 10px;">
                         لا توجد أقسام تحتوي على منتجات
                     </div>
@@ -2415,20 +2506,20 @@
                 const productCount = categoryProductCounts[catId] || 0;
                 
                 const div = document.createElement("div");
-                div.className = "category";
+                div.className = "category main-category";
                 div.innerHTML = `
                     ${category.name}
                     <span class="category-count">${productCount}</span>
                 `;
-                div.onclick = () => loadProductsByCategory(catId);
-                categoriesBar.appendChild(div);
+                div.onclick = () => selectMainCategory(catId);
+                mainCategoriesBar.appendChild(div);
             });
             
             // تحديث أزرار التمرير بعد إعادة العرض
             setTimeout(() => {
                 const checkScrollButtons = () => {
-                    const scrollLeftVisible = categoriesBar.scrollLeft > 0;
-                    const scrollRightVisible = categoriesBar.scrollLeft < categoriesBar.scrollWidth - categoriesBar.clientWidth;
+                    const scrollLeftVisible = mainCategoriesBar.scrollLeft > 0;
+                    const scrollRightVisible = mainCategoriesBar.scrollLeft < mainCategoriesBar.scrollWidth - mainCategoriesBar.clientWidth;
                     
                     scrollLeft.style.display = scrollLeftVisible ? 'flex' : 'none';
                     scrollRight.style.display = scrollRightVisible ? 'flex' : 'none';
@@ -2437,25 +2528,129 @@
             }, 100);
         }
 
+        // ✅ دالة اختيار القسم الرئيسي
+        function selectMainCategory(categoryId) {
+            // إعادة تعيين القسم الفرعي النشط
+            activeSubcategoryId = null;
+            
+            // تحديث الأقسام النشطة
+            document.querySelectorAll(".main-categories-bar .category").forEach(c => c.classList.remove("active"));
+            document.querySelectorAll(".sub-categories-bar .category").forEach(c => c.classList.remove("active"));
+            
+            const categoryElements = mainCategoriesBar.querySelectorAll('.category');
+            categoryElements.forEach((element, index) => {
+                if (element.textContent.includes(allCategories[categoryId].name)) {
+                    element.classList.add("active");
+                }
+            });
+            
+            activeMainCategoryId = categoryId;
+            
+            // عرض الأقسام الفرعية لهذا القسم الرئيسي
+            displaySubCategories(categoryId);
+            
+            // تصفية المنتجات
+            filterProducts();
+        }
+
+        // ✅ دالة عرض الأقسام الفرعية
+        function displaySubCategories(mainCategoryId) {
+            subCategoriesBar.innerHTML = '';
+            
+            // إضافة قسم "الكل" للأقسام الفرعية
+            const allDiv = document.createElement("div");
+            allDiv.className = "category sub-category";
+            allDiv.innerHTML = `
+                الكل
+                <span class="category-count">${categoryProductCounts[mainCategoryId] || 0}</span>
+            `;
+            allDiv.onclick = () => selectSubCategory(null, mainCategoryId);
+            subCategoriesBar.appendChild(allDiv);
+            
+            // البحث عن الأقسام الفرعية المرتبطة بالقسم الرئيسي
+            const subcategoriesForMain = [];
+            
+            for (let subId in allSubcategories) {
+                const subcategory = allSubcategories[subId];
+                if (subcategory.parentCategory === mainCategoryId || 
+                    subcategory.mainCategory === mainCategoryId ||
+                    subcategory.categoryId === mainCategoryId) {
+                    subcategoriesForMain.push({ id: subId, ...subcategory });
+                }
+            }
+            
+            // إذا وجدت أقسام فرعية
+            if (subcategoriesForMain.length > 0) {
+                // ترتيب الأقسام الفرعية حسب عدد المنتجات
+                subcategoriesForMain.sort((a, b) => {
+                    return (subcategoryProductCounts[b.id] || 0) - (subcategoryProductCounts[a.id] || 0);
+                });
+                
+                subcategoriesForMain.forEach(subcategory => {
+                    const productCount = subcategoryProductCounts[subcategory.id] || 0;
+                    
+                    if (productCount > 0) {
+                        const div = document.createElement("div");
+                        div.className = "category sub-category";
+                        div.innerHTML = `
+                            ${subcategory.name}
+                            <span class="category-count">${productCount}</span>
+                        `;
+                        div.onclick = () => selectSubCategory(subcategory.id, mainCategoryId);
+                        subCategoriesBar.appendChild(div);
+                    }
+                });
+                
+                // إظهار شريط الأقسام الفرعية
+                subCategoriesBar.classList.add('active');
+            } else {
+                // إخفاء شريط الأقسام الفرعية
+                subCategoriesBar.classList.remove('active');
+            }
+        }
+
+        // ✅ دالة اختيار القسم الفرعي
+        function selectSubCategory(subcategoryId, mainCategoryId) {
+            activeSubcategoryId = subcategoryId;
+            
+            // تحديث الأقسام النشطة
+            document.querySelectorAll(".sub-categories-bar .category").forEach(c => c.classList.remove("active"));
+            
+            const subCategoryElements = subCategoriesBar.querySelectorAll('.category');
+            if (subcategoryId) {
+                subCategoryElements.forEach(element => {
+                    if (element.textContent.includes(allSubcategories[subcategoryId]?.name)) {
+                        element.classList.add("active");
+                    }
+                });
+            } else {
+                // إذا تم اختيار "الكل"
+                subCategoryElements[0]?.classList.add("active");
+            }
+            
+            // تصفية المنتجات
+            filterProducts();
+        }
+
         // إعداد أزرار تمرير الأقسام
         function setupScrollButtons() {
             const checkScrollButtons = () => {
-                const scrollLeftVisible = categoriesBar.scrollLeft > 0;
-                const scrollRightVisible = categoriesBar.scrollLeft < categoriesBar.scrollWidth - categoriesBar.clientWidth;
+                const scrollLeftVisible = mainCategoriesBar.scrollLeft > 0;
+                const scrollRightVisible = mainCategoriesBar.scrollLeft < mainCategoriesBar.scrollWidth - mainCategoriesBar.clientWidth;
                 
                 scrollLeft.style.display = scrollLeftVisible ? 'flex' : 'none';
                 scrollRight.style.display = scrollRightVisible ? 'flex' : 'none';
             };
 
             scrollLeft.addEventListener('click', () => {
-                categoriesBar.scrollBy({ left: -200, behavior: 'smooth' });
+                mainCategoriesBar.scrollBy({ left: -200, behavior: 'smooth' });
             });
 
             scrollRight.addEventListener('click', () => {
-                categoriesBar.scrollBy({ left: 200, behavior: 'smooth' });
+                mainCategoriesBar.scrollBy({ left: 200, behavior: 'smooth' });
             });
 
-            categoriesBar.addEventListener('scroll', checkScrollButtons);
+            mainCategoriesBar.addEventListener('scroll', checkScrollButtons);
             window.addEventListener('resize', checkScrollButtons);
             
             // التحقق الأولي
@@ -2469,27 +2664,8 @@
             document.getElementById('sort-by').addEventListener('change', filterProducts);
         }
 
-        // ✅ 4- عرض المنتجات حسب القسم مع تطبيق شروط التاجر
-        function loadProductsByCategory(categoryId) {
-            // تحديث القسم النشط
-            document.querySelectorAll(".category").forEach(c => c.classList.remove("active"));
-            const categoryElements = categoriesBar.querySelectorAll('.category');
-            categoryElements.forEach((element, index) => {
-                if (element.textContent.includes(allCategories[categoryId].name)) {
-                    element.classList.add("active");
-                }
-            });
-            
-            filterProducts();
-        }
-
-        // ✅ 5- فلترة وترتيب المنتجات مع تطبيق شروط التاجر
+        // ✅ 5- فلترة وترتيب المنتجات مع تطبيق شروط التاجر والأقسام
         function filterProducts() {
-            const activeCategory = document.querySelector('.category.active');
-            const categoryId = activeCategory ? Object.keys(allCategories).find(catId => 
-                activeCategory.textContent.includes(allCategories[catId].name)
-            ) : null;
-
             const filters = {
                 search: document.getElementById('search').value.toLowerCase().trim(),
                 sortBy: document.getElementById('sort-by').value
@@ -2507,8 +2683,13 @@
                     continue;
                 }
 
-                // الفلترة حسب القسم النشط
-                if (categoryId && product.category !== categoryId) {
+                // الفلترة حسب القسم الرئيسي
+                if (activeMainCategoryId && product.category !== activeMainCategoryId) {
+                    continue;
+                }
+
+                // الفلترة حسب القسم الفرعي
+                if (activeSubcategoryId && product.subcategory !== activeSubcategoryId) {
                     continue;
                 }
 
@@ -2557,6 +2738,7 @@
                             <li>أن يكون المنتج متاحًا (available)</li>
                             <li>أن يكون المنتج فعالًا وغير محذوف</li>
                             <li>أن يحتوي على اسم وسعر</li>
+                            ${activeMainCategoryId ? `<li>أن يكون ضمن القسم المحدد</li>` : ''}
                         </ul>
                         <button class="merchant-btn" onclick="location.reload()" style="margin-top: 20px; background: linear-gradient(135deg, #007bff, #0056b3);">
                             <i class="fas fa-redo"></i> إعادة تحميل الصفحة
@@ -2702,9 +2884,25 @@
                 descElement.style.display = 'none';
             }
             
-            // تحديث التفاصيل الإضافية (بدون القسم)
+            // تحديث التفاصيل الإضافية
             const detailsContainer = document.getElementById('gallery-product-details');
             detailsContainer.innerHTML = '';
+            
+            // إضافة القسم الرئيسي إذا كان متوفراً
+            if (product.category && allCategories[product.category]) {
+                const categoryDetail = document.createElement('div');
+                categoryDetail.className = 'gallery-product-detail';
+                categoryDetail.innerHTML = `<span class="label">القسم الرئيسي:</span> ${allCategories[product.category].name}`;
+                detailsContainer.appendChild(categoryDetail);
+            }
+            
+            // إضافة القسم الفرعي إذا كان متوفراً
+            if (product.subcategory && allSubcategories[product.subcategory]) {
+                const subcategoryDetail = document.createElement('div');
+                subcategoryDetail.className = 'gallery-product-detail';
+                subcategoryDetail.innerHTML = `<span class="label">القسم الفرعي:</span> ${allSubcategories[product.subcategory].name}`;
+                detailsContainer.appendChild(subcategoryDetail);
+            }
             
             // إضافة الحالة إذا كانت متوفرة
             if (product.status) {
@@ -3017,7 +3215,7 @@ ${pageUrl}`;
                 })
                 .then(() => showNotification('تمت المشاركة بنجاح'))
                 .catch(err => {
-                    console.log('خطأ في المشاركة:', err);
+                    console.log('خطأ في مشاركة:', err);
                     copyToClipboard(shareText);
                 });
             } else {
