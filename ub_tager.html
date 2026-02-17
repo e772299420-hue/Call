@@ -9,6 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
+        /* جميع الأنماط كما هي - لم يتم تغييرها */
         * {
             margin: 0;
             padding: 0;
@@ -1571,8 +1572,12 @@
             // البحث في sessionStorage أولاً
             const storedData = sessionStorage.getItem('globalUserData');
             if (storedData) {
-                this.data = JSON.parse(storedData);
-                return this.data;
+                try {
+                    this.data = JSON.parse(storedData);
+                    return this.data;
+                } catch {
+                    return null;
+                }
             }
             
             return null;
@@ -1999,6 +2004,172 @@
         }
     }
     
+    // ===== الدالة المحسنة لتحميل بيانات التاجر من الجلوبالات (بدون بيانات تجريبية) =====
+    async function loadMerchantFromGlobals() {
+        try {
+            if (loadingIndicator) loadingIndicator.style.display = 'block';
+            if (merchantData) merchantData.style.display = 'none';
+            if (noMerchant) noMerchant.style.display = 'none';
+            
+            console.log('🔍 بدء البحث عن بيانات التاجر في الجلوبالات...');
+            
+            // عرض محتويات sessionStorage للتشخيص
+            console.log('📋 محتويات sessionStorage بالكامل:');
+            const allData = {};
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                try {
+                    allData[key] = JSON.parse(sessionStorage.getItem(key));
+                } catch {
+                    allData[key] = sessionStorage.getItem(key);
+                }
+                console.log(`${key}:`, allData[key]);
+            }
+            
+            // محاولة استخراج اسم المستخدم من أي مصدر
+            let merchantIdentifier = null;
+            
+            // التحقق من globalUser أولاً
+            if (globalUser && globalUser.getUserData) {
+                const userData = globalUser.getUserData();
+                console.log('📦 بيانات globalUser:', userData);
+                
+                if (userData) {
+                    merchantIdentifier = userData.username || userData.name || userData.commercialName;
+                    console.log('✅ تم العثور على معرف التاجر من globalUser:', merchantIdentifier);
+                }
+            }
+            
+            // إذا لم نجد، نبحث في merchantGlobal
+            if (!merchantIdentifier && merchantGlobal) {
+                merchantIdentifier = merchantGlobal.getMerchantName();
+                console.log('🏪 معرف التاجر من merchantGlobal:', merchantIdentifier);
+            }
+            
+            // إذا لم نجد، نبحث في أي مفتاح في sessionStorage
+            if (!merchantIdentifier) {
+                for (const key in allData) {
+                    const value = allData[key];
+                    if (value && typeof value === 'object') {
+                        if (value.username || value.name || value.commercialName) {
+                            merchantIdentifier = value.username || value.name || value.commercialName;
+                            console.log(`✅ تم العثور على معرف التاجر من المفتاح ${key}:`, merchantIdentifier);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // إذا لم نجد أي معرف، نعرض رسالة عدم وجود تاجر
+            if (!merchantIdentifier) {
+                console.log('⚠️ لم يتم العثور على معرف تاجر.');
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                if (noMerchant) {
+                    noMerchant.style.display = 'block';
+                    if (noMerchantTitle) noMerchantTitle.textContent = 'لم يتم العثور على تاجر';
+                    if (noMerchantDesc) noMerchantDesc.textContent = 'لا يوجد تاجر مسجل بهذا المعرف. يرجى التأكد من تسجيل الدخول بشكل صحيح.';
+                }
+                return;
+            }
+            
+            // جلب بيانات التجار من Firebase
+            console.log('📡 جلب بيانات التجار من Firebase...');
+            const merchantsSnapshot = await database.ref('merchants').once('value');
+            const merchants = merchantsSnapshot.val();
+            
+            if (!merchants) {
+                console.log('⚠️ لا توجد بيانات تجار في Firebase');
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                if (noMerchant) noMerchant.style.display = 'block';
+                return;
+            }
+            
+            console.log(`📊 تم العثور على ${Object.keys(merchants).length} تاجر في Firebase`);
+            
+            // البحث عن التاجر
+            let foundMerchant = null;
+            let foundMerchantId = null;
+            
+            // تحويل المعرف إلى نص للمقارنة
+            const searchTerm = String(merchantIdentifier).toLowerCase().trim();
+            
+            // البحث في جميع التجار
+            for (const [key, merchant] of Object.entries(merchants)) {
+                // إنشاء قائمة بكل القيم الممكنة للمقارنة
+                const possibleValues = [
+                    merchant.username,
+                    merchant.name,
+                    merchant.commercialName,
+                    merchant.email,
+                    merchant.id,
+                    key
+                ].filter(v => v); // إزالة القيم الفارغة
+                
+                // التحقق من التطابق
+                for (const value of possibleValues) {
+                    if (value && String(value).toLowerCase().includes(searchTerm)) {
+                        foundMerchant = merchant;
+                        foundMerchantId = key;
+                        console.log(`✅ تم العثور على تطابق: ${value} (${key})`);
+                        break;
+                    }
+                }
+                
+                if (foundMerchant) break;
+            }
+            
+            // إذا لم نجد تطابق، نعرض رسالة عدم وجود تاجر
+            if (!foundMerchant) {
+                console.log('⚠️ لم يتم العثور على تاجر مطابق.');
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                if (noMerchant) {
+                    noMerchant.style.display = 'block';
+                    if (noMerchantTitle) noMerchantTitle.textContent = 'لم يتم العثور على تاجر مطابق';
+                    if (noMerchantDesc) noMerchantDesc.textContent = 'لا يوجد تاجر يطابق بيانات الدخول الخاصة بك.';
+                }
+                return;
+            }
+            
+            // تخزين وعرض بيانات التاجر
+            currentMerchant = {
+                id: foundMerchantId,
+                ...foundMerchant
+            };
+            
+            console.log('✅ تم تحميل بيانات التاجر:', currentMerchant);
+            
+            // تحديث الجلوبالات
+            if (globalUser && globalUser.setUserData) {
+                globalUser.setUserData({
+                    ...globalUser.getUserData(),
+                    id: foundMerchantId,
+                    username: foundMerchant.username || '',
+                    name: foundMerchant.name || foundMerchant.commercialName || foundMerchant.username
+                });
+            }
+            
+            if (merchantGlobal) {
+                merchantGlobal.setMerchantName(foundMerchant.name || foundMerchant.commercialName || foundMerchant.username);
+                merchantGlobal.setMerchantId(foundMerchantId);
+            }
+            
+            // عرض البيانات
+            displayMerchant(currentMerchant);
+            
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
+            
+        } catch (error) {
+            console.error('❌ خطأ:', error);
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
+            if (noMerchant) {
+                noMerchant.style.display = 'block';
+                if (noMerchantTitle) noMerchantTitle.textContent = 'حدث خطأ في التحميل';
+                if (noMerchantDesc) noMerchantDesc.textContent = 'يرجى المحاولة مرة أخرى لاحقاً.';
+            }
+            showToast('حدث خطأ في تحميل البيانات', 'error');
+        }
+    }
+    
     // تهيئة الصفحة
     document.addEventListener('DOMContentLoaded', function() {
         // عرض الإشعار الترحيبي
@@ -2110,94 +2281,6 @@
             governoratesData = snapshot.val() || {};
         } catch (error) {
             console.error('خطأ في تحميل المحافظات:', error);
-        }
-    }
-    
-    // تحميل بيانات التاجر بناءً على الجلوبالات
-    async function loadMerchantFromGlobals() {
-        try {
-            if (loadingIndicator) loadingIndicator.style.display = 'block';
-            if (merchantData) merchantData.style.display = 'none';
-            if (noMerchant) noMerchant.style.display = 'none';
-            
-            // الحصول على اسم التاجر من الجلوبالات
-            const merchantUsername = globalUser.getUsername() || merchantGlobal.getMerchantName();
-            
-            if (!merchantUsername || merchantUsername === 'زائر') {
-                if (loadingIndicator) loadingIndicator.style.display = 'none';
-                if (noMerchantTitle) noMerchantTitle.textContent = "لا توجد بيانات جلوبالات";
-                if (noMerchantDesc) noMerchantDesc.textContent = "لم يتم العثور على بيانات تاجر في الجلوبالات.";
-                if (noMerchant) noMerchant.style.display = 'block';
-                return;
-            }
-            
-            // جلب جميع التجار من قاعدة البيانات
-            const merchantsSnapshot = await database.ref('merchants').once('value');
-            const merchants = merchantsSnapshot.val();
-            
-            if (!merchants) {
-                if (loadingIndicator) loadingIndicator.style.display = 'none';
-                if (noMerchantTitle) noMerchantTitle.textContent = "لا توجد بيانات للتجار";
-                if (noMerchantDesc) noMerchantDesc.textContent = "قاعدة بيانات التجار فارغة.";
-                if (noMerchant) noMerchant.style.display = 'block';
-                return;
-            }
-            
-            // البحث عن التاجر الذي يطابق اسم المستخدم المطلوب
-            let foundMerchant = null;
-            let merchantId = null;
-            
-            Object.keys(merchants).forEach(key => {
-                const merchant = merchants[key];
-                // البحث في حقل username بمطابقة تامة
-                if (merchant.username && merchant.username.toLowerCase() === merchantUsername.toLowerCase()) {
-                    foundMerchant = merchant;
-                    merchantId = key;
-                }
-            });
-            
-            if (!foundMerchant) {
-                if (loadingIndicator) loadingIndicator.style.display = 'none';
-                if (noMerchantTitle) noMerchantTitle.textContent = `لا يوجد تاجر باسم المستخدم "${merchantUsername}"`;
-                if (noMerchantDesc) noMerchantDesc.textContent = `لم يتم العثور على تاجر باسم المستخدم "${merchantUsername}" في قاعدة البيانات.`;
-                if (noMerchant) noMerchant.style.display = 'block';
-                return;
-            }
-            
-            // تخزين بيانات التاجر
-            currentMerchant = {
-                id: merchantId,
-                ...foundMerchant
-            };
-            
-            // تحديث بيانات الجلوبال
-            const userData = globalUser.getUserData() || {};
-            const updatedUserData = {
-                ...userData,
-                id: merchantId,
-                username: foundMerchant.username,
-                name: foundMerchant.name,
-                mobile: foundMerchant.mobile,
-                phone: foundMerchant.phone
-            };
-            globalUser.setUserData(updatedUserData);
-            
-            // تحديث بيانات merchantGlobal
-            merchantGlobal.setMerchantName(foundMerchant.name || foundMerchant.username);
-            merchantGlobal.setMerchantId(merchantId);
-            if (foundMerchant.mobile) {
-                merchantGlobal.setMerchantPhone(foundMerchant.mobile);
-            }
-            
-            // عرض بيانات التاجر
-            displayMerchant(currentMerchant);
-            
-        } catch (error) {
-            console.error('خطأ في تحميل بيانات التاجر:', error);
-            if (loadingIndicator) loadingIndicator.style.display = 'none';
-            if (noMerchantTitle) noMerchantTitle.textContent = "حدث خطأ في تحميل البيانات";
-            if (noMerchantDesc) noMerchantDesc.textContent = `خطأ: ${error.message}`;
-            if (noMerchant) noMerchant.style.display = 'block';
         }
     }
     
