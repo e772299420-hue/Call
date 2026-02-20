@@ -354,7 +354,7 @@
     </style>
 </head>
 <body>
-    <!-- زر الرجوع إلى الصفحة الرئيسية -->
+    <!-- زر الرجوع إلى الصفحة الرئيسية - مسار نسبي مناسب لـ Vercel (من الجذر) -->
     <a href="index.html" class="back-button">
         <i class="fas fa-arrow-left"></i>
         رجوع
@@ -509,25 +509,53 @@
     </div>
 
     <script>
-        // تهيئة Firebase
+        // ============================================================
+        // تهيئة Firebase - مهم: استبدل القيم أدناه ببيانات مشروعك الفعلية
+        // يمكنك الحصول على هذه القيم من إعدادات مشروعك في Firebase Console
+        // ============================================================
         const firebaseConfig = {
-            // يجب إضافة معلومات التهيئة الخاصة بمشروعك هنا
-            apiKey: "your-api-key",
-            authDomain: "chat-fat-free.firebaseapp.com",
-            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com",
-            projectId: "chat-fat-free",
-            storageBucket: "chat-fat-free.appspot.com",
-            messagingSenderId: "your-sender-id",
-            appId: "your-app-id"
+            apiKey: "your-api-key",                     // استبدل بالمفتاح الخاص بك
+            authDomain: "chat-fat-free.firebaseapp.com", // استبدل بنطاق المصادقة الخاص بك
+            databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com", // استبدل برابط قاعدة البيانات
+            projectId: "chat-fat-free",                  // استبدل بمعرف المشروع
+            storageBucket: "chat-fat-free.appspot.com",  // استبدل بحاوية التخزين
+            messagingSenderId: "your-sender-id",         // استبدل بمعرف المرسل
+            appId: "your-app-id"                          // استبدل بمعرف التطبيق
         };
 
-        // تهيئة Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        // التحقق من أن القيم الأساسية لم يتم تركها افتراضية
+        if (firebaseConfig.apiKey === "your-api-key" || firebaseConfig.databaseURL.includes("your-project")) {
+            console.warn(
+                "%c⚠️ تنبيه Firebase: يرجى تحديث إعدادات Firebase ببيانات مشروعك الفعلية في الكود المصدري.",
+                "color: orange; font-size: 14px; font-weight: bold;"
+            );
+            // إخفاء رسالة التحميل وإظهار خطأ للمستخدم
+            document.getElementById('merchants-loading').style.display = 'none';
+        } else {
+            // تهيئة Firebase فقط إذا كانت الإعدادات قد تم تحديثها
+            try {
+                firebase.initializeApp(firebaseConfig);
+                console.log("✅ Firebase initialized successfully");
+            } catch (error) {
+                console.error("❌ Firebase initialization error:", error);
+                document.getElementById('merchants-loading').textContent = 'خطأ في الاتصال بقاعدة البيانات';
+                document.getElementById('merchants-loading').style.color = '#ff4444';
+            }
+        }
+
+        // مرجع قاعدة البيانات (يتم تعريفه فقط إذا تمت التهيئة بنجاح)
+        const database = typeof firebase !== 'undefined' && firebase.apps.length ? firebase.database() : null;
 
         // دالة لجلب عدد التجار غير النشطين بكلمة مرور افتراضية
         function getInactiveMerchantsWithDefaultPassword() {
             const loadingElement = document.getElementById('merchants-loading');
+            
+            // إذا لم يتم تهيئة Firebase بشكل صحيح، لا نحاول جلب البيانات
+            if (!database) {
+                loadingElement.textContent = 'لم يتم تهيئة قاعدة البيانات';
+                loadingElement.style.color = '#ff4444';
+                return;
+            }
             
             // جلب بيانات التجار من Firebase
             database.ref('merchants').once('value')
@@ -539,8 +567,14 @@
                         // حساب عدد التجار غير النشطين بكلمة مرور افتراضية
                         Object.keys(merchantsData).forEach(merchantId => {
                             const merchant = merchantsData[merchantId];
-                            const isInactive = merchant.status && merchant.status.toLowerCase() === 'inactive';
-                            const hasDefaultPassword = merchant.password && merchant.password === 'default_password';
+                            // تحقق آمن من وجود الحقول المطلوبة
+                            const status = merchant?.status;
+                            const password = merchant?.password;
+                            
+                            // نعتبر التاجر غير نشط إذا كانت الحالة تحتوي على 'inactive' (تجاهل حالة الأحرف)
+                            const isInactive = status && typeof status === 'string' && status.toLowerCase() === 'inactive';
+                            // نعتبر كلمة المرور افتراضية إذا كانت تطابق 'default_password' (يمكن تعديل القيمة حسب النظام)
+                            const hasDefaultPassword = password && password === 'default_password';
                             
                             if (isInactive && hasDefaultPassword) {
                                 inactiveWithDefaultPasswordCount++;
@@ -557,7 +591,7 @@
                     }
                 })
                 .catch((error) => {
-                    console.error('Error fetching merchants data:', error);
+                    console.error('خطأ في جلب بيانات التجار:', error);
                     loadingElement.textContent = 'خطأ في تحميل البيانات';
                     loadingElement.style.color = '#ff4444';
                 });
@@ -567,22 +601,27 @@
         function showMerchantNotification(count) {
             const cardHeader = document.querySelector('#merchants-card .card-header');
             
+            // إزالة أي إشعار سابق (تجنب التكرار)
+            const oldNotification = cardHeader.querySelector('.merchant-notification');
+            if (oldNotification) oldNotification.remove();
+            
             const notification = document.createElement('div');
             notification.className = 'merchant-notification';
-            notification.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${count} يحتاج تحديث`;
+            notification.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${count} تاجر بحاجة لتحديث`;
             
             cardHeader.appendChild(notification);
         }
 
-        // دالة للتحقق قبل إغلاق الصفحة
+        // دالة للتحكم في سلوك الإغلاق/الفتح (منع فتح نوافذ متعددة)
         function handleBeforeUnload(e) {
             if (!sessionStorage.getItem('redirecting')) {
                 sessionStorage.setItem('redirecting', 'true');
-                window.open('index.html', '_blank');
+                // يمكن إلغاء التعليق أدناه إذا أردت فتح الصفحة الرئيسية في علامة تبويب جديدة عند الإغلاق
+                // window.open('index.html', '_blank');
             }
         }
         
-        // دالة للانتقال إلى صفحة مع التحكم في الإغلاق
+        // دالة للانتقال إلى صفحة مع التحكم في حالة إعادة التوجيه
         function redirectToPage(url) {
             sessionStorage.setItem('redirecting', 'true');
             window.location.href = url;
@@ -591,21 +630,33 @@
         // تحميل بيانات التجار عند تحميل الصفحة
         window.addEventListener('load', function() {
             sessionStorage.removeItem('redirecting');
-            getInactiveMerchantsWithDefaultPassword();
+            // إذا تم تهيئة Firebase، نقوم بجلب البيانات
+            if (database) {
+                getInactiveMerchantsWithDefaultPassword();
+            } else {
+                // إذا لم يتم تهيئة Firebase، نخفي رسالة التحميل
+                document.getElementById('merchants-loading').style.display = 'none';
+            }
         });
         
         window.addEventListener('beforeunload', handleBeforeUnload);
         
+        // مراقبة تغيير حالة التبويب (اختياري، يمكن تعطيله إذا تسبب بمشاكل)
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'hidden') {
                 if (!sessionStorage.getItem('redirecting')) {
                     sessionStorage.setItem('redirecting', 'true');
+                    // تأخير بسيط لتجنب التعارض مع أحداث أخرى
                     setTimeout(function() {
                         window.open('index.html', '_blank');
                     }, 100);
                 }
             }
         });
+
+        // تعليق توضيحي: جميع المسارات المستخدمة في الصفحة (href, redirects) هي مسارات نسبية
+        // هذا يضمن عمل الموقع بشكل صحيح عند رفعه على Vercel من الجذر، حيث تكون جميع الصفحات في نفس المستوى.
+        // إذا كانت الصفحات موجودة في مجلدات فرعية، فيجب تعديل المسارات وفقًا لذلك.
     </script>
 </body>
 </html>
