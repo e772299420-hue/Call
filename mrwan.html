@@ -271,7 +271,7 @@
         <button id="exampleBtn" class="btn-secondary">📋 مثال توضيحي</button>
     </div>
     <footer>
-        ⚡ يدعم الأرقام المنطوقة (ألف، خمسمائة، ثلاثين، إلخ) واستخراج الملاحظات تلقائياً
+        ⚡ يدعم الأرقام المنطوقة والمكتوبة (بما في ذلك الفواصل الآلافية مثل 120,320) واستخراج الملاحظات تلقائياً
         <br>
         🎙️ تأكد من منح صلاحية الميكروفون للمتصفح عند ظهور الطلب.
     </footer>
@@ -335,8 +335,13 @@
         wordToNumber.set('أربعة آلاف', 4000); wordToNumber.set('خمسة آلاف', 5000);
         wordToNumber.set('مليون', 1000000); wordToNumber.set('مليونان', 2000000);
 
+        // دالة مساعدة لتنظيف النص من علامات الترقيم
+        function cleanText(text) {
+            return text.replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\s\d]/g, '');
+        }
+
         function tokenizeArabic(text) {
-            let normalized = text.replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\s\d]/g, '');
+            let normalized = cleanText(text);
             let words = normalized.split(/\s+/).filter(w => w.length > 0);
             let merged = [];
             for (let i = 0; i < words.length; i++) {
@@ -363,14 +368,36 @@
             return merged;
         }
 
+        // دالة لاستخراج الرقم من النص المكتوب رقماً (تدعم الفواصل الآلافية والنقاط العشرية)
+        function extractNumericAmount(text) {
+            // البحث عن أرقام تحتوي على فواصل آلاف (مثل 120,320) أو نقاط عشرية (مثل 120.5)
+            const regex = /\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\b|\b\d+(?:\.\d+)?\b/g;
+            const matches = text.match(regex);
+            if (matches && matches.length > 0) {
+                // نأخذ أول رقم صحيح (يمكن أن يكون الأكبر لكن نفضل الأول)
+                let numStr = matches[0];
+                // إزالة الفواصل الآلافية
+                numStr = numStr.replace(/,/g, '');
+                // التحويل إلى عدد عشري
+                let num = parseFloat(numStr);
+                if (!isNaN(num)) {
+                    return num;
+                }
+            }
+            return null;
+        }
+
         function parseAmountFromSpeech(spokenText) {
             if (!spokenText) return null;
             let text = spokenText.toLowerCase();
-            const directNumberMatch = text.match(/\b\d+\b/);
-            if (directNumberMatch) {
-                return parseInt(directNumberMatch[0], 10);
+            
+            // 1. محاولة استخراج رقم مكتوب (مع فواصل آلاف)
+            let numericAmount = extractNumericAmount(text);
+            if (numericAmount !== null) {
+                return numericAmount;
             }
             
+            // 2. إذا لم يوجد رقم مكتوب، نحاول تحويل الكلمات العربية
             const tokens = tokenizeArabic(text);
             let total = 0;
             let current = 0;
@@ -458,34 +485,48 @@
             if (!fullText || fullText.trim() === "") return { amount: null, notes: "" };
             let detectedAmount = parseAmountFromSpeech(fullText);
             let notes = fullText.trim();
+            
             if (detectedAmount !== null && detectedAmount > 0) {
+                // محاولة إزالة جزء المبلغ من النص للحصول على ملاحظات نظيفة
                 let tempText = fullText;
+                // نبحث عن الرقم المستخرج (سواء من الأرقام المكتوبة أو المنطوقة) ونحاول إزالته
+                let amountStr = detectedAmount.toString();
+                // إذا كان المبلغ مأخوذاً من أرقام مكتوبة (تحتوي على فواصل) قد لا نجد مطابقة تامة، لذلك نستخدم طريقة أكثر مرونة
+                // إزالة الأجزاء التي تحتوي على أرقام أو كلمات المبلغ
                 const words = fullText.split(/\s+/);
-                let numericWordsIndices = [];
+                let indicesToRemove = [];
                 for (let i = 0; i < words.length; i++) {
                     let w = words[i];
+                    // إزالة الأرقام المكتوبة (قد تكون 120,320)
+                    if (w.match(/\d/)) {
+                        indicesToRemove.push(i);
+                    }
+                    // إزالة الكلمات التي تدل على المبلغ
                     let testPhrase = w;
                     if (i+1 < words.length && (w === 'أحد' || w === 'اثنا' || w === 'ثلاثة' || w === 'أربعة' || w === 'خمسة' || w === 'ستة' || w === 'سبعة' || w === 'ثمانية' || w === 'تسعة') && words[i+1] === 'عشر') {
                         testPhrase = w + ' ' + words[i+1];
                     }
                     if (wordToNumber.has(testPhrase) || (wordToNumber.has(w) && wordToNumber.get(w) >= 100) || w === 'ألف' || w === 'الف' || w === 'مليون') {
-                        numericWordsIndices.push(i);
+                        indicesToRemove.push(i);
                         if (testPhrase.includes(' ')) i++;
                     }
-                    else if (w === 'ريال' || w === 'درهم') numericWordsIndices.push(i);
+                    else if (w === 'ريال' || w === 'درهم' || w === 'دولار') {
+                        indicesToRemove.push(i);
+                    }
                 }
+                // إزالة العناصر من النهاية لتجنب مشاكل الفهارس
                 let filteredWords = [...words];
-                for (let idx of numericWordsIndices.reverse()) {
+                for (let idx of indicesToRemove.reverse()) {
                     if (idx < filteredWords.length) filteredWords.splice(idx, 1);
                 }
                 let cleanedNotes = filteredWords.join(' ').replace(/\s+/g, ' ').trim();
-                if (cleanedNotes.length === 0 && detectedAmount !== null) {
-                    let simpler = fullText.replace(new RegExp(`\\b(${Array.from(wordToNumber.keys()).join('|')})\\b`, 'gi'), '').replace(/ريال|درهم|دولار/gi, '').replace(/\s+/g, ' ').trim();
-                    notes = simpler || "تم إضافة المبلغ فقط";
+                if (cleanedNotes.length === 0) {
+                    notes = "تم إضافة المبلغ فقط";
                 } else {
-                    notes = cleanedNotes || "ملاحظة (تلقائية)";
+                    notes = cleanedNotes;
                 }
-                notes = notes.replace(/ريال|درهم|عملة/gi, '').replace(/\s+/g, ' ').trim();
+                // تنظيف إضافي من علامات الترقيم الزائدة
+                notes = notes.replace(/ريال|درهم|دولار|عملة/gi, '').replace(/\s+/g, ' ').trim();
                 if(notes === "") notes = "—";
             } else {
                 notes = fullText;
@@ -512,7 +553,7 @@
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         const isSpeechSupported = SpeechRecognitionAPI !== undefined;
         
-        // دالة طلب الإذن بشكل استباقي باستخدام getUserMedia (للتأكد من صلاحية الميكروفون)
+        // دالة طلب الإذن بشكل استباقي باستخدام getUserMedia
         async function requestMicrophonePermission() {
             if (!isSpeechSupported) {
                 updateStatus("⚠️ متصفحك لا يدعم التعرف الصوتي. استخدم Chrome أو Edge أو Safari.", true);
@@ -520,9 +561,7 @@
                 return false;
             }
             try {
-                // طلب إذن الميكروفون بشكل صريح
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                // إذا نجح، أغلق المسارات فوراً (لا نحتاج البث، فقط الإذن)
                 stream.getTracks().forEach(track => track.stop());
                 permissionGranted = true;
                 updateStatus("✅ صلاحية الميكروفون متاحة. يمكنك البدء.", false);
@@ -559,7 +598,6 @@
             statusArea.innerHTML = `<div class="listening-badge" style="background: ${isError ? '#ffe0e0' : '#e6f7e6'}; color: ${isError ? '#aa2e2e' : '#2e7d32'};">🎙️ ${message}</div>`;
             setTimeout(() => {
                 if (statusArea.innerHTML.includes(message) && !isListening) {
-                    // لا نمسح الرسالة إذا كانت خطأ دائم أو رسالة نجاح بعد فترة
                     if (!isError && message.includes("متاحة")) return;
                     if (isError) return;
                     statusArea.innerHTML = '';
@@ -593,7 +631,6 @@
                 alert("التعرف الصوتي غير مدعوم في هذا المتصفح.");
                 return;
             }
-            // التأكد من الإذن قبل البدء
             if (!permissionGranted) {
                 const granted = await requestMicrophonePermission();
                 if (!granted) {
@@ -602,7 +639,6 @@
                 }
             }
             if (isListening) return;
-            // إعادة إنشاء recognition في كل مرة لضمان حالة نظيفة
             if (recognition) {
                 try { recognition.abort(); } catch(e) {}
             }
@@ -612,7 +648,6 @@
                 return;
             }
             
-            // إعداد معالجات الأحداث
             recognition.onresult = (event) => {
                 const last = event.results.length - 1;
                 const transcript = event.results[last][0].transcript.trim();
@@ -647,7 +682,7 @@
             try {
                 recognition.start();
                 isListening = true;
-                updateStatus("⏳ استمع الآن... تحدث بوضوح (مثال: ألف ريال مقابل ماء وسجارة)");
+                updateStatus("⏳ استمع الآن... تحدث بوضوح (مثال: 120,320 ريال مقابل غراء وسيجارة)");
                 micBtn.style.background = "linear-gradient(125deg, #b91c1c, #dc2626)";
                 micBtn.querySelector('span:last-child').innerText = "جاري الاستماع...";
             } catch (err) {
@@ -686,16 +721,15 @@
         });
         
         exampleBtn.addEventListener('click', () => {
-            const exampleText = "ألف ريال مقابل ماء وسجارة";
+            const exampleText = "120,320 ريال مقابل غراء وسيجارة";
             recognizedSpan.innerText = exampleText + " (تجريبي)";
             fillFormFromSpeech(exampleText);
-            updateStatus("📌 تم تطبيق مثال توضيحي", false);
+            updateStatus("📌 تم تطبيق مثال توضيحي (يدعم الفواصل)", false);
         });
         
-        // عند تحميل الصفحة، نطلب الإذن بشكل استباقي (اختياري ولكن مفيد)
+        // عند تحميل الصفحة، طلب الإذن بشكل استباقي
         (async function autoRequestPermission() {
             if (isSpeechSupported) {
-                // نطلب الإذن بدون إزعاج المستخدم كثيراً، لكن نعرض رسالة هادئة
                 updateStatus("🔄 جارٍ التحقق من صلاحية الميكروفون...", false);
                 await requestMicrophonePermission();
             } else {
