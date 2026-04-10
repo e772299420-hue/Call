@@ -468,7 +468,7 @@
         const customerSelectList = document.getElementById('customerSelectList');
         const confirmCustomerBtn = document.getElementById('confirmCustomerBtn');
 
-        let pendingCustomersList = []; // لتخزين العملاء المتعددين مؤقتاً
+        let pendingCustomersList = [];
 
         function updateTotalAndSpeak(shouldSpeak = true) {
             let total = entries.reduce((sum, e) => sum + e.amount, 0);
@@ -547,15 +547,19 @@
         }
 
         // ------------------- البحث المتقدم عن العميل في Firebase -------------------
-        // تنظيف النص (إزالة التشكيل والمسافات الزائدة)
         function normalizeText(str) {
-            return str.trim().toLowerCase().replace(/[ًٌٍَُِّْ]/g, '');
+            // إزالة التشكيل، الهمزات، الألف المقصورة، والمسافات الزائدة
+            return str.trim().toLowerCase()
+                .replace(/[ًٌٍَُِّْ]/g, '')
+                .replace(/[أآإ]/g, 'ا')
+                .replace(/[ى]/g, 'ي')
+                .replace(/ة/g, 'ه');
         }
 
-        // البحث المرن: يحتوي أو يحتوى عليه
         function isMatch(searchTerm, customerName) {
             const normSearch = normalizeText(searchTerm);
             const normName = normalizeText(customerName);
+            // المطابقة إذا كان أحدهما يحتوي على الآخر
             return normName.includes(normSearch) || normSearch.includes(normName);
         }
 
@@ -608,7 +612,6 @@
             });
             customerSelectorDiv.style.display = "flex";
             customerResultDiv.style.display = "none";
-            // نطق عدد النتائج
             let count = customers.length;
             let countWords = numberToArabicWords(count);
             speakText(`يوجد ${countWords} سجلات. الرجاء اختيار العميل من القائمة.`);
@@ -622,9 +625,9 @@
         let isListening = false;
         let permissionGranted = false;
         let currentMode = null; // 'add' or 'customer'
-        let accumulatedText = "";
-        let stopWordDetected = false;
-        let retryCustomerSearch = false; // لإعادة فتح الميكروفون تلقائياً
+        let finalTranscript = "";  // تجميع النص النهائي
+        let interimTimeout = null;
+        let isWaitingForStop = false;
 
         async function requestMicrophonePermission() {
             if (!isSpeechSupported) {
@@ -653,15 +656,15 @@
             return recog;
         }
 
-        function stopListening(resetAccumulated = true) {
+        function stopListening(resetTranscript = true) {
             if (recognition && isListening) {
                 try { recognition.stop(); } catch(e) {}
             }
             isListening = false;
-            if (resetAccumulated) {
-                accumulatedText = "";
-                stopWordDetected = false;
+            if (resetTranscript) {
+                finalTranscript = "";
             }
+            if (interimTimeout) clearTimeout(interimTimeout);
             const micBtn = document.getElementById('micBtn');
             const customerMicBtn = document.getElementById('customerMicBtn');
             micBtn.style.background = "linear-gradient(125deg, #0f2b3d, #1c4e6f)";
@@ -669,22 +672,23 @@
             if (micBtn.querySelector('span:last-child')) micBtn.querySelector('span:last-child').innerText = "مايك الإضافة";
             if (customerMicBtn.querySelector('span:last-child')) customerMicBtn.querySelector('span:last-child').innerText = "مايك العميل";
             currentMode = null;
+            isWaitingForStop = false;
         }
 
         async function processCustomerSearch(finalText) {
             let trimmed = finalText.trim();
             if (trimmed === "") {
                 updateStatus("⚠️ لم يتم التعرف على اسم العميل، حاول مرة أخرى", true);
-                // إعادة فتح الميكروفون تلقائياً
-                setTimeout(() => startListening('customer'), 500);
+                speakText("لم يتم التعرف على اسم العميل، حاول مرة أخرى.");
+                setTimeout(() => startListening('customer'), 1500);
                 return;
             }
             let customers = await searchCustomersByName(trimmed);
             if (customers.length === 0) {
                 speakText("عذراً، اسم العميل الذي تم البحث عنه غير موجود بقاعدة البيانات. فضلاً أعد البحث مرة أخرى.");
                 updateStatus(`❌ لا يوجد عميل باسم "${trimmed}"`, true);
-                // إعادة فتح الميكروفون تلقائياً
-                setTimeout(() => startListening('customer'), 2000);
+                // إعادة فتح الميكروفون تلقائياً بعد النطق
+                setTimeout(() => startListening('customer'), 3000);
                 return;
             }
             if (customers.length === 1) {
@@ -694,17 +698,18 @@
             }
         }
 
-        async function processFinalText(mode, finalText) {
-            recognizedSpan.innerText = finalText;
+        async function processFinalText(mode, text) {
+            recognizedSpan.innerText = text;
             if (mode === 'add') {
-                let entriesList = parseMultipleEntries(finalText);
+                let entriesList = parseMultipleEntries(text);
                 if (entriesList.length === 0) {
                     updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
+                    speakText("لم يتم العثور على مبالغ في النص");
                 } else {
                     addMultipleEntries(entriesList);
                 }
             } else if (mode === 'customer') {
-                await processCustomerSearch(finalText);
+                await processCustomerSearch(text);
             }
         }
 
@@ -717,49 +722,59 @@
             if (isListening) stopListening(true);
             
             currentMode = mode;
-            accumulatedText = "";
-            stopWordDetected = false;
+            finalTranscript = "";
+            isWaitingForStop = false;
             recognition = initRecognition();
             
             recognition.onresult = (event) => {
-                let interimTranscript = "";
-                let finalTranscript = "";
+                let interim = "";
+                let newFinal = "";
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += transcript;
+                        newFinal += transcript;
                     } else {
-                        interimTranscript += transcript;
+                        interim += transcript;
                     }
                 }
-                if (finalTranscript) {
-                    accumulatedText += " " + finalTranscript;
-                    let lowerAcc = accumulatedText.toLowerCase();
-                    if (lowerAcc.includes("جاهز") || lowerAcc.includes("جاهزة")) {
-                        if (!stopWordDetected) {
-                            stopWordDetected = true;
-                            let cleanText = accumulatedText.replace(/جاهز|جاهزة/gi, '').trim();
-                            if (cleanText === "") cleanText = "لم يتم التعرف على نص";
-                            processFinalText(currentMode, cleanText);
-                            stopListening(true);
-                        }
-                    } else {
-                        recognizedSpan.innerText = accumulatedText;
+                if (newFinal) {
+                    finalTranscript += " " + newFinal;
+                    // التحقق من وجود كلمة جاهز في النص المتراكم
+                    let lower = finalTranscript.toLowerCase();
+                    if ((lower.includes("جاهز") || lower.includes("جاهزة")) && !isWaitingForStop) {
+                        isWaitingForStop = true;
+                        let cleanText = finalTranscript.replace(/جاهز|جاهزة/gi, '').trim();
+                        if (cleanText === "") cleanText = "لم يتم التعرف على نص";
+                        processFinalText(currentMode, cleanText);
+                        stopListening(true);
+                        return;
                     }
+                    // تحديث النص المعروض
+                    recognizedSpan.innerText = finalTranscript;
                 }
-                if (interimTranscript) {
-                    recognizedSpan.innerText = accumulatedText + " " + interimTranscript;
+                if (interim) {
+                    recognizedSpan.innerText = finalTranscript + " " + interim;
                 }
+                // إعادة تعيين المؤقت إذا كان هناك نص مؤقت
+                if (interimTimeout) clearTimeout(interimTimeout);
+                interimTimeout = setTimeout(() => {
+                    // اختياري: إيقاف تلقائي بعد الصمت لمدة 3 ثوانٍ (يمكن تفعيله)
+                }, 3000);
             };
             
             recognition.onerror = (event) => {
                 updateStatus(`❌ خطأ: ${event.error}`, true);
                 stopListening(true);
+                if (currentMode === 'customer') {
+                    speakText("حدث خطأ في التعرف، حاول مرة أخرى.");
+                    setTimeout(() => startListening('customer'), 2000);
+                }
             };
             
             recognition.onend = () => {
-                if (isListening && !stopWordDetected) {
-                    updateStatus("⏹️ توقف الاستماع تلقائياً، قل 'جاهز' للإيقاف اليدوي", false);
+                if (isListening && !isWaitingForStop) {
+                    // إذا انتهى بدون كلمة جاهز (مشكلة)
+                    updateStatus("⏹️ توقف الاستماع تلقائياً، استخدم زر الإيقاف", false);
                     stopListening(true);
                 }
             };
