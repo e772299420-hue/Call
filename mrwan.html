@@ -1,4 +1,3 @@
-في الكود الحالي 
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -43,13 +42,50 @@
             text-align: center;
         }
 
-        .sub {
-            text-align: center;
-            color: #4a5b6e;
-            margin-bottom: 1.5rem;
+        /* منطقة العميل الجديدة */
+        .customer-area {
+            background: #f1f5f9;
+            border-radius: 1.2rem;
+            padding: 1rem;
+            margin-bottom: 1.2rem;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .customer-label {
+            font-weight: 700;
+            color: #0c4a6e;
+            margin-bottom: 0.4rem;
+            display: block;
             font-size: 0.9rem;
-            border-bottom: 1px dashed #cbd5e1;
-            padding-bottom: 0.75rem;
+        }
+        #customerSelect {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: 1.5rem;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        #customerSelect:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+        }
+        .phone-display {
+            margin-top: 0.6rem;
+            background: #e6f0ff;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            color: #075985;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .phone-display span:first-child {
+            font-weight: bold;
         }
 
         .mic-button {
@@ -178,10 +214,13 @@
         }
 
         footer {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             text-align: center;
-            color: #5f6c80;
+            color: #2c3e50;
             margin-top: 1.5rem;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 1rem;
+            font-weight: 500;
         }
 
         @media (max-width: 600px) {
@@ -194,7 +233,18 @@
 
 <div class="glass-card">
     <h1>📒 الدفتر الذكي</h1>
-    <div class="sub">تحدث مرة واحدة لتسجيل عدة بنود (مثال: ١٥٠ ماء ١٠٠ سجارة ٦٠ ثومة)</div>
+    
+    <!-- بدلاً من النص القديم: حقل اختيار العميل + عرض الجوال -->
+    <div class="customer-area">
+        <div class="customer-label">👤 اختر اسم العميل</div>
+        <select id="customerSelect">
+            <option value="">-- جاري تحميل العملاء --</option>
+        </select>
+        <div id="phoneDisplay" class="phone-display" style="display: none;">
+            <span>📞 رقم الجوال:</span>
+            <span id="customerPhoneValue">—</span>
+        </div>
+    </div>
 
     <button id="micBtn" class="mic-button">🎤 اضغط وتحدث (مايك)</button>
     <div class="status-area" id="statusArea"></div>
@@ -220,9 +270,12 @@
 
     <div class="action-buttons">
         <button id="clearAllBtn" class="btn-secondary">🗑️ مسح الكل</button>
-        <button id="exampleBtn" class="btn-secondary">📋 مثال توضيحي</button>
+        <!-- تم حذف زر "مثال توضيحي" بالكامل -->
     </div>
-    <footer>🎙️ يدعم الأرقام المنطوقة والمكتوبة والفواصل. بعد الإضافة، يُنطق المجموع تلقائياً.</footer>
+    
+    <footer>
+        ⚙️ إعداد وبرمجة المهندس / مروان الذماري
+    </footer>
 </div>
 
 <script>
@@ -278,11 +331,9 @@
 
         // تحويل الرقم من النص (يدعم الأرقام العربية والإنجليزية والفواصل)
         function parseNumberFromText(token) {
-            // أرقام عربية -> إنجليزية
             let arabicToEnglish = token.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
             let engNumber = parseFloat(arabicToEnglish.replace(/,/g, ''));
             if (!isNaN(engNumber)) return engNumber;
-            // البحث عن أرقام إنجليزية مع فواصل
             let match = token.match(/\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\b/);
             if (match) return parseFloat(match[0].replace(/,/g, ''));
             return null;
@@ -322,23 +373,15 @@
         }
 
         // ---------- 2. تحليل النص الكامل إلى قائمة {amount, note} ----------
-        // نمط: (رقم) + (كلمات ملاحظة) + (رقم) + (كلمات ملاحظة) ...
-        // نستخدم خوارزمية بسيطة: البحث عن الأرقام (كأرقام أو كلمات) واعتبار ما بعدها حتى الرقم التالي ملاحظة.
         function parseMultipleEntries(fullText) {
             if (!fullText) return [];
-            // تنظيف أولي
             let text = fullText.trim();
-            // قائمة بالكلمات المفتاحية التي قد تفصل بين البنود (و, ثم, بعد ذلك)
-            let separators = ['و', 'ثم', 'بعد', 'ثم'];
             let entries = [];
-            
-            // 1. استخراج جميع الأرقام الموجودة في النص (مع مواضعها)
-            let numberPositions = []; // {index, amount, token}
             let words = text.split(/\s+/);
+            let numberPositions = [];
             let i = 0;
             while (i < words.length) {
                 let token = words[i];
-                // دمج "أحد عشر" ونحوه
                 let combined = token;
                 if (i+1 < words.length && (token === 'أحد' || token === 'احد' || token === 'اثنا' || token === 'ثلاثة' || token === 'أربعة' || token === 'خمسة' || token === 'ستة' || token === 'سبعة' || token === 'ثمانية' || token === 'تسعة') && words[i+1] === 'عشر') {
                     combined = token + ' ' + words[i+1];
@@ -353,18 +396,14 @@
             
             if (numberPositions.length === 0) return [];
             
-            // بناء السجلات: كل رقم + ما بينه وبين الرقم التالي
             for (let idx = 0; idx < numberPositions.length; idx++) {
                 let startPos = numberPositions[idx].index;
                 let amount = numberPositions[idx].amount;
                 let endPos = (idx + 1 < numberPositions.length) ? numberPositions[idx+1].index : words.length;
-                // استخراج الكلمات بين startPos+1 (بعد الرقم) و endPos
                 let noteWords = [];
                 for (let j = startPos + 1; j < endPos; j++) {
                     let w = words[j];
-                    // تجاهل كلمات مثل "ريال", "درهم"
                     if (w === 'ريال' || w === 'درهم' || w === 'دولار') continue;
-                    // إذا كانت الكلمة هي رقم (لم يلتقطه لأنه ليس رقماً؟) نتجاهلها
                     if (extractAmountFromToken(w) !== null) continue;
                     noteWords.push(w);
                 }
@@ -373,7 +412,6 @@
                 entries.push({ amount: amount, note: note });
             }
             
-            // إذا لم نجد أي سجل لكن هناك رقم واحد فقط في النص، نعتبر الباقي كله ملاحظة واحدة
             if (entries.length === 0 && numberPositions.length === 1) {
                 let amount = numberPositions[0].amount;
                 let rest = words.slice(numberPositions[0].index+1).join(' ').replace(/ريال|درهم|دولار/g,'').trim();
@@ -383,7 +421,7 @@
         }
 
         // ---------- 3. إدارة السجلات في الجدول ----------
-        let entries = [];  // مصفوفة {id, amount, note}
+        let entries = [];
         let nextId = 1;
         const tableBody = document.getElementById('tableBody');
         const totalSpan = document.getElementById('totalAmount');
@@ -423,7 +461,7 @@
                     renderTable();
                     updateTotalAndSpeak(false);
                     if (entries.length === 0) totalSpan.innerText = '0';
-                    else updateTotalAndSpeak(true); // ننطق الإجمالي الجديد
+                    else updateTotalAndSpeak(true);
                 };
                 delCell.appendChild(delBtn);
             });
@@ -512,7 +550,6 @@
                 let transcript = event.results[0][0].transcript.trim();
                 recognizedSpan.innerText = transcript;
                 updateStatus("✅ تم التعرف", false);
-                // تحليل النص إلى سجلات
                 let entriesList = parseMultipleEntries(transcript);
                 if (entriesList.length === 0) {
                     updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
@@ -542,10 +579,97 @@
             micBtn.querySelector('span:last-child').innerText = "اضغط وتحدث (مايك)";
         }
         
-        // ---------- 5. ربط الأزرار والأحداث ----------
+        // ---------- 5. جلب بيانات العملاء من Firebase ----------
+        const customersSelect = document.getElementById('customerSelect');
+        const phoneDisplayDiv = document.getElementById('phoneDisplay');
+        const customerPhoneSpan = document.getElementById('customerPhoneValue');
+        
+        async function loadCustomersFromFirebase() {
+            try {
+                // استخدام REST API لجلب جميع البيانات من قاعدة Firebase
+                const response = await fetch('https://chat-fat-free-default-rtdb.firebaseio.com/.json');
+                if (!response.ok) throw new Error('فشل الاتصال بقاعدة البيانات');
+                const data = await response.json();
+                
+                let customersArray = [];
+                // استكشاف البيانات: يمكن أن تكون العملاء تحت عقدة customers أو clients أو مباشرة ككائنات تحتوي على name و phone
+                if (data && typeof data === 'object') {
+                    // محاولة البحث في المسارات الشائعة
+                    let possibleRoots = ['customers', 'clients', 'users', 'work'];
+                    let targetObject = null;
+                    for (let root of possibleRoots) {
+                        if (data[root] && typeof data[root] === 'object') {
+                            targetObject = data[root];
+                            break;
+                        }
+                    }
+                    if (!targetObject) targetObject = data; // نأخذ الجذر كله
+                    
+                    // تصفية الكائنات التي تحوي name و phone
+                    for (let key in targetObject) {
+                        let item = targetObject[key];
+                        if (item && typeof item === 'object') {
+                            if ((item.name || item.اسم) && (item.phone || item.رقم_الجوال || item.mobile || item.phoneNumber)) {
+                                let name = item.name || item.اسم || '';
+                                let phone = item.phone || item.رقم_الجوال || item.mobile || item.phoneNumber || '';
+                                if (name && phone) customersArray.push({ name, phone });
+                            }
+                        }
+                    }
+                    // إذا لم نجد أي شيء، نحاول البحث عن أي خاصية تشبه الاسم ورقم
+                    if (customersArray.length === 0) {
+                        for (let key in targetObject) {
+                            let item = targetObject[key];
+                            if (item && typeof item === 'object') {
+                                let possibleName = item.name || item.الاسم || item.fullname || key;
+                                let possiblePhone = item.phone || item.رقم || item.tel || item.mobile;
+                                if (possibleName && possiblePhone) {
+                                    customersArray.push({ name: possibleName, phone: possiblePhone });
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (customersArray.length === 0) {
+                    customersSelect.innerHTML = '<option value="">⚠️ لا توجد بيانات عملاء</option>';
+                    return;
+                }
+                
+                // تعبئة الـ select
+                customersSelect.innerHTML = '<option value="">-- اختر العميل --</option>';
+                customersArray.forEach(cust => {
+                    let option = document.createElement('option');
+                    option.value = cust.phone;
+                    option.textContent = cust.name;
+                    option.dataset.phone = cust.phone;
+                    customersSelect.appendChild(option);
+                });
+                
+                // إظهار رقم الجوال عند التغيير
+                customersSelect.addEventListener('change', (e) => {
+                    const selectedOption = customersSelect.options[customersSelect.selectedIndex];
+                    if (selectedOption && selectedOption.value !== "") {
+                        const phoneNumber = selectedOption.dataset.phone || selectedOption.value;
+                        customerPhoneSpan.innerText = phoneNumber;
+                        phoneDisplayDiv.style.display = 'flex';
+                    } else {
+                        phoneDisplayDiv.style.display = 'none';
+                        customerPhoneSpan.innerText = '—';
+                    }
+                });
+                
+                updateStatus("✅ تم تحميل قائمة العملاء", false);
+            } catch (err) {
+                console.error(err);
+                customersSelect.innerHTML = '<option value="">⚠️ خطأ في تحميل العملاء</option>';
+                updateStatus("فشل تحميل العملاء من Firebase", true);
+            }
+        }
+        
+        // ---------- 6. ربط الأزرار والأحداث ----------
         const micBtn = document.getElementById('micBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
-        const exampleBtn = document.getElementById('exampleBtn');
         const speakTotalBtn = document.getElementById('speakTotalBtn');
         
         micBtn.addEventListener('click', () => {
@@ -558,18 +682,12 @@
             if (total > 0) speakText(`الإجمالي ${total} ريال`);
             else speakText("لا توجد سجلات");
         });
-        exampleBtn.addEventListener('click', () => {
-            let exampleText = "١٥٠ ماء ١٠٠ سجارة ٦٠ ثومة";
-            recognizedSpan.innerText = exampleText + " (تجريبي)";
-            let entriesList = parseMultipleEntries(exampleText);
-            if (entriesList.length) addMultipleEntries(entriesList);
-            else updateStatus("مثال توضيحي لا يحتوي على أرقام", true);
-        });
         
-        // طلب الإذن عند التحميل
+        // طلب الإذن + تحميل العملاء عند التحميل
         (async function() {
             if (isSpeechSupported) await requestMicrophonePermission();
             else micBtn.disabled = true;
+            await loadCustomersFromFirebase();
         })();
     })();
 </script>
