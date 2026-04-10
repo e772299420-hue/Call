@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>الدفتر الذكي - سجلات متعددة بالصوت + بحث عن عميل</title>
+    <title>الدفتر الذكي - سجلات متعددة بالصوت</title>
     <style>
         * {
             margin: 0;
@@ -42,26 +42,56 @@
             text-align: center;
         }
 
-        .sub {
-            text-align: center;
-            color: #4a5b6e;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-            border-bottom: 1px dashed #cbd5e1;
-            padding-bottom: 0.75rem;
+        /* منطقة العميل الجديدة */
+        .customer-area {
+            background: #f1f5f9;
+            border-radius: 1.2rem;
+            padding: 1rem;
+            margin-bottom: 1.2rem;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
-
-        .mic-row {
+        .customer-label {
+            font-weight: 700;
+            color: #0c4a6e;
+            margin-bottom: 0.4rem;
+            display: block;
+            font-size: 0.9rem;
+        }
+        #customerSelect {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: 1.5rem;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        #customerSelect:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+        }
+        .phone-display {
+            margin-top: 0.6rem;
+            background: #e6f0ff;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            color: #075985;
+            font-weight: 500;
             display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .phone-display span:first-child {
+            font-weight: bold;
         }
 
         .mic-button {
             background: linear-gradient(125deg, #0f2b3d, #1c4e6f);
             border: none;
-            flex: 1;
+            width: 100%;
             padding: 1rem;
             border-radius: 3rem;
             display: flex;
@@ -72,16 +102,13 @@
             font-size: 1.2rem;
             font-weight: bold;
             cursor: pointer;
+            margin-bottom: 1rem;
             transition: 0.2s;
-        }
-
-        .mic-button.customer-mic {
-            background: linear-gradient(125deg, #2d3748, #4a5568);
         }
 
         .mic-button:hover:not(:disabled) {
             transform: scale(0.98);
-            filter: brightness(1.05);
+            background: linear-gradient(125deg, #1c4058, #22668d);
         }
 
         .status-area {
@@ -106,39 +133,6 @@
             margin: 1rem 0;
             border-right: 5px solid #3b82f6;
             font-size: 0.9rem;
-        }
-
-        .customer-result {
-            background: #eef2ff;
-            border-radius: 1rem;
-            padding: 0.8rem;
-            margin: 0.5rem 0 1rem 0;
-            border-right: 5px solid #facc15;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .customer-selector {
-            background: #fff;
-            border-radius: 1rem;
-            padding: 0.8rem;
-            margin: 0.5rem 0 1rem 0;
-            border-right: 5px solid #3b82f6;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .customer-selector select {
-            padding: 0.6rem;
-            border-radius: 2rem;
-            border: 1px solid #cbd5e1;
-            font-size: 1rem;
-            background: white;
-            font-weight: 500;
         }
 
         .entries-table {
@@ -220,16 +214,18 @@
         }
 
         footer {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             text-align: center;
-            color: #5f6c80;
+            color: #2c3e50;
             margin-top: 1.5rem;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 1rem;
+            font-weight: 500;
         }
 
         @media (max-width: 600px) {
             .glass-card { padding: 1rem; }
             .entries-table th, .entries-table td { font-size: 0.8rem; }
-            .mic-button { font-size: 1rem; padding: 0.7rem; }
         }
     </style>
 </head>
@@ -237,32 +233,27 @@
 
 <div class="glass-card">
     <h1>📒 الدفتر الذكي</h1>
-    <div class="sub">تحدث مرة واحدة لتسجيل عدة بنود (مثال: ١٥٠ ماء ١٠٠ سجارة ٦٠ ثومة)</div>
-
-    <div class="mic-row">
-        <button id="micBtn" class="mic-button">🎤 مايك الإضافة</button>
-        <button id="customerMicBtn" class="mic-button customer-mic">👤 مايك العميل</button>
-    </div>
-    <div class="status-area" id="statusArea"></div>
     
-    <!-- نتيجة البحث عن العميل -->
-    <div id="customerResultArea" class="customer-result" style="display: none;">
-        <span>👤 <strong id="customerName">---</strong></span>
-        <span>📞 <strong id="customerPhone">---</strong></span>
+    <!-- حقل اختيار العميل + عرض الجوال -->
+    <div class="customer-area">
+        <div class="customer-label">👤 اختر اسم العميل</div>
+        <select id="customerSelect">
+            <option value="">-- جاري تحميل العملاء --</option>
+        </select>
+        <div id="phoneDisplay" class="phone-display" style="display: none;">
+            <span>📞 رقم الجوال:</span>
+            <span id="customerPhoneValue">—</span>
+        </div>
     </div>
 
-    <!-- قائمة اختيار العملاء المتعددين -->
-    <div id="customerSelectorArea" class="customer-selector" style="display: none;">
-        <label>🔍 اختر العميل المناسب:</label>
-        <select id="customerSelectList"></select>
-        <button id="confirmCustomerBtn" class="btn-secondary" style="background:#3b82f6; color:white;">تأكيد الاختيار</button>
-    </div>
-
+    <button id="micBtn" class="mic-button">🎤 اضغط وتحدث (مايك)</button>
+    <div class="status-area" id="statusArea"></div>
     <div class="transcript-box" id="transcriptArea">
         <span style="font-weight:700; color:#2563eb;">📢 النص المُتعرف عليه:</span>
         <span id="recognizedText">—</span>
     </div>
 
+    <!-- جدول السجلات -->
     <table class="entries-table" id="entriesTable">
         <thead>
             <tr><th>#</th><th>💰 المبلغ (ريال)</th><th>📝 الملاحظة</th><th></th></tr>
@@ -270,6 +261,7 @@
         <tbody id="tableBody"></tbody>
     </table>
 
+    <!-- منطقة الإجمالي -->
     <div class="total-area">
         <span>🏷️ إجمالي المبالغ:</span>
         <span class="total-amount" id="totalAmount">0</span>
@@ -278,51 +270,85 @@
 
     <div class="action-buttons">
         <button id="clearAllBtn" class="btn-secondary">🗑️ مسح الكل</button>
-        <button id="exampleBtn" class="btn-secondary">📋 مثال توضيحي</button>
     </div>
-    <footer>🎙️ تحدث بشكل طبيعي، وعند الانتهاء قل <strong>"جاهز"</strong> لوقف التسجيل وإضافة البيانات أو البحث عن العميل.</footer>
+    
+    <footer>
+        ⚙️ إعداد وبرمجة المهندس / مروان الذماري
+    </footer>
 </div>
 
 <script>
     (function() {
-        // ================== دالة تحويل الرقم إلى كلمات عربية ==================
+        // ---------- 1. تحويل الأرقام إلى كلمات عربية (للنطق الصحيح) ----------
         function numberToArabicWords(num) {
             if (num === 0) return "صفر";
             const units = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
             const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
-            const tens = ["", "عشرة", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
-            const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
-
-            function convertChunk(n) {
+            const tens = ["", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+            const hundreds = ["", "مائة", "مئتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+            
+            function convertLessThanThousand(n) {
                 if (n === 0) return "";
                 if (n < 10) return units[n];
                 if (n < 20) return teens[n - 10];
                 let unit = n % 10;
                 let ten = Math.floor(n / 10);
                 if (unit === 0) return tens[ten];
-                return tens[ten] + " و " + units[unit];
+                return units[unit] + " و" + tens[ten];
             }
-
-            let result = "";
-            let thousands = Math.floor(num / 1000);
-            let remainder = num % 1000;
-            if (thousands > 0) {
-                if (thousands === 1) result += "ألف";
-                else if (thousands === 2) result += "ألفان";
-                else result += convertChunk(thousands) + " آلاف";
-                if (remainder > 0) result += " و ";
+            
+            function convertLessThanMillion(n) {
+                if (n < 1000) return convertLessThanThousand(n);
+                let thousands = Math.floor(n / 1000);
+                let remainder = n % 1000;
+                let thousandsStr = "";
+                if (thousands === 1) thousandsStr = "ألف";
+                else if (thousands === 2) thousandsStr = "ألفان";
+                else if (thousands >= 3 && thousands <= 10) thousandsStr = convertLessThanThousand(thousands) + " آلاف";
+                else thousandsStr = convertLessThanThousand(thousands) + " ألف";
+                if (remainder === 0) return thousandsStr;
+                return thousandsStr + " و" + convertLessThanThousand(remainder);
             }
-            let hundredsPart = Math.floor(remainder / 100);
-            let rest = remainder % 100;
-            if (hundredsPart > 0) {
-                result += hundreds[hundredsPart];
-                if (rest > 0) result += " و ";
-            }
-            if (rest > 0) result += convertChunk(rest);
-            return result.trim();
+            
+            if (num < 1000000) return convertLessThanMillion(num);
+            let millions = Math.floor(num / 1000000);
+            let rest = num % 1000000;
+            let millionsStr = "";
+            if (millions === 1) millionsStr = "مليون";
+            else if (millions === 2) millionsStr = "مليونان";
+            else if (millions >= 3 && millions <= 10) millionsStr = convertLessThanThousand(millions) + " ملايين";
+            else millionsStr = convertLessThanThousand(millions) + " مليون";
+            if (rest === 0) return millionsStr;
+            return millionsStr + " و" + convertLessThanMillion(rest);
         }
-
-        // ================== تحويل الأرقام من النص (لتحليل جمل الإضافة) ==================
+        
+        // دالة النطق بالعربية بشكل مضمون
+        function speakArabic(text) {
+            if (!window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ar-SA';
+            utterance.rate = 0.9;
+            // محاولة اختيار صوت عربي إذا وجد
+            if (window.speechSynthesis.getVoices) {
+                const voices = window.speechSynthesis.getVoices();
+                const arabicVoice = voices.find(voice => voice.lang === 'ar-SA' || voice.lang === 'ar-EG');
+                if (arabicVoice) utterance.voice = arabicVoice;
+            }
+            window.speechSynthesis.speak(utterance);
+        }
+        
+        // نطق الإجمالي بالعربية
+        function speakTotalInArabic(total) {
+            if (total <= 0) {
+                speakArabic("لا توجد سجلات");
+                return;
+            }
+            const totalWords = numberToArabicWords(total);
+            speakArabic(`الإجمالي ${totalWords} ريال`);
+        }
+        
+        // ---------- 2. تحويل الأرقام العربية (منطوقة ومكتوبة) ----------
         const wordToNumber = new Map();
         wordToNumber.set('واحد',1); wordToNumber.set('واحدة',1);
         wordToNumber.set('اثنان',2); wordToNumber.set('اثنين',2);
@@ -365,7 +391,7 @@
         wordToNumber.set('ثلاثة آلاف',3000); wordToNumber.set('ثلاث الاف',3000);
         wordToNumber.set('أربعة آلاف',4000); wordToNumber.set('خمسة آلاف',5000);
         wordToNumber.set('مليون',1000000);
-
+        
         function parseNumberFromText(token) {
             let arabicToEnglish = token.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
             let engNumber = parseFloat(arabicToEnglish.replace(/,/g, ''));
@@ -374,7 +400,7 @@
             if (match) return parseFloat(match[0].replace(/,/g, ''));
             return null;
         }
-
+        
         function wordsToNumber(phrase) {
             let tokens = phrase.split(/\s+/);
             let total = 0, current = 0;
@@ -399,16 +425,17 @@
             total += current;
             return total > 0 ? total : null;
         }
-
+        
         function extractAmountFromToken(token) {
             let num = parseNumberFromText(token);
             if (num !== null) return num;
             return wordsToNumber(token);
         }
-
+        
         function parseMultipleEntries(fullText) {
             if (!fullText) return [];
             let text = fullText.trim();
+            let entries = [];
             let words = text.split(/\s+/);
             let numberPositions = [];
             let i = 0;
@@ -426,7 +453,6 @@
                 i++;
             }
             if (numberPositions.length === 0) return [];
-            let entries = [];
             for (let idx = 0; idx < numberPositions.length; idx++) {
                 let startPos = numberPositions[idx].index;
                 let amount = numberPositions[idx].amount;
@@ -449,41 +475,23 @@
             }
             return entries;
         }
-
-        // ================== إدارة السجلات والجدول ==================
+        
+        // ---------- 3. إدارة السجلات ----------
         let entries = [];
         let nextId = 1;
         const tableBody = document.getElementById('tableBody');
         const totalSpan = document.getElementById('totalAmount');
         const recognizedSpan = document.getElementById('recognizedText');
         const statusArea = document.getElementById('statusArea');
-        const customerResultDiv = document.getElementById('customerResultArea');
-        const customerNameSpan = document.getElementById('customerName');
-        const customerPhoneSpan = document.getElementById('customerPhone');
-        const customerSelectorDiv = document.getElementById('customerSelectorArea');
-        const customerSelectList = document.getElementById('customerSelectList');
-        const confirmCustomerBtn = document.getElementById('confirmCustomerBtn');
-
-        let pendingCustomersList = [];
-
-        function speakText(message) {
-            if (!window.speechSynthesis) return;
-            let utterance = new SpeechSynthesisUtterance(message);
-            utterance.lang = 'ar-SA';
-            utterance.rate = 0.9;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(utterance);
-        }
-
+        
         function updateTotalAndSpeak(shouldSpeak = true) {
             let total = entries.reduce((sum, e) => sum + e.amount, 0);
             totalSpan.innerText = total.toLocaleString();
             if (shouldSpeak && total > 0 && entries.length > 0) {
-                let wordsTotal = numberToArabicWords(total);
-                speakText(`الإجمالي ${wordsTotal} ريال`);
+                speakTotalInArabic(total);
             }
         }
-
+        
         function renderTable() {
             tableBody.innerHTML = '';
             entries.forEach((entry, idx) => {
@@ -505,7 +513,7 @@
                 delCell.appendChild(delBtn);
             });
         }
-
+        
         function addEntry(amount, note) {
             if (amount === null || isNaN(amount) || amount <= 0) return false;
             entries.push({ id: nextId++, amount: Math.floor(amount), note: note.substring(0, 100) });
@@ -513,7 +521,7 @@
             updateTotalAndSpeak(true);
             return true;
         }
-
+        
         function addMultipleEntries(entriesList) {
             let added = 0;
             for (let e of entriesList) {
@@ -525,7 +533,7 @@
                 updateStatus(`⚠️ لم يتم العثور على أرقام صالحة`, true);
             }
         }
-
+        
         function clearAll() {
             if (entries.length > 0 && confirm("هل تريد مسح جميع السجلات؟")) {
                 entries = [];
@@ -536,92 +544,19 @@
                 window.speechSynthesis.cancel();
             }
         }
-
+        
         function updateStatus(message, isError) {
             statusArea.innerHTML = `<div class="listening-badge" style="background:${isError?'#ffe0e0':'#e6f7e6'};color:${isError?'#aa2e2e':'#2e7d32'};">🎙️ ${message}</div>`;
-            setTimeout(() => { if(statusArea.innerHTML.includes(message)) statusArea.innerHTML = ''; }, 4000);
+            setTimeout(() => { if(statusArea.innerHTML.includes(message)) statusArea.innerHTML = ''; }, 3000);
         }
-
-        // ================== البحث عن العميل في Firebase ==================
-        function normalizeText(str) {
-            return str.trim().toLowerCase()
-                .replace(/[ًٌٍَُِّْ]/g, '')
-                .replace(/[أآإ]/g, 'ا')
-                .replace(/[ى]/g, 'ي')
-                .replace(/ة/g, 'ه');
-        }
-
-        function isMatch(searchTerm, customerName) {
-            const normSearch = normalizeText(searchTerm);
-            const normName = normalizeText(customerName);
-            return normName.includes(normSearch) || normSearch.includes(normName);
-        }
-
-        async function searchCustomersByName(searchText) {
-            try {
-                const response = await fetch('https://chat-fat-free-default-rtdb.firebaseio.com/grocery_customers.json');
-                if (!response.ok) throw new Error('فشل تحميل البيانات');
-                const data = await response.json();
-                if (!data) return [];
-                let customers = [];
-                for (let key in data) {
-                    if (data[key] && typeof data[key] === 'object') {
-                        let cust = data[key];
-                        let name = cust.name || cust.اسم || "";
-                        let phone = cust.phone || cust.جوال || cust.mobile || "";
-                        if (name && isMatch(searchText, name)) {
-                            customers.push({ name: name, phone: phone });
-                        }
-                    }
-                }
-                return customers;
-            } catch (err) {
-                console.error(err);
-                return [];
-            }
-        }
-
-        function displayCustomer(customer) {
-            if (customer && customer.name) {
-                customerNameSpan.innerText = customer.name;
-                customerPhoneSpan.innerText = customer.phone || "غير متوفر";
-                customerResultDiv.style.display = "flex";
-                customerSelectorDiv.style.display = "none";
-                speakText(`تفضل`);
-                updateStatus(`✅ تم العثور على ${customer.name}`, false);
-            } else {
-                customerResultDiv.style.display = "none";
-                customerSelectorDiv.style.display = "none";
-            }
-        }
-
-        function showMultipleCustomers(customers, spokenName) {
-            pendingCustomersList = customers;
-            customerSelectList.innerHTML = '';
-            customers.forEach((cust, idx) => {
-                let option = document.createElement('option');
-                option.value = idx;
-                option.textContent = `${cust.name} - ${cust.phone || 'رقم غير متوفر'}`;
-                customerSelectList.appendChild(option);
-            });
-            customerSelectorDiv.style.display = "flex";
-            customerResultDiv.style.display = "none";
-            let count = customers.length;
-            let countWords = numberToArabicWords(count);
-            speakText(`يوجد ${countWords} سجلات. الرجاء اختيار العميل من القائمة.`);
-            updateStatus(`🔍 تم العثور على ${count} عميل مطابق لـ "${spokenName}"`, false);
-        }
-
-        // ================== التعرف الصوتي المستمر (يتوقف بـ "جاهز") ==================
+        
+        // ---------- 4. التعرف الصوتي ----------
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         const isSpeechSupported = SpeechRecognitionAPI !== undefined;
         let recognition = null;
         let isListening = false;
         let permissionGranted = false;
-        let currentMode = null; // 'add' or 'customer'
-        let finalTranscript = "";
-        let isWaitingForStop = false;
-
+        
         async function requestMicrophonePermission() {
             if (!isSpeechSupported) {
                 updateStatus("⚠️ المتصفح لا يدعم التعرف الصوتي", true);
@@ -639,197 +574,187 @@
                 return false;
             }
         }
-
+        
         function initRecognition() {
             if (!isSpeechSupported) return null;
             let recog = new SpeechRecognitionAPI();
-            recog.continuous = true;
-            recog.interimResults = true;
+            recog.continuous = false;
+            recog.interimResults = false;
             recog.lang = 'ar-SA';
             return recog;
         }
-
-        function stopListening(resetTranscript = true) {
-            if (recognition && isListening) {
-                try { recognition.stop(); } catch(e) {}
-            }
-            isListening = false;
-            if (resetTranscript) finalTranscript = "";
-            isWaitingForStop = false;
-            const micBtn = document.getElementById('micBtn');
-            const customerMicBtn = document.getElementById('customerMicBtn');
-            micBtn.style.background = "linear-gradient(125deg, #0f2b3d, #1c4e6f)";
-            customerMicBtn.style.background = "linear-gradient(125deg, #2d3748, #4a5568)";
-            if (micBtn.querySelector('span:last-child')) micBtn.querySelector('span:last-child').innerText = "مايك الإضافة";
-            if (customerMicBtn.querySelector('span:last-child')) customerMicBtn.querySelector('span:last-child').innerText = "مايك العميل";
-            currentMode = null;
-        }
-
-        async function processCustomerSearch(finalText) {
-            let trimmed = finalText.trim();
-            if (trimmed === "") {
-                updateStatus("⚠️ لم يتم التعرف على اسم العميل، حاول مرة أخرى", true);
-                speakText("لم يتم التعرف على اسم العميل، حاول مرة أخرى.");
-                setTimeout(() => startListening('customer'), 1500);
-                return;
-            }
-            let customers = await searchCustomersByName(trimmed);
-            if (customers.length === 0) {
-                speakText("عذراً، اسم العميل الذي تم البحث عنه غير موجود بقاعدة البيانات. فضلاً أعد البحث مرة أخرى.");
-                updateStatus(`❌ لا يوجد عميل باسم "${trimmed}"`, true);
-                setTimeout(() => startListening('customer'), 3000);
-                return;
-            }
-            if (customers.length === 1) {
-                displayCustomer(customers[0]);
-            } else {
-                showMultipleCustomers(customers, trimmed);
-            }
-        }
-
-        async function processFinalText(mode, text) {
-            recognizedSpan.innerText = text;
-            if (mode === 'add') {
-                let entriesList = parseMultipleEntries(text);
-                if (entriesList.length === 0) {
-                    updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
-                    speakText("لم يتم العثور على مبالغ في النص");
-                } else {
-                    addMultipleEntries(entriesList);
-                }
-            } else if (mode === 'customer') {
-                await processCustomerSearch(text);
-            }
-        }
-
-        async function startListening(mode) {
+        
+        async function startListening() {
             if (!isSpeechSupported) return alert("التعرف الصوتي غير مدعوم");
             if (!permissionGranted) {
                 let ok = await requestMicrophonePermission();
                 if (!ok) return;
             }
-            if (isListening) stopListening(true);
-            
-            currentMode = mode;
-            finalTranscript = "";
-            isWaitingForStop = false;
+            if (isListening) return;
+            if (recognition) recognition.abort();
             recognition = initRecognition();
-            
             recognition.onresult = (event) => {
-                let interim = "";
-                let newFinal = "";
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        newFinal += transcript;
-                    } else {
-                        interim += transcript;
-                    }
+                let transcript = event.results[0][0].transcript.trim();
+                recognizedSpan.innerText = transcript;
+                updateStatus("✅ تم التعرف", false);
+                let entriesList = parseMultipleEntries(transcript);
+                if (entriesList.length === 0) {
+                    updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
+                } else {
+                    addMultipleEntries(entriesList);
                 }
-                if (newFinal) {
-                    finalTranscript += " " + newFinal;
-                    let lower = finalTranscript.toLowerCase();
-                    if ((lower.includes("جاهز") || lower.includes("جاهزة")) && !isWaitingForStop) {
-                        isWaitingForStop = true;
-                        let cleanText = finalTranscript.replace(/جاهز|جاهزة/gi, '').trim();
-                        if (cleanText === "") cleanText = "لم يتم التعرف على نص";
-                        processFinalText(currentMode, cleanText);
-                        stopListening(true);
-                        return;
-                    }
-                    recognizedSpan.innerText = finalTranscript;
-                }
-                if (interim) {
-                    recognizedSpan.innerText = finalTranscript + " " + interim;
-                }
+                stopListening();
             };
-            
             recognition.onerror = (event) => {
                 updateStatus(`❌ خطأ: ${event.error}`, true);
-                stopListening(true);
-                if (currentMode === 'customer') {
-                    speakText("حدث خطأ في التعرف، حاول مرة أخرى.");
-                    setTimeout(() => startListening('customer'), 2000);
-                }
+                stopListening();
             };
-            
-            recognition.onend = () => {
-                if (isListening && !isWaitingForStop) {
-                    updateStatus("⏹️ توقف الاستماع تلقائياً، استخدم زر الإيقاف", false);
-                    stopListening(true);
-                }
-            };
-            
+            recognition.onend = () => { if(isListening) stopListening(); };
             try {
                 recognition.start();
                 isListening = true;
-                updateStatus(`⏳ استمع الآن... تحدث بوضوح (قل "جاهز" للإيقاف)`, false);
-                const micBtn = document.getElementById('micBtn');
-                const customerMicBtn = document.getElementById('customerMicBtn');
-                if (mode === 'add') {
-                    micBtn.style.background = "linear-gradient(125deg, #b91c1c, #dc2626)";
-                    micBtn.querySelector('span:last-child').innerText = "جاري الاستماع (قل جاهز)";
-                    customerMicBtn.style.background = "linear-gradient(125deg, #2d3748, #4a5568)";
-                } else {
-                    customerMicBtn.style.background = "linear-gradient(125deg, #b91c1c, #dc2626)";
-                    customerMicBtn.querySelector('span:last-child').innerText = "جاري الاستماع (قل جاهز)";
-                    micBtn.style.background = "linear-gradient(125deg, #0f2b3d, #1c4e6f)";
+                updateStatus("⏳ استمع الآن... تحدث بوضوح", false);
+                micBtn.style.background = "linear-gradient(125deg, #b91c1c, #dc2626)";
+                micBtn.querySelector('span:last-child').innerText = "جاري الاستماع...";
+            } catch(e) { updateStatus("فشل بدء التسجيل", true); }
+        }
+        
+        function stopListening() {
+            if (recognition && isListening) recognition.stop();
+            isListening = false;
+            micBtn.style.background = "linear-gradient(125deg, #0f2b3d, #1c4e6f)";
+            micBtn.querySelector('span:last-child').innerText = "اضغط وتحدث (مايك)";
+        }
+        
+        // ---------- 5. جلب بيانات العملاء من Firebase بدقة ----------
+        const customersSelect = document.getElementById('customerSelect');
+        const phoneDisplayDiv = document.getElementById('phoneDisplay');
+        const customerPhoneSpan = document.getElementById('customerPhoneValue');
+        
+        async function loadCustomersFromFirebase() {
+            try {
+                const response = await fetch('https://chat-fat-free-default-rtdb.firebaseio.com/.json');
+                if (!response.ok) throw new Error('فشل الاتصال');
+                const data = await response.json();
+                let customersList = [];
+                
+                // دالة مساعدة لاستخراج الاسم والرقم من أي كائن
+                function extractNameAndPhone(obj, keyHint = '') {
+                    let name = null;
+                    let phone = null;
+                    // محاولة الحصول على الاسم
+                    if (obj.name) name = obj.name;
+                    else if (obj.اسم) name = obj.اسم;
+                    else if (obj.fullname) name = obj.fullname;
+                    else if (obj.customerName) name = obj.customerName;
+                    else if (obj.title) name = obj.title;
+                    else if (typeof obj === 'string') name = obj;
+                    // محاولة الحصول على رقم الجوال
+                    if (obj.phone) phone = obj.phone;
+                    else if (obj.رقم) phone = obj.رقم;
+                    else if (obj.mobile) phone = obj.mobile;
+                    else if (obj.tel) phone = obj.tel;
+                    else if (obj.phoneNumber) phone = obj.phoneNumber;
+                    else if (obj.رقم_الجوال) phone = obj.رقم_الجوال;
+                    if (name && phone) return { name, phone };
+                    return null;
                 }
-            } catch(e) {
-                updateStatus("فشل بدء التسجيل", true);
-                stopListening(true);
+                
+                // فحص البيانات بشكل متكرر (أعماق مختلفة)
+                function searchInObject(obj, depth = 0) {
+                    if (depth > 3) return;
+                    if (!obj || typeof obj !== 'object') return;
+                    for (let key in obj) {
+                        const item = obj[key];
+                        if (item && typeof item === 'object') {
+                            const extracted = extractNameAndPhone(item);
+                            if (extracted) {
+                                customersList.push(extracted);
+                            } else {
+                                searchInObject(item, depth + 1);
+                            }
+                        }
+                    }
+                }
+                
+                if (data && typeof data === 'object') {
+                    // أولاً نبحث في العقد الشائعة مباشرة
+                    const commonRoots = ['customers', 'clients', 'users', 'work', 'customerList', 'people'];
+                    for (let root of commonRoots) {
+                        if (data[root] && typeof data[root] === 'object') {
+                            searchInObject(data[root]);
+                        }
+                    }
+                    // ثم نبحث في الجذر بالكامل
+                    searchInObject(data);
+                    
+                    // إزالة التكرارات بناءً على الاسم والرقم
+                    const unique = [];
+                    const keysSet = new Set();
+                    for (let cust of customersList) {
+                        const key = `${cust.name}|${cust.phone}`;
+                        if (!keysSet.has(key)) {
+                            keysSet.add(key);
+                            unique.push(cust);
+                        }
+                    }
+                    customersList = unique;
+                }
+                
+                if (customersList.length === 0) {
+                    customersSelect.innerHTML = '<option value="">⚠️ لا توجد بيانات عملاء متاحة</option>';
+                    updateStatus("لم يتم العثور على عملاء في قاعدة البيانات", true);
+                    return;
+                }
+                
+                // تعبئة القائمة
+                customersSelect.innerHTML = '<option value="">-- اختر العميل --</option>';
+                customersList.forEach(cust => {
+                    const option = document.createElement('option');
+                    option.value = cust.phone;
+                    option.textContent = cust.name;
+                    option.dataset.phone = cust.phone;
+                    customersSelect.appendChild(option);
+                });
+                
+                customersSelect.addEventListener('change', () => {
+                    const selected = customersSelect.options[customersSelect.selectedIndex];
+                    if (selected && selected.value !== "") {
+                        const phoneNum = selected.dataset.phone || selected.value;
+                        customerPhoneSpan.innerText = phoneNum;
+                        phoneDisplayDiv.style.display = 'flex';
+                    } else {
+                        phoneDisplayDiv.style.display = 'none';
+                    }
+                });
+                
+                updateStatus(`✅ تم تحميل ${customersList.length} عميل`, false);
+            } catch (err) {
+                console.error(err);
+                customersSelect.innerHTML = '<option value="">⚠️ خطأ في تحميل العملاء</option>';
+                updateStatus("فشل الاتصال بقاعدة البيانات", true);
             }
         }
-
-        // ================== ربط الأزرار ==================
+        
+        // ---------- 6. الأزرار والتشغيل ----------
         const micBtn = document.getElementById('micBtn');
-        const customerMicBtn = document.getElementById('customerMicBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
-        const exampleBtn = document.getElementById('exampleBtn');
         const speakTotalBtn = document.getElementById('speakTotalBtn');
-
+        
         micBtn.addEventListener('click', () => {
-            if (isListening && currentMode === 'add') stopListening(true);
-            else startListening('add');
+            if (isListening) stopListening();
+            else startListening();
         });
-        
-        customerMicBtn.addEventListener('click', () => {
-            if (isListening && currentMode === 'customer') stopListening(true);
-            else startListening('customer');
-        });
-        
-        confirmCustomerBtn.addEventListener('click', () => {
-            const selectedIndex = customerSelectList.value;
-            if (selectedIndex !== null && pendingCustomersList[selectedIndex]) {
-                displayCustomer(pendingCustomersList[selectedIndex]);
-                customerSelectorDiv.style.display = "none";
-            } else {
-                updateStatus("الرجاء اختيار عميل صالح", true);
-            }
-        });
-        
         clearAllBtn.addEventListener('click', clearAll);
         speakTotalBtn.addEventListener('click', () => {
-            let total = entries.reduce((s,e)=>s+e.amount,0);
-            if (total > 0) {
-                let wordsTotal = numberToArabicWords(total);
-                speakText(`الإجمالي ${wordsTotal} ريال`);
-            } else speakText("لا توجد سجلات");
+            const total = entries.reduce((s,e) => s + e.amount, 0);
+            speakTotalInArabic(total);
         });
-        exampleBtn.addEventListener('click', () => {
-            let exampleText = "١٥٠ ماء ١٠٠ سجارة ٦٠ ثومة";
-            recognizedSpan.innerText = exampleText + " (تجريبي)";
-            let entriesList = parseMultipleEntries(exampleText);
-            if (entriesList.length) addMultipleEntries(entriesList);
-            else updateStatus("مثال توضيحي لا يحتوي على أرقام", true);
-        });
-
+        
         (async function() {
             if (isSpeechSupported) await requestMicrophonePermission();
-            else {
-                micBtn.disabled = true;
-                customerMicBtn.disabled = true;
-            }
+            else micBtn.disabled = true;
+            await loadCustomersFromFirebase();
         })();
     })();
 </script>
