@@ -1,4 +1,4 @@
-٢٢٢
+مم
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -133,6 +133,7 @@
             margin: 1rem 0;
             border-right: 5px solid #3b82f6;
             font-size: 0.9rem;
+            word-break: break-word;
         }
 
         .entries-table {
@@ -245,7 +246,10 @@
         </div>
     </div>
 
-    <button id="micBtn" class="mic-button">🎤 اضغط وتحدث (مايك)</button>
+    <button id="micBtn" class="mic-button">
+        <span>🎤</span>
+        <span>اضغط وتحدث (مايك)</span>
+    </button>
     <div class="status-area" id="statusArea"></div>
     <div class="transcript-box">
         <span style="font-weight:700; color:#2563eb;">📢 النص المُتعرف عليه:</span>
@@ -276,73 +280,92 @@
 
 <script>
     (function() {
-        // ---------- 1. تحويل الأرقام إلى كلمات عربية ----------
+        // ---------- 1. تحويل الأرقام إلى كلمات عربية (مُحسَّنة للمئات) ----------
         function numberToArabicWords(num) {
             if (num === 0) return "صفر";
+            if (num >= 1000000) {
+                // لمليون وما فوق (مبسط)
+                let millions = Math.floor(num / 1000000);
+                let rest = num % 1000000;
+                let milStr = millions === 1 ? "مليون" :
+                             millions === 2 ? "مليونان" :
+                             convertLessThanThousand(millions) + " مليون";
+                if (rest === 0) return milStr;
+                return milStr + " و" + numberToArabicWords(rest);
+            }
+            return convertLessThanMillion(num);
+        }
+
+        function convertLessThanMillion(n) {
+            if (n < 1000) return convertLessThanThousand(n);
+            let thousands = Math.floor(n / 1000);
+            let remainder = n % 1000;
+            let thouStr = thousands === 1 ? "ألف" :
+                          thousands === 2 ? "ألفان" :
+                          convertLessThanThousand(thousands) + " آلاف";
+            if (remainder === 0) return thouStr;
+            return thouStr + " و" + convertLessThanThousand(remainder);
+        }
+
+        function convertLessThanThousand(n) {
+            if (n === 0) return "";
             const units = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
             const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
             const tens = ["", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
             const hundreds = ["", "مائة", "مئتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
-            
-            function convertLessThanThousand(n) {
-                if (n === 0) return "";
-                if (n < 10) return units[n];
-                if (n < 20) return teens[n - 10];
-                let unit = n % 10;
-                let ten = Math.floor(n / 10);
-                if (unit === 0) return tens[ten];
-                return units[unit] + " و" + tens[ten];
+
+            let result = "";
+            if (n >= 100) {
+                let h = Math.floor(n / 100);
+                result += hundreds[h];
+                n %= 100;
+                if (n > 0) result += " و";
             }
-            
-            function convertLessThanMillion(n) {
-                if (n < 1000) return convertLessThanThousand(n);
-                let thousands = Math.floor(n / 1000);
-                let remainder = n % 1000;
-                let thousandsStr = "";
-                if (thousands === 1) thousandsStr = "ألف";
-                else if (thousands === 2) thousandsStr = "ألفان";
-                else if (thousands >= 3 && thousands <= 10) thousandsStr = convertLessThanThousand(thousands) + " آلاف";
-                else thousandsStr = convertLessThanThousand(thousands) + " ألف";
-                if (remainder === 0) return thousandsStr;
-                return thousandsStr + " و" + convertLessThanThousand(remainder);
+            if (n >= 20) {
+                let t = Math.floor(n / 10);
+                result += tens[t];
+                n %= 10;
+                if (n > 0) result += " و" + units[n];
+            } else if (n >= 10) {
+                result += teens[n - 10];
+            } else if (n > 0) {
+                result += units[n];
             }
-            
-            if (num < 1000000) return convertLessThanMillion(num);
-            let millions = Math.floor(num / 1000000);
-            let rest = num % 1000000;
-            let millionsStr = "";
-            if (millions === 1) millionsStr = "مليون";
-            else if (millions === 2) millionsStr = "مليونان";
-            else if (millions >= 3 && millions <= 10) millionsStr = convertLessThanThousand(millions) + " ملايين";
-            else millionsStr = convertLessThanThousand(millions) + " مليون";
-            if (rest === 0) return millionsStr;
-            return millionsStr + " و" + convertLessThanMillion(rest);
+            return result;
         }
-        
-        function speakArabic(text) {
+
+        // ---------- 2. النطق بالعربية (مع انتظار الأصوات) ----------
+        let voicesReady = new Promise(resolve => {
+            if (window.speechSynthesis) {
+                let voices = window.speechSynthesis.getVoices();
+                if (voices.length) resolve();
+                else window.speechSynthesis.onvoiceschanged = () => resolve();
+            } else resolve();
+        });
+
+        async function speakArabic(text) {
             if (!window.speechSynthesis) return;
+            await voicesReady;
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ar-SA';
             utterance.rate = 0.9;
-            if (window.speechSynthesis.getVoices) {
-                const voices = window.speechSynthesis.getVoices();
-                const arabicVoice = voices.find(voice => voice.lang === 'ar-SA' || voice.lang === 'ar-EG');
-                if (arabicVoice) utterance.voice = arabicVoice;
-            }
+            let voices = window.speechSynthesis.getVoices();
+            let arabicVoice = voices.find(voice => voice.lang.startsWith('ar'));
+            if (arabicVoice) utterance.voice = arabicVoice;
             window.speechSynthesis.speak(utterance);
         }
-        
-        function speakTotalInArabic(total) {
+
+        async function speakTotalInArabic(total) {
             if (total <= 0) {
-                speakArabic("لا توجد سجلات");
+                await speakArabic("لا توجد سجلات");
                 return;
             }
             const totalWords = numberToArabicWords(total);
-            speakArabic(`الإجمالي ${totalWords} ريال`);
+            await speakArabic(`الإجمالي ${totalWords} ريال`);
         }
-        
-        // ---------- 2. تحويل الأرقام العربية (منطوقة ومكتوبة) ----------
+
+        // ---------- 3. تحويل الأرقام العربية المنطوقة والمكتوبة ----------
         const wordToNumber = new Map();
         wordToNumber.set('واحد',1); wordToNumber.set('واحدة',1);
         wordToNumber.set('اثنان',2); wordToNumber.set('اثنين',2);
@@ -385,7 +408,7 @@
         wordToNumber.set('ثلاثة آلاف',3000); wordToNumber.set('ثلاث الاف',3000);
         wordToNumber.set('أربعة آلاف',4000); wordToNumber.set('خمسة آلاف',5000);
         wordToNumber.set('مليون',1000000);
-        
+
         function parseNumberFromText(token) {
             let arabicToEnglish = token.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
             let engNumber = parseFloat(arabicToEnglish.replace(/,/g, ''));
@@ -394,7 +417,7 @@
             if (match) return parseFloat(match[0].replace(/,/g, ''));
             return null;
         }
-        
+
         function wordsToNumber(phrase) {
             let tokens = phrase.split(/\s+/);
             let total = 0, current = 0;
@@ -419,24 +442,26 @@
             total += current;
             return total > 0 ? total : null;
         }
-        
+
         function extractAmountFromToken(token) {
             let num = parseNumberFromText(token);
             if (num !== null) return num;
             return wordsToNumber(token);
         }
-        
+
         function parseMultipleEntries(fullText) {
             if (!fullText) return [];
             let text = fullText.trim();
-            let entries = [];
             let words = text.split(/\s+/);
             let numberPositions = [];
             let i = 0;
             while (i < words.length) {
                 let token = words[i];
                 let combined = token;
-                if (i+1 < words.length && (token === 'أحد' || token === 'احد' || token === 'اثنا' || token === 'ثلاثة' || token === 'أربعة' || token === 'خمسة' || token === 'ستة' || token === 'سبعة' || token === 'ثمانية' || token === 'تسعة') && words[i+1] === 'عشر') {
+                if (i+1 < words.length && 
+                    (token === 'أحد' || token === 'احد' || token === 'اثنا' || token === 'ثلاثة' || 
+                     token === 'أربعة' || token === 'خمسة' || token === 'ستة' || token === 'سبعة' || 
+                     token === 'ثمانية' || token === 'تسعة') && words[i+1] === 'عشر') {
                     combined = token + ' ' + words[i+1];
                     i++;
                 }
@@ -447,6 +472,7 @@
                 i++;
             }
             if (numberPositions.length === 0) return [];
+            let entries = [];
             for (let idx = 0; idx < numberPositions.length; idx++) {
                 let startPos = numberPositions[idx].index;
                 let amount = numberPositions[idx].amount;
@@ -462,30 +488,25 @@
                 if (note === "") note = "بدون وصف";
                 entries.push({ amount: amount, note: note });
             }
-            if (entries.length === 0 && numberPositions.length === 1) {
-                let amount = numberPositions[0].amount;
-                let rest = words.slice(numberPositions[0].index+1).join(' ').replace(/ريال|درهم|دولار/g,'').trim();
-                entries.push({ amount: amount, note: rest || "بدون وصف" });
-            }
             return entries;
         }
-        
-        // ---------- 3. إدارة السجلات ----------
+
+        // ---------- 4. إدارة السجلات ----------
         let entries = [];
         let nextId = 1;
         const tableBody = document.getElementById('tableBody');
         const totalSpan = document.getElementById('totalAmount');
         const recognizedSpan = document.getElementById('recognizedText');
         const statusArea = document.getElementById('statusArea');
-        
-        function updateTotalAndSpeak(shouldSpeak = true) {
+
+        async function updateTotalAndSpeak(shouldSpeak = true) {
             let total = entries.reduce((sum, e) => sum + e.amount, 0);
             totalSpan.innerText = total.toLocaleString();
             if (shouldSpeak && total > 0 && entries.length > 0) {
-                speakTotalInArabic(total);
+                await speakTotalInArabic(total);
             }
         }
-        
+
         function renderTable() {
             tableBody.innerHTML = '';
             entries.forEach((entry, idx) => {
@@ -507,7 +528,7 @@
                 delCell.appendChild(delBtn);
             });
         }
-        
+
         function addEntry(amount, note) {
             if (amount === null || isNaN(amount) || amount <= 0) return false;
             entries.push({ id: nextId++, amount: Math.floor(amount), note: note.substring(0, 100) });
@@ -515,19 +536,19 @@
             updateTotalAndSpeak(true);
             return true;
         }
-        
+
         function addMultipleEntries(entriesList) {
             let added = 0;
             for (let e of entriesList) {
                 if (addEntry(e.amount, e.note)) added++;
             }
             if (added > 0) {
-                updateStatus(`✅ تم إضافة ${added} سجل`, false);
+                updateStatus(`✅ تم إضافة ${added} سجل`, false, 4000);
             } else {
-                updateStatus(`⚠️ لم يتم العثور على أرقام صالحة`, true);
+                updateStatus(`⚠️ لم يتم العثور على أرقام صالحة`, true, 4000);
             }
         }
-        
+
         function clearAll() {
             if (entries.length > 0 && confirm("هل تريد مسح جميع السجلات؟")) {
                 entries = [];
@@ -538,19 +559,23 @@
                 window.speechSynthesis.cancel();
             }
         }
-        
-        function updateStatus(message, isError) {
+
+        function updateStatus(message, isError, durationMs = 3000) {
             statusArea.innerHTML = `<div class="listening-badge" style="background:${isError?'#ffe0e0':'#e6f7e6'};color:${isError?'#aa2e2e':'#2e7d32'};">🎙️ ${message}</div>`;
-            setTimeout(() => { if(statusArea.innerHTML.includes(message)) statusArea.innerHTML = ''; }, 3000);
+            setTimeout(() => {
+                if (statusArea.innerHTML.includes(message)) statusArea.innerHTML = '';
+            }, durationMs);
         }
-        
-        // ---------- 4. التعرف الصوتي ----------
+
+        // ---------- 5. التعرف الصوتي المستمر مع إيقاف يدوي ----------
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         const isSpeechSupported = SpeechRecognitionAPI !== undefined;
         let recognition = null;
         let isListening = false;
         let permissionGranted = false;
-        
+        let accumulatedTranscript = '';
+        let wasManualStop = false;
+
         async function requestMicrophonePermission() {
             if (!isSpeechSupported) {
                 updateStatus("⚠️ المتصفح لا يدعم التعرف الصوتي", true);
@@ -568,16 +593,31 @@
                 return false;
             }
         }
-        
+
         function initRecognition() {
             if (!isSpeechSupported) return null;
             let recog = new SpeechRecognitionAPI();
-            recog.continuous = false;
+            recog.continuous = true;    // يبقى التسجيل مفتوحاً حتى توقفه يدوياً
             recog.interimResults = false;
             recog.lang = 'ar-SA';
             return recog;
         }
-        
+
+        function updateMicButton(active) {
+            const micBtn = document.getElementById('micBtn');
+            const iconSpan = micBtn.querySelector('span:first-child');
+            const textSpan = micBtn.querySelector('span:last-child');
+            if (active) {
+                micBtn.style.background = "linear-gradient(125deg, #b91c1c, #dc2626)";
+                iconSpan.textContent = '⏹️';
+                textSpan.textContent = 'إيقاف التسجيل';
+            } else {
+                micBtn.style.background = "linear-gradient(125deg, #0f2b3d, #1c4e6f)";
+                iconSpan.textContent = '🎤';
+                textSpan.textContent = 'اضغط وتحدث (مايك)';
+            }
+        }
+
         async function startListening() {
             if (!isSpeechSupported) return alert("التعرف الصوتي غير مدعوم");
             if (!permissionGranted) {
@@ -585,84 +625,96 @@
                 if (!ok) return;
             }
             if (isListening) return;
-            if (recognition) recognition.abort();
+            
+            // إعادة تعيين النص المتراكم
+            accumulatedTranscript = '';
+            recognizedSpan.innerText = '—';
+            
             recognition = initRecognition();
             recognition.onresult = (event) => {
-                let transcript = event.results[0][0].transcript.trim();
-                recognizedSpan.innerText = transcript;
-                updateStatus("✅ تم التعرف", false);
-                let entriesList = parseMultipleEntries(transcript);
-                if (entriesList.length === 0) {
-                    updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
-                } else {
-                    addMultipleEntries(entriesList);
+                for (let i = 0; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        accumulatedTranscript += ' ' + event.results[i][0].transcript;
+                        recognizedSpan.innerText = accumulatedTranscript.trim();
+                    }
                 }
-                stopListening();
+                updateStatus("✅ تم التعرف على جزء جديد", false, 2000);
             };
+
             recognition.onerror = (event) => {
                 updateStatus(`❌ خطأ: ${event.error}`, true);
                 stopListening();
             };
-            recognition.onend = () => { if(isListening) stopListening(); };
+
+            recognition.onend = () => {
+                if (wasManualStop) {
+                    // معالجة النص المتراكم بعد الإيقاف اليدوي
+                    if (accumulatedTranscript.trim()) {
+                        let entriesList = parseMultipleEntries(accumulatedTranscript.trim());
+                        if (entriesList.length === 0) {
+                            updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
+                        } else {
+                            addMultipleEntries(entriesList);
+                        }
+                    } else {
+                        updateStatus("لم يتم تسجيل أي كلام", false);
+                    }
+                    accumulatedTranscript = '';
+                }
+                isListening = false;
+                updateMicButton(false);
+            };
+
             try {
                 recognition.start();
                 isListening = true;
-                updateStatus("⏳ استمع الآن... تحدث بوضوح", false);
-                micBtn.style.background = "linear-gradient(125deg, #b91c1c, #dc2626)";
-                micBtn.querySelector('span:last-child').innerText = "جاري الاستماع...";
-            } catch(e) { updateStatus("فشل بدء التسجيل", true); }
+                wasManualStop = false;
+                updateMicButton(true);
+                updateStatus("⏳ استمع الآن... تحدث بوضوح (اضغط الزر لإيقاف التسجيل)", false);
+            } catch(e) {
+                updateStatus("فشل بدء التسجيل", true);
+            }
         }
-        
+
         function stopListening() {
-            if (recognition && isListening) recognition.stop();
-            isListening = false;
-            micBtn.style.background = "linear-gradient(125deg, #0f2b3d, #1c4e6f)";
-            micBtn.querySelector('span:last-child').innerText = "اضغط وتحدث (مايك)";
+            if (recognition && isListening) {
+                wasManualStop = true;
+                recognition.stop();
+                // سيؤدي onend إلى معالجة النص
+            } else {
+                isListening = false;
+                updateMicButton(false);
+            }
         }
-        
-        // ---------- 5. جلب بيانات العملاء من Firebase (المسار الصحيح) ----------
+
+        // ---------- 6. جلب بيانات العملاء من Firebase ----------
         const customersSelect = document.getElementById('customerSelect');
         const phoneDisplayDiv = document.getElementById('phoneDisplay');
         const customerPhoneSpan = document.getElementById('customerPhoneValue');
-        
+
         async function loadCustomersFromFirebase() {
             try {
-                // جلب البيانات من المسار المحدد في قاعدة البيانات
                 const response = await fetch('https://chat-fat-free-default-rtdb.firebaseio.com/grocery_customers.json');
-                
-                if (!response.ok) {
-                    throw new Error(`فشل الاتصال بقاعدة البيانات (${response.status})`);
-                }
-                
+                if (!response.ok) throw new Error(`فشل الاتصال بقاعدة البيانات (${response.status})`);
                 const data = await response.json();
                 let customersList = [];
-                
-                // معالجة البيانات المستلمة (هيكل: معرف عشوائي -> كائن العميل)
                 if (data && typeof data === 'object') {
                     for (let key in data) {
                         const customerData = data[key];
                         if (customerData && typeof customerData === 'object') {
                             const name = customerData.name || null;
                             const phone = customerData.mobile || customerData.phone || null;
-                            
                             if (name && phone) {
-                                customersList.push({ 
-                                    name: name, 
-                                    phone: phone.toString()  // التأكد من أنها نص
-                                });
+                                customersList.push({ name: name, phone: phone.toString() });
                             }
                         }
                     }
                 }
-                
-                // إذا لم يتم العثور على أي عميل
                 if (customersList.length === 0) {
                     customersSelect.innerHTML = '<option value="">⚠️ لا توجد بيانات عملاء متاحة</option>';
                     updateStatus("لم يتم العثور على عملاء في قاعدة البيانات", true);
                     return;
                 }
-                
-                // تعبئة القائمة المنسدلة بالعملاء
                 customersSelect.innerHTML = '<option value="">-- اختر العميل --</option>';
                 customersList.forEach(cust => {
                     const option = document.createElement('option');
@@ -671,47 +723,52 @@
                     option.dataset.phone = cust.phone;
                     customersSelect.appendChild(option);
                 });
-                
-                // إضافة مستمع الحدث لعرض رقم الجوال عند اختيار العميل
                 customersSelect.addEventListener('change', () => {
                     const selected = customersSelect.options[customersSelect.selectedIndex];
                     if (selected && selected.value !== "") {
-                        const phoneNum = selected.dataset.phone || selected.value;
-                        customerPhoneSpan.innerText = phoneNum;
+                        customerPhoneSpan.innerText = selected.dataset.phone || selected.value;
                         phoneDisplayDiv.style.display = 'flex';
                     } else {
                         phoneDisplayDiv.style.display = 'none';
                     }
                 });
-                
                 updateStatus(`✅ تم تحميل ${customersList.length} عميل`, false);
-                
             } catch (err) {
                 console.error("خطأ في جلب بيانات العملاء:", err);
                 customersSelect.innerHTML = '<option value="">⚠️ خطأ في تحميل العملاء</option>';
                 updateStatus(`فشل الاتصال بقاعدة البيانات: ${err.message}`, true);
             }
         }
-        
-        // ---------- 6. الأزرار والتشغيل ----------
+
+        // ---------- 7. ربط الأزرار ----------
         const micBtn = document.getElementById('micBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const speakTotalBtn = document.getElementById('speakTotalBtn');
-        
+
         micBtn.addEventListener('click', () => {
-            if (isListening) stopListening();
-            else startListening();
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
         });
+
         clearAllBtn.addEventListener('click', clearAll);
-        speakTotalBtn.addEventListener('click', () => {
-            const total = entries.reduce((s,e) => s + e.amount, 0);
-            speakTotalInArabic(total);
+
+        speakTotalBtn.addEventListener('click', async () => {
+            const total = entries.reduce((s, e) => s + e.amount, 0);
+            await speakTotalInArabic(total);
         });
-        
+
+        // بدء التشغيل
         (async function() {
-            if (isSpeechSupported) await requestMicrophonePermission();
-            else micBtn.disabled = true;
-            await loadCustomersFromFirebase();  // جلب العملاء من القاعدة عند تحميل الصفحة
+            if (isSpeechSupported) {
+                await requestMicrophonePermission();
+            } else {
+                micBtn.disabled = true;
+                document.querySelector('#micBtn span:last-child').innerText = 'المتصفح لا يدعم المايك';
+            }
+            await loadCustomersFromFirebase();
         })();
     })();
 </script>
