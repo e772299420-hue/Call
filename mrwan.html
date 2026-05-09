@@ -1,9 +1,10 @@
+٢٢٢
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>الدفتر الههههذكي - سجلات متعددة بالصوت (تسجيل مستمر)</title>
+    <title>الدفتر الذكي - سجلات متعددة بالصوت</title>
     <style>
         * {
             margin: 0;
@@ -231,7 +232,7 @@
 <body>
 
 <div class="glass-card">
-    <h1>📒 الدفتر الذكي (تسجيل مستمر)</h1>
+    <h1>📒 الدفتر الذكي (سجلات متعددة بالصوت)</h1>
     
     <div class="customer-area">
         <div class="customer-label">👤 اختر اسم العميل</div>
@@ -244,11 +245,11 @@
         </div>
     </div>
 
-    <button id="micBtn" class="mic-button">🎤 اضغط وابدأ التسجيل (مايك)</button>
+    <button id="micBtn" class="mic-button">🎤 اضغط وتحدث (مايك)</button>
     <div class="status-area" id="statusArea"></div>
     <div class="transcript-box">
-        <span style="font-weight:700; color:#2563eb;">📢 النص المُتعرف عليه (أثناء التسجيل):</span>
-        <div id="recognizedText" style="margin-top: 6px; word-break: break-word;">—</div>
+        <span style="font-weight:700; color:#2563eb;">📢 النص المُتعرف عليه:</span>
+        <span id="recognizedText">—</span>
     </div>
 
     <table class="entries-table" id="entriesTable">
@@ -269,7 +270,7 @@
     </div>
     
     <footer>
-        ⚙️ إعداد وبرمجة المهندس / مروان الذماري (تسجيل غير محدود المدة)
+        ⚙️ إعداد وبرمجة المهندس / مروان الذماري
     </footer>
 </div>
 
@@ -540,16 +541,15 @@
         
         function updateStatus(message, isError) {
             statusArea.innerHTML = `<div class="listening-badge" style="background:${isError?'#ffe0e0':'#e6f7e6'};color:${isError?'#aa2e2e':'#2e7d32'};">🎙️ ${message}</div>`;
-            setTimeout(() => { if(statusArea.innerHTML.includes(message)) statusArea.innerHTML = ''; }, 4000);
+            setTimeout(() => { if(statusArea.innerHTML.includes(message)) statusArea.innerHTML = ''; }, 3000);
         }
         
-        // ---------- 4. التعرف الصوتي المستمر (غير محدود المدة) ----------
+        // ---------- 4. التعرف الصوتي ----------
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         const isSpeechSupported = SpeechRecognitionAPI !== undefined;
         let recognition = null;
         let isListening = false;
         let permissionGranted = false;
-        let accumulatedTranscript = "";   // تخزين النص الكامل أثناء الجلسة
         
         async function requestMicrophonePermission() {
             if (!isSpeechSupported) {
@@ -560,7 +560,7 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 stream.getTracks().forEach(t => t.stop());
                 permissionGranted = true;
-                updateStatus("✅ الميكروفون جاهز (تسجيل غير محدود)", false);
+                updateStatus("✅ الميكروفون جاهز", false);
                 return true;
             } catch(err) {
                 updateStatus("❌ امنح صلاحية الميكروفون ثم أعد المحاولة", true);
@@ -572,29 +572,10 @@
         function initRecognition() {
             if (!isSpeechSupported) return null;
             let recog = new SpeechRecognitionAPI();
-            recog.continuous = true;       // استمرار التسجيل بدون توقف تلقائي
-            recog.interimResults = true;    // عرض النص المؤقت أثناء الحديث
+            recog.continuous = false;
+            recog.interimResults = false;
             recog.lang = 'ar-SA';
-            recog.maxAlternatives = 1;
             return recog;
-        }
-        
-        function updateTranscriptUI(finalText) {
-            recognizedSpan.innerText = finalText || "—";
-        }
-        
-        function processFinalTranscript() {
-            if (accumulatedTranscript.trim() === "") {
-                updateStatus("⚠️ لم يتم التعرف على أي نص", true);
-                return;
-            }
-            updateTranscriptUI(accumulatedTranscript);
-            const entriesList = parseMultipleEntries(accumulatedTranscript);
-            if (entriesList.length === 0) {
-                updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
-            } else {
-                addMultipleEntries(entriesList);
-            }
         }
         
         async function startListening() {
@@ -604,171 +585,84 @@
                 if (!ok) return;
             }
             if (isListening) return;
-            
-            // إنهاء أي جلسة سابقة
-            if (recognition) {
-                try { recognition.abort(); } catch(e) {}
-            }
-            
-            accumulatedTranscript = "";
-            updateTranscriptUI("—");
+            if (recognition) recognition.abort();
             recognition = initRecognition();
-            
             recognition.onresult = (event) => {
-                let interimText = "";
-                let finalText = "";
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const result = event.results[i];
-                    const transcriptPart = result[0].transcript;
-                    if (result.isFinal) {
-                        finalText += transcriptPart;
-                    } else {
-                        interimText += transcriptPart;
-                    }
+                let transcript = event.results[0][0].transcript.trim();
+                recognizedSpan.innerText = transcript;
+                updateStatus("✅ تم التعرف", false);
+                let entriesList = parseMultipleEntries(transcript);
+                if (entriesList.length === 0) {
+                    updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
+                } else {
+                    addMultipleEntries(entriesList);
                 }
-                // نضيف النص النهائي إلى المتراكم (لأنه قد يأتي دفعات)
-                if (finalText) {
-                    accumulatedTranscript += " " + finalText;
-                    updateTranscriptUI(accumulatedTranscript);
-                } else if (interimText) {
-                    // عرض النص المؤقت فقط (بدون تخزين نهائي)
-                    recognizedSpan.innerText = accumulatedTranscript + " " + interimText;
-                }
+                stopListening();
             };
-            
             recognition.onerror = (event) => {
-                console.warn("Speech error:", event.error);
-                if (event.error === 'not-allowed') {
-                    updateStatus("❌ تم رفض إذن الميكروفون", true);
-                    permissionGranted = false;
-                } else if (event.error === 'no-speech') {
-                    // لا نعرض رسالة خطأ مزعجة، فقط نتجاهل
-                } else {
-                    updateStatus(`⚠️ خطأ: ${event.error}`, true);
-                }
-                stopListening(false); // إيقاف دون معالجة النص لأن الخطأ قد يكون مبكراً
+                updateStatus(`❌ خطأ: ${event.error}`, true);
+                stopListening();
             };
-            
-            recognition.onend = () => {
-                if (isListening) {
-                    // حدث انتهاء غير متوقع (قد يكون بسبب توقف الخدمة)
-                    stopListening(true);
-                } else {
-                    // انتهاء طبيعي بعد استدعاء stop
-                }
-            };
-            
+            recognition.onend = () => { if(isListening) stopListening(); };
             try {
                 recognition.start();
                 isListening = true;
-                updateStatus("🎙️ جارٍ التسجيل... تحدث بحرية (اضغط الزر مرة أخرى للإيقاف)", false);
-                const micBtn = document.getElementById('micBtn');
+                updateStatus("⏳ استمع الآن... تحدث بوضوح", false);
                 micBtn.style.background = "linear-gradient(125deg, #b91c1c, #dc2626)";
-                micBtn.innerHTML = "⏹️ إيقاف التسجيل ومعالجة النص";
-            } catch(e) {
-                updateStatus("فشل بدء التسجيل", true);
-                console.error(e);
-            }
+                micBtn.querySelector('span:last-child').innerText = "جاري الاستماع...";
+            } catch(e) { updateStatus("فشل بدء التسجيل", true); }
         }
         
-        function stopListening(processText = true) {
-            if (!isListening) return;
-            
-            if (recognition) {
-                try { recognition.stop(); } catch(e) {}
-            }
+        function stopListening() {
+            if (recognition && isListening) recognition.stop();
             isListening = false;
-            
-            const micBtn = document.getElementById('micBtn');
             micBtn.style.background = "linear-gradient(125deg, #0f2b3d, #1c4e6f)";
-            micBtn.innerHTML = "🎤 اضغط وابدأ التسجيل (مايك)";
-            
-            if (processText && accumulatedTranscript.trim() !== "") {
-                updateStatus("✅ تم إيقاف التسجيل - جاري تحليل النص...", false);
-                processFinalTranscript();
-            } else if (processText) {
-                updateStatus("⏹️ تم الإيقاف دون تسجيل نص", false);
-            }
-            // إعادة ضبط النص المتراكم للجلسة القادمة
-            accumulatedTranscript = "";
-            updateTranscriptUI("—");
+            micBtn.querySelector('span:last-child').innerText = "اضغط وتحدث (مايك)";
         }
         
-        // ---------- 5. جلب بيانات العملاء من Firebase ----------
+        // ---------- 5. جلب بيانات العملاء من Firebase (المسار الصحيح) ----------
         const customersSelect = document.getElementById('customerSelect');
         const phoneDisplayDiv = document.getElementById('phoneDisplay');
         const customerPhoneSpan = document.getElementById('customerPhoneValue');
         
         async function loadCustomersFromFirebase() {
             try {
-                const response = await fetch('https://chat-fat-free-default-rtdb.firebaseio.com/.json');
-                if (!response.ok) throw new Error('فشل الاتصال');
+                // جلب البيانات من المسار المحدد في قاعدة البيانات
+                const response = await fetch('https://chat-fat-free-default-rtdb.firebaseio.com/grocery_customers.json');
+                
+                if (!response.ok) {
+                    throw new Error(`فشل الاتصال بقاعدة البيانات (${response.status})`);
+                }
+                
                 const data = await response.json();
                 let customersList = [];
                 
-                function extractNameAndPhone(obj, keyHint = '') {
-                    let name = null;
-                    let phone = null;
-                    if (obj.name) name = obj.name;
-                    else if (obj.اسم) name = obj.اسم;
-                    else if (obj.fullname) name = obj.fullname;
-                    else if (obj.customerName) name = obj.customerName;
-                    else if (obj.title) name = obj.title;
-                    else if (typeof obj === 'string') name = obj;
-                    
-                    if (obj.phone) phone = obj.phone;
-                    else if (obj.رقم) phone = obj.رقم;
-                    else if (obj.mobile) phone = obj.mobile;
-                    else if (obj.tel) phone = obj.tel;
-                    else if (obj.phoneNumber) phone = obj.phoneNumber;
-                    else if (obj.رقم_الجوال) phone = obj.رقم_الجوال;
-                    if (name && phone) return { name, phone };
-                    return null;
-                }
-                
-                function searchInObject(obj, depth = 0) {
-                    if (depth > 3) return;
-                    if (!obj || typeof obj !== 'object') return;
-                    for (let key in obj) {
-                        const item = obj[key];
-                        if (item && typeof item === 'object') {
-                            const extracted = extractNameAndPhone(item);
-                            if (extracted) {
-                                customersList.push(extracted);
-                            } else {
-                                searchInObject(item, depth + 1);
+                // معالجة البيانات المستلمة (هيكل: معرف عشوائي -> كائن العميل)
+                if (data && typeof data === 'object') {
+                    for (let key in data) {
+                        const customerData = data[key];
+                        if (customerData && typeof customerData === 'object') {
+                            const name = customerData.name || null;
+                            const phone = customerData.mobile || customerData.phone || null;
+                            
+                            if (name && phone) {
+                                customersList.push({ 
+                                    name: name, 
+                                    phone: phone.toString()  // التأكد من أنها نص
+                                });
                             }
                         }
                     }
                 }
                 
-                if (data && typeof data === 'object') {
-                    const commonRoots = ['customers', 'clients', 'users', 'work', 'customerList', 'people'];
-                    for (let root of commonRoots) {
-                        if (data[root] && typeof data[root] === 'object') {
-                            searchInObject(data[root]);
-                        }
-                    }
-                    searchInObject(data);
-                    
-                    const unique = [];
-                    const keysSet = new Set();
-                    for (let cust of customersList) {
-                        const key = `${cust.name}|${cust.phone}`;
-                        if (!keysSet.has(key)) {
-                            keysSet.add(key);
-                            unique.push(cust);
-                        }
-                    }
-                    customersList = unique;
-                }
-                
+                // إذا لم يتم العثور على أي عميل
                 if (customersList.length === 0) {
                     customersSelect.innerHTML = '<option value="">⚠️ لا توجد بيانات عملاء متاحة</option>';
                     updateStatus("لم يتم العثور على عملاء في قاعدة البيانات", true);
                     return;
                 }
                 
+                // تعبئة القائمة المنسدلة بالعملاء
                 customersSelect.innerHTML = '<option value="">-- اختر العميل --</option>';
                 customersList.forEach(cust => {
                     const option = document.createElement('option');
@@ -778,6 +672,7 @@
                     customersSelect.appendChild(option);
                 });
                 
+                // إضافة مستمع الحدث لعرض رقم الجوال عند اختيار العميل
                 customersSelect.addEventListener('change', () => {
                     const selected = customersSelect.options[customersSelect.selectedIndex];
                     if (selected && selected.value !== "") {
@@ -790,24 +685,22 @@
                 });
                 
                 updateStatus(`✅ تم تحميل ${customersList.length} عميل`, false);
+                
             } catch (err) {
-                console.error(err);
+                console.error("خطأ في جلب بيانات العملاء:", err);
                 customersSelect.innerHTML = '<option value="">⚠️ خطأ في تحميل العملاء</option>';
-                updateStatus("فشل الاتصال بقاعدة البيانات", true);
+                updateStatus(`فشل الاتصال بقاعدة البيانات: ${err.message}`, true);
             }
         }
         
-        // ---------- 6. ربط الأزرار ----------
+        // ---------- 6. الأزرار والتشغيل ----------
         const micBtn = document.getElementById('micBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const speakTotalBtn = document.getElementById('speakTotalBtn');
         
         micBtn.addEventListener('click', () => {
-            if (isListening) {
-                stopListening(true);
-            } else {
-                startListening();
-            }
+            if (isListening) stopListening();
+            else startListening();
         });
         clearAllBtn.addEventListener('click', clearAll);
         speakTotalBtn.addEventListener('click', () => {
@@ -818,7 +711,7 @@
         (async function() {
             if (isSpeechSupported) await requestMicrophonePermission();
             else micBtn.disabled = true;
-            await loadCustomersFromFirebase();
+            await loadCustomersFromFirebase();  // جلب العملاء من القاعدة عند تحميل الصفحة
         })();
     })();
 </script>
