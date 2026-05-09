@@ -1,4 +1,4 @@
-مم
+١٢٣
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -280,11 +280,10 @@
 
 <script>
     (function() {
-        // ---------- 1. تحويل الأرقام إلى كلمات عربية (مُحسَّنة للمئات) ----------
+        // ---------- 1. تحويل الأرقام إلى كلمات عربية (محسّنة) ----------
         function numberToArabicWords(num) {
             if (num === 0) return "صفر";
             if (num >= 1000000) {
-                // لمليون وما فوق (مبسط)
                 let millions = Math.floor(num / 1000000);
                 let rest = num % 1000000;
                 let milStr = millions === 1 ? "مليون" :
@@ -334,7 +333,7 @@
             return result;
         }
 
-        // ---------- 2. النطق بالعربية (مع انتظار الأصوات) ----------
+        // ---------- 2. النطق بالعربية ----------
         let voicesReady = new Promise(resolve => {
             if (window.speechSynthesis) {
                 let voices = window.speechSynthesis.getVoices();
@@ -365,7 +364,7 @@
             await speakArabic(`الإجمالي ${totalWords} ريال`);
         }
 
-        // ---------- 3. تحويل الأرقام العربية المنطوقة والمكتوبة ----------
+        // ---------- 3. تحويل الأرقام العربية المنطوقة والمكتوبة إلى أرقام ----------
         const wordToNumber = new Map();
         wordToNumber.set('واحد',1); wordToNumber.set('واحدة',1);
         wordToNumber.set('اثنان',2); wordToNumber.set('اثنين',2);
@@ -449,6 +448,7 @@
             return wordsToNumber(token);
         }
 
+        // ---------- 4. تحليل النص الكامل لاستخراج سجلات (مبلغ + ملاحظة) ----------
         function parseMultipleEntries(fullText) {
             if (!fullText) return [];
             let text = fullText.trim();
@@ -458,12 +458,13 @@
             while (i < words.length) {
                 let token = words[i];
                 let combined = token;
-                if (i+1 < words.length && 
+                // دمج الأعداد المركبة مثل "أحد عشر"
+                if (i + 1 < words.length && 
                     (token === 'أحد' || token === 'احد' || token === 'اثنا' || token === 'ثلاثة' || 
                      token === 'أربعة' || token === 'خمسة' || token === 'ستة' || token === 'سبعة' || 
                      token === 'ثمانية' || token === 'تسعة') && words[i+1] === 'عشر') {
                     combined = token + ' ' + words[i+1];
-                    i++;
+                    i++; // تقدم خطوة إضافية لأن الكلمة الثانية من العدد المركب أُخذت
                 }
                 let amount = extractAmountFromToken(combined);
                 if (amount !== null && amount > 0) {
@@ -472,6 +473,7 @@
                 i++;
             }
             if (numberPositions.length === 0) return [];
+            
             let entries = [];
             for (let idx = 0; idx < numberPositions.length; idx++) {
                 let startPos = numberPositions[idx].index;
@@ -480,7 +482,9 @@
                 let noteWords = [];
                 for (let j = startPos + 1; j < endPos; j++) {
                     let w = words[j];
-                    if (w === 'ريال' || w === 'درهم' || w === 'دولار') continue;
+                    // نتخطى العملات
+                    if (w === 'ريال' || w === 'درهم' || w === 'دولار' || w === 'ريالات') continue;
+                    // إذا كان الرمز يمثل رقمًا صحيحًا (قد يكون من بقايا العداد) نتخطاه
                     if (extractAmountFromToken(w) !== null) continue;
                     noteWords.push(w);
                 }
@@ -491,7 +495,7 @@
             return entries;
         }
 
-        // ---------- 4. إدارة السجلات ----------
+        // ---------- 5. إدارة السجلات وعرضها ----------
         let entries = [];
         let nextId = 1;
         const tableBody = document.getElementById('tableBody');
@@ -567,7 +571,7 @@
             }, durationMs);
         }
 
-        // ---------- 5. التعرف الصوتي المستمر مع إيقاف يدوي ----------
+        // ---------- 6. التعرف الصوتي المستمر (الميكروفون يبقى مفتوحاً حتى الإيقاف اليدوي) ----------
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         const isSpeechSupported = SpeechRecognitionAPI !== undefined;
         let recognition = null;
@@ -597,7 +601,7 @@
         function initRecognition() {
             if (!isSpeechSupported) return null;
             let recog = new SpeechRecognitionAPI();
-            recog.continuous = true;    // يبقى التسجيل مفتوحاً حتى توقفه يدوياً
+            recog.continuous = true;    // يبقى التسجيل مفتوحاً
             recog.interimResults = false;
             recog.lang = 'ar-SA';
             return recog;
@@ -626,19 +630,17 @@
             }
             if (isListening) return;
             
-            // إعادة تعيين النص المتراكم
+            // إعادة تعيين النص المتراكم ليبدأ من جديد
             accumulatedTranscript = '';
             recognizedSpan.innerText = '—';
             
             recognition = initRecognition();
             recognition.onresult = (event) => {
+                // تجميع كل ما يُقال فوراً دون انتظار isFinal
                 for (let i = 0; i < event.results.length; i++) {
-                    if (event.results[i].isFinal) {
-                        accumulatedTranscript += ' ' + event.results[i][0].transcript;
-                        recognizedSpan.innerText = accumulatedTranscript.trim();
-                    }
+                    accumulatedTranscript += ' ' + event.results[i][0].transcript;
                 }
-                updateStatus("✅ تم التعرف على جزء جديد", false, 2000);
+                recognizedSpan.innerText = accumulatedTranscript.trim();
             };
 
             recognition.onerror = (event) => {
@@ -648,9 +650,11 @@
 
             recognition.onend = () => {
                 if (wasManualStop) {
-                    // معالجة النص المتراكم بعد الإيقاف اليدوي
-                    if (accumulatedTranscript.trim()) {
-                        let entriesList = parseMultipleEntries(accumulatedTranscript.trim());
+                    // عند الإيقاف اليدوي: حلل النص المتراكم وأضف السجلات
+                    let finalText = accumulatedTranscript.trim();
+                    if (finalText) {
+                        recognizedSpan.innerText = finalText;
+                        let entriesList = parseMultipleEntries(finalText);
                         if (entriesList.length === 0) {
                             updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
                         } else {
@@ -670,7 +674,7 @@
                 isListening = true;
                 wasManualStop = false;
                 updateMicButton(true);
-                updateStatus("⏳ استمع الآن... تحدث بوضوح (اضغط الزر لإيقاف التسجيل)", false);
+                updateStatus("⏳ استمع الآن... تحدث بوضوح (اضغط الزر للإيقاف)", false);
             } catch(e) {
                 updateStatus("فشل بدء التسجيل", true);
             }
@@ -679,15 +683,14 @@
         function stopListening() {
             if (recognition && isListening) {
                 wasManualStop = true;
-                recognition.stop();
-                // سيؤدي onend إلى معالجة النص
+                recognition.stop();  // سيؤدي onend إلى تحليل النص
             } else {
                 isListening = false;
                 updateMicButton(false);
             }
         }
 
-        // ---------- 6. جلب بيانات العملاء من Firebase ----------
+        // ---------- 7. تحميل العملاء من Firebase ----------
         const customersSelect = document.getElementById('customerSelect');
         const phoneDisplayDiv = document.getElementById('phoneDisplay');
         const customerPhoneSpan = document.getElementById('customerPhoneValue');
@@ -740,7 +743,7 @@
             }
         }
 
-        // ---------- 7. ربط الأزرار ----------
+        // ---------- 8. ربط الأزرار ----------
         const micBtn = document.getElementById('micBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const speakTotalBtn = document.getElementById('speakTotalBtn');
@@ -760,7 +763,7 @@
             await speakTotalInArabic(total);
         });
 
-        // بدء التشغيل
+        // بدء التشغيل: طلب الميكروفون وتحميل العملاء
         (async function() {
             if (isSpeechSupported) {
                 await requestMicrophonePermission();
