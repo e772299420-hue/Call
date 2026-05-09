@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>الدفتر الذكي - سجلات متعددة بالصوت</title>
+    <title>الدفتر الههههذكي - سجلات متعددة بالصوت (تسجيل مستمر)</title>
     <style>
         * {
             margin: 0;
@@ -42,7 +42,6 @@
             text-align: center;
         }
 
-        /* منطقة العميل الجديدة */
         .customer-area {
             background: #f1f5f9;
             border-radius: 1.2rem;
@@ -232,9 +231,8 @@
 <body>
 
 <div class="glass-card">
-    <h1>📒 الدفتر الذكي</h1>
+    <h1>📒 الدفتر الذكي (تسجيل مستمر)</h1>
     
-    <!-- حقل اختيار العميل + عرض الجوال -->
     <div class="customer-area">
         <div class="customer-label">👤 اختر اسم العميل</div>
         <select id="customerSelect">
@@ -246,14 +244,13 @@
         </div>
     </div>
 
-    <button id="micBtn" class="mic-button">🎤 اضغط وتحدث (مايك)</button>
+    <button id="micBtn" class="mic-button">🎤 اضغط وابدأ التسجيل (مايك)</button>
     <div class="status-area" id="statusArea"></div>
-    <div class="transcript-box" id="transcriptArea">
-        <span style="font-weight:700; color:#2563eb;">📢 النص المُتعرف عليه:</span>
-        <span id="recognizedText">—</span>
+    <div class="transcript-box">
+        <span style="font-weight:700; color:#2563eb;">📢 النص المُتعرف عليه (أثناء التسجيل):</span>
+        <div id="recognizedText" style="margin-top: 6px; word-break: break-word;">—</div>
     </div>
 
-    <!-- جدول السجلات -->
     <table class="entries-table" id="entriesTable">
         <thead>
             <tr><th>#</th><th>💰 المبلغ (ريال)</th><th>📝 الملاحظة</th><th></th></tr>
@@ -261,7 +258,6 @@
         <tbody id="tableBody"></tbody>
     </table>
 
-    <!-- منطقة الإجمالي -->
     <div class="total-area">
         <span>🏷️ إجمالي المبالغ:</span>
         <span class="total-amount" id="totalAmount">0</span>
@@ -273,13 +269,13 @@
     </div>
     
     <footer>
-        ⚙️ إعداد وبرمجة المهندس / مروان الذماري
+        ⚙️ إعداد وبرمجة المهندس / مروان الذماري (تسجيل غير محدود المدة)
     </footer>
 </div>
 
 <script>
     (function() {
-        // ---------- 1. تحويل الأرقام إلى كلمات عربية (للنطق الصحيح) ----------
+        // ---------- 1. تحويل الأرقام إلى كلمات عربية ----------
         function numberToArabicWords(num) {
             if (num === 0) return "صفر";
             const units = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
@@ -322,14 +318,12 @@
             return millionsStr + " و" + convertLessThanMillion(rest);
         }
         
-        // دالة النطق بالعربية بشكل مضمون
         function speakArabic(text) {
             if (!window.speechSynthesis) return;
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ar-SA';
             utterance.rate = 0.9;
-            // محاولة اختيار صوت عربي إذا وجد
             if (window.speechSynthesis.getVoices) {
                 const voices = window.speechSynthesis.getVoices();
                 const arabicVoice = voices.find(voice => voice.lang === 'ar-SA' || voice.lang === 'ar-EG');
@@ -338,7 +332,6 @@
             window.speechSynthesis.speak(utterance);
         }
         
-        // نطق الإجمالي بالعربية
         function speakTotalInArabic(total) {
             if (total <= 0) {
                 speakArabic("لا توجد سجلات");
@@ -547,15 +540,16 @@
         
         function updateStatus(message, isError) {
             statusArea.innerHTML = `<div class="listening-badge" style="background:${isError?'#ffe0e0':'#e6f7e6'};color:${isError?'#aa2e2e':'#2e7d32'};">🎙️ ${message}</div>`;
-            setTimeout(() => { if(statusArea.innerHTML.includes(message)) statusArea.innerHTML = ''; }, 3000);
+            setTimeout(() => { if(statusArea.innerHTML.includes(message)) statusArea.innerHTML = ''; }, 4000);
         }
         
-        // ---------- 4. التعرف الصوتي ----------
+        // ---------- 4. التعرف الصوتي المستمر (غير محدود المدة) ----------
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         const isSpeechSupported = SpeechRecognitionAPI !== undefined;
         let recognition = null;
         let isListening = false;
         let permissionGranted = false;
+        let accumulatedTranscript = "";   // تخزين النص الكامل أثناء الجلسة
         
         async function requestMicrophonePermission() {
             if (!isSpeechSupported) {
@@ -566,7 +560,7 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 stream.getTracks().forEach(t => t.stop());
                 permissionGranted = true;
-                updateStatus("✅ الميكروفون جاهز", false);
+                updateStatus("✅ الميكروفون جاهز (تسجيل غير محدود)", false);
                 return true;
             } catch(err) {
                 updateStatus("❌ امنح صلاحية الميكروفون ثم أعد المحاولة", true);
@@ -578,10 +572,29 @@
         function initRecognition() {
             if (!isSpeechSupported) return null;
             let recog = new SpeechRecognitionAPI();
-            recog.continuous = false;
-            recog.interimResults = false;
+            recog.continuous = true;       // استمرار التسجيل بدون توقف تلقائي
+            recog.interimResults = true;    // عرض النص المؤقت أثناء الحديث
             recog.lang = 'ar-SA';
+            recog.maxAlternatives = 1;
             return recog;
+        }
+        
+        function updateTranscriptUI(finalText) {
+            recognizedSpan.innerText = finalText || "—";
+        }
+        
+        function processFinalTranscript() {
+            if (accumulatedTranscript.trim() === "") {
+                updateStatus("⚠️ لم يتم التعرف على أي نص", true);
+                return;
+            }
+            updateTranscriptUI(accumulatedTranscript);
+            const entriesList = parseMultipleEntries(accumulatedTranscript);
+            if (entriesList.length === 0) {
+                updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
+            } else {
+                addMultipleEntries(entriesList);
+            }
         }
         
         async function startListening() {
@@ -591,42 +604,97 @@
                 if (!ok) return;
             }
             if (isListening) return;
-            if (recognition) recognition.abort();
+            
+            // إنهاء أي جلسة سابقة
+            if (recognition) {
+                try { recognition.abort(); } catch(e) {}
+            }
+            
+            accumulatedTranscript = "";
+            updateTranscriptUI("—");
             recognition = initRecognition();
+            
             recognition.onresult = (event) => {
-                let transcript = event.results[0][0].transcript.trim();
-                recognizedSpan.innerText = transcript;
-                updateStatus("✅ تم التعرف", false);
-                let entriesList = parseMultipleEntries(transcript);
-                if (entriesList.length === 0) {
-                    updateStatus("⚠️ لم يتم العثور على مبالغ في النص", true);
-                } else {
-                    addMultipleEntries(entriesList);
+                let interimText = "";
+                let finalText = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    const transcriptPart = result[0].transcript;
+                    if (result.isFinal) {
+                        finalText += transcriptPart;
+                    } else {
+                        interimText += transcriptPart;
+                    }
                 }
-                stopListening();
+                // نضيف النص النهائي إلى المتراكم (لأنه قد يأتي دفعات)
+                if (finalText) {
+                    accumulatedTranscript += " " + finalText;
+                    updateTranscriptUI(accumulatedTranscript);
+                } else if (interimText) {
+                    // عرض النص المؤقت فقط (بدون تخزين نهائي)
+                    recognizedSpan.innerText = accumulatedTranscript + " " + interimText;
+                }
             };
+            
             recognition.onerror = (event) => {
-                updateStatus(`❌ خطأ: ${event.error}`, true);
-                stopListening();
+                console.warn("Speech error:", event.error);
+                if (event.error === 'not-allowed') {
+                    updateStatus("❌ تم رفض إذن الميكروفون", true);
+                    permissionGranted = false;
+                } else if (event.error === 'no-speech') {
+                    // لا نعرض رسالة خطأ مزعجة، فقط نتجاهل
+                } else {
+                    updateStatus(`⚠️ خطأ: ${event.error}`, true);
+                }
+                stopListening(false); // إيقاف دون معالجة النص لأن الخطأ قد يكون مبكراً
             };
-            recognition.onend = () => { if(isListening) stopListening(); };
+            
+            recognition.onend = () => {
+                if (isListening) {
+                    // حدث انتهاء غير متوقع (قد يكون بسبب توقف الخدمة)
+                    stopListening(true);
+                } else {
+                    // انتهاء طبيعي بعد استدعاء stop
+                }
+            };
+            
             try {
                 recognition.start();
                 isListening = true;
-                updateStatus("⏳ استمع الآن... تحدث بوضوح", false);
+                updateStatus("🎙️ جارٍ التسجيل... تحدث بحرية (اضغط الزر مرة أخرى للإيقاف)", false);
+                const micBtn = document.getElementById('micBtn');
                 micBtn.style.background = "linear-gradient(125deg, #b91c1c, #dc2626)";
-                micBtn.querySelector('span:last-child').innerText = "جاري الاستماع...";
-            } catch(e) { updateStatus("فشل بدء التسجيل", true); }
+                micBtn.innerHTML = "⏹️ إيقاف التسجيل ومعالجة النص";
+            } catch(e) {
+                updateStatus("فشل بدء التسجيل", true);
+                console.error(e);
+            }
         }
         
-        function stopListening() {
-            if (recognition && isListening) recognition.stop();
+        function stopListening(processText = true) {
+            if (!isListening) return;
+            
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
             isListening = false;
+            
+            const micBtn = document.getElementById('micBtn');
             micBtn.style.background = "linear-gradient(125deg, #0f2b3d, #1c4e6f)";
-            micBtn.querySelector('span:last-child').innerText = "اضغط وتحدث (مايك)";
+            micBtn.innerHTML = "🎤 اضغط وابدأ التسجيل (مايك)";
+            
+            if (processText && accumulatedTranscript.trim() !== "") {
+                updateStatus("✅ تم إيقاف التسجيل - جاري تحليل النص...", false);
+                processFinalTranscript();
+            } else if (processText) {
+                updateStatus("⏹️ تم الإيقاف دون تسجيل نص", false);
+            }
+            // إعادة ضبط النص المتراكم للجلسة القادمة
+            accumulatedTranscript = "";
+            updateTranscriptUI("—");
         }
         
-        // ---------- 5. جلب بيانات العملاء من Firebase بدقة ----------
+        // ---------- 5. جلب بيانات العملاء من Firebase ----------
         const customersSelect = document.getElementById('customerSelect');
         const phoneDisplayDiv = document.getElementById('phoneDisplay');
         const customerPhoneSpan = document.getElementById('customerPhoneValue');
@@ -638,18 +706,16 @@
                 const data = await response.json();
                 let customersList = [];
                 
-                // دالة مساعدة لاستخراج الاسم والرقم من أي كائن
                 function extractNameAndPhone(obj, keyHint = '') {
                     let name = null;
                     let phone = null;
-                    // محاولة الحصول على الاسم
                     if (obj.name) name = obj.name;
                     else if (obj.اسم) name = obj.اسم;
                     else if (obj.fullname) name = obj.fullname;
                     else if (obj.customerName) name = obj.customerName;
                     else if (obj.title) name = obj.title;
                     else if (typeof obj === 'string') name = obj;
-                    // محاولة الحصول على رقم الجوال
+                    
                     if (obj.phone) phone = obj.phone;
                     else if (obj.رقم) phone = obj.رقم;
                     else if (obj.mobile) phone = obj.mobile;
@@ -660,7 +726,6 @@
                     return null;
                 }
                 
-                // فحص البيانات بشكل متكرر (أعماق مختلفة)
                 function searchInObject(obj, depth = 0) {
                     if (depth > 3) return;
                     if (!obj || typeof obj !== 'object') return;
@@ -678,17 +743,14 @@
                 }
                 
                 if (data && typeof data === 'object') {
-                    // أولاً نبحث في العقد الشائعة مباشرة
                     const commonRoots = ['customers', 'clients', 'users', 'work', 'customerList', 'people'];
                     for (let root of commonRoots) {
                         if (data[root] && typeof data[root] === 'object') {
                             searchInObject(data[root]);
                         }
                     }
-                    // ثم نبحث في الجذر بالكامل
                     searchInObject(data);
                     
-                    // إزالة التكرارات بناءً على الاسم والرقم
                     const unique = [];
                     const keysSet = new Set();
                     for (let cust of customersList) {
@@ -707,7 +769,6 @@
                     return;
                 }
                 
-                // تعبئة القائمة
                 customersSelect.innerHTML = '<option value="">-- اختر العميل --</option>';
                 customersList.forEach(cust => {
                     const option = document.createElement('option');
@@ -736,14 +797,17 @@
             }
         }
         
-        // ---------- 6. الأزرار والتشغيل ----------
+        // ---------- 6. ربط الأزرار ----------
         const micBtn = document.getElementById('micBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const speakTotalBtn = document.getElementById('speakTotalBtn');
         
         micBtn.addEventListener('click', () => {
-            if (isListening) stopListening();
-            else startListening();
+            if (isListening) {
+                stopListening(true);
+            } else {
+                startListening();
+            }
         });
         clearAllBtn.addEventListener('click', clearAll);
         speakTotalBtn.addEventListener('click', () => {
