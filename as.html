@@ -350,6 +350,17 @@
             border-right: 3px solid #ffc107;
             margin: 10px 0;
         }
+
+        .error-message {
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-group input.error {
+            border-color: #f44336;
+        }
     </style>
 </head>
 <body>
@@ -369,8 +380,11 @@
             <p class="platform-name">منصة AZ السوق الشامل لتلبية احتياجك بالكامل</p>
             <p>قم بإدخال جميع البيانات الخاصة بك بشكل صحيح علماً ان جميعها مهمة لقبول تسجيل الانضمام</p>
             <div class="note">
-                ملاحظة: رقم الجوال يجب أن يكون مرتبط بحساب الواتساب لتصلك رسالة التفعيل<br>
-                علماً انه يمكنك إخفاء الرقم عن المجتمع
+                <strong>ملاحظة خاصة برقم الجوال:</strong><br>
+                • يجب أن يكون الرقم مكوناً من 9 أرقام بالضبط.<br>
+                • يجب أن يبدأ الرقم بإحدى البادئات التالية لشركات الاتصال في اليمن:<br>
+                <strong>70</strong> (واي Y)، <strong>71</strong> (يو You)، <strong>73</strong> (سبأفون)، <strong>77</strong> أو <strong>78</strong> (يمن موبايل).<br>
+                • الرقم مرتبط بحساب واتساب لتصلك رسالة التفعيل (يمكنك إخفاء الرقم عن المجتمع لاحقاً).
             </div>
             <p>قم بالنقر على زر تقديم طلب الانضمام</p>
         </div>
@@ -435,7 +449,10 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="merchant-mobile" class="required">رقم الجوال/واتساب</label>
-                <input type="tel" id="merchant-mobile" placeholder="أدخل رقم الجوال/واتساب" required>
+                <input type="tel" id="merchant-mobile" placeholder="أدخل رقم الجوال (9 أرقام)" required maxlength="9">
+                <div id="mobile-format-error" class="error-message">⚠️ رقم الجوال يجب أن يتكون من 9 أرقام بالضبط</div>
+                <div id="mobile-prefix-error" class="error-message">⚠️ رقم الجوال يجب أن يبدأ بـ (70, 71, 73, 77, 78) لشركات واي، يو، سبأفون، يمن موبايل</div>
+                <div id="mobile-exist-error" class="error-message">⚠️ رقم الجوال مستخدم من قبل، يرجى إدخال رقم آخر</div>
             </div>
             
             <div class="form-group" style="display: none;">
@@ -505,20 +522,20 @@
             databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
         };
         
-        // تهيئة Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
         // عناصر DOM
         const usernameInput = document.getElementById('merchant-username');
-        const passwordInput = document.getElementById('merchant-password');
         const nameInput = document.getElementById('merchant-name');
         const jobInput = document.getElementById('merchant-job');
-        const statusSelect = document.getElementById('merchant-status');
         const governorateSelect = document.getElementById('merchant-governorate');
         const areaSelect = document.getElementById('merchant-area');
         const phoneInput = document.getElementById('merchant-phone');
         const mobileInput = document.getElementById('merchant-mobile');
+        const mobileFormatError = document.getElementById('mobile-format-error');
+        const mobilePrefixError = document.getElementById('mobile-prefix-error');
+        const mobileExistError = document.getElementById('mobile-exist-error');
         const ipInput = document.getElementById('merchant-ip');
         const locationInput = document.getElementById('merchant-location');
         const facebookInput = document.getElementById('merchant-facebook');
@@ -526,49 +543,134 @@
         const twitterInput = document.getElementById('merchant-twitter');
         const youtubeInput = document.getElementById('merchant-youtube');
         const googleInput = document.getElementById('merchant-google');
-        const getLocationBtn = document.getElementById('get-location-btn');
         const addMerchantBtn = document.getElementById('addMerchantBtn');
-        
-        // عناصر أزرار التحميل
         const addMerchantBtnText = document.getElementById('addMerchantBtnText');
         const addMerchantBtnLoading = document.getElementById('addMerchantBtnLoading');
         
-        // متغيرات التعديل
         let governoratesData = {};
+        let isMobileFormatValid = false;
+        let isMobilePrefixValid = false;
+        let isMobileUnique = false;
         
-        // تهيئة الصفحة
+        // البادئات المسموحة: 70 واي، 71 يو، 73 سبأفون، 77 و 78 يمن موبايل
+        const allowedPrefixes = ['70', '71', '73', '77', '78'];
+        
         document.addEventListener('DOMContentLoaded', function() {
             loadGovernoratesToSelect();
             setupEventListeners();
-            
-            // إخفاء الحقول غير المرغوبة
-            hideUnwantedFields();
         });
         
-        // إخفاء الحقول غير المرغوبة
-        function hideUnwantedFields() {
-            // تم إخفاء الحقول باستخدام style="display: none;" في HTML
-        }
-        
-        // إعداد مستمعي الأحداث
         function setupEventListeners() {
-            // إضافة تاجر
             addMerchantBtn.addEventListener('click', addMerchant);
-            
-            // تحديث المناطق عند تغيير المحافظة
             governorateSelect.addEventListener('change', updateAreaDropdown);
+            
+            mobileInput.addEventListener('input', function() {
+                validateMobileFull();
+            });
+            
+            mobileInput.addEventListener('blur', function() {
+                validateMobileFull();
+            });
         }
         
-        // تحميل المحافظات إلى القوائم المنسدلة
+        // التحقق من صيغة الرقم وبدايته
+        function validateMobileFormatAndPrefix() {
+            const mobile = mobileInput.value.trim();
+            const regex = /^\d{9}$/;
+            if (!regex.test(mobile)) {
+                mobileFormatError.style.display = 'block';
+                mobilePrefixError.style.display = 'none';
+                isMobileFormatValid = false;
+                isMobilePrefixValid = false;
+                addErrorClass(mobileInput);
+                return false;
+            } else {
+                mobileFormatError.style.display = 'none';
+                isMobileFormatValid = true;
+            }
+            
+            const prefix = mobile.substring(0, 2);
+            if (allowedPrefixes.includes(prefix)) {
+                mobilePrefixError.style.display = 'none';
+                isMobilePrefixValid = true;
+            } else {
+                mobilePrefixError.style.display = 'block';
+                isMobilePrefixValid = false;
+                addErrorClass(mobileInput);
+                return false;
+            }
+            
+            removeErrorClass(mobileInput);
+            return true;
+        }
+        
+        async function checkMobileUniqueness() {
+            const mobile = mobileInput.value.trim();
+            if (!isMobileFormatValid || !isMobilePrefixValid || !mobile) {
+                isMobileUnique = false;
+                mobileExistError.style.display = 'none';
+                return false;
+            }
+            
+            try {
+                const snapshot = await database.ref('merchants').orderByChild('mobile').equalTo(mobile).once('value');
+                if (snapshot.exists()) {
+                    mobileExistError.style.display = 'block';
+                    isMobileUnique = false;
+                    addErrorClass(mobileInput);
+                    return false;
+                } else {
+                    mobileExistError.style.display = 'none';
+                    isMobileUnique = true;
+                    removeErrorClass(mobileInput);
+                    return true;
+                }
+            } catch (error) {
+                console.error('خطأ في التحقق من الرقم:', error);
+                showToast('حدث خطأ في التحقق من الرقم', 'error');
+                isMobileUnique = false;
+                return false;
+            }
+        }
+        
+        async function validateMobileFull() {
+            const formatOk = validateMobileFormatAndPrefix();
+            if (formatOk) {
+                await checkMobileUniqueness();
+            } else {
+                isMobileUnique = false;
+                mobileExistError.style.display = 'none';
+            }
+        }
+        
+        async function isMobileValidForSubmit() {
+            const formatOk = validateMobileFormatAndPrefix();
+            if (!formatOk) {
+                if (!isMobileFormatValid) showToast('رقم الجوال يجب أن يتكون من 9 أرقام بالضبط', 'error');
+                else if (!isMobilePrefixValid) showToast('رقم الجوال يجب أن يبدأ بـ 70، 71، 73، 77، 78 (شركات واي، يو، سبأفون، يمن موبايل)', 'error');
+                return false;
+            }
+            const isUnique = await checkMobileUniqueness();
+            if (!isUnique) {
+                showToast('رقم الجوال مستخدم من قبل، يرجى إدخال رقم آخر', 'error');
+                return false;
+            }
+            return true;
+        }
+        
+        function addErrorClass(element) {
+            element.classList.add('error');
+        }
+        
+        function removeErrorClass(element) {
+            element.classList.remove('error');
+        }
+        
         async function loadGovernoratesToSelect() {
             try {
                 const snapshot = await database.ref('governorates').once('value');
                 governoratesData = snapshot.val() || {};
-                
-                // تفريغ القوائم المنسدلة أولاً
                 governorateSelect.innerHTML = '<option value="">اختر المحافظة</option>';
-                
-                // إضافة المحافظات إلى القوائم المنسدلة
                 if (governoratesData) {
                     Object.keys(governoratesData).forEach(key => {
                         const gov = governoratesData[key];
@@ -581,11 +683,9 @@
             }
         }
         
-        // تحديث قائمة المناطق
         function updateAreaDropdown() {
             const governorateId = governorateSelect.value;
             areaSelect.innerHTML = '<option value="">اختر المنطقة</option>';
-            
             if (governorateId && governoratesData[governorateId] && governoratesData[governorateId].areas) {
                 Object.entries(governoratesData[governorateId].areas).forEach(([id, name]) => {
                     areaSelect.innerHTML += `<option value="${id}">${name}</option>`;
@@ -593,33 +693,32 @@
             }
         }
         
-        // وظيفة إنشاء معرف فريد
         function generateId(text) {
             return text.toLowerCase()
                 .replace(/[أ-ي]/g, (match) => {
-                    const arabicToEnglish = {
+                    const map = {
                         'أ': 'a', 'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j', 'ح': 'h', 'خ': 'kh',
                         'د': 'd', 'ذ': 'th', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh', 'ص': 's',
                         'ض': 'd', 'ط': 't', 'ظ': 'th', 'ع': 'a', 'غ': 'gh', 'ف': 'f', 'ق': 'q',
                         'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n', 'ه': 'h', 'و': 'w', 'ي': 'y'
                     };
-                    return arabicToEnglish[match] || match;
+                    return map[match] || match;
                 })
                 .replace(/\s+/g, '_')
                 .replace(/[^\w]/g, '');
         }
         
-        // إضافة تاجر جديد
         async function addMerchant() {
+            const mobileValid = await isMobileValidForSubmit();
+            if (!mobileValid) return;
+            
             const username = usernameInput.value.trim();
-            const password = "default_password"; // كلمة مرور افتراضية
             const name = nameInput.value.trim();
             const job = jobInput.value;
-            const status = "inactive"; // حالة افتراضية "موقف"
             const governorate = governorateSelect.value;
             const area = areaSelect.value;
-            const phone = phoneInput.value.trim();
             const mobile = mobileInput.value.trim();
+            const phone = phoneInput.value.trim();
             const ip = ipInput.value.trim();
             const location = locationInput.value.trim();
             const facebook = facebookInput.value.trim();
@@ -628,42 +727,41 @@
             const youtube = youtubeInput.value.trim();
             const google = googleInput.value.trim();
             
-            // التحقق من الحقول الإجبارية
             if (!username || !name || !job || !governorate || !area || !mobile) {
                 showToast('يرجى ملء جميع الحقول الإجبارية', 'error');
                 return;
             }
             
-            // إظهار حالة التحميل
             addMerchantBtnText.style.display = 'none';
             addMerchantBtnLoading.style.display = 'inline-block';
             addMerchantBtn.disabled = true;
             
             try {
-                // التحقق من عدم تكرار اسم المستخدم
                 const existingUsername = await database.ref('merchants').orderByChild('username').equalTo(username).once('value');
                 if (existingUsername.exists()) {
                     showToast('اسم المستخدم موجود مسبقاً', 'error');
                     return;
                 }
                 
-                // التحقق من عدم تكرار اسم التاجر
                 const existingName = await database.ref('merchants').orderByChild('name').equalTo(name).once('value');
                 if (existingName.exists()) {
-                    showToast('اسم التاجر موجود مسبقاً', 'error');
+                    showToast('الاسم التجاري موجود مسبقاً', 'error');
                     return;
                 }
                 
-                // إنشاء معرف فريد للتاجر
-                const merchantId = generateId(username);
+                const mobileCheckAgain = await database.ref('merchants').orderByChild('mobile').equalTo(mobile).once('value');
+                if (mobileCheckAgain.exists()) {
+                    showToast('رقم الجوال مستخدم من قبل، يرجى إدخال رقم آخر', 'error');
+                    return;
+                }
                 
-                // إضافة التاجر إلى قاعدة البيانات
+                const merchantId = generateId(username);
                 await database.ref(`merchants/${merchantId}`).set({
                     username: username,
-                    password: password,
+                    password: "default_password",
                     name: name,
                     job: job,
-                    status: status,
+                    status: "inactive",
                     governorate: governorate,
                     area: area,
                     phone: phone,
@@ -678,33 +776,36 @@
                     createdAt: Date.now()
                 });
                 
-                // مسح حقول الإدخال
+                // مسح الحقول
                 usernameInput.value = '';
                 nameInput.value = '';
                 jobInput.value = 'تاجر';
                 governorateSelect.value = '';
                 areaSelect.innerHTML = '<option value="">اختر المنطقة</option>';
                 mobileInput.value = '';
+                mobileFormatError.style.display = 'none';
+                mobilePrefixError.style.display = 'none';
+                mobileExistError.style.display = 'none';
+                isMobileFormatValid = false;
+                isMobilePrefixValid = false;
+                isMobileUnique = false;
+                removeErrorClass(mobileInput);
                 
-                // عرض رسالة النجاح
                 showSuccessMessage(username);
                 
             } catch (error) {
                 console.error('خطأ في إضافة التاجر:', error);
                 showToast('حدث خطأ في إضافة التاجر', 'error');
             } finally {
-                // إخفاء حالة التحميل
                 addMerchantBtnText.style.display = 'inline-block';
                 addMerchantBtnLoading.style.display = 'none';
                 addMerchantBtn.disabled = false;
             }
         }
         
-        // عرض رسالة النجاح وإغلاق الصفحة
         function showSuccessMessage(username) {
             const toast = document.createElement('div');
-            toast.className = `toast success`;
-            
+            toast.className = 'toast success';
             toast.innerHTML = `
                 <div class="toast-content">
                     <i class="fas fa-check-circle toast-icon"></i>
@@ -713,75 +814,49 @@
                         سيتم التواصل معك قريباً عبر الواتساب
                     </div>
                 </div>
-                <button class="toast-close">
-                    <i class="fas fa-times"></i>
-                </button>
-                <div class="toast-progress">
-                    <div class="toast-progress-bar"></div>
-                </div>
+                <button class="toast-close"><i class="fas fa-times"></i></button>
+                <div class="toast-progress"><div class="toast-progress-bar"></div></div>
             `;
-            
             const toastContainer = document.getElementById('toastContainer');
             toastContainer.appendChild(toast);
             
-            // العودة إلى الصفحة السابقة بعد 3 ثوانٍ
-            setTimeout(() => {
-                // إغلاق الصفحة الحالية والعودة إلى الصفحة السابقة
-                window.location.href = '1_1.html';
-            }, 3000);
+            setTimeout(() => { window.location.href = '1_1.html'; }, 3000);
             
-            // إضافة حدث إغلاق عند النقر على زر الإغلاق
             const closeBtn = toast.querySelector('.toast-close');
             closeBtn.addEventListener('click', () => {
                 toast.style.opacity = '0';
                 setTimeout(() => {
                     toastContainer.removeChild(toast);
-                    // العودة إلى الصفحة السابقة عند إغلاق الإشعار
                     window.location.href = '1_1.html';
                 }, 300);
             });
         }
         
-        // وظيفة عرض الإشعار
         function showToast(message, type) {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            
-            const icon = type === 'success' ? 'fa-check-circle' : 
-                        type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
-            
+            const icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle');
             toast.innerHTML = `
                 <div class="toast-content">
                     <i class="fas ${icon} toast-icon"></i>
                     <span>${message}</span>
                 </div>
-                <button class="toast-close">
-                    <i class="fas fa-times"></i>
-                </button>
-                <div class="toast-progress">
-                    <div class="toast-progress-bar"></div>
-                </div>
+                <button class="toast-close"><i class="fas fa-times"></i></button>
+                <div class="toast-progress"><div class="toast-progress-bar"></div></div>
             `;
-            
             const toastContainer = document.getElementById('toastContainer');
             toastContainer.appendChild(toast);
             
-            // إضافة حدث إغلاق عند النقر على زر الإغلاق
             const closeBtn = toast.querySelector('.toast-close');
             closeBtn.addEventListener('click', () => {
                 toast.style.opacity = '0';
-                setTimeout(() => {
-                    toastContainer.removeChild(toast);
-                }, 300);
+                setTimeout(() => toastContainer.removeChild(toast), 300);
             });
             
-            // إزالة الإشعار تلقائياً بعد 10 ثوان
             setTimeout(() => {
                 if (toast.parentNode === toastContainer) {
                     toast.style.opacity = '0';
-                    setTimeout(() => {
-                        toastContainer.removeChild(toast);
-                    }, 300);
+                    setTimeout(() => toastContainer.removeChild(toast), 300);
                 }
             }, 10000);
         }
