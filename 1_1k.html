@@ -6,10 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>AZ السوق الشامل - سوق تجاري متكامل</title>
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome 6 - روابط متعددة لضمان الظهور -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.0.0/css/all.css">
     
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
@@ -35,27 +37,91 @@
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%); direction: rtl; }
+        
+        body {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            direction: rtl;
+        }
+        
+        /* تخصيص شريط التمرير */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #3498db; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #2980b9; }
-        .slider-container { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
-        .slider-container::-webkit-scrollbar { display: none; }
-        .slider-image { min-width: 100%; scroll-snap-align: start; object-fit: contain; }
-        .gallery-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 6000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        .gallery-image-container { max-width: 90%; max-height: 80%; overflow: auto; cursor: zoom-in; }
-        .gallery-image { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.2s; }
-        .gallery-image.zoomed { transform: scale(2); cursor: zoom-out; }
-        .product-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .product-card:hover { transform: translateY(-8px); }
-        .notification-toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 5000; animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(30px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
         
-        /* تنسيق الصفحة المضمنة */
+        /* سلايدر الصور */
+        .slider-container {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .slider-container::-webkit-scrollbar { display: none; }
+        .slider-image {
+            min-width: 100%;
+            scroll-snap-align: start;
+            object-fit: contain;
+        }
+        
+        /* معرض الصور المنبثق */
+        .gallery-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 6000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .gallery-image-container {
+            max-width: 90%;
+            max-height: 80%;
+            overflow: auto;
+            cursor: zoom-in;
+        }
+        .gallery-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.2s;
+        }
+        .gallery-image.zoomed {
+            transform: scale(2);
+            cursor: zoom-out;
+        }
+        
+        /* بطاقات المنتجات */
+        .product-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .product-card:hover {
+            transform: translateY(-8px);
+        }
+        
+        /* الإشعارات المنبثقة */
+        .notification-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5000;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(30px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        /* حاوية عرض محتوى الصفحات - تظهر أسفل الهيدر مباشرة */
         .page-content-container {
             position: fixed;
-            top: var(--header-offset, 70px);
+            top: 70px;
             left: 0;
             right: 0;
             bottom: 0;
@@ -80,7 +146,7 @@
         .page-content-body {
             flex: 1;
             padding: 20px;
-            background: white;
+            background: #f5f7fa;
         }
         .close-page-btn {
             background: rgba(255,255,255,0.15);
@@ -105,14 +171,28 @@
             padding: 50px;
             color: #e74c3c;
         }
+        
+        /* تنسيق الصفحة المضمنة */
+        .embedded-page { direction: rtl; }
+        .embedded-page img { max-width: 100%; height: auto; }
+        .embedded-page table { width: 100%; overflow-x: auto; display: block; }
+        @media (max-width: 768px) {
+            .embedded-page { font-size: 14px; }
+        }
+        
+        /* إخفاء المحتوى الرئيسي عند فتح صفحة خارجية */
+        .main-content-hidden {
+            display: none !important;
+        }
     </style>
     
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
-<body class="font-cairo antialiased" style="padding-top: var(--header-offset, 70px); padding-bottom: 80px;">
+<body class="font-cairo antialiased">
 
-    <!-- الهيدر العلوي -->
+    <!-- الهيدر العلوي - يبقى ثابتاً في جميع الصفحات -->
     <header class="fixed top-0 left-0 right-0 bg-gradient-to-r from-dark to-secondary shadow-lg z-[1000]" style="height: 70px;">
         <div class="flex items-center justify-between h-full px-4 md:px-6">
             <div class="flex items-center gap-3">
@@ -135,7 +215,7 @@
         </div>
     </header>
 
-    <!-- حاوية عرض محتوى الصفحات (بدون iframe) -->
+    <!-- حاوية عرض محتوى الصفحات (بدون iframe) - تظهر أسفل الهيدر -->
     <div id="pageContentContainer" class="page-content-container">
         <div class="page-content-header">
             <h4 class="text-base font-semibold"><i class="fas fa-file-alt ml-2"></i> <span id="pageTitle">صفحة خارجية</span></h4>
@@ -146,222 +226,228 @@
         </div>
     </div>
 
-    <!-- القائمة الجانبية -->
-    <div id="sideMenuOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] hidden transition-all duration-300"></div>
-    <div id="sideMenu" class="fixed top-0 right-[-340px] w-[300px] md:w-[340px] h-full bg-gradient-to-b from-white to-gray-50 shadow-2xl z-[2001] transition-all duration-300 overflow-y-auto rounded-r-3xl">
-        <div class="bg-gradient-to-r from-dark to-secondary p-6 rounded-tl-3xl sticky top-0 z-10">
-            <div class="flex justify-between items-center">
-                <h3 class="text-white text-xl font-bold flex items-center gap-2">
-                    <i class="fas fa-store text-warning"></i> AZ السوق الشامل
-                </h3>
-                <button id="closeMenuBtn" class="w-10 h-10 rounded-xl bg-white/15 hover:bg-danger text-white transition-all duration-300 flex items-center justify-center">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+    <!-- المحتوى الرئيسي للصفحة -->
+    <div id="mainContent" class="main-content">
+        <!-- القائمة الجانبية -->
+        <div id="sideMenuOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] hidden transition-all duration-300"></div>
+        <div id="sideMenu" class="fixed top-0 right-[-340px] w-[300px] md:w-[340px] h-full bg-gradient-to-b from-white to-gray-50 shadow-2xl z-[2001] transition-all duration-300 overflow-y-auto rounded-r-3xl">
+            <div class="bg-gradient-to-r from-dark to-secondary p-6 rounded-tl-3xl sticky top-0 z-10">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-white text-xl font-bold flex items-center gap-2">
+                        <i class="fas fa-store text-yellow-400"></i> AZ السوق الشامل
+                    </h3>
+                    <button id="closeMenuBtn" class="w-10 h-10 rounded-xl bg-white/15 hover:bg-danger text-white transition-all duration-300 flex items-center justify-center">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-4 space-y-4">
+                <!-- الأقسام الرئيسية -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-primary/10 hover:shadow-md transition-all">
+                    <div class="text-primary font-bold text-xs mb-3 pb-2 border-b border-primary/20 flex items-center gap-2">
+                        <i class="fas fa-th-large text-yellow-500"></i> أقسام وخدمات السوق الإلكتروني AZ
+                    </div>
+                    <div class="space-y-1">
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="1_1.html" data-title="منتجات تجارية جديدة">
+                            <i class="fas fa-box-open w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">منتجات تجارية جديدة</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="1_2.html" data-title="منتجات مستعملة - الحراج">
+                            <i class="fas fa-tag w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">منتجات مستعملة - الحراج</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="1_5.html" data-title="المباني والعقارات">
+                            <i class="fas fa-building w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">المباني والعقارات</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="1_6.html" data-title="الوظائف الشاغرة">
+                            <i class="fas fa-briefcase w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">الوظائف الشاغرة</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="index_mt.html" data-title="الطلب والتوصيل السريع">
+                            <i class="fas fa-truck w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">الطلب والتوصيل السريع</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="txtx.html" data-title="الأرقام والمواقع">
+                            <i class="fas fa-address-book w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">الأرقام والمواقع</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="dm.html" data-title="الدم والمتبرعين">
+                            <i class="fas fa-tint w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">الدم والمتبرعين</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- أقسام إضافية -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-primary/10 hover:shadow-md transition-all">
+                    <div class="text-primary font-bold text-xs mb-3 pb-2 border-b border-primary/20 flex items-center gap-2">
+                        <i class="fas fa-plus-circle text-yellow-500"></i> أقسام إضافية
+                    </div>
+                    <div class="space-y-1">
+                        <div id="installAppBtn" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px]">
+                            <i class="fas fa-download w-6 text-primary"></i>
+                            <span class="flex-1 text-sm font-medium">تثبيت التطبيق</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="mr.html" data-title="العروض">
+                            <i class="fas fa-percent w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">العروض</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="as.html" data-title="طلب الانضمام">
+                            <i class="fas fa-user-plus w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">طلب الانضمام</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="help.html" data-title="الشرح والتعليم">
+                            <i class="fas fa-question-circle w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">الشرح والتعليم</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div id="shareAppBtn" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px]">
+                            <i class="fas fa-share-alt w-6 text-primary"></i>
+                            <span class="flex-1 text-sm font-medium">مشاركة التطبيق</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div id="adminPanelBtn" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px]">
+                            <i class="fas fa-chalkboard-user w-6 text-primary"></i>
+                            <span class="flex-1 text-sm font-medium">لوحة الإدارة</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="seasa.html" data-title="سياسة الخصوصية">
+                            <i class="fas fa-shield-alt w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">سياسة الخصوصية</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                        <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="mrwan.html" data-title="من نحن">
+                            <i class="fas fa-info-circle w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                            <span class="flex-1 text-sm font-medium">من نحن</span>
+                            <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تسجيل الدخول والخروج -->
+                <div class="space-y-1 mt-2">
+                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="manjr_tagr_snf.html" data-title="تسجيل الدخول">
+                        <i class="fas fa-sign-in-alt w-6 text-primary group-hover:text-yellow-500 group-hover:scale-110 transition-all"></i>
+                        <span class="flex-1 text-sm font-medium">تسجيل الدخول</span>
+                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                    </div>
+                    <div id="logoutMenuItem" class="flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 cursor-pointer transition-all hover:translate-x-[-5px] text-danger hidden">
+                        <i class="fas fa-sign-out-alt w-6"></i>
+                        <span class="flex-1 text-sm font-medium">تسجيل الخروج</span>
+                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- المودالات -->
+        <div id="installModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[3000] hidden items-center justify-center">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-[90%] relative shadow-2xl animate-fade-in">
+                <button id="installModalClose" class="absolute top-4 left-4 w-9 h-9 rounded-xl bg-gray-100 hover:bg-danger hover:text-white transition-all flex items-center justify-center"><i class="fas fa-times"></i></button>
+                <h3 class="text-2xl font-bold text-center bg-gradient-to-r from-dark to-primary bg-clip-text text-transparent mb-5"><i class="fas fa-download ml-2"></i> تثبيت التطبيق</h3>
+                <div class="text-center">
+                    <button onclick="window.open('https://play.google.com','_blank')" class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-full font-bold hover:shadow-lg transition-all"><i class="fab fa-google-play ml-2"></i> Google Play</button>
+                </div>
             </div>
         </div>
         
-        <div class="p-4 space-y-4">
-            <div class="bg-white rounded-2xl p-4 shadow-sm border border-primary/10 hover:shadow-md transition-all">
-                <div class="text-primary font-bold text-xs mb-3 pb-2 border-b border-primary/20 flex items-center gap-2">
-                    <i class="fas fa-th-large text-warning"></i> أقسام وخدمات السوق الإلكتروني AZ
-                </div>
-                <div class="space-y-1">
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="1_1.html" data-title="منتجات تجارية جديدة">
-                        <i class="fas fa-box-open w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">منتجات تجارية جديدة</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="1_2.html" data-title="منتجات مستعملة - الحراج">
-                        <i class="fas fa-tag w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">منتجات مستعملة - الحراج</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="1_5.html" data-title="المباني والعقارات">
-                        <i class="fas fa-building w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">المباني والعقارات</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="1_6.html" data-title="الوظائف الشاغرة">
-                        <i class="fas fa-briefcase w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">الوظائف الشاغرة</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="index_mt.html" data-title="الطلب والتوصيل السريع">
-                        <i class="fas fa-truck w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">الطلب والتوصيل السريع</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="txtx.html" data-title="الأرقام والمواقع">
-                        <i class="fas fa-address-book w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">الأرقام والمواقع</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="dm.html" data-title="الدم والمتبرعين">
-                        <i class="fas fa-tint w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">الدم والمتبرعين</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-2xl p-4 shadow-sm border border-primary/10 hover:shadow-md transition-all">
-                <div class="text-primary font-bold text-xs mb-3 pb-2 border-b border-primary/20 flex items-center gap-2">
-                    <i class="fas fa-plus-circle text-warning"></i> أقسام إضافية
-                </div>
-                <div class="space-y-1">
-                    <div id="installAppBtn" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px]">
-                        <i class="fas fa-download w-6 text-primary"></i>
-                        <span class="flex-1 text-sm font-medium">تثبيت التطبيق</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="mr.html" data-title="العروض">
-                        <i class="fas fa-percent w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">العروض</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="as.html" data-title="طلب الانضمام">
-                        <i class="fas fa-user-plus w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">طلب الانضمام</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="help.html" data-title="الشرح والتعليم">
-                        <i class="fas fa-question-circle w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">الشرح والتعليم</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div id="shareAppBtn" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px]">
-                        <i class="fas fa-share-alt w-6 text-primary"></i>
-                        <span class="flex-1 text-sm font-medium">مشاركة التطبيق</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div id="adminPanelBtn" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px]">
-                        <i class="fas fa-chalkboard-user w-6 text-primary"></i>
-                        <span class="flex-1 text-sm font-medium">لوحة الإدارة</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="seasa.html" data-title="سياسة الخصوصية">
-                        <i class="fas fa-shield-alt w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">سياسة الخصوصية</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                    <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="mrwan.html" data-title="من نحن">
-                        <i class="fas fa-info-circle w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                        <span class="flex-1 text-sm font-medium">من نحن</span>
-                        <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="space-y-1 mt-2">
-                <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all hover:translate-x-[-5px] group" data-page="manjr_tagr_snf.html" data-title="تسجيل الدخول">
-                    <i class="fas fa-sign-in-alt w-6 text-primary group-hover:text-warning group-hover:scale-110 transition-all"></i>
-                    <span class="flex-1 text-sm font-medium">تسجيل الدخول</span>
-                    <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
-                </div>
-                <div id="logoutMenuItem" class="flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 cursor-pointer transition-all hover:translate-x-[-5px] text-danger hidden">
-                    <i class="fas fa-sign-out-alt w-6"></i>
-                    <span class="flex-1 text-sm font-medium">تسجيل الخروج</span>
-                    <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
+        <div id="shareModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[3000] hidden items-center justify-center">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-[90%] relative shadow-2xl animate-fade-in">
+                <button id="shareModalClose" class="absolute top-4 left-4 w-9 h-9 rounded-xl bg-gray-100 hover:bg-danger hover:text-white transition-all flex items-center justify-center"><i class="fas fa-times"></i></button>
+                <h3 class="text-2xl font-bold text-center bg-gradient-to-r from-dark to-primary bg-clip-text text-transparent mb-5"><i class="fas fa-share-alt ml-2"></i> مشاركة التطبيق</h3>
+                <div class="text-center">
+                    <button onclick="navigator.clipboard.writeText('https://az-market.com'); showNotification('تم نسخ الرابط بنجاح', 'success')" class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-full font-bold hover:shadow-lg transition-all"><i class="fas fa-copy ml-2"></i> نسخ الرابط</button>
                 </div>
             </div>
         </div>
-    </div>
+        
+        <div id="adminModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[3000] hidden items-center justify-center">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-[90%] relative shadow-2xl animate-fade-in">
+                <button id="adminModalClose" class="absolute top-4 left-4 w-9 h-9 rounded-xl bg-gray-100 hover:bg-danger hover:text-white transition-all flex items-center justify-center"><i class="fas fa-times"></i></button>
+                <h3 class="text-2xl font-bold text-center bg-gradient-to-r from-dark to-primary bg-clip-text text-transparent mb-5"><i class="fas fa-cog ml-2"></i> لوحة الإدارة</h3>
+                <div class="text-center">
+                    <input type="password" id="adminPassword" class="w-full p-3 border-2 border-gray-200 rounded-2xl text-center focus:border-primary focus:outline-none transition-all mb-4" placeholder="كلمة المرور">
+                    <button id="adminLoginBtn" class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-full font-bold hover:shadow-lg transition-all w-full">دخول</button>
+                    <p id="adminErrorMsg" class="text-danger text-sm mt-3 hidden"></p>
+                </div>
+            </div>
+        </div>
 
-    <!-- المودالات -->
-    <div id="installModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[3000] hidden items-center justify-center">
-        <div class="bg-white rounded-3xl p-8 max-w-md w-[90%] relative shadow-2xl animate-fade-in">
-            <button id="installModalClose" class="absolute top-4 left-4 w-9 h-9 rounded-xl bg-gray-100 hover:bg-danger hover:text-white transition-all flex items-center justify-center"><i class="fas fa-times"></i></button>
-            <h3 class="text-2xl font-bold text-center bg-gradient-to-r from-dark to-primary bg-clip-text text-transparent mb-5"><i class="fas fa-download ml-2"></i> تثبيت التطبيق</h3>
-            <div class="text-center">
-                <button onclick="window.open('https://play.google.com','_blank')" class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-full font-bold hover:shadow-lg transition-all"><i class="fab fa-google-play ml-2"></i> Google Play</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="shareModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[3000] hidden items-center justify-center">
-        <div class="bg-white rounded-3xl p-8 max-w-md w-[90%] relative shadow-2xl animate-fade-in">
-            <button id="shareModalClose" class="absolute top-4 left-4 w-9 h-9 rounded-xl bg-gray-100 hover:bg-danger hover:text-white transition-all flex items-center justify-center"><i class="fas fa-times"></i></button>
-            <h3 class="text-2xl font-bold text-center bg-gradient-to-r from-dark to-primary bg-clip-text text-transparent mb-5"><i class="fas fa-share-alt ml-2"></i> مشاركة التطبيق</h3>
-            <div class="text-center">
-                <button onclick="navigator.clipboard.writeText('https://az-market.com'); showNotification('تم نسخ الرابط بنجاح', 'success')" class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-full font-bold hover:shadow-lg transition-all"><i class="fas fa-copy ml-2"></i> نسخ الرابط</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="adminModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[3000] hidden items-center justify-center">
-        <div class="bg-white rounded-3xl p-8 max-w-md w-[90%] relative shadow-2xl animate-fade-in">
-            <button id="adminModalClose" class="absolute top-4 left-4 w-9 h-9 rounded-xl bg-gray-100 hover:bg-danger hover:text-white transition-all flex items-center justify-center"><i class="fas fa-times"></i></button>
-            <h3 class="text-2xl font-bold text-center bg-gradient-to-r from-dark to-primary bg-clip-text text-transparent mb-5"><i class="fas fa-cog ml-2"></i> لوحة الإدارة</h3>
-            <div class="text-center">
-                <input type="password" id="adminPassword" class="w-full p-3 border-2 border-gray-200 rounded-2xl text-center focus:border-primary focus:outline-none transition-all mb-4" placeholder="كلمة المرور">
-                <button id="adminLoginBtn" class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-full font-bold hover:shadow-lg transition-all w-full">دخول</button>
-                <p id="adminErrorMsg" class="text-danger text-sm mt-3 hidden"></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- شريط البحث والإحصائيات -->
-    <div class="fixed top-[70px] left-0 right-0 bg-white border-b border-gray-100 z-[999] shadow-sm px-4 md:px-6 py-3">
-        <div class="flex gap-3 mb-3">
-            <div class="flex-1 relative">
-                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="text" id="searchInput" class="w-full p-3 pr-12 pl-12 rounded-full border-2 border-gray-100 focus:border-primary focus:outline-none transition-all text-sm" placeholder="ابحث عن منتج، قسم، أو تاجر...">
-                <button id="clearSearchBtn" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-danger hidden"><i class="fas fa-times-circle"></i></button>
-                <div id="autocompleteContainer" class="absolute top-full left-0 right-0 bg-white rounded-2xl shadow-xl mt-2 z-[1000] hidden border border-gray-100 overflow-hidden">
-                    <div class="flex justify-end p-2 bg-gray-50 border-b border-gray-100">
-                        <button id="autocompleteCloseBtn" class="text-xs text-gray-500 hover:text-white hover:bg-danger px-3 py-1 rounded-full transition-all"><i class="fas fa-times ml-1"></i> إغلاق</button>
+        <!-- شريط البحث والإحصائيات -->
+        <div class="fixed top-[70px] left-0 right-0 bg-white border-b border-gray-100 z-[999] shadow-sm px-4 md:px-6 py-3">
+            <div class="flex gap-3 mb-3">
+                <div class="flex-1 relative">
+                    <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="searchInput" class="w-full p-3 pr-12 pl-12 rounded-full border-2 border-gray-100 focus:border-primary focus:outline-none transition-all text-sm" placeholder="ابحث عن منتج، قسم، أو تاجر...">
+                    <button id="clearSearchBtn" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-danger hidden"><i class="fas fa-times-circle"></i></button>
+                    <div id="autocompleteContainer" class="absolute top-full left-0 right-0 bg-white rounded-2xl shadow-xl mt-2 z-[1000] hidden border border-gray-100 overflow-hidden">
+                        <div class="flex justify-end p-2 bg-gray-50 border-b border-gray-100">
+                            <button id="autocompleteCloseBtn" class="text-xs text-gray-500 hover:text-white hover:bg-danger px-3 py-1 rounded-full transition-all"><i class="fas fa-times ml-1"></i> إغلاق</button>
+                        </div>
+                        <div id="autocompleteTabs" class="flex border-b border-gray-100 bg-white"></div>
+                        <div id="autocompleteContent" class="max-h-[350px] overflow-y-auto p-2"></div>
                     </div>
-                    <div id="autocompleteTabs" class="flex border-b border-gray-100 bg-white"></div>
-                    <div id="autocompleteContent" class="max-h-[350px] overflow-y-auto p-2"></div>
                 </div>
+                <button id="toggleFiltersBtn" class="bg-gray-100 hover:bg-gray-200 px-5 rounded-full flex items-center gap-2 text-sm font-medium transition-all"><i class="fas fa-sliders-h"></i> فلترة</button>
             </div>
-            <button id="toggleFiltersBtn" class="bg-gray-100 hover:bg-gray-200 px-5 rounded-full flex items-center gap-2 text-sm font-medium transition-all"><i class="fas fa-sliders-h"></i> فلترة</button>
+            <div class="flex justify-center gap-4 flex-wrap">
+                <div class="bg-gray-100 px-4 py-1.5 rounded-full text-xs flex items-center gap-2"><i class="fas fa-box text-primary"></i> المنتجات: <span id="productsCount" class="font-bold">0</span></div>
+                <div class="bg-gray-100 px-4 py-1.5 rounded-full text-xs flex items-center gap-2"><i class="fas fa-store text-primary"></i> الشركات: <span id="merchantsCount" class="font-bold">0</span></div>
+                <div class="bg-gray-100 px-4 py-1.5 rounded-full text-xs flex items-center gap-2"><i class="fas fa-users text-primary"></i> متصل الآن: <span id="onlineCount" class="font-bold">0</span></div>
+            </div>
         </div>
-        <div class="flex justify-center gap-4 flex-wrap">
-            <div class="bg-gray-100 px-4 py-1.5 rounded-full text-xs flex items-center gap-2"><i class="fas fa-box text-primary"></i> المنتجات: <span id="productsCount" class="font-bold">0</span></div>
-            <div class="bg-gray-100 px-4 py-1.5 rounded-full text-xs flex items-center gap-2"><i class="fas fa-store text-primary"></i> الشركات: <span id="merchantsCount" class="font-bold">0</span></div>
-            <div class="bg-gray-100 px-4 py-1.5 rounded-full text-xs flex items-center gap-2"><i class="fas fa-users text-primary"></i> متصل الآن: <span id="onlineCount" class="font-bold">0</span></div>
-        </div>
-    </div>
 
-    <!-- شريط الفلاتر -->
-    <div id="filtersBar" class="fixed top-[138px] left-0 right-0 bg-white border-b border-gray-100 z-[998] shadow-sm p-4 hidden flex-wrap gap-3 transition-all">
-        <div class="flex-1 min-w-[140px]">
-            <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-city ml-1"></i> المحافظة</label>
-            <select id="governorateFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="">الكل</option></select>
+        <!-- شريط الفلاتر -->
+        <div id="filtersBar" class="fixed top-[138px] left-0 right-0 bg-white border-b border-gray-100 z-[998] shadow-sm p-4 hidden flex-wrap gap-3 transition-all">
+            <div class="flex-1 min-w-[140px]">
+                <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-city ml-1"></i> المحافظة</label>
+                <select id="governorateFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="">الكل</option></select>
+            </div>
+            <div class="flex-1 min-w-[140px]">
+                <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-map-marker-alt ml-1"></i> المنطقة</label>
+                <select id="regionFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="">الكل</option></select>
+            </div>
+            <div class="flex-1 min-w-[140px]">
+                <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-tags ml-1"></i> القسم</label>
+                <select id="categoryFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="">الكل</option></select>
+            </div>
+            <div class="flex-1 min-w-[140px]">
+                <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-user ml-1"></i> التاجر</label>
+                <select id="merchantFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="">الكل</option></select>
+            </div>
+            <div class="flex-1 min-w-[140px]">
+                <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-sort ml-1"></i> الترتيب</label>
+                <select id="sortFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="date">الأحدث</option><option value="price">السعر (منخفض)</option><option value="price-desc">السعر (مرتفع)</option><option value="name">الاسم</option><option value="relevance">الأكثر صلة</option></select>
+            </div>
+            <button id="resetFiltersBtn" class="bg-gradient-to-r from-danger to-red-700 text-white px-6 rounded-xl flex items-center gap-2 text-sm font-bold transition-all hover:shadow-md"><i class="fas fa-undo-alt"></i> إعادة تعيين</button>
         </div>
-        <div class="flex-1 min-w-[140px]">
-            <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-map-marker-alt ml-1"></i> المنطقة</label>
-            <select id="regionFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="">الكل</option></select>
-        </div>
-        <div class="flex-1 min-w-[140px]">
-            <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-tags ml-1"></i> القسم</label>
-            <select id="categoryFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="">الكل</option></select>
-        </div>
-        <div class="flex-1 min-w-[140px]">
-            <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-user ml-1"></i> التاجر</label>
-            <select id="merchantFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="">الكل</option></select>
-        </div>
-        <div class="flex-1 min-w-[140px]">
-            <label class="text-xs text-gray-500 font-semibold block mb-1"><i class="fas fa-sort ml-1"></i> الترتيب</label>
-            <select id="sortFilter" class="w-full p-2 border-2 border-gray-100 rounded-xl focus:border-primary focus:outline-none text-sm"><option value="date">الأحدث</option><option value="price">السعر (منخفض)</option><option value="price-desc">السعر (مرتفع)</option><option value="name">الاسم</option><option value="relevance">الأكثر صلة</option></select>
-        </div>
-        <button id="resetFiltersBtn" class="bg-gradient-to-r from-danger to-red-700 text-white px-6 rounded-xl flex items-center gap-2 text-sm font-bold transition-all hover:shadow-md"><i class="fas fa-undo-alt"></i> إعادة تعيين</button>
-    </div>
 
-    <!-- شبكة المنتجات -->
-    <div id="productsContainer" class="max-w-7xl mx-auto px-4 md:px-6 py-6">
-        <div class="text-center py-16 text-primary text-lg"><i class="fas fa-spinner fa-pulse text-3xl"></i><br>جاري التحميل...</div>
-    </div>
-
-    <!-- صفحة المنتج المنفصلة -->
-    <div id="productPage" class="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 z-[4000] overflow-y-auto hidden">
-        <div class="sticky top-0 bg-gradient-to-r from-dark to-secondary px-5 py-4 flex items-center justify-between text-white z-10 shadow-md">
-            <button id="closeProductPageBtn" class="w-10 h-10 rounded-xl bg-white/15 hover:bg-danger text-white transition-all duration-300 flex items-center justify-center"><i class="fas fa-times text-xl"></i></button>
-            <h2 class="text-lg font-bold"><i class="fas fa-box ml-2"></i> تفاصيل المنتج</h2>
-            <div class="w-10"></div>
+        <!-- شبكة المنتجات -->
+        <div id="productsContainer" class="max-w-7xl mx-auto px-4 md:px-6 py-6" style="margin-top: 130px;">
+            <div class="text-center py-16 text-primary text-lg"><i class="fas fa-spinner fa-pulse text-3xl"></i><br>جاري التحميل...</div>
         </div>
-        <div id="productPageContent" class="max-w-3xl mx-auto p-5"></div>
+
+        <!-- صفحة المنتج المنفصلة -->
+        <div id="productPage" class="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 z-[4000] overflow-y-auto hidden">
+            <div class="sticky top-0 bg-gradient-to-r from-dark to-secondary px-5 py-4 flex items-center justify-between text-white z-10 shadow-md">
+                <button id="closeProductPageBtn" class="w-10 h-10 rounded-xl bg-white/15 hover:bg-danger text-white transition-all duration-300 flex items-center justify-center"><i class="fas fa-times text-xl"></i></button>
+                <h2 class="text-lg font-bold"><i class="fas fa-box ml-2"></i> تفاصيل المنتج</h2>
+                <div class="w-10"></div>
+            </div>
+            <div id="productPageContent" class="max-w-3xl mx-auto p-5"></div>
+        </div>
     </div>
 
     <script>
@@ -401,8 +487,9 @@
         const productPage = document.getElementById('productPage');
         const productPageContent = document.getElementById('productPageContent');
         const closeProductPageBtn = document.getElementById('closeProductPageBtn');
+        const mainContent = document.getElementById('mainContent');
         
-        // عناصر عرض الصفحات المضمنة
+        // Elements for embedded pages
         const pageContentContainer = document.getElementById('pageContentContainer');
         const pageContentBody = document.getElementById('pageContentBody');
         const closePageContentBtn = document.getElementById('closePageContentBtn');
@@ -446,18 +533,6 @@
             setTimeout(() => notif.remove(), 3000);
         }
         
-        function updateBodyPaddingTop() {
-            const header = document.querySelector('header');
-            const searchSection = document.querySelector('.fixed.top-\\[70px\\]');
-            const filtersBarEl = document.getElementById('filtersBar');
-            let totalHeight = 70;
-            if (searchSection) totalHeight += searchSection.offsetHeight;
-            if (filtersBarEl && filtersBarEl.classList.contains('hidden') === false) totalHeight += filtersBarEl.offsetHeight;
-            document.documentElement.style.setProperty('--header-offset', totalHeight + 'px');
-            document.body.style.paddingTop = totalHeight + 'px';
-            if (pageContentContainer) pageContentContainer.style.top = totalHeight + 'px';
-        }
-        
         function updateCartIconColor() { favoritesBtn.classList.toggle('bg-success/20', Object.keys(favoriteProducts).length > 0); }
         
         function toggleFavorite(productId, btnElement) {
@@ -475,27 +550,19 @@
             if (showFavoritesOnly) filterAndDisplay();
         }
         
-        // ========== دالة عرض الصفحات المضمنة (بدون iframe) ==========
+        // Load external page content using Fetch API - مع الحفاظ على الهيدر
         async function loadPageContent(pageUrl, pageTitle) {
             if (!pageUrl) return;
             
-            // إظهار مؤشر التحميل
+            // إخفاء المحتوى الرئيسي فقط (شريط البحث والمنتجات)
+            mainContent.classList.add('main-content-hidden');
+            
+            // إظهار حاوية الصفحة
             pageTitleSpan.textContent = pageTitle || pageUrl;
             pageContentBody.innerHTML = '<div class="loading-content"><i class="fas fa-spinner fa-pulse text-2xl ml-2"></i> جاري تحميل الصفحة...</div>';
             pageContentContainer.classList.add('active');
             
-            // إخفاء المحتوى الرئيسي
-            productsContainer.style.display = 'none';
-            document.querySelector('.fixed.top-\\[70px\\]').style.display = 'none';
-            if (filtersBar) filtersBar.style.display = 'none';
-            
-            // تحديث الـ padding
-            const headerHeight = 70;
-            document.body.style.paddingTop = headerHeight + 'px';
-            document.documentElement.style.setProperty('--header-offset', headerHeight + 'px');
-            pageContentContainer.style.top = headerHeight + 'px';
-            
-            // إغلاق القائمة الجانبية
+            // إغلاق القائمة الجانبية إذا كانت مفتوحة
             sideMenu.classList.remove('right-0');
             sideMenu.classList.add('right-[-340px]');
             sideMenuOverlay.classList.add('hidden');
@@ -504,7 +571,6 @@
             history.pushState({ pageContentOpen: true, pageUrl: pageUrl, pageTitle: pageTitle }, '', window.location.pathname);
             
             try {
-                // محاولة جلب محتوى الصفحة باستخدام fetch
                 const response = await fetch(pageUrl);
                 
                 if (!response.ok) {
@@ -512,13 +578,9 @@
                 }
                 
                 const html = await response.text();
-                
-                // استخراج محتوى body فقط
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const bodyContent = doc.body.innerHTML;
-                
-                // إضافة تنسيق إضافي للصفحة المضمنة
                 const styles = doc.querySelector('style')?.innerHTML || '';
                 const links = Array.from(doc.querySelectorAll('link')).map(link => link.outerHTML).join('');
                 
@@ -528,18 +590,16 @@
                         <style>${styles}</style>
                         <style>
                             /* تنسيق إضافي للصفحة المضمنة */
-                            .embedded-page { direction: rtl; }
+                            .embedded-page { direction: rtl; padding: 0; margin: 0; }
                             .embedded-page img { max-width: 100%; height: auto; }
                             .embedded-page table { width: 100%; overflow-x: auto; display: block; }
-                            @media (max-width: 768px) {
-                                .embedded-page { font-size: 14px; }
-                            }
+                            body { margin: 0; padding: 0; }
                         </style>
                         ${bodyContent}
                     </div>
                 `;
                 
-                // تنفيذ أي سكربتات داخل الصفحة
+                // تنفيذ السكربتات
                 const scripts = pageContentBody.querySelectorAll('script');
                 scripts.forEach(oldScript => {
                     const newScript = document.createElement('script');
@@ -551,6 +611,9 @@
                     document.body.appendChild(newScript);
                     oldScript.remove();
                 });
+                
+                // التمرير إلى أعلى الصفحة
+                pageContentContainer.scrollTop = 0;
                 
             } catch (error) {
                 console.error('Error loading page:', error);
@@ -567,13 +630,10 @@
         }
         
         function closePageContent() {
+            // إخفاء حاوية الصفحة
             pageContentContainer.classList.remove('active');
-            productsContainer.style.display = 'grid';
-            document.querySelector('.fixed.top-\\[70px\\]').style.display = 'block';
-            if (filtersBar && filtersBar.classList.contains('hidden') === false) filtersBar.style.display = 'flex';
-            else if (filtersBar) filtersBar.style.display = 'none';
-            updateBodyPaddingTop();
-            filterAndDisplay();
+            // إظهار المحتوى الرئيسي
+            mainContent.classList.remove('main-content-hidden');
             history.pushState({ pageContentOpen: false }, '', window.location.pathname);
         }
         
@@ -1081,7 +1141,6 @@
             const filtered = getFilteredProducts();
             renderProducts(filtered);
             updateStatsCounts();
-            setTimeout(updateBodyPaddingTop, 100);
         }
         
         async function loadAllData() {
@@ -1126,7 +1185,6 @@
                 populateFilters();
                 filterAndDisplay();
                 updateCartIconColor();
-                setTimeout(updateBodyPaddingTop, 200);
             } catch (error) {
                 console.error("Load error:", error);
                 productsContainer.innerHTML = '<div class="text-center py-16 text-danger"><i class="fas fa-exclamation-triangle text-5xl mb-4"></i><br>حدث خطأ في تحميل البيانات</div>';
@@ -1185,7 +1243,7 @@
             });
         }
         
-        // ربط روابط الصفحات الداخلية
+        // Internal page links
         document.querySelectorAll('.internal-page-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -1208,7 +1266,6 @@
         
         document.getElementById('toggleFiltersBtn')?.addEventListener('click', () => {
             filtersBar.classList.toggle('hidden');
-            updateBodyPaddingTop();
         });
         
         document.getElementById('resetFiltersBtn')?.addEventListener('click', () => {
@@ -1252,8 +1309,6 @@
                 autocompleteContainer.classList.add('hidden');
             }
         });
-        
-        window.addEventListener('resize', () => updateBodyPaddingTop());
         
         window.addEventListener('popstate', (event) => {
             if (isProductPageOpen) {
