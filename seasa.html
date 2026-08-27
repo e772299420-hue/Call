@@ -23,7 +23,7 @@
     table { border-collapse: collapse; width: 100%; font-size: 10px; text-align: center; }
     th, td { border: 1px solid #81d4fa; padding: 4px 2px; white-space: nowrap; }
     
-    /* ألوان القطاعات بحسب الصورة */
+    /* ألوان القطاعات */
     .bg-blue-dark { background-color: #3f51b5; color: white; }
     .bg-blue-light { background-color: #7986cb; color: white; }
     .bg-green-dark { background-color: #2e7d32; color: white; }
@@ -62,9 +62,11 @@
       <div>
         <label>اختيار القاضي</label>
         <select id="judgeSelect" required>
-          <option value="القاضي أحمد علي">القاضي أحمد علي</option>
-          <option value="القاضي محمد عمر">القاضي محمد عمر</option>
-          <option value="القاضي خالد عبد الله">القاضي خالد عبد الله</option>
+          <option value="القاضي ماجد الزمر">القاضي ماجد الزمر</option>
+          <option value="القاضي فاروق">القاضي فاروق</option>
+          <option value="القاضي زكريا">القاضي زكريا</option>
+          <option value="القاضي هشام">القاضي هشام</option>
+          <option value="القاضي حمزة">القاضي حمزة</option>
         </select>
       </div>
 
@@ -124,9 +126,11 @@
     <div class="filter-group">
       <label for="viewJudgeSelect">عرض جدول القاضي:</label>
       <select id="viewJudgeSelect" onchange="renderTableForJudge()">
-        <option value="القاضي أحمد علي">القاضي أحمد علي</option>
-        <option value="القاضي محمد عمر">القاضي محمد عمر</option>
-        <option value="القاضي خالد عبد الله">القاضي خالد عبد الله</option>
+        <option value="القاضي ماجد الزمر">القاضي ماجد الزمر</option>
+        <option value="القاضي فاروق">القاضي فاروق</option>
+        <option value="القاضي زكريا">القاضي زكريا</option>
+        <option value="القاضي هشام">القاضي هشام</option>
+        <option value="القاضي حمزة">القاضي حمزة</option>
       </select>
     </div>
     <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة النموذج الكامل</button>
@@ -147,14 +151,12 @@
         <tr>
           <th colspan="2" class="bg-blue-light">المُرحّل (مُحالة)</th>
           <th class="bg-blue-light">وارد الشهر</th>
-
           <th colspan="2" class="bg-green-light">منتهي - حكم</th>
           <th colspan="2" class="bg-green-light">منتهي - صلح</th>
           <th colspan="2" class="bg-green-light">منتهي - شطب</th>
           <th colspan="2" class="bg-green-light">منتهي - تنازل</th>
           <th colspan="2" class="bg-green-light">منتهي - أخرى</th>
           <th colspan="2" class="bg-green-light">إجمالي المنتهي</th>
-
           <th colspan="2" class="bg-brown-light">منظورة</th>
           <th colspan="2" class="bg-brown-light">محيطة/محجوزة</th>
           <th colspan="2" class="bg-brown-light">مستأنفة</th>
@@ -264,7 +266,6 @@
       let grandTotal = 0;
 
       caseTypes.forEach(type => {
-        // حساب التجميع التلقائي للمنتهي
         currentJudgeData[type]['ended_total_prev'] = 
           (currentJudgeData[type]['ended_judg_prev'] || 0) +
           (currentJudgeData[type]['ended_reconc_prev'] || 0) +
@@ -292,7 +293,6 @@
         columnKeys.forEach(key => {
           const val = currentJudgeData[type][key] || 0;
           
-          // تجنب دبل حساب المجموع الإجمالي التراكمي
           if (!key.startsWith('ended_total_')) {
             rowTotal += val;
             colTotals[key] += val;
@@ -325,7 +325,6 @@
         tbody.appendChild(tr);
       });
 
-      // إعداد صف الإجمالي السفلي العمودي
       const trFoot = document.createElement('tr');
       const tdFootTitle = document.createElement('td');
       tdFootTitle.className = 'total-cell';
@@ -374,380 +373,3 @@
   </script>
 </body>
 </html>
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>النموذج القضائي الشامل للترحيل والإحصاء</title>
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; margin: 15px; }
-    .card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-items: end; }
-    label { font-weight: bold; font-size: 11px; display: block; margin-bottom: 4px; }
-    select, input, button { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 12px; }
-    
-    .btn-submit { background-color: #1b5e20; color: white; border: none; font-weight: bold; cursor: pointer; height: 32px; }
-    .btn-submit:hover { background-color: #2e7d32; }
-    
-    .btn-print { background-color: #0288d1; color: white; border: none; font-weight: bold; cursor: pointer; height: 32px; padding: 0 15px; width: auto; }
-
-    .filter-bar { background: #e8f5e9; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
-    .filter-group { display: flex; align-items: center; gap: 10px; }
-
-    /* تنسيقات الجدول التفصيلي */
-    .table-container { overflow-x: auto; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    table { border-collapse: collapse; width: 100%; font-size: 10px; text-align: center; }
-    th, td { border: 1px solid #81d4fa; padding: 4px 2px; white-space: nowrap; }
-    
-    /* ألوان القطاعات بحسب الصورة */
-    .bg-blue-dark { background-color: #3f51b5; color: white; }
-    .bg-blue-light { background-color: #7986cb; color: white; }
-    .bg-green-dark { background-color: #2e7d32; color: white; }
-    .bg-green-light { background-color: #81c784; color: #000; }
-    .bg-brown-dark { background-color: #8d6e63; color: white; }
-    .bg-brown-light { background-color: #d7ccc8; color: #000; }
-    .bg-gold { background-color: #f57f17; color: white; }
-    
-    .row-header { background-color: #f5f5f5; font-weight: bold; text-align: right; padding-right: 5px; }
-    .total-cell { background-color: #eceff1; font-weight: bold; color: #000; }
-    .grand-total { background-color: #cfd8dc; font-weight: bold; color: #000; }
-
-    .updated-cell { animation: highlight 1.5s ease-out; }
-    @keyframes highlight {
-      0% { background-color: #ffe082; transform: scale(1.1); }
-      100% { background-color: transparent; transform: scale(1); }
-    }
-
-    @media print {
-      @page { size: landscape; margin: 5mm; }
-      body { background: #fff; margin: 0; }
-      .no-print, .card, .filter-bar { display: none !important; }
-      .table-container { box-shadow: none; padding: 0; }
-      .print-title { display: block !important; text-align: center; margin-bottom: 10px; font-size: 14px; font-weight: bold; }
-      table { font-size: 8px; width: 100%; }
-      th, td { border: 1px solid #000 !important; padding: 2px 1px; }
-    }
-    .print-title { display: none; }
-  </style>
-</head>
-<body>
-
-  <div class="card no-print">
-    <h4 style="margin:0 0 10px 0; color:#1a237e;">إدخال وتحديث بيانات النموذج التفصيلي</h4>
-    <form id="entryForm" class="form-grid">
-      <div>
-        <label>اختيار القاضي</label>
-        <select id="judgeSelect" required>
-          <option value="القاضي أحمد علي">القاضي أحمد علي</option>
-          <option value="القاضي محمد عمر">القاضي محمد عمر</option>
-          <option value="القاضي خالد عبد الله">القاضي خالد عبد الله</option>
-        </select>
-      </div>
-
-      <div>
-        <label>نوع القضية</label>
-        <select id="caseType" required>
-          <option value="إعادة">إعادة</option>
-          <option value="شاملة">شاملة</option>
-          <option value="أوامر ولائية">أوامر ولائية</option>
-          <option value="جنائي جسيم">جنائي جسيم</option>
-          <option value="جنائي غير جسيم">جنائي غير جسيم</option>
-          <option value="شخصية">شخصية</option>
-          <option value="ملكية رد اعتبار">ملكية رد اعتبار</option>
-          <option value="عمالية">عمالية</option>
-          <option value="مستعجلة">مستعجلة</option>
-          <option value="منازعات التنفيذ">منازعات التنفيذ</option>
-        </select>
-      </div>
-
-      <div>
-        <label>القطاع / التصنيف</label>
-        <select id="mainCategory" onchange="updateSubStatus()" required>
-          <option value="المُرحّل والمعروض">المُرحّل والقضايا المعروضة</option>
-          <option value="المنتهية">القضايا المنتهية (بحسب نوع الإنهاء)</option>
-          <option value="المتبقية">القضايا المتبقية ومستويات السلسلة</option>
-        </select>
-      </div>
-
-      <div>
-        <label>تفصيل الحالة / نوع الإنهاء</label>
-        <select id="subStatus" required></select>
-      </div>
-
-      <div>
-        <label>الفرع الزمني</label>
-        <select id="timePeriod" required>
-          <option value="p1445">1445 وما قبل</option>
-          <option value="p1446">1446</option>
-          <option value="p1447">1447</option>
-          <option value="p1448">1448</option>
-          <option value="pCurrent">هذا الشهر</option>
-        </select>
-      </div>
-
-      <div>
-        <label>العدد</label>
-        <input type="number" id="caseCount" min="1" value="1" required>
-      </div>
-
-      <div>
-        <button type="submit" class="btn-submit">ترحيل للجدول</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="filter-bar no-print">
-    <div class="filter-group">
-      <label for="viewJudgeSelect">عرض جدول القاضي:</label>
-      <select id="viewJudgeSelect" onchange="renderTableForJudge()">
-        <option value="القاضي أحمد علي">القاضي أحمد علي</option>
-        <option value="القاضي محمد عمر">القاضي محمد عمر</option>
-        <option value="القاضي خالد عبد الله">القاضي خالد عبد الله</option>
-      </select>
-    </div>
-    <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة النموذج الكامل</button>
-  </div>
-
-  <div class="print-title" id="printHeaderTitle">جدول الإحصائية القضائية التفصيلي</div>
-
-  <div class="table-container">
-    <table id="matrixTable">
-      <thead>
-        <tr>
-          <th rowspan="3" class="bg-blue-dark">نوع القضية</th>
-          <th colspan="3" class="bg-blue-dark">القضايا المعروضة (العرض والتدقيق)</th>
-          <th colspan="12" class="bg-green-dark">القضايا المنتهية (بحسب نوع الإنهاء والقرار)</th>
-          <th colspan="6" class="bg-brown-dark">القضايا المتبقية - حسب المرحلة</th>
-          <th rowspan="3" class="bg-gold">التصنيف النهائي / إجمالي الحركة</th>
-        </tr>
-        <tr>
-          <th colspan="2" class="bg-blue-light">المُرحّل (مُحالة)</th>
-          <th class="bg-blue-light">وارد الشهر</th>
-
-          <th colspan="2" class="bg-green-light">منتهي - حكم</th>
-          <th colspan="2" class="bg-green-light">منتهي - صلح</th>
-          <th colspan="2" class="bg-green-light">منتهي - شطب</th>
-          <th colspan="2" class="bg-green-light">منتهي - تنازل</th>
-          <th colspan="2" class="bg-green-light">منتهي - أخرى</th>
-          <th colspan="2" class="bg-green-light">إجمالي المنتهي</th>
-
-          <th colspan="2" class="bg-brown-light">منظورة</th>
-          <th colspan="2" class="bg-brown-light">محيطة/محجوزة</th>
-          <th colspan="2" class="bg-brown-light">مستأنفة</th>
-        </tr>
-        <tr>
-          <th>1445-</th><th>الشهر</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-      <tfoot id="tableFoot"></tfoot>
-    </table>
-  </div>
-
-  <script>
-    const caseTypes = [
-      "إعادة", "شاملة", "أوامر ولائية", "جنائي جسيم", 
-      "جنائي غير جسيم", "شخصية", "ملكية رد اعتبار", 
-      "عمالية", "مستعجلة", "منازعات التنفيذ"
-    ];
-
-    const columnKeys = [
-      'offered_prev', 'offered_curr', 'incoming_curr',
-      'ended_judg_prev', 'ended_judg_curr',
-      'ended_reconc_prev', 'ended_reconc_curr',
-      'ended_strike_prev', 'ended_strike_curr',
-      'ended_waiver_prev', 'ended_waiver_curr',
-      'ended_other_prev', 'ended_other_curr',
-      'ended_total_prev', 'ended_total_curr',
-      'rem_pending_prev', 'rem_pending_curr',
-      'rem_reserved_prev', 'rem_reserved_curr',
-      'rem_appealed_prev', 'rem_appealed_curr'
-    ];
-
-    const subStatuses = {
-      'المُرحّل والمعروض': [
-        { label: 'المُرحّل سابقاً (1445 وما قبل)', key: 'offered_prev' },
-        { label: 'المُرحّل (هذا الشهر)', key: 'offered_curr' },
-        { label: 'وارد الشهر الحالي', key: 'incoming_curr' }
-      ],
-      'المنتهية': [
-        { label: 'منتهي - حكم (سابق)', key: 'ended_judg_prev' },
-        { label: 'منتهي - حكم (هذا الشهر)', key: 'ended_judg_curr' },
-        { label: 'منتهي - صلح (سابق)', key: 'ended_reconc_prev' },
-        { label: 'منتهي - صلح (هذا الشهر)', key: 'ended_reconc_curr' },
-        { label: 'منتهي - شطب (سابق)', key: 'ended_strike_prev' },
-        { label: 'منتهي - شطب (هذا الشهر)', key: 'ended_strike_curr' },
-        { label: 'منتهي - تنازل (سابق)', key: 'ended_waiver_prev' },
-        { label: 'منتهي - تنازل (هذا الشهر)', key: 'ended_waiver_curr' },
-        { label: 'منتهي - أخرى (سابق)', key: 'ended_other_prev' },
-        { label: 'منتهي - أخرى (هذا الشهر)', key: 'ended_other_curr' }
-      ],
-      'المتبقية': [
-        { label: 'منظورة (سابق)', key: 'rem_pending_prev' },
-        { label: 'منظورة (هذا الشهر)', key: 'rem_pending_curr' },
-        { label: 'محيطة/محجوزة (سابق)', key: 'rem_reserved_prev' },
-        { label: 'محيطة/محجوزة (هذا الشهر)', key: 'rem_reserved_curr' },
-        { label: 'مستأنفة (سابق)', key: 'rem_appealed_prev' },
-        { label: 'مستأنفة (هذا الشهر)', key: 'rem_appealed_curr' }
-      ]
-    };
-
-    const judgesData = {};
-
-    function updateSubStatus() {
-      const mainCat = document.getElementById('mainCategory').value;
-      const subSelect = document.getElementById('subStatus');
-      subSelect.innerHTML = '';
-      
-      subStatuses[mainCat].forEach(status => {
-        const option = document.createElement('option');
-        option.value = status.key;
-        option.textContent = status.label;
-        subSelect.appendChild(option);
-      });
-    }
-
-    function renderTableForJudge(highlightKey = null, highlightCaseType = null) {
-      const selectedJudge = document.getElementById('viewJudgeSelect').value;
-      const tbody = document.getElementById('tableBody');
-      const tfoot = document.getElementById('tableFoot');
-      
-      document.getElementById('printHeaderTitle').textContent = `التقرير الإحصائي القضائي الكامل - ${selectedJudge}`;
-      
-      tbody.innerHTML = '';
-      tfoot.innerHTML = '';
-
-      if (!judgesData[selectedJudge]) {
-        judgesData[selectedJudge] = {};
-        caseTypes.forEach(type => {
-          judgesData[selectedJudge][type] = {};
-          columnKeys.forEach(key => judgesData[selectedJudge][type][key] = 0);
-        });
-      }
-
-      const currentJudgeData = judgesData[selectedJudge];
-      const colTotals = {};
-      columnKeys.forEach(key => colTotals[key] = 0);
-      let grandTotal = 0;
-
-      caseTypes.forEach(type => {
-        // حساب التجميع التلقائي للمنتهي
-        currentJudgeData[type]['ended_total_prev'] = 
-          (currentJudgeData[type]['ended_judg_prev'] || 0) +
-          (currentJudgeData[type]['ended_reconc_prev'] || 0) +
-          (currentJudgeData[type]['ended_strike_prev'] || 0) +
-          (currentJudgeData[type]['ended_waiver_prev'] || 0) +
-          (currentJudgeData[type]['ended_other_prev'] || 0);
-
-        currentJudgeData[type]['ended_total_curr'] = 
-          (currentJudgeData[type]['ended_judg_curr'] || 0) +
-          (currentJudgeData[type]['ended_reconc_curr'] || 0) +
-          (currentJudgeData[type]['ended_strike_curr'] || 0) +
-          (currentJudgeData[type]['ended_waiver_curr'] || 0) +
-          (currentJudgeData[type]['ended_other_curr'] || 0);
-
-        const tr = document.createElement('tr');
-        tr.setAttribute('data-case-type', type);
-
-        const tdTitle = document.createElement('td');
-        tdTitle.className = 'row-header';
-        tdTitle.textContent = type;
-        tr.appendChild(tdTitle);
-
-        let rowTotal = 0;
-
-        columnKeys.forEach(key => {
-          const val = currentJudgeData[type][key] || 0;
-          
-          // تجنب دبل حساب المجموع الإجمالي التراكمي
-          if (!key.startsWith('ended_total_')) {
-            rowTotal += val;
-            colTotals[key] += val;
-          } else {
-            colTotals[key] += val;
-          }
-
-          const td = document.createElement('td');
-          td.setAttribute('data-key', key);
-          td.textContent = val;
-
-          if (key.startsWith('ended_total_')) {
-            td.style.backgroundColor = '#e8f5e9';
-            td.style.fontWeight = 'bold';
-          }
-
-          if (highlightKey === key && highlightCaseType === type) {
-            td.classList.add('updated-cell');
-          }
-
-          tr.appendChild(td);
-        });
-
-        const tdRowTotal = document.createElement('td');
-        tdRowTotal.className = 'total-cell';
-        tdRowTotal.textContent = rowTotal;
-        tr.appendChild(tdRowTotal);
-
-        grandTotal += rowTotal;
-        tbody.appendChild(tr);
-      });
-
-      // إعداد صف الإجمالي السفلي العمودي
-      const trFoot = document.createElement('tr');
-      const tdFootTitle = document.createElement('td');
-      tdFootTitle.className = 'total-cell';
-      tdFootTitle.textContent = 'الإجمالي العام';
-      trFoot.appendChild(tdFootTitle);
-
-      columnKeys.forEach(key => {
-        const td = document.createElement('td');
-        td.className = 'total-cell';
-        td.textContent = colTotals[key];
-        trFoot.appendChild(td);
-      });
-
-      const tdGrandTotal = document.createElement('td');
-      tdGrandTotal.className = 'grand-total';
-      tdGrandTotal.textContent = grandTotal;
-      trFoot.appendChild(tdGrandTotal);
-
-      tfoot.appendChild(trFoot);
-    }
-
-    document.getElementById('entryForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      const judge = document.getElementById('judgeSelect').value;
-      const caseType = document.getElementById('caseType').value;
-      const targetKey = document.getElementById('subStatus').value;
-      const count = parseInt(document.getElementById('caseCount').value) || 0;
-
-      if (!judgesData[judge]) {
-        judgesData[judge] = {};
-        caseTypes.forEach(type => {
-          judgesData[judge][type] = {};
-          columnKeys.forEach(key => judgesData[judge][type][key] = 0);
-        });
-      }
-
-      judgesData[judge][caseType][targetKey] += count;
-      document.getElementById('viewJudgeSelect').value = judge;
-
-      renderTableForJudge(targetKey, caseType);
-    });
-
-    updateSubStatus();
-    renderTableForJudge();
-  </script>
-</body>
-</html>
-
