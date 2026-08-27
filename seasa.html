@@ -89,6 +89,7 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.05);
       margin-bottom: 15px;
       border: 1px solid #e0e0e0;
+      display: none; /* مخفي افتراضياً */
     }
 
     .card-title {
@@ -142,6 +143,28 @@
 
     .btn-submit:hover {
       background-color: #2e7d32;
+    }
+
+    .btn-action-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-add-unlock {
+      background-color: #2e7d32;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      height: 35px;
+      padding: 0 16px;
+      width: auto;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    .btn-add-unlock:hover {
+      background-color: #1b5e20;
     }
 
     .btn-print {
@@ -250,7 +273,6 @@
 </head>
 <body>
 
-  <!-- شاشة الترحيب والشعار المتحرك (5 ثوانٍ) -->
   <div id="splashScreen">
     <div class="scale-container">
       <svg class="scale-icon" viewBox="0 0 24 24">
@@ -262,8 +284,7 @@
     <div class="splash-subtitle">النظام القضائي</div>
   </div>
 
-  <!-- نموذج الترحيل والإدخال المحمي -->
-  <div class="card no-print">
+  <div class="card no-print" id="entryCard">
     <h4 class="card-title">🔒 نموذج إدخال وترحيل الإحصائيات القضائية</h4>
     <form id="entryForm" class="form-grid">
       <div>
@@ -313,17 +334,11 @@
       </div>
 
       <div>
-        <label>كلمة السر (2010)</label>
-        <input type="password" id="authPassword" placeholder="***" required>
-      </div>
-
-      <div>
         <button type="submit" class="btn-submit">ترحيل للجدول</button>
       </div>
     </form>
   </div>
 
-  <!-- شريط اختيار القاضي لعرض البيانات والطباعة -->
   <div class="filter-bar no-print">
     <div class="filter-group">
       <label for="viewJudgeSelect">عرض إحصائيات القاضي:</label>
@@ -335,13 +350,15 @@
         <option value="القاضي حمزة">القاضي حمزة</option>
       </select>
     </div>
-    <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير الشامل</button>
+    
+    <div class="btn-action-group">
+      <button type="button" class="btn-add-unlock" onclick="unlockForm()">➕ إضافة بيان</button>
+      <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير الشامل</button>
+    </div>
   </div>
 
-  <!-- عنوان المخرجات عند الطباعة -->
   <div class="print-title" id="printHeaderTitle">جدول الإحصائية القضائية التفصيلي - محكمة ذي السفال الابتدائية</div>
 
-  <!-- الجدول الإحصائي الكامل -->
   <div class="table-container">
     <table id="matrixTable">
       <thead>
@@ -386,9 +403,7 @@
   </div>
 
   <script>
-    // --------------------------------------------------
     // مؤقت شاشة الترحيب (5 ثوانٍ)
-    // --------------------------------------------------
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         const splash = document.getElementById('splashScreen');
@@ -398,6 +413,19 @@
     });
 
     const SECRET_PASSWORD = "2010";
+
+    // تفعيل إظهار حقول الإضافة بكلمة السر
+    function unlockForm() {
+      const password = prompt("يرجى إدخال كلمة السر لفتح حقول الإضافة:");
+      if (password === SECRET_PASSWORD) {
+        const entryCard = document.getElementById('entryCard');
+        entryCard.style.display = 'block';
+        entryCard.scrollIntoView({ behavior: 'smooth' });
+        alert("✅ تم إظهار حقول الإضافة بنجاح.");
+      } else if (password !== null) {
+        alert("❌ كلمة السر غير صحيحة!");
+      }
+    }
 
     const caseTypes = [
       "إعادة", "شاملة", "أوامر ولائية", "جنائي جسيم", 
@@ -565,13 +593,6 @@
     document.getElementById('entryForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
-      const passInput = document.getElementById('authPassword');
-      if (passInput.value !== SECRET_PASSWORD) {
-        alert("❌ كلمة السر غير صحيحة! يرجى إدخال (2010).");
-        passInput.focus();
-        return;
-      }
-
       const judge = document.getElementById('judgeSelect').value;
       const caseType = document.getElementById('caseType').value;
       const targetKey = document.getElementById('subStatus').value;
@@ -589,8 +610,7 @@
       document.getElementById('viewJudgeSelect').value = judge;
 
       renderTableForJudge(targetKey, caseType);
-      
-      passInput.value = '';
+      alert("✅ تم ترحيل البيان بنجاح إلى الجدول.");
     });
 
     updateSubStatus();
