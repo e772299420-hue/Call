@@ -21,6 +21,13 @@
       background-color: var(--bg-light);
       margin: 15px;
       color: #333;
+      display: flex;
+      flex-direction: column;
+      min-height: 97vh;
+    }
+
+    .main-content {
+      flex: 1;
     }
 
     /* -------------------------------------------------- */
@@ -258,6 +265,50 @@
       100% { background-color: transparent; transform: scale(1); }
     }
 
+    /* -------------------------------------------------- */
+    /* تنسيق التذييل (Footer) الاحترافي */
+    /* -------------------------------------------------- */
+    .app-footer {
+      margin-top: 25px;
+      background: linear-gradient(135deg, var(--primary-blue) 0%, #0d1b2a 100%);
+      color: #ffffff;
+      padding: 15px 20px;
+      border-radius: 8px;
+      border-top: 3px solid var(--accent-gold);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+    }
+
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      font-size: 13px;
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-item .role-title {
+      color: var(--accent-gold);
+      font-weight: bold;
+    }
+
+    .footer-item .person-name {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .footer-divider {
+      width: 1px;
+      height: 25px;
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
     /* إعدادات الطباعة */
     @media print {
       @page { size: landscape; margin: 4mm; }
@@ -267,6 +318,22 @@
       .print-title { display: block !important; text-align: center; margin-bottom: 12px; font-size: 14px; font-weight: bold; }
       table { font-size: 8px; width: 100%; }
       th, td { border: 1px solid #000 !important; padding: 3px 1px; }
+      
+      .app-footer {
+        background: none !important;
+        color: #000 !important;
+        border: none !important;
+        border-top: 1px solid #000 !important;
+        border-radius: 0 !important;
+        padding: 8px 0 !important;
+        margin-top: 15px !important;
+      }
+      .footer-item .role-title, .footer-item .person-name {
+        color: #000 !important;
+      }
+      .footer-divider {
+        background-color: #000 !important;
+      }
     }
     .print-title { display: none; }
   </style>
@@ -284,12 +351,66 @@
     <div class="splash-subtitle">النظام القضائي</div>
   </div>
 
-  <div class="card no-print" id="entryCard">
-    <h4 class="card-title">🔒 نموذج إدخال وترحيل الإحصائيات القضائية</h4>
-    <form id="entryForm" class="form-grid">
-      <div>
-        <label>اختيار القاضي</label>
-        <select id="judgeSelect" required>
+  <div class="main-content">
+    <div class="card no-print" id="entryCard">
+      <h4 class="card-title">🔒 نموذج إدخال وترحيل الإحصائيات القضائية</h4>
+      <form id="entryForm" class="form-grid">
+        <div>
+          <label>اختيار القاضي</label>
+          <select id="judgeSelect" required>
+            <option value="القاضي ماجد الزمر">القاضي ماجد الزمر</option>
+            <option value="القاضي فاروق">القاضي فاروق</option>
+            <option value="القاضي زكريا">القاضي زكريا</option>
+            <option value="القاضي هشام">القاضي هشام</option>
+            <option value="القاضي حمزة">القاضي حمزة</option>
+          </select>
+        </div>
+
+        <div>
+          <label>نوع القضية</label>
+          <select id="caseType" required>
+            <option value="إعادة">إعادة</option>
+            <option value="شاملة">شاملة</option>
+            <option value="أوامر ولائية">أوامر ولائية</option>
+            <option value="جنائي جسيم">جنائي جسيم</option>
+            <option value="جنائي غير جسيم">جنائي غير جسيم</option>
+            <option value="شخصية">شخصية</option>
+            <option value="ملكية رد اعتبار">ملكية رد اعتبار</option>
+            <option value="عمالية">عمالية</option>
+            <option value="مستعجلة">مستعجلة</option>
+            <option value="منازعات التنفيذ">منازعات التنفيذ</option>
+          </select>
+        </div>
+
+        <div>
+          <label>القطاع / التصنيف</label>
+          <select id="mainCategory" onchange="updateSubStatus()" required>
+            <option value="المُرحّل والمعروض">المُرحّل والقضايا المعروضة</option>
+            <option value="المنتهية">القضايا المنتهية (بحسب نوع الإنهاء)</option>
+            <option value="المتبقية">القضايا المتبقية ومستويات السلسلة</option>
+          </select>
+        </div>
+
+        <div>
+          <label>تفصيل الحالة / نوع الإنهاء</label>
+          <select id="subStatus" required></select>
+        </div>
+
+        <div>
+          <label>العدد المراد إضافته</label>
+          <input type="number" id="caseCount" min="1" value="1" required>
+        </div>
+
+        <div>
+          <button type="submit" class="btn-submit">ترحيل للجدول</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="filter-bar no-print">
+      <div class="filter-group">
+        <label for="viewJudgeSelect">عرض إحصائيات القاضي:</label>
+        <select id="viewJudgeSelect" onchange="renderTableForJudge()">
           <option value="القاضي ماجد الزمر">القاضي ماجد الزمر</option>
           <option value="القاضي فاروق">القاضي فاروق</option>
           <option value="القاضي زكريا">القاضي زكريا</option>
@@ -297,110 +418,79 @@
           <option value="القاضي حمزة">القاضي حمزة</option>
         </select>
       </div>
-
-      <div>
-        <label>نوع القضية</label>
-        <select id="caseType" required>
-          <option value="إعادة">إعادة</option>
-          <option value="شاملة">شاملة</option>
-          <option value="أوامر ولائية">أوامر ولائية</option>
-          <option value="جنائي جسيم">جنائي جسيم</option>
-          <option value="جنائي غير جسيم">جنائي غير جسيم</option>
-          <option value="شخصية">شخصية</option>
-          <option value="ملكية رد اعتبار">ملكية رد اعتبار</option>
-          <option value="عمالية">عمالية</option>
-          <option value="مستعجلة">مستعجلة</option>
-          <option value="منازعات التنفيذ">منازعات التنفيذ</option>
-        </select>
+      
+      <div class="btn-action-group">
+        <button type="button" class="btn-add-unlock" onclick="unlockForm()">➕ إضافة بيان</button>
+        <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير الشامل</button>
       </div>
-
-      <div>
-        <label>القطاع / التصنيف</label>
-        <select id="mainCategory" onchange="updateSubStatus()" required>
-          <option value="المُرحّل والمعروض">المُرحّل والقضايا المعروضة</option>
-          <option value="المنتهية">القضايا المنتهية (بحسب نوع الإنهاء)</option>
-          <option value="المتبقية">القضايا المتبقية ومستويات السلسلة</option>
-        </select>
-      </div>
-
-      <div>
-        <label>تفصيل الحالة / نوع الإنهاء</label>
-        <select id="subStatus" required></select>
-      </div>
-
-      <div>
-        <label>العدد المراد إضافته</label>
-        <input type="number" id="caseCount" min="1" value="1" required>
-      </div>
-
-      <div>
-        <button type="submit" class="btn-submit">ترحيل للجدول</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="filter-bar no-print">
-    <div class="filter-group">
-      <label for="viewJudgeSelect">عرض إحصائيات القاضي:</label>
-      <select id="viewJudgeSelect" onchange="renderTableForJudge()">
-        <option value="القاضي ماجد الزمر">القاضي ماجد الزمر</option>
-        <option value="القاضي فاروق">القاضي فاروق</option>
-        <option value="القاضي زكريا">القاضي زكريا</option>
-        <option value="القاضي هشام">القاضي هشام</option>
-        <option value="القاضي حمزة">القاضي حمزة</option>
-      </select>
     </div>
-    
-    <div class="btn-action-group">
-      <button type="button" class="btn-add-unlock" onclick="unlockForm()">➕ إضافة بيان</button>
-      <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير الشامل</button>
+
+    <div class="print-title" id="printHeaderTitle">جدول الإحصائية القضائية التفصيلي - محكمة ذي السفال الابتدائية</div>
+
+    <div class="table-container">
+      <table id="matrixTable">
+        <thead>
+          <tr>
+            <th rowspan="3" class="bg-blue-dark">نوع القضية</th>
+            <th colspan="3" class="bg-blue-dark">القضايا المعروضة</th>
+            <th colspan="12" class="bg-green-dark">القضايا المنتهية (بحسب نوع الإنهاء والقرار)</th>
+            <th colspan="6" class="bg-brown-dark">القضايا المتبقية - حسب المرحلة</th>
+            <th rowspan="3" class="bg-gold">إجمالي الحركة</th>
+          </tr>
+          <tr>
+            <th colspan="2" class="bg-blue-light">المُرحّل (مُحالة)</th>
+            <th class="bg-blue-light">وارد الشهر</th>
+
+            <th colspan="2" class="bg-green-light">منتهي - حكم</th>
+            <th colspan="2" class="bg-green-light">منتهي - صلح</th>
+            <th colspan="2" class="bg-green-light">منتهي - شطب</th>
+            <th colspan="2" class="bg-green-light">منتهي - تنازل</th>
+            <th colspan="2" class="bg-green-light">منتهي - أخرى</th>
+            <th colspan="2" class="bg-green-light">إجمالي المنتهي</th>
+
+            <th colspan="2" class="bg-brown-light">منظورة</th>
+            <th colspan="2" class="bg-brown-light">محيطة/محجوزة</th>
+            <th colspan="2" class="bg-brown-light">مستأنفة</th>
+          </tr>
+          <tr>
+            <th>1445-</th><th>الشهر</th><th>الشهر</th>
+            <th>1445-</th><th>الشهر</th>
+            <th>1445-</th><th>الشهر</th>
+            <th>1445-</th><th>الشهر</th>
+            <th>1445-</th><th>الشهر</th>
+            <th>1445-</th><th>الشهر</th>
+            <th>1445-</th><th>الشهر</th>
+            <th>1445-</th><th>الشهر</th>
+            <th>1445-</th><th>الشهر</th>
+            <th>1445-</th><th>الشهر</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+        <tfoot id="tableFoot"></tfoot>
+      </table>
     </div>
   </div>
 
-  <div class="print-title" id="printHeaderTitle">جدول الإحصائية القضائية التفصيلي - محكمة ذي السفال الابتدائية</div>
+  <!-- تذييل الصفحة -->
+  <footer class="app-footer">
+    <div class="footer-content">
+      <div class="footer-item">
+        <span>👨‍💻</span>
+        <span class="role-title">إعداد وبرمجة:</span>
+        <span class="person-name">المهندس / مروان محمد عبد الله الذماري</span>
+        <small style="opacity: 0.8;">(أمين السر الإلكتروني)</small>
+      </div>
 
-  <div class="table-container">
-    <table id="matrixTable">
-      <thead>
-        <tr>
-          <th rowspan="3" class="bg-blue-dark">نوع القضية</th>
-          <th colspan="3" class="bg-blue-dark">القضايا المعروضة</th>
-          <th colspan="12" class="bg-green-dark">القضايا المنتهية (بحسب نوع الإنهاء والقرار)</th>
-          <th colspan="6" class="bg-brown-dark">القضايا المتبقية - حسب المرحلة</th>
-          <th rowspan="3" class="bg-gold">إجمالي الحركة</th>
-        </tr>
-        <tr>
-          <th colspan="2" class="bg-blue-light">المُرحّل (مُحالة)</th>
-          <th class="bg-blue-light">وارد الشهر</th>
+      <div class="footer-divider"></div>
 
-          <th colspan="2" class="bg-green-light">منتهي - حكم</th>
-          <th colspan="2" class="bg-green-light">منتهي - صلح</th>
-          <th colspan="2" class="bg-green-light">منتهي - شطب</th>
-          <th colspan="2" class="bg-green-light">منتهي - تنازل</th>
-          <th colspan="2" class="bg-green-light">منتهي - أخرى</th>
-          <th colspan="2" class="bg-green-light">إجمالي المنتهي</th>
-
-          <th colspan="2" class="bg-brown-light">منظورة</th>
-          <th colspan="2" class="bg-brown-light">محيطة/محجوزة</th>
-          <th colspan="2" class="bg-brown-light">مستأنفة</th>
-        </tr>
-        <tr>
-          <th>1445-</th><th>الشهر</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-          <th>1445-</th><th>الشهر</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-      <tfoot id="tableFoot"></tfoot>
-    </table>
-  </div>
+      <div class="footer-item">
+        <span>⚖️</span>
+        <span class="role-title">تحت إشراف:</span>
+        <span class="person-name">القاضي / حسن علي علي غانم</span>
+        <small style="opacity: 0.8;">(مدير المحكمة)</small>
+      </div>
+    </div>
+  </footer>
 
   <script>
     // مؤقت شاشة الترحيب (5 ثوانٍ)
