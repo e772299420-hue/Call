@@ -2,62 +2,269 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>النموذج القضائي الشامل للترحيل والإحصاء</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام الإحصاء القضائي الشامل - محكمة ذي السفال الابتدائية</title>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; margin: 15px; }
-    .card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-items: end; }
-    label { font-weight: bold; font-size: 11px; display: block; margin-bottom: 4px; }
-    select, input, button { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 12px; }
-    
-    .btn-submit { background-color: #1b5e20; color: white; border: none; font-weight: bold; cursor: pointer; height: 32px; }
-    .btn-submit:hover { background-color: #2e7d32; }
-    
-    .btn-print { background-color: #0288d1; color: white; border: none; font-weight: bold; cursor: pointer; height: 32px; padding: 0 15px; width: auto; }
+    :root {
+      --primary-blue: #1a237e;
+      --sub-blue: #3949ab;
+      --primary-green: #1b5e20;
+      --sub-green: #43a047;
+      --primary-brown: #4e342e;
+      --sub-brown: #8d6e63;
+      --accent-gold: #c5a059;
+      --bg-light: #f4f7f6;
+    }
 
-    .filter-bar { background: #e8f5e9; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
-    .filter-group { display: flex; align-items: center; gap: 10px; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-light);
+      margin: 15px;
+      color: #333;
+    }
 
-    /* تنسيقات الجدول التفصيلي */
-    .table-container { overflow-x: auto; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    table { border-collapse: collapse; width: 100%; font-size: 10px; text-align: center; }
-    th, td { border: 1px solid #81d4fa; padding: 4px 2px; white-space: nowrap; }
-    
-    /* ألوان القطاعات */
-    .bg-blue-dark { background-color: #3f51b5; color: white; }
-    .bg-blue-light { background-color: #7986cb; color: white; }
-    .bg-green-dark { background-color: #2e7d32; color: white; }
-    .bg-green-light { background-color: #81c784; color: #000; }
-    .bg-brown-dark { background-color: #8d6e63; color: white; }
-    .bg-brown-light { background-color: #d7ccc8; color: #000; }
+    /* -------------------------------------------------- */
+    /* شاشة الترحيب والشعار المتحرك (Splash Screen) */
+    /* -------------------------------------------------- */
+    #splashScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #0d1b2a 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 99999;
+      color: #ffffff;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+
+    .scale-container {
+      width: 110px;
+      height: 110px;
+      margin-bottom: 20px;
+      perspective: 1000px;
+    }
+
+    .scale-icon {
+      width: 100%;
+      height: 100%;
+      fill: var(--accent-gold);
+      filter: drop-shadow(0 0 12px rgba(197, 160, 89, 0.5));
+      animation: rotateY3D 3s infinite linear;
+    }
+
+    @keyframes rotateY3D {
+      0% { transform: rotateY(0deg); }
+      50% { transform: rotateY(180deg); }
+      100% { transform: rotateY(360deg); }
+    }
+
+    .splash-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--accent-gold);
+      margin: 5px 0;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    }
+
+    .splash-subtitle {
+      font-size: 16px;
+      color: #e0e0e0;
+      font-weight: 300;
+      letter-spacing: 2px;
+    }
+
+    /* -------------------------------------------------- */
+    /* واجهة النظام والبطاقات */
+    /* -------------------------------------------------- */
+    .card {
+      background: #ffffff;
+      padding: 18px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      margin-bottom: 15px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .card-title {
+      margin: 0 0 12px 0;
+      color: var(--primary-blue);
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 11px;
+      display: block;
+      margin-bottom: 4px;
+      color: #424242;
+    }
+
+    select, input, button {
+      width: 100%;
+      padding: 7px;
+      border: 1px solid #b0bec5;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 12px;
+      outline: none;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--sub-blue);
+      box-shadow: 0 0 0 2px rgba(57, 73, 171, 0.2);
+    }
+
+    .btn-submit {
+      background-color: var(--primary-green);
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      height: 33px;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover {
+      background-color: #2e7d32;
+    }
+
+    .btn-print {
+      background-color: #0288d1;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      height: 35px;
+      padding: 0 18px;
+      width: auto;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    .btn-print:hover {
+      background-color: #0277bd;
+    }
+
+    .filter-bar {
+      background: #e8f5e9;
+      padding: 10px 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid #c8e6c9;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .filter-group label {
+      margin: 0;
+      font-size: 13px;
+      color: var(--primary-green);
+    }
+
+    .filter-group select {
+      min-width: 180px;
+      font-weight: bold;
+    }
+
+    /* تنسيق الجدول التفصيلي */
+    .table-container {
+      overflow-x: auto;
+      background: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      border: 1px solid #e0e0e0;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    th, td {
+      border: 1px solid #b0bec5;
+      padding: 5px 3px;
+      white-space: nowrap;
+    }
+
+    /* ألوان القطاعات والترويسة */
+    .bg-blue-dark { background-color: var(--primary-blue); color: white; }
+    .bg-blue-light { background-color: var(--sub-blue); color: white; }
+    .bg-green-dark { background-color: var(--primary-green); color: white; }
+    .bg-green-light { background-color: var(--sub-green); color: white; }
+    .bg-brown-dark { background-color: var(--primary-brown); color: white; }
+    .bg-brown-light { background-color: var(--sub-brown); color: white; }
     .bg-gold { background-color: #f57f17; color: white; }
-    
-    .row-header { background-color: #f5f5f5; font-weight: bold; text-align: right; padding-right: 5px; }
+
+    .row-header { background-color: #f5f5f5; font-weight: bold; text-align: right; padding-right: 6px; }
     .total-cell { background-color: #eceff1; font-weight: bold; color: #000; }
+    .ended-total-cell { background-color: #e8f5e9; font-weight: bold; color: #1b5e20; }
     .grand-total { background-color: #cfd8dc; font-weight: bold; color: #000; }
 
-    .updated-cell { animation: highlight 1.5s ease-out; }
+    .updated-cell {
+      animation: highlight 1.5s ease-out;
+    }
+
     @keyframes highlight {
-      0% { background-color: #ffe082; transform: scale(1.1); }
+      0% { background-color: #ffe082; transform: scale(1.08); }
       100% { background-color: transparent; transform: scale(1); }
     }
 
+    /* إعدادات الطباعة */
     @media print {
-      @page { size: landscape; margin: 5mm; }
+      @page { size: landscape; margin: 4mm; }
       body { background: #fff; margin: 0; }
-      .no-print, .card, .filter-bar { display: none !important; }
-      .table-container { box-shadow: none; padding: 0; }
-      .print-title { display: block !important; text-align: center; margin-bottom: 10px; font-size: 14px; font-weight: bold; }
+      #splashScreen, .no-print, .card, .filter-bar { display: none !important; }
+      .table-container { box-shadow: none; padding: 0; border: none; }
+      .print-title { display: block !important; text-align: center; margin-bottom: 12px; font-size: 14px; font-weight: bold; }
       table { font-size: 8px; width: 100%; }
-      th, td { border: 1px solid #000 !important; padding: 2px 1px; }
+      th, td { border: 1px solid #000 !important; padding: 3px 1px; }
     }
     .print-title { display: none; }
   </style>
 </head>
 <body>
 
+  <!-- شاشة الترحيب والشعار المتحرك (5 ثوانٍ) -->
+  <div id="splashScreen">
+    <div class="scale-container">
+      <svg class="scale-icon" viewBox="0 0 24 24">
+        <path d="M12 2L1 7l11 5 11-5-11-5zm0 3.8L18.6 7 12 9.8 5.4 7 12 5.8zM2 9v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9l-10 4.5L2 9zm10 11H4v-7.3l8 3.6 8-3.6V20h-8z"/>
+        <path d="M12 2v10M7 9l-4 8h8L7 9zm10 0l-4 8h8l-4-8z"/>
+      </svg>
+    </div>
+    <div class="splash-title">محكمة ذي السفال الابتدائية</div>
+    <div class="splash-subtitle">النظام القضائي</div>
+  </div>
+
+  <!-- نموذج الترحيل والإدخال المحمي -->
   <div class="card no-print">
-    <h4 style="margin:0 0 10px 0; color:#1a237e;">إدخال وتحديث بيانات النموذج التفصيلي</h4>
+    <h4 class="card-title">🔒 نموذج إدخال وترحيل الإحصائيات القضائية</h4>
     <form id="entryForm" class="form-grid">
       <div>
         <label>اختيار القاضي</label>
@@ -101,19 +308,13 @@
       </div>
 
       <div>
-        <label>الفرع الزمني</label>
-        <select id="timePeriod" required>
-          <option value="p1445">1445 وما قبل</option>
-          <option value="p1446">1446</option>
-          <option value="p1447">1447</option>
-          <option value="p1448">1448</option>
-          <option value="pCurrent">هذا الشهر</option>
-        </select>
+        <label>العدد المراد إضافته</label>
+        <input type="number" id="caseCount" min="1" value="1" required>
       </div>
 
       <div>
-        <label>العدد</label>
-        <input type="number" id="caseCount" min="1" value="1" required>
+        <label>كلمة السر (2010)</label>
+        <input type="password" id="authPassword" placeholder="***" required>
       </div>
 
       <div>
@@ -122,9 +323,10 @@
     </form>
   </div>
 
+  <!-- شريط اختيار القاضي لعرض البيانات والطباعة -->
   <div class="filter-bar no-print">
     <div class="filter-group">
-      <label for="viewJudgeSelect">عرض جدول القاضي:</label>
+      <label for="viewJudgeSelect">عرض إحصائيات القاضي:</label>
       <select id="viewJudgeSelect" onchange="renderTableForJudge()">
         <option value="القاضي ماجد الزمر">القاضي ماجد الزمر</option>
         <option value="القاضي فاروق">القاضي فاروق</option>
@@ -133,30 +335,34 @@
         <option value="القاضي حمزة">القاضي حمزة</option>
       </select>
     </div>
-    <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة النموذج الكامل</button>
+    <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير الشامل</button>
   </div>
 
-  <div class="print-title" id="printHeaderTitle">جدول الإحصائية القضائية التفصيلي</div>
+  <!-- عنوان المخرجات عند الطباعة -->
+  <div class="print-title" id="printHeaderTitle">جدول الإحصائية القضائية التفصيلي - محكمة ذي السفال الابتدائية</div>
 
+  <!-- الجدول الإحصائي الكامل -->
   <div class="table-container">
     <table id="matrixTable">
       <thead>
         <tr>
           <th rowspan="3" class="bg-blue-dark">نوع القضية</th>
-          <th colspan="3" class="bg-blue-dark">القضايا المعروضة (العرض والتدقيق)</th>
+          <th colspan="3" class="bg-blue-dark">القضايا المعروضة</th>
           <th colspan="12" class="bg-green-dark">القضايا المنتهية (بحسب نوع الإنهاء والقرار)</th>
           <th colspan="6" class="bg-brown-dark">القضايا المتبقية - حسب المرحلة</th>
-          <th rowspan="3" class="bg-gold">التصنيف النهائي / إجمالي الحركة</th>
+          <th rowspan="3" class="bg-gold">إجمالي الحركة</th>
         </tr>
         <tr>
           <th colspan="2" class="bg-blue-light">المُرحّل (مُحالة)</th>
           <th class="bg-blue-light">وارد الشهر</th>
+
           <th colspan="2" class="bg-green-light">منتهي - حكم</th>
           <th colspan="2" class="bg-green-light">منتهي - صلح</th>
           <th colspan="2" class="bg-green-light">منتهي - شطب</th>
           <th colspan="2" class="bg-green-light">منتهي - تنازل</th>
           <th colspan="2" class="bg-green-light">منتهي - أخرى</th>
           <th colspan="2" class="bg-green-light">إجمالي المنتهي</th>
+
           <th colspan="2" class="bg-brown-light">منظورة</th>
           <th colspan="2" class="bg-brown-light">محيطة/محجوزة</th>
           <th colspan="2" class="bg-brown-light">مستأنفة</th>
@@ -180,6 +386,19 @@
   </div>
 
   <script>
+    // --------------------------------------------------
+    // مؤقت شاشة الترحيب (5 ثوانٍ)
+    // --------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const splash = document.getElementById('splashScreen');
+        splash.style.opacity = '0';
+        splash.style.visibility = 'hidden';
+      }, 5000);
+    });
+
+    const SECRET_PASSWORD = "2010";
+
     const caseTypes = [
       "إعادة", "شاملة", "أوامر ولائية", "جنائي جسيم", 
       "جنائي غير جسيم", "شخصية", "ملكية رد اعتبار", 
@@ -247,7 +466,7 @@
       const tbody = document.getElementById('tableBody');
       const tfoot = document.getElementById('tableFoot');
       
-      document.getElementById('printHeaderTitle').textContent = `التقرير الإحصائي القضائي الكامل - ${selectedJudge}`;
+      document.getElementById('printHeaderTitle').textContent = `التقرير الإحصائي القضائي الكامل - ${selectedJudge} - محكمة ذي السفال الابتدائية`;
       
       tbody.innerHTML = '';
       tfoot.innerHTML = '';
@@ -295,18 +514,15 @@
           
           if (!key.startsWith('ended_total_')) {
             rowTotal += val;
-            colTotals[key] += val;
-          } else {
-            colTotals[key] += val;
           }
+          colTotals[key] += val;
 
           const td = document.createElement('td');
           td.setAttribute('data-key', key);
           td.textContent = val;
 
           if (key.startsWith('ended_total_')) {
-            td.style.backgroundColor = '#e8f5e9';
-            td.style.fontWeight = 'bold';
+            td.className = 'ended-total-cell';
           }
 
           if (highlightKey === key && highlightCaseType === type) {
@@ -333,7 +549,7 @@
 
       columnKeys.forEach(key => {
         const td = document.createElement('td');
-        td.className = 'total-cell';
+        td.className = key.startsWith('ended_total_') ? 'ended-total-cell' : 'total-cell';
         td.textContent = colTotals[key];
         trFoot.appendChild(td);
       });
@@ -348,6 +564,13 @@
 
     document.getElementById('entryForm').addEventListener('submit', function(e) {
       e.preventDefault();
+
+      const passInput = document.getElementById('authPassword');
+      if (passInput.value !== SECRET_PASSWORD) {
+        alert("❌ كلمة السر غير صحيحة! يرجى إدخال (2010).");
+        passInput.focus();
+        return;
+      }
 
       const judge = document.getElementById('judgeSelect').value;
       const caseType = document.getElementById('caseType').value;
@@ -366,6 +589,8 @@
       document.getElementById('viewJudgeSelect').value = judge;
 
       renderTableForJudge(targetKey, caseType);
+      
+      passInput.value = '';
     });
 
     updateSubStatus();
