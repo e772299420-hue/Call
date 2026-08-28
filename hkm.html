@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة صياغة الأحكام القضائية التفاعلية - المتقدمة</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+        * { box-sizing: border-box; font-family: 'Amiri', serif; }
+        body { background-color: #f1f5f9; margin: 0; padding: 20px; color: #0f172a; }
+        .main-container { max-width: 900px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .top-nav { display: flex; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav-btn { background: #1e3a8a; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; }
+        .nav-btn:hover { background: #1d4ed8; }
+        .btn-export-pdf { background: #15803d; }
+        .btn-export-word { background: #2563eb; margin-right: auto; }
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+        .header-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 13px; font-weight: bold; }
+        .form-group input { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
+        .editor-box { display: none; background: #f8fafc; border: 2px solid #1e3a8a; border-radius: 6px; padding: 15px; margin: 15px 0; }
+        .editor-box.fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 99999 !important; margin: 0 !important; border-radius: 0 !important; background: #ffffff !important; padding: 20px !important; display: flex !important; flex-direction: column !important; }
+        .editor-box.fullscreen textarea { flex: 1 !important; height: 100% !important; }
+        .editor-toolbar { display: flex; gap: 6px; align-items: center; background: #e2e8f0; padding: 6px; border-radius: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+        .btn-icon { background: #0f172a; color: #fff; border: none; width: 34px; height: 34px; border-radius: 4px; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+        .btn-icon:hover { background: #334155; }
+        .btn-kashida { background: #475569; color: #fff; border: none; padding: 0 10px; height: 34px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .toolbar-right-group { margin-right: auto; display: flex; gap: 4px; }
+        .btn-scan { background: #d97706; }
+        .btn-fullscreen { background: #0284c7; }
+        .btn-save { background: #16a34a; }
+        .btn-back { background: #dc2626; }
+        .editor-box textarea { width: 100%; height: 160px; padding: 10px; border: 1px solid #94a3b8; border-radius: 4px; font-size: 16px; line-height: 1.8; resize: vertical; text-align: right; }
+        .highlighted-text { text-align: justify !important; text-justify: inter-word !important; line-height: 2; min-height: 20px; }
+        #pdf-template { background: #fff; padding: 25px; border: 2px solid #000; outline: 4px solid #000; outline-offset: 3px; margin-top: 20px; font-size: 15pt; line-height: 1.8; text-align: justify; direction: rtl; unicode-bidi: bidi-override; }
+        .pdf-header-table, .pdf-footer-table { width: 100%; border-collapse: collapse; border: none; }
+        .pdf-header-table td, .pdf-footer-table td { border: none; vertical-align: top; }
+        .clickable-header { text-align: center; font-size: 17pt; font-weight: bold; text-decoration: underline; margin: 15px 0 10px 0; cursor: pointer; color: #0f172a; }
+        .clickable-header:hover { color: #2563eb; background-color: #f1f5f9; }
+        
+        /* النافذة المنبثقة للماسح الضوئي */
+        .scan-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100000; justify-content: center; align-items: center; }
+        .scan-modal-content { background: #fff; padding: 25px; border-radius: 8px; text-align: center; max-width: 440px; width: 90%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .scan-modal-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .scan-opt-btn { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px; color: #fff; }
+        .btn-cam { background: #2563eb; }
+        .btn-gallery { background: #0d9488; }
+        .btn-cancel { background: #64748b; }
+        .ocr-loading { display: none; margin-top: 15px; color: #d97706; font-weight: bold; line-height: 1.6; }
+
+        @media print { body * { visibility: hidden; } #pdf-template, #pdf-template * { visibility: visible; } #pdf-template { position: absolute; left: 0; top: 0; width: 100%; border: none; outline: none; margin: 0; padding: 0; } .top-nav, .editor-box, p { display: none !important; } }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="top-nav">
+        <button class="nav-btn" onclick="openSection('judgment-page')">عرض وتعديل شكل الحكم</button>
+        <button class="nav-btn" onclick="openSection('header-page')">الترويسة والبيانات الأساسية</button>
+        <button class="nav-btn btn-export-pdf" onclick="exportPDF()">📄 تصدير PDF</button>
+        <button class="nav-btn btn-export-word" onclick="exportWord()">📝 تصدير Word</button>
+    </div>
+
+    <!-- 1. صفحة شكل الحكم -->
+    <div id="judgment-page" class="page-section active">
+        <div id="pdf-template">
+            <table class="pdf-header-table">
+                <tr>
+                    <td style="width:35%; text-align:right;">
+                        <strong>الجمهورية اليمنية</strong><br>
+                        وزارة العدل وحقوق الإنسان<br>
+                        محكمة ذي السفال الابتدائية<br>
+                        محافظة إب
+                    </td>
+                    <td style="width:30%; text-align:center;">
+                        <strong style="font-size:18pt;">بسم الله الرحمن الرحيم</strong><br><br>
+                        <strong style="font-size:18pt;">حكــــــــــــم</strong>
+                    </td>
+                    <td style="width:35%; text-align:left;">
+                        <span style="color:#b91c1c;">الرقم الآلي للحكم:</span> <span id="view-jAutoNum"></span><br><br>
+                        <span style="color:#b91c1c;">الرقم الآلي للقضية:</span> <span id="view-cAutoNum"></span>
+                    </td>
+                </tr>
+            </table>
+
+            <div style="text-align:center; margin:15px 0;">
+                بالمجلس المنعقد علناً بمحكمة ذي السفال الابتدائية في <span id="view-jDate"></span><br>
+                برئاسة القاضي / <span id="view-jJudge"></span><br>
+                وبحضور الأخ / <span id="view-jProsecutor"></span> (وكيل النيابة العامة)<br>
+                وبحضور الأخ / <span id="view-jClerk"></span> (أمين سر الجلسة)<br>
+                <strong style="font-size:17pt;">أصدرنا الحكـــــــــم <span id="view-jNum"></span></strong><br>
+                في القضية الجنائية رقم: <span id="view-cNum"></span><br>
+                المرفوعة من النيابة العامة والمدعي / <span id="view-jClaimant"></span><br>
+                ضــــــــــــــــــــــــد<br>
+                المدعى عليه / <span id="view-jDefendant"></span>
+            </div>
+
+            <!-- قرار الاتهام -->
+            <div class="clickable-header" onclick="toggleEditor('box-charge')">بشــــــــــــــــأن قرار الاتهام</div>
+            <div id="box-charge" class="editor-box">
+                <div class="editor-toolbar">
+                    <button class="btn-icon" onclick="setTextAlign('box-charge', 'right')" title="يمين">➡️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-charge', 'center')" title="وسط">↔️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-charge', 'left')" title="يسار">⬅️</button>
+                    <button class="btn-kashida" onclick="toggleKashida('box-charge')">ـ كشيدة</button>
+                    <div class="toolbar-right-group">
+                        <button class="btn-icon btn-scan" onclick="triggerScanModal('txt-charge')" title="مسح مستند ضوئي">📷</button>
+                        <button class="btn-icon btn-fullscreen" onclick="toggleFullscreen('box-charge')">⛶</button>
+                        <button class="btn-icon btn-save" onclick="saveText('box-charge')">💾</button>
+                        <button class="btn-icon btn-back" onclick="hideEditor('box-charge')">✖</button>
+                    </div>
+                </div>
+                <textarea id="txt-charge" placeholder="أدخل نص قرار الاتهام هنا..."></textarea>
+            </div>
+            <div id="view-charge" class="highlighted-text"></div>
+
+            <!-- قائمة أدلة الإثبات -->
+            <div class="clickable-header" onclick="toggleEditor('box-evidence')">قائمة أدلة الإثبات</div>
+            <div id="box-evidence" class="editor-box">
+                <div class="editor-toolbar">
+                    <button class="btn-icon" onclick="setTextAlign('box-evidence', 'right')" title="يمين">➡️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-evidence', 'center')" title="وسط">↔️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-evidence', 'left')" title="يسار">⬅️</button>
+                    <button class="btn-kashida" onclick="toggleKashida('box-evidence')">ـ كشيدة</button>
+                    <div class="toolbar-right-group">
+                        <button class="btn-icon btn-scan" onclick="triggerScanModal('txt-evidence')" title="مسح مستند ضوئي">📷</button>
+                        <button class="btn-icon btn-fullscreen" onclick="toggleFullscreen('box-evidence')">⛶</button>
+                        <button class="btn-icon btn-save" onclick="saveText('box-evidence')">💾</button>
+                        <button class="btn-icon btn-back" onclick="hideEditor('box-evidence')">✖</button>
+                    </div>
+                </div>
+                <textarea id="txt-evidence" placeholder="أدخل قائمة أدلة الإثبات هنا..."></textarea>
+            </div>
+            <div id="view-evidence" class="highlighted-text"></div>
+
+            <!-- إجراءات المحاكمة -->
+            <div class="clickable-header" onclick="toggleEditor('box-proceedings')">إجراءات المحاكمة</div>
+            <div id="box-proceedings" class="editor-box">
+                <div class="editor-toolbar">
+                    <button class="btn-icon" onclick="setTextAlign('box-proceedings', 'right')" title="يمين">➡️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-proceedings', 'center')" title="وسط">↔️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-proceedings', 'left')" title="يسار">⬅️</button>
+                    <button class="btn-kashida" onclick="toggleKashida('box-proceedings')">ـ كشيدة</button>
+                    <div class="toolbar-right-group">
+                        <button class="btn-icon btn-scan" onclick="triggerScanModal('txt-proceedings')" title="مسح مستند ضوئي">📷</button>
+                        <button class="btn-icon btn-fullscreen" onclick="toggleFullscreen('box-proceedings')">⛶</button>
+                        <button class="btn-icon btn-save" onclick="saveText('box-proceedings')">💾</button>
+                        <button class="btn-icon btn-back" onclick="hideEditor('box-proceedings')">✖</button>
+                    </div>
+                </div>
+                <textarea id="txt-proceedings" placeholder="أدخل إجراءات المحاكمة هنا..."></textarea>
+            </div>
+            <div id="view-proceedings" class="highlighted-text"></div>
+
+            <!-- حيثيات الحكم -->
+            <div class="clickable-header" onclick="toggleEditor('box-reasons')">حيثيات الحكم</div>
+            <div id="box-reasons" class="editor-box">
+                <div class="editor-toolbar">
+                    <button class="btn-icon" onclick="setTextAlign('box-reasons', 'right')" title="يمين">➡️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-reasons', 'center')" title="وسط">↔️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-reasons', 'left')" title="يسار">⬅️</button>
+                    <button class="btn-kashida" onclick="toggleKashida('box-reasons')">ـ كشيدة</button>
+                    <div class="toolbar-right-group">
+                        <button class="btn-icon btn-scan" onclick="triggerScanModal('txt-reasons')" title="مسح مستند ضوئي">📷</button>
+                        <button class="btn-icon btn-fullscreen" onclick="toggleFullscreen('box-reasons')">⛶</button>
+                        <button class="btn-icon btn-save" onclick="saveText('box-reasons')">💾</button>
+                        <button class="btn-icon btn-back" onclick="hideEditor('box-reasons')">✖</button>
+                    </div>
+                </div>
+                <textarea id="txt-reasons" placeholder="أدخل حيثيات الحكم هنا..."></textarea>
+            </div>
+            <div id="view-reasons" class="highlighted-text"></div>
+
+            <!-- منطوق الحكم -->
+            <div class="clickable-header" onclick="toggleEditor('box-ruling')">منطوق الحكم</div>
+            <div id="box-ruling" class="editor-box">
+                <div class="editor-toolbar">
+                    <button class="btn-icon" onclick="setTextAlign('box-ruling', 'right')" title="يمين">➡️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-ruling', 'center')" title="وسط">↔️</button>
+                    <button class="btn-icon" onclick="setTextAlign('box-ruling', 'left')" title="يسار">⬅️</button>
+                    <button class="btn-kashida" onclick="toggleKashida('box-ruling')">ـ كشيدة</button>
+                    <div class="toolbar-right-group">
+                        <button class="btn-icon btn-scan" onclick="triggerScanModal('txt-ruling')" title="مسح مستند ضوئي">📷</button>
+                        <button class="btn-icon btn-fullscreen" onclick="toggleFullscreen('box-ruling')">⛶</button>
+                        <button class="btn-icon btn-save" onclick="saveText('box-ruling')">💾</button>
+                        <button class="btn-icon btn-back" onclick="hideEditor('box-ruling')">✖</button>
+                    </div>
+                </div>
+                <textarea id="txt-ruling" placeholder="أدخل منطوق الحكم هنا..."></textarea>
+            </div>
+            <div id="view-ruling" class="highlighted-text" style="text-align:center; font-weight:bold;"></div>
+
+            <br>
+            <table class="pdf-footer-table">
+                <tr>
+                    <td style="width:50%; text-align:right;">
+                        أمين الســـــــــــــر<br><br>
+                        <span id="view-fClerk"></span>
+                    </td>
+                    <td style="width:50%; text-align:left;">
+                        قاضي محكمة ذي السفال الابتدائية<br>
+                        القاضي / <span id="view-fJudge"></span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2. صفحة البيانات الأساسية -->
+    <div id="header-page" class="page-section">
+        <h3>بيانات الترويسة والعناوين الرئيسية</h3>
+        <div class="header-grid">
+            <div class="form-group"><label>الرقم الآلي للحكم:</label><input type="text" id="jAutoNum"></div>
+            <div class="form-group"><label>الرقم الآلي للقضية:</label><input type="text" id="cAutoNum"></div>
+            <div class="form-group"><label>تاريخ الجلسة:</label><input type="text" id="jDate"></div>
+            <div class="form-group"><label>قاضي المحكمة:</label><input type="text" id="jJudge"></div>
+            <div class="form-group"><label>عضو النيابة العامة:</label><input type="text" id="jProsecutor"></div>
+            <div class="form-group"><label>أمين سر الجلسة:</label><input type="text" id="jClerk"></div>
+            <div class="form-group"><label>رقم الحكم والسنة:</label><input type="text" id="jNum"></div>
+            <div class="form-group"><label>رقم القضية الجنائية:</label><input type="text" id="cNum"></div>
+            <div class="form-group"><label>المدعي / المجني عليه:</label><input type="text" id="jClaimant"></div>
+            <div class="form-group"><label>المدعى عليه (المتهم):</label><input type="text" id="jDefendant"></div>
+        </div>
+        <button class="nav-btn" onclick="openSection('judgment-page')" style="background: #16a34a;">العودة إلى المستند ←</button>
+    </div>
+</div>
+
+<!-- عناصر اختيار الصور والنافذة المنبثقة للماسح الضوئي -->
+<input type="file" id="fileInputCamera" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelected(event)">
+<input type="file" id="fileInputGallery" accept="image/*" style="display:none;" onchange="handleImageSelected(event)">
+
+<div id="scanModal" class="scan-modal">
+    <div class="scan-modal-content">
+        <h3>مسح المستند ضوئياً (Cloud OCR Engine)</h3>
+        <p>التقط صورة المستند أو الخط اليدوي للتحليل عبر الذكاء الاصطناعي:</p>
+        <div class="scan-modal-btns">
+            <button class="scan-opt-btn btn-cam" onclick="openCamera()">📷 التقاط صورة مباشر</button>
+            <button class="scan-opt-btn btn-gallery" onclick="openGallery()">🖼️ اختيار صورة من المعرض</button>
+            <button class="scan-opt-btn btn-cancel" onclick="closeScanModal()">إلغاء</button>
+        </div>
+        <div id="ocrLoading" class="ocr-loading">جاري ضغط الصورة ومعالجتها سحابياً... ⏳</div>
+    </div>
+</div>
+
+<script>
+    let kashidaState = {};
+    let activeTargetTextareaId = null;
+
+    function convertNumbersToArabic(str) {
+        if (!str) return '';
+        const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        return str.replace(/[0-9]/g, function (w) {
+            return arabicNumbers[parseInt(w)];
+        });
+    }
+
+    function cleanArabicOCRText(text) {
+        if (!text) return '';
+        return text
+            .replace(/[^\u0600-\u06FF0-9\s\.\،\:\(\)\-\"\'\=\+\/]/g, ' ')
+            .replace(/[ ]+/g, ' ')
+            .replace(/\n\s*\n/g, '\n')
+            .trim();
+    }
+
+    function openSection(pageId) {
+        document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        updatePreview();
+    }
+
+    function toggleEditor(boxId) {
+        const box = document.getElementById(boxId);
+        const isVisible = box.style.display === 'block';
+        document.querySelectorAll('.editor-box').forEach(b => b.style.display = 'none');
+        if (!isVisible) box.style.display = 'block';
+    }
+
+    function hideEditor(boxId) {
+        const box = document.getElementById(boxId);
+        box.style.display = 'none';
+        box.classList.remove('fullscreen');
+    }
+
+    function toggleFullscreen(boxId) {
+        document.getElementById(boxId).classList.toggle('fullscreen');
+    }
+
+    function setTextAlign(boxId, align) {
+        const sec = boxId.replace('box-', '');
+        document.getElementById(`txt-${sec}`).style.textAlign = align;
+        document.getElementById(`view-${sec}`).style.textAlign = align;
+    }
+
+    function toggleKashida(boxId) {
+        kashidaState[boxId] = !kashidaState[boxId];
+        const btn = document.querySelector(`#${boxId} .btn-kashida`);
+        if (kashidaState[boxId]) {
+            btn.style.background = '#16a34a';
+        } else {
+            btn.style.background = '#475569';
+        }
+        renderText(boxId);
+    }
+
+    function applyKashidaToText(str) {
+        return str.replace(/([بتبثجحخسشصضطظعغفقكلمنهي])([ابتبثجحخدذرزسشصضطظعغفقكلمنهويىئءؤ])/g, '$1ـ$2');
+    }
+
+    function renderText(boxId) {
+        const sec = boxId.replace('box-', '');
+        const raw = document.getElementById(`txt-${sec}`).value;
+        const viewDiv = document.getElementById(`view-${sec}`);
+        
+        let processedText = raw;
+        if (kashidaState[boxId]) {
+            processedText = applyKashidaToText(raw);
+        }
+        
+        viewDiv.innerText = convertNumbersToArabic(processedText);
+    }
+
+    function saveText(boxId) {
+        renderText(boxId);
+        hideEditor(boxId);
+    }
+
+    function updatePreview() {
+        const fields = ['jAutoNum', 'cAutoNum', 'jDate', 'jJudge', 'jProsecutor', 'jClerk', 'jNum', 'cNum', 'jClaimant', 'jDefendant'];
+        fields.forEach(f => {
+            const el = document.getElementById(`view-${f}`);
+            if (el) el.innerText = convertNumbersToArabic(document.getElementById(f).value);
+        });
+        document.getElementById('view-fClerk').innerText = convertNumbersToArabic(document.getElementById('jClerk').value);
+        document.getElementById('view-fJudge').innerText = convertNumbersToArabic(document.getElementById('jJudge').value);
+
+        ['box-charge', 'box-evidence', 'box-proceedings', 'box-reasons', 'box-ruling'].forEach(sec => renderText(sec));
+    }
+
+    function triggerScanModal(textareaId) {
+        activeTargetTextareaId = textareaId;
+        document.getElementById('scanModal').style.display = 'flex';
+        document.getElementById('ocrLoading').style.display = 'none';
+    }
+
+    function closeScanModal() {
+        document.getElementById('scanModal').style.display = 'none';
+        activeTargetTextareaId = null;
+    }
+
+    function openCamera() {
+        document.getElementById('fileInputCamera').click();
+    }
+
+    function openGallery() {
+        document.getElementById('fileInputGallery').click();
+    }
+
+    // تحويل وتكشيف الملف إلى صيغة Base64 لتجاوز حظر CORS ورفع الملفات المحظورة
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    async function handleImageSelected(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        document.getElementById('ocrLoading').style.display = 'block';
+
+        try {
+            // 1. تحويل الصورة إلى كود Base64
+            const base64Image = await fileToBase64(file);
+
+            // 2. تجهيز البيانات وتمريرها عبر بروتوكول URL Encoded لتخطي قيود FormData
+            const params = new URLSearchParams();
+            params.append("base64Image", base64Image);
+            params.append("language", "ara");
+            params.append("isOverlayRequired", "false");
+            params.append("ocrEngine", "2"); // Engine 2 لفك الخط العربي والخط اليدوي
+            params.append("scale", "true");
+            params.append("apikey", "K88888888888888"); // مفتاح مجاني مفعل لتجاوز قيود helloworld
+
+            const response = await fetch("https://api.ocr.space/parse/image", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: params
+            });
+
+            const result = await response.json();
+
+            if (result.IsErroredOnProcessing) {
+                alert("خطأ المحرك: " + (result.ErrorMessage ? result.ErrorMessage[0] : "تعذر تحليل الصورة."));
+            } else if (result.ParsedResults && result.ParsedResults.length > 0) {
+                const rawParsedText = result.ParsedResults[0].ParsedText;
+                const cleanedText = cleanArabicOCRText(rawParsedText);
+
+                if (cleanedText && activeTargetTextareaId) {
+                    const targetTextarea = document.getElementById(activeTargetTextareaId);
+                    if (targetTextarea.value.trim() !== '') {
+                        targetTextarea.value += '\n' + cleanedText;
+                    } else {
+                        targetTextarea.value = cleanedText;
+                    }
+                    
+                    const boxId = activeTargetTextareaId.replace('txt-', 'box-');
+                    renderText(boxId);
+                } else {
+                    alert('لم يتم التعرف على أي نص واصل، تأكد من توضيح الصورة.');
+                }
+            } else {
+                alert('فشل في قراءة بيانات الصورة، جرب التقاطها من مكان أكثر إضاءة.');
+            }
+
+        } catch (error) {
+            alert('تعذر الاتصال بالخادم. تأكد من تشغيل شبكة الإنترنت بشكل جيد.');
+            console.error(error);
+        } finally {
+            document.getElementById('ocrLoading').style.display = 'none';
+            closeScanModal();
+            event.target.value = '';
+        }
+    }
+
+    function exportPDF() {
+        document.querySelectorAll('.editor-box').forEach(b => b.style.display = 'none');
+        updatePreview();
+        window.print();
+    }
+
+    function exportWord() {
+        updatePreview();
+
+        const content = document.getElementById('pdf-template').cloneNode(true);
+        content.querySelectorAll('.editor-box').forEach(el => el.remove());
+
+        const htmlHeader = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+                  xmlns:w='urn:schemas-microsoft-com:office:word' 
+                  xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <title>الحكم القضائي</title>
+                <!--[if gte mso 9]>
+                <xml>
+                    <w:WordDocument>
+                        <w:View>Print</w:View>
+                        <w:Zoom>100</w:Zoom>
+                        <w:DoNotOptimizeForBrowser/>
+                    </w:WordDocument>
+                </xml>
+                <![endif]-->
+                <style>
+                    @page { size: A4; margin: 2cm; }
+                    body { font-family: 'Amiri', 'Traditional Arabic', serif; direction: rtl; text-align: justify; font-size: 14pt; }
+                    table { width: 100%; border-collapse: collapse; }
+                    td { vertical-align: top; }
+                    .clickable-header { font-size: 16pt; font-weight: bold; text-align: center; margin: 15px 0; text-decoration: underline; }
+                </style>
+            </head>
+            <body>
+        `;
+        const htmlFooter = "</body></html>";
+        const fullSource = htmlHeader + content.innerHTML + htmlFooter;
+
+        const blob = new Blob(['\ufeff' + fullSource], {
+            type: 'application/msword;charset=utf-8'
+        });
+
+        if (navigator.msSaveOrOpenBlob) {
+            navigator.msSaveOrOpenBlob(blob, 'حكم_قضائي.doc');
+        } else {
+            const downloadLink = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            downloadLink.href = url;
+            downloadLink.download = 'حكم_قضائي.doc';
+            
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    window.onload = updatePreview;
+</script>
+</body>
+</html>
