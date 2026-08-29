@@ -1,3 +1,4 @@
+١٢٣
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -805,7 +806,6 @@
       });
     }
 
-    // دالة لاستبدال القيمة بالكامل (تعيين القيمة الجديدة مباشرة بدون تراكم)
     async function setStatisticsInDB(judge, caseType, targetKey, newCount) {
       if (!db) await initDatabase();
       
@@ -813,7 +813,6 @@
         const transaction = db.transaction([STORE_NAME], "readwrite");
         const store = transaction.objectStore(STORE_NAME);
         
-        // مسح السجلات القديمة المطابقة تماماً لنفس القاضي ونوع القضية والحقل لتجنب التراكم، ثم حفظ القيمة الجديدة
         const requestAll = store.getAll();
         
         requestAll.onsuccess = () => {
@@ -826,7 +825,6 @@
             }
           });
 
-          // بعد حذف السجلات القديمة، نضيف السجل بالقيمة الجديدة فقط
           Promise.all(deletePromises).then(() => {
             const newRecord = {
               judge: judge,
@@ -866,7 +864,6 @@
               });
             }
             if (loadedData[rec.judge][rec.caseType] && loadedData[rec.judge][rec.caseType][rec.targetKey] !== undefined) {
-              // جمع السجلات الباقية إن وجدت
               loadedData[rec.judge][rec.caseType][rec.targetKey] += rec.count;
             }
           });
@@ -971,7 +968,6 @@
             td.classList.add('updated-cell');
           }
 
-          // النقر المزدوج (Double Click) لتعديل السجل الحالي إذا كان أكبر من الصفر
           td.style.cursor = "pointer";
           td.title = "انقر نقرتين للتعديل";
           td.addEventListener('dblclick', function() {
@@ -1040,7 +1036,6 @@
       const count = parseInt(document.getElementById('caseCount').value) || 0;
 
       try {
-        // حفظ القيمة المعدلة مباشرة (استبدال تام للقيم السابقة لتفادي التراكم)
         await setStatisticsInDB(judge, caseType, targetKey, count);
 
         const dbData = await loadStatisticsFromDB();
