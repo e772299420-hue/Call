@@ -357,7 +357,7 @@
                       <span class="flex-1 text-sm font-medium">المدخلات والترحيل</span>
                       <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
                   </div>
-                  <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all group" onclick="closeMenu()">
+                  <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all group" onclick="hideAllSystemSections()">
                       <i class="fas fa-building w-6 text-blue-600 group-hover:text-yellow-500"></i>
                       <span class="flex-1 text-sm font-medium">الأرشيف والمستندات</span>
                       <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
@@ -371,17 +371,17 @@
                   <i class="fas fa-laptop-code text-yellow-500"></i> خدمات القضايا الإلكترونية
               </div>
               <div class="space-y-1">
-                  <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all group" onclick="closeMenu(); alert('جاري الانتقال إلى قسم الجلسات المباشرة...');">
+                  <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all group" onclick="hideAllSystemSections(); alert('جاري الانتقال إلى قسم الجلسات المباشرة...');">
                       <i class="fas fa-video w-6 text-green-600 group-hover:text-yellow-500"></i>
                       <span class="flex-1 text-sm font-medium">الجلسات المباشرة</span>
                       <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
                   </div>
-                  <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all group" onclick="closeMenu(); alert('جاري الانتقال إلى قسم الأرشفة والتوثيق...');">
+                  <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all group" onclick="hideAllSystemSections(); alert('جاري الانتقال إلى قسم الأرشفة والتوثيق...');">
                       <i class="fas fa-folder-open w-6 text-green-600 group-hover:text-yellow-500"></i>
                       <span class="flex-1 text-sm font-medium">الأرشفة والتوثيق</span>
                       <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
                   </div>
-                  <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all group" onclick="closeMenu(); window.location.href='hkm.html';">
+                  <div class="internal-page-link flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 cursor-pointer transition-all group" onclick="hideAllSystemSections(); window.location.href='hkm.html';">
                       <i class="fas fa-gavel w-6 text-green-600 group-hover:text-yellow-500"></i>
                       <span class="flex-1 text-sm font-medium">الأحكام القضائية</span>
                       <i class="fas fa-chevron-left text-gray-300 text-xs"></i>
@@ -416,7 +416,7 @@
             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
               <i class="fas fa-key"></i>
             </span>
-            <input type="password" id="systemPasswordInput" placeholder="أدخل كلمة السر (مثال: 2010)" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-10 text-white placeholder-white/30 text-sm focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 outline-none transition-all" onkeydown="if(event.key === 'Enter') verifySystemPassword()">
+            <input type="password" id="systemPasswordInput" placeholder="أدخل كلمة السر" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-10 text-white placeholder-white/30 text-sm focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 outline-none transition-all" onkeydown="if(event.key === 'Enter') verifySystemPassword()">
           </div>
         </div>
 
@@ -444,7 +444,7 @@
       <form id="entryForm" class="form-grid">
         <div>
           <label>اختيار القاضي</label>
-          <select id="judgeSelect" required>
+          <select id="judgeSelect" required onchange="syncJudgeWithView()">
             <option value="القاضي ماجد الزمر">القاضي ماجد الزمر</option>
             <option value="القاضي فاروق">القاضي فاروق</option>
             <option value="القاضي زكريا">القاضي زكريا</option>
@@ -485,11 +485,11 @@
 
         <div>
           <label>العدد المراد إضافته</label>
-          <input type="number" id="caseCount" min="1" value="1" required>
+          <input type="number" id="caseCount" min="0" value="1" required>
         </div>
 
         <div>
-          <button type="submit" class="btn-submit">ترحيل للجدول</button>
+          <button type="submit" class="btn-submit" id="submitBtnText">ترحيل للجدول</button>
         </div>
       </form>
     </div>
@@ -638,6 +638,12 @@
     if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeMenu);
     if (sideMenuOverlay) sideMenuOverlay.addEventListener('click', closeMenu);
 
+    function hideAllSystemSections() {
+      closeMenu();
+      document.getElementById('mainContentArea').style.display = 'none';
+      document.getElementById('welcomePlaceholder').style.display = 'flex';
+    }
+
     function showStatisticsSection() {
       closeMenu();
       document.getElementById('welcomePlaceholder').style.display = 'none';
@@ -686,6 +692,8 @@
         closePasswordModal();
         document.getElementById('welcomePlaceholder').style.display = 'none';
         document.getElementById('mainContentArea').style.display = 'block';
+        
+        syncJudgeWithView();
         renderTableForJudge();
 
         const entryCard = document.getElementById('entryCard');
@@ -697,6 +705,12 @@
         document.getElementById('systemPasswordInput').focus();
         document.getElementById('systemPasswordInput').select();
       }
+    }
+
+    function syncJudgeWithView() {
+      const judgeVal = document.getElementById('judgeSelect').value;
+      document.getElementById('viewJudgeSelect').value = judgeVal;
+      renderTableForJudge();
     }
 
     const caseTypes = [
@@ -753,6 +767,116 @@
         { label: 'إجمالي المتبقي (الشهر)', key: 'rem_total_curr' }
       ]
     };
+
+    function getMainCategoryByKey(key) {
+      for (const [cat, items] of Object.entries(subStatuses)) {
+        if (items.some(item => item.key === key)) {
+          return cat;
+        }
+      }
+      return 'المُرحّل والمعروض';
+    }
+
+    const DB_NAME = "CourtStatisticsDB";
+    const STORE_NAME = "احصائيات_التجار";
+    let db = null;
+
+    function initDatabase() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        
+        request.onerror = (event) => {
+          console.error("خطأ في فتح قاعدة البيانات:", event.target.error);
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          db = event.target.result;
+          resolve(db);
+        };
+
+        request.onupgradeneeded = (event) => {
+          const database = event.target.result;
+          if (!database.objectStoreNames.contains(STORE_NAME)) {
+            const store = database.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+            store.createIndex("judge_idx", "judge", { unique: false });
+          }
+        };
+      });
+    }
+
+    // دالة لاستبدال القيمة بالكامل (تعيين القيمة الجديدة مباشرة بدون تراكم)
+    async function setStatisticsInDB(judge, caseType, targetKey, newCount) {
+      if (!db) await initDatabase();
+      
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], "readwrite");
+        const store = transaction.objectStore(STORE_NAME);
+        
+        // مسح السجلات القديمة المطابقة تماماً لنفس القاضي ونوع القضية والحقل لتجنب التراكم، ثم حفظ القيمة الجديدة
+        const requestAll = store.getAll();
+        
+        requestAll.onsuccess = () => {
+          const records = requestAll.result;
+          const deletePromises = [];
+          
+          records.forEach(rec => {
+            if (rec.judge === judge && rec.caseType === caseType && rec.targetKey === targetKey) {
+              deletePromises.push(store.delete(rec.id));
+            }
+          });
+
+          // بعد حذف السجلات القديمة، نضيف السجل بالقيمة الجديدة فقط
+          Promise.all(deletePromises).then(() => {
+            const newRecord = {
+              judge: judge,
+              caseType: caseType,
+              targetKey: targetKey,
+              count: newCount,
+              timestamp: new Date().toISOString()
+            };
+            const addReq = store.add(newRecord);
+            addReq.onsuccess = () => resolve(addReq.result);
+            addReq.onerror = (e) => reject(e.target.error);
+          }).catch(err => reject(err));
+        };
+
+        requestAll.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function loadStatisticsFromDB() {
+      if (!db) await initDatabase();
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], "readonly");
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+
+        request.onsuccess = (event) => {
+          const records = event.target.result;
+          const loadedData = {};
+
+          records.forEach(rec => {
+            if (!loadedData[rec.judge]) {
+              loadedData[rec.judge] = {};
+              caseTypes.forEach(type => {
+                loadedData[rec.judge][type] = {};
+                columnKeys.forEach(key => loadedData[rec.judge][type][key] = 0);
+              });
+            }
+            if (loadedData[rec.judge][rec.caseType] && loadedData[rec.judge][rec.caseType][rec.targetKey] !== undefined) {
+              // جمع السجلات الباقية إن وجدت
+              loadedData[rec.judge][rec.caseType][rec.targetKey] += rec.count;
+            }
+          });
+
+          resolve(loadedData);
+        };
+
+        request.onerror = (event) => reject(event.target.error);
+      });
+    }
 
     const judgesData = {};
 
@@ -847,6 +971,33 @@
             td.classList.add('updated-cell');
           }
 
+          // النقر المزدوج (Double Click) لتعديل السجل الحالي إذا كان أكبر من الصفر
+          td.style.cursor = "pointer";
+          td.title = "انقر نقرتين للتعديل";
+          td.addEventListener('dblclick', function() {
+            const entryCard = document.getElementById('entryCard');
+            if (entryCard.style.display === 'block') {
+              if (val > 0) {
+                const confirmEdit = confirm(`هل ترغب بالتعديل على إحصائية (${type}) للقاضي (${selectedJudge}) بقيمة (${val})؟`);
+                if (confirmEdit) {
+                  document.getElementById('judgeSelect').value = selectedJudge;
+                  syncJudgeWithView();
+                  document.getElementById('caseType').value = type;
+                  
+                  const mainCat = getMainCategoryByKey(key);
+                  document.getElementById('mainCategory').value = mainCat;
+                  updateSubStatus();
+                  
+                  document.getElementById('subStatus').value = key;
+                  document.getElementById('caseCount').value = val;
+
+                  document.getElementById('submitBtnText').textContent = "تحديث وتعديل الإحصائية";
+                  entryCard.scrollIntoView({ behavior: 'smooth' });
+                }
+              }
+            }
+          });
+
           tr.appendChild(td);
         });
 
@@ -880,7 +1031,7 @@
       tfoot.appendChild(trFoot);
     }
 
-    document.getElementById('entryForm').addEventListener('submit', function(e) {
+    document.getElementById('entryForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
       const judge = document.getElementById('judgeSelect').value;
@@ -888,22 +1039,40 @@
       const targetKey = document.getElementById('subStatus').value;
       const count = parseInt(document.getElementById('caseCount').value) || 0;
 
-      if (!judgesData[judge]) {
-        judgesData[judge] = {};
-        caseTypes.forEach(type => {
-          judgesData[judge][type] = {};
-          columnKeys.forEach(key => judgesData[judge][type][key] = 0);
+      try {
+        // حفظ القيمة المعدلة مباشرة (استبدال تام للقيم السابقة لتفادي التراكم)
+        await setStatisticsInDB(judge, caseType, targetKey, count);
+
+        const dbData = await loadStatisticsFromDB();
+        Object.keys(dbData).forEach(j => {
+          judgesData[j] = dbData[j];
         });
+
+        document.getElementById('viewJudgeSelect').value = judge;
+        renderTableForJudge(targetKey, caseType);
+        
+        document.getElementById('submitBtnText').textContent = "ترحيل للجدول";
+        document.getElementById('caseCount').value = "1";
+        
+        alert("✅ تم حفظ وتحديث الإحصائية في قاعدة البيانات بنجاح.");
+      } catch (error) {
+        console.error("فشل حفظ البيانات:", error);
+        alert("❌ حدث خطأ أثناء حفظ البيانات في قاعدة البيانات.");
       }
-
-      judgesData[judge][caseType][targetKey] += count;
-      document.getElementById('viewJudgeSelect').value = judge;
-
-      renderTableForJudge(targetKey, caseType);
-      alert("✅ تم ترحيل البيان بنجاح إلى الجدول.");
     });
 
-    updateSubStatus();
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await initDatabase();
+        const dbData = await loadStatisticsFromDB();
+        Object.keys(dbData).forEach(j => {
+          judgesData[j] = dbData[j];
+        });
+      } catch (e) {
+        console.log("جارٍ تهيئة التخزين المحلي...");
+      }
+      updateSubStatus();
+    });
   </script>
 </body>
 </html>
