@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مدخلات النظام الرئيسة - محكمة ذي السفال الابتدائية</title>
+  <title id="pageDynamicTitle">مدخلات النظام الرئيسة - محكمة ذي السفال الابتدائية</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <!-- مكتبة توليد QR Code (QRCode.js) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <!-- مكتبات Firebase السحابية -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -40,7 +43,7 @@
       background-color: var(--bg-light);
       margin: 0;
       padding-top: 85px;
-      padding-bottom: 75px;
+      padding-bottom: 95px;
       color: #333;
     }
 
@@ -123,11 +126,15 @@
       border: none;
       font-weight: bold;
       cursor: pointer;
-      height: 35px;
-      padding: 0 18px;
+      height: 33px;
+      padding: 0 12px;
       width: auto;
       border-radius: 4px;
       transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
     }
 
     .btn-print:hover {
@@ -216,7 +223,7 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.98);
       backdrop-filter: blur(5px);
       box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
       z-index: 999;
@@ -233,7 +240,7 @@
       gap: 15px;
       font-size: 11px;
       text-align: center;
-      max-width: 1200px;
+      max-width: 1300px;
       margin: 0 auto;
       padding: 0 15px;
     }
@@ -254,7 +261,32 @@
     .footer-item .role-title { color: var(--primary-blue); font-weight: bold; }
     .footer-item .person-name { color: #111111; font-weight: bold; }
     .footer-item .role-subtitle { color: #555555; font-size: 10px; }
-    .footer-divider { width: 1px; height: 35px; background-color: #cfd8dc; }
+    .footer-divider { width: 1px; height: 45px; background-color: #cfd8dc; }
+
+    .qr-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      text-align: center;
+    }
+    .qr-box {
+      background: #fff;
+      padding: 3px;
+      border: 1px solid #b0bec5;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .qr-box img {
+      display: block;
+      width: 55px;
+      height: 55px;
+    }
+    .qr-text {
+      font-size: 9px;
+      color: #1a237e;
+      font-weight: bold;
+    }
 
     @media print {
       @page { size: landscape; margin: 4mm; }
@@ -271,7 +303,16 @@
       
       table { font-size: 9px; width: 100%; }
       th, td { border: 1px solid #000 !important; padding: 4px 2px; }
-      .inline-footer { position: static !important; border-top: 1px solid #000 !important; margin-top: 15px !important; }
+      .inline-footer { 
+        position: fixed !important; 
+        bottom: 0 !important; 
+        left: 0 !important; 
+        width: 100% !important; 
+        border-top: 1px solid #000 !important; 
+        margin-top: 0 !important; 
+        background: #fff !important; 
+        padding: 4px 0 !important;
+      }
     }
     .print-title { display: none; }
   </style>
@@ -327,7 +368,6 @@
           </div>
         </div>
 
-        <!-- خانة تذكرني -->
         <div class="flex items-center gap-2 pt-1">
           <input type="checkbox" id="rememberMeCheck" class="w-4 h-4 rounded border-white/20 bg-white/10 text-yellow-500 focus:ring-yellow-400 cursor-pointer accent-yellow-500">
           <label for="rememberMeCheck" class="text-white/80 text-xs cursor-pointer select-none m-0">تذكرني وعدم سؤالي مرة أخرى على هذا المتصفح</label>
@@ -352,10 +392,11 @@
 
   <!-- المحتوى الرئيسي -->
   <div class="main-wrapper" id="mainContentArea" style="display: none;">
-    <div class="card no-print" id="entryCard">
+    
+    <!-- نموذج الإدخال والترحيل الثابت -->
+    <div class="card no-print sticky top-[75px] z-50 shadow-md bg-white/95 backdrop-blur-sm" id="entryCard">
       <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
         <h4 class="card-title m-0">🔒 نموذج إدخال وترحيل الإحصائيات القضائية (سحابي حسب الشهر)</h4>
-        <!-- زر ترحيل الإحصائية السابقة يظهر ديناميكياً -->
         <button type="button" id="migratePrevMonthBtn" onclick="migratePreviousMonthData()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-bold cursor-pointer hidden shadow-md">
           📥 ترحيل الإحصائية السابقة إلى مرحل تلقائي
         </button>
@@ -365,14 +406,14 @@
         <div>
           <label>اختيار القاضي</label>
           <select id="judgeSelect" required onchange="onJudgeChangeHandler()">
-            <!-- يتم تعبئة قائمة القضاة ديناميكياً -->
+            <!-- القضاة -->
           </select>
         </div>
 
         <div>
           <label>الشهر الهجري (مفتاح أساسي)</label>
           <select id="hijriMonthSelect" required onchange="onMonthChangeHandler()">
-            <!-- يتم تعبئة الأشهر ديناميكياً من 1 إلى 12 -->
+            <!-- الشهور المتاحة حتى الشهر الحالي -->
           </select>
         </div>
 
@@ -402,21 +443,24 @@
         <div>
           <label>تفصيل الحقل / العمود (المفتاح الأساسي)</label>
           <select id="subStatus" required onchange="onSubStatusChangeHandler()">
-            <!-- يتم تعبئتها ديناميكياً -->
+            <!-- التفاصيل -->
           </select>
         </div>
 
         <div>
           <label>العدد المراد إضافته</label>
-          <input type="number" id="caseCount" min="1" value="1" required oninput="onCriteriaChange()">
+          <input type="number" id="caseCount" min="0" placeholder="أدخل العدد (مثال: 0 أو أكثر)" required>
         </div>
 
-        <div>
-          <button type="submit" class="btn-submit" id="submitBtnText">ترحيل للجدول</button>
+        <div class="flex items-center gap-2">
+          <button type="submit" class="btn-submit flex-1" id="submitBtnText">ترحيل للجدول</button>
+          <button type="button" class="btn-print" id="toggleFilterBarBtn" title="إظهار/إخفاء شريط الفلترة والطباعة" onclick="toggleFilterBar(event)">
+            <i class="fas fa-print"></i>
+          </button>
         </div>
       </form>
 
-      <!-- تبويب تفاصيل القضايا الفردية (مخفي افتراضياً ويظهر عند اختيار الحقل) -->
+      <!-- تفاصيل السجلات الفردية -->
       <div id="caseDetailsContainer" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg" style="display: none;">
         <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
           <h5 class="text-xs font-bold text-blue-900">📋 تفاصيل السجلات والأسطر (إضافة وحذف ديناميكي بدون تكرار للسنوات):</h5>
@@ -438,33 +482,32 @@
                 <th class="p-2 border text-center">إجراء (إضافة/حذف)</th>
               </tr>
             </thead>
-            <tbody id="caseDetailsRowsBody">
-              <!-- الصفوف تتولد ديناميكياً -->
-            </tbody>
+            <tbody id="caseDetailsRowsBody"></tbody>
           </table>
         </div>
         <div class="mt-2 text-xs font-bold text-gray-700 flex justify-between items-center" id="currentRowsSumNotice">
           <span>المجموع الحالي للأسطر: <span id="sumDisplay">0</span></span>
-          <span id="balanceStatusText" class="text-gray-500 text-xs"></span>
+          <span id="balanceStatusText" class="text-gray-500 text-xs">يمكنك تعديل حقل العدد بالأعلى يدوياً أو تركه يتطابق مع المجموع</span>
         </div>
       </div>
 
     </div>
 
-    <div class="filter-bar no-print">
+    <!-- شريط الفلترة والطباعة -->
+    <div class="filter-bar no-print" id="filterBarSection" style="display: none;">
       <div class="filter-group">
         <label for="viewJudgeSelect">عرض إحصائيات القاضي:</label>
         <select id="viewJudgeSelect" onchange="renderTableForJudge()">
-          <!-- قائمة القضاة للعرض -->
+          <!-- القضاة للعرض -->
         </select>
         <label for="viewMonthSelect" class="mr-3">الشهر:</label>
         <select id="viewMonthSelect" onchange="renderTableForJudge()" style="min-width: 120px; font-weight: bold;">
-          <!-- قائمة أشهر العرض مرتبة من محرم إلى ذو الحجة -->
+          <!-- أشهر العرض المتاحة حتى الشهر الحالي -->
         </select>
       </div>
       
       <div class="btn-action-group">
-        <button type="button" class="btn-print" onclick="prepareAndPrint()">🖨️ طباعة التقرير الشامل مع التفاصيل</button>
+        <button type="button" class="btn-print" style="width: auto; padding: 0 18px;" onclick="prepareAndPrint()">🖨️ طباعة التقرير الشامل مع التفاصيل</button>
       </div>
     </div>
 
@@ -515,24 +558,30 @@
             <th style="border: 1px solid #000; padding: 4px;">اسم القاضي</th>
           </tr>
         </thead>
-        <tbody id="printDetailsTableBody">
-          <!-- محتوى الجدول التفصيلي للطباعة -->
-        </tbody>
+        <tbody id="printDetailsTableBody"></tbody>
       </table>
     </div>
 
   </div>
 
-  <!-- شريط التذييل الثابت أسفل الشاشة -->
+  <!-- تذييل الشاشة الثابت -->
   <div class="inline-footer">
     <div class="footer-content">
       <div class="footer-item">
         <div class="footer-item-inner">
           <span class="role-title">إعداد وبرمجة</span>
-          <span class="person-name">المهندس/ مروان محمد الذماري</span>
+          <span class="person-name">المهندس/ مروان محمد عبد الله الذماري</span>
           <span class="role-subtitle">امين السر الاكتروني</span>
         </div>
       </div>
+      
+      <div class="footer-item">
+        <div class="qr-container">
+          <div class="qr-box" id="qrcodeWidget"></div>
+          <span class="qr-text">للإطلاع على التقارير قم زيارة الموقع</span>
+        </div>
+      </div>
+
       <div class="footer-divider"></div>
       <div class="footer-item">
         <div class="footer-item-inner">
@@ -548,6 +597,7 @@
 
   <script>
     const SECRET_PASSWORD = "2010";
+    const QR_TARGET_URL = "https://az12.vercel.app/seasa?v=1789761835256";
 
     const judgesList = [
       "القاضي ماجد الزمر",
@@ -557,6 +607,7 @@
       "القاضي حمزة"
     ];
 
+    // مصفوفة الشهور الهجرية الكاملة مرتبة تسلسلياً
     const hijriMonthsList = [
       "محرم", "صفر", "ربيع أول", "ربيع ثان", 
       "جمادى أول", "جمادى ثان", "رجب", "شعبان", 
@@ -576,8 +627,19 @@
       { key: 'ended_excluded', name: 'مستبعده' }
     ];
 
-    function getCurrentHijriMonthName() {
-      return "محرم";
+    // دالة لاستخراج الشهر الهجري الحالي بناءً على تاريخ اليوم (تلقائياً)
+    function getCurrentHijriMonthIndex() {
+      try {
+        const formatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', { month: 'numeric' });
+        const monthNum = parseInt(formatter.format(new Date()));
+        if (!isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
+          return monthNum - 1; // الفهرس من 0 إلى 11
+        }
+      } catch (e) {
+        console.warn("Could not determine Hijri month automatically, defaulting to available range.", e);
+      }
+      // افتراضياً للشهر الحالي (ربيع ثان / ربيع أول بناءً على الوقت الحالي سبتمبر 2026 الموافق ربيع الآخر 1448)
+      return 3; 
     }
 
     function initializeDropdowns() {
@@ -586,11 +648,18 @@
       const hijriMonthSelect = document.getElementById('hijriMonthSelect');
       const viewMonthSelect = document.getElementById('viewMonthSelect');
       
-      const currentSelectedJudge = judgeSelect.value || judgesList[0];
-      const currentViewJudge = viewJudgeSelect.value || judgesList[0];
+      const savedJudge = localStorage.getItem("court_selected_judge");
+      const savedMonth = localStorage.getItem("court_selected_month");
+
+      const currentSelectedJudge = savedJudge && judgesList.includes(savedJudge) ? savedJudge : (judgeSelect.value || judgesList[0]);
+      const currentViewJudge = currentSelectedJudge;
       
-      const currentMonthVal = hijriMonthSelect.value || hijriMonthsList[0];
-      const currentViewMonthVal = viewMonthSelect.value || currentMonthVal;
+      // تحديد الحد الأقصى للشهور حتى الشهر الحالي للسنة الهجرية
+      const currentMonthLimitIndex = getCurrentHijriMonthIndex();
+      
+      const currentMonthVal = savedMonth && hijriMonthsList.slice(0, currentMonthLimitIndex + 1).includes(savedMonth) 
+                              ? savedMonth 
+                              : hijriMonthsList[currentMonthLimitIndex];
 
       judgeSelect.innerHTML = '';
       viewJudgeSelect.innerHTML = '';
@@ -609,7 +678,10 @@
         viewJudgeSelect.appendChild(opt2);
       });
 
-      hijriMonthsList.forEach((month, idx) => {
+      // تعبئة الشهور الهجرية من الشهر الأول وحتى الشهر الحالي فقط
+      for (let idx = 0; idx <= currentMonthLimitIndex; idx++) {
+        const month = hijriMonthsList[idx];
+        
         const optM1 = document.createElement('option');
         optM1.value = month;
         optM1.textContent = (idx + 1) + ". " + month;
@@ -619,14 +691,33 @@
         optM2.value = month;
         optM2.textContent = (idx + 1) + ". " + month;
         viewMonthSelect.appendChild(optM2);
-      });
+      }
 
-      if(judgesList.includes(currentSelectedJudge)) judgeSelect.value = currentSelectedJudge;
-      if(judgesList.includes(currentViewJudge)) viewJudgeSelect.value = currentViewJudge;
-      if(hijriMonthsList.includes(currentMonthVal)) hijriMonthSelect.value = currentMonthVal;
-      if(hijriMonthsList.includes(currentViewMonthVal)) viewMonthSelect.value = currentViewMonthVal;
+      judgeSelect.value = currentSelectedJudge;
+      viewJudgeSelect.value = currentViewJudge;
+      hijriMonthSelect.value = currentMonthVal;
+      viewMonthSelect.value = currentMonthVal;
       
       checkPreviousMonthAvailability();
+      generateQRCodeWidget();
+    }
+
+    function generateQRCodeWidget() {
+      const container = document.getElementById('qrcodeWidget');
+      if (container && container.innerHTML.trim() === '') {
+        try {
+          new QRCode(container, {
+            text: QR_TARGET_URL,
+            width: 55,
+            height: 55,
+            colorDark: "#1a237e",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (e) {
+          console.error("QR Code Generation Error:", e);
+        }
+      }
     }
 
     function checkPreviousMonthAvailability() {
@@ -689,7 +780,7 @@
                              
           const rowGrandTotal = mandateTotal + endedTotal;
 
-          if (rowGrandTotal > 0) {
+          if (rowGrandTotal >= 0) {
             const safeCaseType = type.replace(/[.#$\/\[\]]/g, "_");
             await dbRef.child(`statistics_v9/${safeJudge}/${safeMonth}/${safeCaseType}/mandate_carried`).set(rowGrandTotal);
           }
@@ -788,9 +879,7 @@
       });
     }
 
-    function onCriteriaChange() {
-      // لا نقوم بإعادة توليد الصفوف عشوائياً هنا حتى لا نفقد تعديلات المستخدم، التوليد يتم عند اختيار تفصيل الحقل
-    }
+    function onCriteriaChange() {}
 
     function populateSubStatusOptions() {
       const judge = document.getElementById('judgeSelect').value;
@@ -816,7 +905,7 @@
           }
         }
         
-        if (!hasData && judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && (judgesData[judge][month][caseType][opt.key] || 0) > 0) {
+        if (!hasData && judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && Number(judgesData[judge][month][caseType][opt.key]) >= 0) {
           hasData = true;
         }
 
@@ -846,12 +935,14 @@
     }
 
     function onJudgeChangeHandler() {
+      localStorage.setItem("court_selected_judge", document.getElementById('judgeSelect').value);
       syncJudgeAndMonthWithView();
       populateSubStatusOptions();
       checkPreviousMonthAvailability();
     }
 
     function onMonthChangeHandler() {
+      localStorage.setItem("court_selected_month", document.getElementById('hijriMonthSelect').value);
       syncJudgeAndMonthWithView();
       populateSubStatusOptions();
       checkPreviousMonthAvailability();
@@ -888,20 +979,17 @@
       let totalCount = 0;
       if (hasDataBefore) {
         existingDetails.forEach(item => totalCount += (parseInt(item.rowCount) || 0));
-      } else if (judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && (judgesData[judge][month][caseType][subStatus] || 0) > 0) {
+        document.getElementById('caseCount').value = totalCount;
+        document.getElementById('submitBtnText').textContent = "تحديث وتعديل الإحصائية";
+      } else if (judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && judgesData[judge][month][caseType][subStatus] !== undefined) {
         totalCount = judgesData[judge][month][caseType][subStatus];
-        hasDataBefore = true;
-      }
-
-      if (hasDataBefore && totalCount > 0) {
         document.getElementById('caseCount').value = totalCount;
         document.getElementById('submitBtnText').textContent = "تحديث وتعديل الإحصائية";
       } else {
-        document.getElementById('caseCount').value = "1";
+        document.getElementById('caseCount').value = "";
         document.getElementById('submitBtnText').textContent = "ترحيل للجدول";
       }
 
-      // إظهار نافذة السجلات التفصيلية وعرض السجلات المحفوظة (أو سجل واحد جديد في حال الإضافة)
       generateCaseDetailsRows(hasDataBefore ? existingDetails : null);
     }
 
@@ -918,7 +1006,6 @@
       const currentCaseType = document.getElementById('caseType').value;
       const currentSubStatus = document.getElementById('subStatus').value;
 
-      // إظهار النافذة عند اختيار وتغيير الحقل الفرعي
       container.style.display = 'block';
 
       let existingDetails = customExistingDetails || [];
@@ -939,8 +1026,6 @@
       }
 
       tbody.innerHTML = '';
-      
-      // إذا كانت هناك سجلات محفوظة مسبقاً (تعديل)، اعرضها. وإذا لم تكن هناك (إضافية جديدة)، اعرض سجل واحد فقط.
       let rowCountToRender = existingDetails.length > 0 ? existingDetails.length : 1;
       
       for (let i = 0; i < rowCountToRender; i++) {
@@ -995,23 +1080,19 @@
 
       const tr = document.createElement('tr');
       
-      const defaultRowCnt = dataObj ? dataObj.rowCount : 1;
+      const defaultRowCnt = dataObj ? dataObj.rowCount : "";
       const defaultCaseNum = dataObj ? dataObj.caseNumber : "";
       const defaultYear = dataObj ? dataObj.caseYear : "";
 
       tr.innerHTML = `
         <td class="p-1.5 border text-center font-bold row-index">${rowIdx + 1}</td>
-        <td class="p-1.5 border"><input type="number" min="1" class="row-count-input p-1 border rounded w-full text-xs text-center font-bold" value="${defaultRowCnt}" oninput="updateRowsSum()" required></td>
+        <td class="p-1.5 border"><input type="number" min="0" class="row-count-input p-1 border rounded w-full text-xs text-center font-bold" placeholder="0" value="${defaultRowCnt}" oninput="updateRowsSum()" required></td>
         <td class="p-1.5 border"><input type="text" class="case-number-input p-1 border rounded w-full text-xs" placeholder="رقم القضية (اختياري)" value="${defaultCaseNum}"></td>
         <td class="p-1.5 border">
-          <select class="case-year-input p-1 border rounded w-full text-xs bg-white" onchange="updateAllYearDropdowns()">
-            <!-- يتم تعبئتها ديناميكياً -->
-          </select>
+          <select class="case-year-input p-1 border rounded w-full text-xs bg-white" onchange="updateAllYearDropdowns()"></select>
         </td>
         <td class="p-1.5 border"><input type="text" class="case-judge-input p-1 border rounded w-full text-xs" value="${currentJudge}" readonly style="background-color: #f3f4f6;"></td>
-        <td class="p-1.5 border text-center action-cell">
-          <!-- زر إضافة وحذف ديناميكي -->
-        </td>
+        <td class="p-1.5 border text-center action-cell"></td>
       `;
 
       tbody.appendChild(tr);
@@ -1050,9 +1131,7 @@
           addBtn.type = 'button';
           addBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-[11px] font-bold cursor-pointer';
           addBtn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
-          addBtn.onclick = () => {
-            appendDetailRow();
-          };
+          addBtn.onclick = () => { appendDetailRow(); };
           actionCell.appendChild(addBtn);
         }
 
@@ -1083,17 +1162,13 @@
     function updateRowsSum() {
       const rowInputs = document.querySelectorAll('.row-count-input');
       let sum = 0;
-      rowInputs.updateCount = 0;
-      rowInputs.forEach(input => {
-        sum += parseInt(input.value) || 0;
-      });
+      rowInputs.forEach(input => { sum += parseInt(input.value) || 0; });
 
-      document.getElementById('caseCount').value = sum;
       document.getElementById('sumDisplay').textContent = sum;
       const statusText = document.getElementById('balanceStatusText');
 
-      statusText.textContent = `✅ إجمالي الأعداد المحسوبة من السجلات (${sum})`;
-      statusText.style.color = "green";
+      statusText.textContent = `مجموع الأسطر الحالية: (${sum}) - يمكنك كتابة أي رقم في حقل "العدد" بالأعلى بحرية (بما في ذلك الصفر 0)`;
+      statusText.style.color = "#555";
 
       updateActionButtonsState();
       return sum;
@@ -1112,7 +1187,7 @@
 
       const detailsList = [];
       rows.forEach(row => {
-        const rowCnt = parseInt(row.querySelector('.row-count-input').value) || 1;
+        const rowCnt = parseInt(row.querySelector('.row-count-input').value) || 0;
         const num = row.querySelector('.case-number-input').value.trim();
         const yr = row.querySelector('.case-year-input').value;
         const jdg = row.querySelector('.case-judge-input').value.trim();
@@ -1129,15 +1204,13 @@
         });
       });
 
-      if(detailsList.length > 0) {
-        const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
-        const safeMonth = month.replace(/[.#$\/\[\]]/g, "_");
-        const safeCaseTypeKey = caseType.replace(/[.#$\/\[\]]/g, "_");
-        const safeSubKey = subStatus.replace(/[.#$\/\[\]]/g, "_");
+      const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
+      const safeMonth = month.replace(/[.#$\/\[\]]/g, "_");
+      const safeCaseTypeKey = caseType.replace(/[.#$\/\[\]]/g, "_");
+      const safeSubKey = subStatus.replace(/[.#$\/\[\]]/g, "_");
 
-        await dbRef.child(`case_details_v9/${safeJudge}/${safeMonth}/${safeCaseTypeKey}/${safeSubKey}`).set(detailsList);
-        await loadAllDetailsFromDB();
-      }
+      await dbRef.child(`case_details_v9/${safeJudge}/${safeMonth}/${safeCaseTypeKey}/${safeSubKey}`).set(detailsList);
+      await loadAllDetailsFromDB();
     }
 
     async function loadStatisticsFromDB() {
@@ -1218,7 +1291,7 @@
                     <td style="border: 1px solid #000; padding: 4px; text-align: right;">${item.caseType || '-'}</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: right;">${getSubStatusArabicName(item.subStatus)}</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: center; font-weight: bold;">${item.caseNumber || '-'}</td>
-                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.rowCount || 1}</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.rowCount !== undefined ? item.rowCount : 0}</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.caseYear || '-'} هـ</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.hijriMonth || selectedMonth}</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.judgeName || selectedJudge}</td>
@@ -1242,8 +1315,17 @@
       await loadAllDetailsFromDB();
       const selectedJudge = document.getElementById('viewJudgeSelect').value;
       const selectedMonth = document.getElementById('viewMonthSelect').value;
+      
+      const formattedFileName = `إحصائيات ${selectedJudge} _ ${selectedMonth}`;
+      document.title = formattedFileName;
+      document.getElementById('pageDynamicTitle').textContent = formattedFileName;
+
       updatePrintDetailsTable(selectedJudge, selectedMonth);
       window.print();
+
+      setTimeout(() => {
+        document.title = "مدخلات النظام الرئيسة - محكمة ذي السفال الابتدائية";
+      }, 2000);
     }
 
     function renderTableForJudge(highlightKey = null, highlightCaseType = null) {
@@ -1280,15 +1362,15 @@
         }
 
         currentMonthData[type]['mandate_total'] = 
-          (currentMonthData[type]['mandate_carried'] || 0) + 
-          (currentMonthData[type]['mandate_incoming'] || 0) +
-          (currentMonthData[type]['mandate_from'] || 0) +
-          (currentMonthData[type]['mandate_to'] || 0);
+          (Number(currentMonthData[type]['mandate_carried']) || 0) + 
+          (Number(currentMonthData[type]['mandate_incoming']) || 0) +
+          (Number(currentMonthData[type]['mandate_from']) || 0) +
+          (Number(currentMonthData[type]['mandate_to']) || 0);
 
         currentMonthData[type]['ended_total'] = 
-          (currentMonthData[type]['ended_by_judgment'] || 0) + 
-          (currentMonthData[type]['ended_as_judgment_strike'] || 0) +
-          (currentMonthData[type]['ended_excluded'] || 0);
+          (Number(currentMonthData[type]['ended_by_judgment']) || 0) + 
+          (Number(currentMonthData[type]['ended_as_judgment_strike']) || 0) +
+          (Number(currentMonthData[type]['ended_excluded']) || 0);
 
         const tr = document.createElement('tr');
         const tdTitle = document.createElement('td');
@@ -1297,7 +1379,7 @@
         tr.appendChild(tdTitle);
 
         columnKeys.forEach(key => {
-          const val = currentMonthData[type][key] || 0;
+          const val = Number(currentMonthData[type][key]) || 0;
           colTotals[key] += val;
 
           const td = document.createElement('td');
@@ -1317,11 +1399,13 @@
               if (confirmEdit) {
                 document.getElementById('judgeSelect').value = selectedJudge;
                 document.getElementById('hijriMonthSelect').value = selectedMonth;
+                localStorage.setItem("court_selected_judge", selectedJudge);
+                localStorage.setItem("court_selected_month", selectedMonth);
                 syncJudgeAndMonthWithView();
                 document.getElementById('caseType').value = type;
                 populateSubStatusOptions();
                 document.getElementById('subStatus').value = key;
-                onSubStatusChangeHandler(); // لتعبئة السجلات وعرض النافذة
+                onSubStatusChangeHandler();
                 document.getElementById('submitBtnText').textContent = "تحديث وتعديل الإحصائية";
                 document.getElementById('entryCard').scrollIntoView({ behavior: 'smooth' });
               }
@@ -1375,6 +1459,26 @@
       judgeInputs.forEach(input => input.value = judgeVal);
     }
 
+    function toggleFilterBar(event) {
+      event.stopPropagation();
+      const filterBar = document.getElementById('filterBarSection');
+      if (filterBar.style.display === 'none' || !filterBar.style.display) {
+        filterBar.style.display = 'flex';
+      } else {
+        filterBar.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('click', function(event) {
+      const filterBar = document.getElementById('filterBarSection');
+      const toggleBtn = document.getElementById('toggleFilterBarBtn');
+      if (filterBar && filterBar.style.display === 'flex') {
+        if (!filterBar.contains(event.target) && !toggleBtn.contains(event.target)) {
+          filterBar.style.display = 'none';
+        }
+      }
+    });
+
     document.getElementById('entryForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const judge = document.getElementById('judgeSelect').value;
@@ -1382,10 +1486,19 @@
       const caseType = document.getElementById('caseType').value;
       const targetKey = document.getElementById('subStatus').value;
 
-      const calculatedSum = updateRowsSum();
+      localStorage.setItem("court_selected_judge", judge);
+      localStorage.setItem("court_selected_month", month);
+
+      const countInputVal = document.getElementById('caseCount').value;
+      const manualCountInput = countInputVal !== "" ? parseInt(countInputVal) : 0;
+
+      if (manualCountInput === 0) {
+        const confirmZero = confirm(`⚠️ تنبيه: القيمة المدخلة هي (0). هل أنت متأكد من رغبتك في حفظ وتثبيت القيمة (0) لهذا الحقل؟`);
+        if (!confirmZero) return;
+      }
 
       try {
-        await setStatisticsInDB(judge, month, caseType, targetKey, calculatedSum);
+        await setStatisticsInDB(judge, month, caseType, targetKey, manualCountInput);
         await saveCaseDetailsToDB(judge, month, caseType, targetKey);
         
         await loadAllDetailsFromDB();
@@ -1398,13 +1511,11 @@
         populateSubStatusOptions();
         checkPreviousMonthAvailability();
         
-        // إخفاء نافذة السجلات التفصيلية بعد الحفظ بنجاح
         document.getElementById('caseDetailsContainer').style.display = 'none';
-
         document.getElementById('submitBtnText').textContent = "ترحيل للجدول";
-        document.getElementById('caseCount').value = "1";
+        document.getElementById('caseCount').value = "";
         
-        alert(`✅ تم حفظ وتحديث الإحصائية لشهر (${month}) وتفاصيل السجلات المرتبطة بنجاح على قاعدة البيانات السحابية.`);
+        alert(`✅ تم حفظ وتحديث الإحصائية لشهر (${month}) بالقيمة (${manualCountInput}) وتفاصيل السجلات بنجاح على القاعدة السحابية.`);
       } catch (error) {
         console.error(error);
         alert("❌ حدث خطأ أثناء حفظ البيانات على السحابة.");
