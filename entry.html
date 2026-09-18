@@ -449,7 +449,7 @@
 
         <div>
           <label>العدد المراد إضافته</label>
-          <input type="number" id="caseCount" min="0" placeholder="أدخل العدد (مثال: 0 أو أكثر)" required>
+          <input type="number" id="caseCount" min="0" placeholder="أدخل العدد (مثال: 0 أو أكثر)" required oninput="checkCountAndToggleDetails()">
         </div>
 
         <div class="flex items-center gap-2">
@@ -460,7 +460,7 @@
         </div>
       </form>
 
-      <!-- تفاصيل السجلات الفردية -->
+      <!-- تفاصيل السجلات الفردية (تظهر/تختفي بناءً على حقل العدد) -->
       <div id="caseDetailsContainer" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg" style="display: none;">
         <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
           <h5 class="text-xs font-bold text-blue-900">📋 تفاصيل السجلات والأسطر (إضافة وحذف ديناميكي بدون تكرار للسنوات):</h5>
@@ -607,7 +607,6 @@
       "القاضي حمزة"
     ];
 
-    // مصفوفة الشهور الهجرية الكاملة مرتبة تسلسلياً
     const hijriMonthsList = [
       "محرم", "صفر", "ربيع أول", "ربيع ثان", 
       "جمادى أول", "جمادى ثان", "رجب", "شعبان", 
@@ -627,18 +626,16 @@
       { key: 'ended_excluded', name: 'مستبعده' }
     ];
 
-    // دالة لاستخراج الشهر الهجري الحالي بناءً على تاريخ اليوم (تلقائياً)
     function getCurrentHijriMonthIndex() {
       try {
         const formatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', { month: 'numeric' });
         const monthNum = parseInt(formatter.format(new Date()));
         if (!isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
-          return monthNum - 1; // الفهرس من 0 إلى 11
+          return monthNum - 1;
         }
       } catch (e) {
-        console.warn("Could not determine Hijri month automatically, defaulting to available range.", e);
+        console.warn("Could not determine Hijri month automatically, defaulting.", e);
       }
-      // افتراضياً للشهر الحالي (ربيع ثان / ربيع أول بناءً على الوقت الحالي سبتمبر 2026 الموافق ربيع الآخر 1448)
       return 3; 
     }
 
@@ -654,7 +651,6 @@
       const currentSelectedJudge = savedJudge && judgesList.includes(savedJudge) ? savedJudge : (judgeSelect.value || judgesList[0]);
       const currentViewJudge = currentSelectedJudge;
       
-      // تحديد الحد الأقصى للشهور حتى الشهر الحالي للسنة الهجرية
       const currentMonthLimitIndex = getCurrentHijriMonthIndex();
       
       const currentMonthVal = savedMonth && hijriMonthsList.slice(0, currentMonthLimitIndex + 1).includes(savedMonth) 
@@ -678,7 +674,6 @@
         viewJudgeSelect.appendChild(opt2);
       });
 
-      // تعبئة الشهور الهجرية من الشهر الأول وحتى الشهر الحالي فقط
       for (let idx = 0; idx <= currentMonthLimitIndex; idx++) {
         const month = hijriMonthsList[idx];
         
@@ -892,43 +887,33 @@
 
       const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
       const safeMonth = month.replace(/[.#$\/\[\]]/g, "_");
-      const unmigrated = [];
-      const migrated = [];
+      const safeCaseTypeKey = caseType.replace(/[.#$\/\[\]]/g, "_");
 
       allSubStatusOptions.forEach(opt => {
         let hasData = false;
-        if (allSavedDetailsCache[safeJudge] && allSavedDetailsCache[safeJudge][safeMonth]) {
-          const safeCaseTypeKey = caseType.replace(/[.#$\/\[\]]/g, "_");
-          const safeSubKey = opt.key.replace(/[.#$\/\[\]]/g, "_");
-          if (allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey] && allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey][safeSubKey]) {
-            hasData = true;
-          }
+        const safeSubKey = opt.key.replace(/[.#$\/\[\]]/g, "_");
+
+        // شرط الارتباط بين جدول الإحصائية وجدول التفاصيل: وجود قيمة > 0 وسجلات سابقة
+        if (allSavedDetailsCache[safeJudge] && allSavedDetailsCache[safeJudge][safeMonth] && allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey] && allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey][safeSubKey]) {
+          const entryVal = allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey][safeSubKey];
+          let arr = Array.isArray(entryVal) ? entryVal : Object.values(entryVal || {});
+          if (arr.length > 0) hasData = true;
         }
-        
-        if (!hasData && judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && Number(judgesData[judge][month][caseType][opt.key]) >= 0) {
+
+        if (!hasData && judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && Number(judgesData[judge][month][caseType][opt.key]) > 0) {
           hasData = true;
         }
 
-        if (hasData) {
-          migrated.push(opt);
-        } else {
-          unmigrated.push(opt);
-        }
-      });
-
-      const orderedOptions = [...unmigrated, ...migrated];
-
-      orderedOptions.forEach(opt => {
         const optionEl = document.createElement('option');
         optionEl.value = opt.key;
-        optionEl.textContent = opt.name + (migrated.includes(opt) ? " (تم الترحيل مسبقاً)" : "");
+        optionEl.textContent = opt.name + (hasData ? " (تم الترحيل مسبقاً)" : "");
         subStatusSelect.appendChild(optionEl);
       });
 
-      if (orderedOptions.some(o => o.key === currentSelectedSub)) {
+      if (allSubStatusOptions.some(o => o.key === currentSelectedSub)) {
         subStatusSelect.value = currentSelectedSub;
-      } else if (orderedOptions.length > 0) {
-        subStatusSelect.value = orderedOptions[0].key;
+      } else if (allSubStatusOptions.length > 0) {
+        subStatusSelect.value = allSubStatusOptions[0].key;
       }
 
       onSubStatusChangeHandler(true);
@@ -981,7 +966,7 @@
         existingDetails.forEach(item => totalCount += (parseInt(item.rowCount) || 0));
         document.getElementById('caseCount').value = totalCount;
         document.getElementById('submitBtnText').textContent = "تحديث وتعديل الإحصائية";
-      } else if (judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && judgesData[judge][month][caseType][subStatus] !== undefined) {
+      } else if (judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && Number(judgesData[judge][month][caseType][subStatus]) > 0) {
         totalCount = judgesData[judge][month][caseType][subStatus];
         document.getElementById('caseCount').value = totalCount;
         document.getElementById('submitBtnText').textContent = "تحديث وتعديل الإحصائية";
@@ -991,6 +976,19 @@
       }
 
       generateCaseDetailsRows(hasDataBefore ? existingDetails : null);
+      checkCountAndToggleDetails();
+    }
+
+    // التحقق من قيمة حقل العدد لإظهار أو إخفاء شريط تفاصيل السجلات تلقائياً
+    function checkCountAndToggleDetails() {
+      const countVal = parseInt(document.getElementById('caseCount').value);
+      const container = document.getElementById('caseDetailsContainer');
+      
+      if (isNaN(countVal) || countVal <= 0) {
+        container.style.display = 'none';
+      } else {
+        container.style.display = 'block';
+      }
     }
 
     function getSubStatusArabicName(key) {
@@ -1005,8 +1003,6 @@
       const currentMonth = document.getElementById('hijriMonthSelect').value;
       const currentCaseType = document.getElementById('caseType').value;
       const currentSubStatus = document.getElementById('subStatus').value;
-
-      container.style.display = 'block';
 
       let existingDetails = customExistingDetails || [];
       if (!customExistingDetails) {
@@ -1033,6 +1029,7 @@
       }
 
       updateRowsSum();
+      checkCountAndToggleDetails();
     }
 
     function getSelectedYearsInOtherRows(currentRowElement) {
@@ -1083,6 +1080,14 @@
       const defaultRowCnt = dataObj ? dataObj.rowCount : "";
       const defaultCaseNum = dataObj ? dataObj.caseNumber : "";
       const defaultYear = dataObj ? dataObj.caseYear : "";
+      const defaultJudgeName = dataObj ? dataObj.judgeName : currentJudge;
+
+      // تحويل حقل اسم القاضي في أسطر التفاصيل إلى قائمة منسدلة (list item) تحتوي على أسماء القضاة
+      let judgesOptionsHTML = '';
+      judgesList.forEach(j => {
+        const isSel = (j === defaultJudgeName) ? 'selected' : '';
+        judgesOptionsHTML += `<option value="${j}" ${isSel}>${j}</option>`;
+      });
 
       tr.innerHTML = `
         <td class="p-1.5 border text-center font-bold row-index">${rowIdx + 1}</td>
@@ -1091,7 +1096,9 @@
         <td class="p-1.5 border">
           <select class="case-year-input p-1 border rounded w-full text-xs bg-white" onchange="updateAllYearDropdowns()"></select>
         </td>
-        <td class="p-1.5 border"><input type="text" class="case-judge-input p-1 border rounded w-full text-xs" value="${currentJudge}" readonly style="background-color: #f3f4f6;"></td>
+        <td class="p-1.5 border">
+          <select class="case-judge-input p-1 border rounded w-full text-xs bg-white">${judgesOptionsHTML}</select>
+        </td>
         <td class="p-1.5 border text-center action-cell"></td>
       `;
 
@@ -1181,7 +1188,19 @@
       await dbRef.child(`statistics_v9/${safeJudge}/${safeMonth}/${safeCaseType}/${targetKey}`).set(newCount);
     }
 
-    async function saveCaseDetailsToDB(judge, month, caseType, subStatus) {
+    async function saveCaseDetailsToDB(judge, month, caseType, subStatus, countVal) {
+      const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
+      const safeMonth = month.replace(/[.#$\/\[\]]/g, "_");
+      const safeCaseTypeKey = caseType.replace(/[.#$\/\[\]]/g, "_");
+      const safeSubKey = subStatus.replace(/[.#$\/\[\]]/g, "_");
+
+      // إذا كانت قيمة العدد تساوي صفر أو أقل، يتم حذف السجلات المرتبطة من جدول تفاصيل السجلات تلقائياً
+      if (countVal <= 0) {
+        await dbRef.child(`case_details_v9/${safeJudge}/${safeMonth}/${safeCaseTypeKey}/${safeSubKey}`).remove();
+        await loadAllDetailsFromDB();
+        return;
+      }
+
       const rows = document.querySelectorAll('#caseDetailsRowsBody tr');
       if (rows.length === 0) return;
 
@@ -1190,7 +1209,7 @@
         const rowCnt = parseInt(row.querySelector('.row-count-input').value) || 0;
         const num = row.querySelector('.case-number-input').value.trim();
         const yr = row.querySelector('.case-year-input').value;
-        const jdg = row.querySelector('.case-judge-input').value.trim();
+        const jdg = row.querySelector('.case-judge-input').value;
         
         detailsList.push({
           rowCount: rowCnt,
@@ -1203,11 +1222,6 @@
           timestamp: Date.now()
         });
       });
-
-      const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
-      const safeMonth = month.replace(/[.#$\/\[\]]/g, "_");
-      const safeCaseTypeKey = caseType.replace(/[.#$\/\[\]]/g, "_");
-      const safeSubKey = subStatus.replace(/[.#$\/\[\]]/g, "_");
 
       await dbRef.child(`case_details_v9/${safeJudge}/${safeMonth}/${safeCaseTypeKey}/${safeSubKey}`).set(detailsList);
       await loadAllDetailsFromDB();
@@ -1284,14 +1298,16 @@
               }
 
               list.forEach(item => {
-                if (item && typeof item === 'object') {
+                // شرط العرض في كشف التفاصيل: إذا كان حقل العدد أكبر من الصفر يظهر السجل، وإذا كان أقل أو يساوي الصفر لا يظهر
+                const cnt = Number(item.rowCount) || 0;
+                if (item && typeof item === 'object' && cnt > 0) {
                   const tr = document.createElement('tr');
                   tr.innerHTML = `
                     <td style="border: 1px solid #000; padding: 4px; text-align: center;">${counter++}</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: right;">${item.caseType || '-'}</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: right;">${getSubStatusArabicName(item.subStatus)}</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: center; font-weight: bold;">${item.caseNumber || '-'}</td>
-                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.rowCount !== undefined ? item.rowCount : 0}</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">${cnt}</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.caseYear || '-'} هـ</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.hijriMonth || selectedMonth}</td>
                     <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.judgeName || selectedJudge}</td>
@@ -1306,7 +1322,7 @@
 
       if (printTbody.children.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="8" style="border: 1px solid #000; padding: 6px; text-align: center; color: #555;">لا توجد تفاصيل قضايا مسجلة لهذا القاضي خلال شهر (${selectedMonth}) حتى الآن.</td>`;
+        tr.innerHTML = `<td colspan="8" style="border: 1px solid #000; padding: 6px; text-align: center; color: #555;">لا توجد تفاصيل قضايا مسجلة برقم أكبر من الصفر لهذا القاضي خلال شهر (${selectedMonth}) حتى الآن.</td>`;
         printTbody.appendChild(tr);
       }
     }
@@ -1354,6 +1370,7 @@
       const colTotals = {};
       columnKeys.forEach(key => colTotals[key] = 0);
       let grandTotalOverall = 0;
+      let visibleRowsCount = 0;
 
       caseTypes.forEach(type => {
         if (!currentMonthData[type]) {
@@ -1372,6 +1389,25 @@
           (Number(currentMonthData[type]['ended_as_judgment_strike']) || 0) +
           (Number(currentMonthData[type]['ended_excluded']) || 0);
 
+        // حساب المجموع الكلي لهذا الصف نوع القضية
+        const rowGrandTotal = (currentMonthData[type]['mandate_total'] || 0) + (currentMonthData[type]['ended_total'] || 0);
+
+        // التحقق مما إذا كانت جميع الحقول الخاصة بالسجل تساوي 0 أو أقل
+        let hasAnyValueGreaterThanZero = false;
+        columnKeys.forEach(key => {
+          const val = Number(currentMonthData[type][key]) || 0;
+          colTotals[key] += val;
+          if (val > 0) hasAnyValueGreaterThanZero = true;
+        });
+
+        grandTotalOverall += rowGrandTotal;
+
+        // إذا كانت جميع الحقول الخاصة بالسجل = 0 يتم إخفاء السجل من جدول الإحصائية
+        if (!hasAnyValueGreaterThanZero) {
+          return;
+        }
+
+        visibleRowsCount++;
         const tr = document.createElement('tr');
         const tdTitle = document.createElement('td');
         tdTitle.className = 'row-header';
@@ -1380,8 +1416,6 @@
 
         columnKeys.forEach(key => {
           const val = Number(currentMonthData[type][key]) || 0;
-          colTotals[key] += val;
-
           const td = document.createElement('td');
           td.textContent = val;
           if (key === 'mandate_total' || key === 'ended_total') {
@@ -1415,15 +1449,19 @@
           tr.appendChild(td);
         });
 
-        const rowGrandTotal = (currentMonthData[type]['mandate_total'] || 0) + (currentMonthData[type]['ended_total'] || 0);
         const tdRowGrandTotal = document.createElement('td');
         tdRowGrandTotal.className = 'grand-total';
         tdRowGrandTotal.textContent = rowGrandTotal;
         tr.appendChild(tdRowGrandTotal);
 
-        grandTotalOverall += rowGrandTotal;
         tbody.appendChild(tr);
       });
+
+      if (visibleRowsCount === 0) {
+        const trEmpty = document.createElement('tr');
+        trEmpty.innerHTML = `<td colspan="11" style="padding: 10px; text-align: center; color: #555;">لا توجد سجلات إحصائية تحتوي على قيم أكبر من الصفر للعرض حالياً.</td>`;
+        tbody.appendChild(trEmpty);
+      }
 
       const trFoot = document.createElement('tr');
       const tdFootTitle = document.createElement('td');
@@ -1454,9 +1492,6 @@
       document.getElementById('viewMonthSelect').value = monthVal;
       
       renderTableForJudge();
-      
-      const judgeInputs = document.querySelectorAll('.case-judge-input');
-      judgeInputs.forEach(input => input.value = judgeVal);
     }
 
     function toggleFilterBar(event) {
@@ -1493,13 +1528,13 @@
       const manualCountInput = countInputVal !== "" ? parseInt(countInputVal) : 0;
 
       if (manualCountInput === 0) {
-        const confirmZero = confirm(`⚠️ تنبيه: القيمة المدخلة هي (0). هل أنت متأكد من رغبتك في حفظ وتثبيت القيمة (0) لهذا الحقل؟`);
+        const confirmZero = confirm(`⚠️ تنبيه: القيمة المدخلة هي (0). سيؤدي ذلك إلى حفظ وتثبيت القيمة (0) وحذف السجلات المرتبطة بالتفاصيل. هل أنت متأكد؟`);
         if (!confirmZero) return;
       }
 
       try {
         await setStatisticsInDB(judge, month, caseType, targetKey, manualCountInput);
-        await saveCaseDetailsToDB(judge, month, caseType, targetKey);
+        await saveCaseDetailsToDB(judge, month, caseType, targetKey, manualCountInput);
         
         await loadAllDetailsFromDB();
         judgesData = await loadStatisticsFromDB();
