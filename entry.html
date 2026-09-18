@@ -6,6 +6,11 @@
   <title>مدخلات النظام الرئيسة - محكمة ذي السفال الابتدائية</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- مكتبات Firebase السحابية -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -26,8 +31,6 @@
       --sub-blue: #3949ab;
       --primary-green: #1b5e20;
       --sub-green: #43a047;
-      --primary-brown: #4e342e;
-      --sub-brown: #8d6e63;
       --accent-gold: #c5a059;
       --bg-light: #f4f7f6;
     }
@@ -157,7 +160,7 @@
     }
 
     .filter-group select {
-      min-width: 180px;
+      min-width: 160px;
       font-weight: bold;
     }
 
@@ -174,13 +177,13 @@
     table {
       border-collapse: collapse;
       width: 100%;
-      font-size: 10px;
+      font-size: 11px;
       text-align: center;
     }
 
     th, td {
       border: 1px solid #b0bec5;
-      padding: 5px 3px;
+      padding: 6px 4px;
       white-space: nowrap;
     }
 
@@ -188,8 +191,6 @@
     .bg-blue-light { background-color: var(--sub-blue); color: white; }
     .bg-green-dark { background-color: var(--primary-green); color: white; }
     .bg-green-light { background-color: var(--sub-green); color: white; }
-    .bg-brown-dark { background-color: var(--primary-brown); color: white; }
-    .bg-sub-brown { background-color: var(--sub-brown); color: white; }
     .bg-gold { background-color: #f57f17; color: white; }
 
     .row-header { background-color: #f5f5f5; font-weight: bold; text-align: right; padding-right: 6px; }
@@ -204,6 +205,10 @@
     @keyframes highlight {
       0% { background-color: #ffe082; transform: scale(1.08); }
       100% { background-color: transparent; transform: scale(1); }
+    }
+
+    .print-details-section {
+      display: none;
     }
 
     .inline-footer {
@@ -255,10 +260,17 @@
       @page { size: landscape; margin: 4mm; }
       body { background: #fff; margin: 0; padding-top: 0; padding-bottom: 0; }
       .no-print, header, #passwordModal { display: none !important; }
-      .table-container { box-shadow: none; padding: 0; border: none; }
-      .print-title { display: block !important; text-align: center; margin-bottom: 12px; font-size: 14px; font-weight: bold; }
-      table { font-size: 8px; width: 100%; }
-      th, td { border: 1px solid #000 !important; padding: 3px 1px; }
+      .table-container { box-shadow: none; padding: 0; border: none; margin-bottom: 15px; }
+      .print-title { display: block !important; text-align: center; margin-bottom: 10px; font-size: 14px; font-weight: bold; }
+      
+      .print-details-section {
+        display: block !important;
+        page-break-inside: avoid;
+        margin-top: 20px;
+      }
+      
+      table { font-size: 9px; width: 100%; }
+      th, td { border: 1px solid #000 !important; padding: 4px 2px; }
       .inline-footer { position: static !important; border-top: 1px solid #000 !important; margin-top: 15px !important; }
     }
     .print-title { display: none; }
@@ -311,8 +323,14 @@
             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
               <i class="fas fa-key"></i>
             </span>
-            <input type="password" id="systemPasswordInput" placeholder="أدخل كلمة السر" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-10 text-white placeholder-white/30 text-sm focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 outline-none transition-all" onkeydown="if(event.key === 'Enter') verifySystemPassword()">
+            <input type="password" id="systemPasswordInput" placeholder="أدخل كلمة السر" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-10 text-white placeholder-white/30 text-sm focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 outline-none transition-all">
           </div>
+        </div>
+
+        <!-- خانة تذكرني -->
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="rememberMeCheck" class="w-4 h-4 rounded border-white/20 bg-white/10 text-yellow-500 focus:ring-yellow-400 cursor-pointer accent-yellow-500">
+          <label for="rememberMeCheck" class="text-white/80 text-xs cursor-pointer select-none m-0">تذكرني وعدم سؤالي مرة أخرى على هذا المتصفح</label>
         </div>
 
         <div id="passwordErrorMsg" class="text-red-400 text-xs hidden flex items-center gap-1.5 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20">
@@ -321,7 +339,7 @@
         </div>
 
         <div class="flex gap-3 pt-2">
-          <button onclick="verifySystemPassword()" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-dark font-bold py-3 px-4 rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 text-sm">
+          <button type="button" id="loginBtn" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-dark font-bold py-3 px-4 rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 text-sm">
             <i class="fas fa-check-circle"></i> تأكيد ودخول
           </button>
           <a href="index.html" class="bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-4 rounded-xl transition-all cursor-pointer text-sm text-center flex items-center justify-center">
@@ -332,77 +350,121 @@
     </div>
   </div>
 
-  <!-- المحتوى الرئيسي (يظهر بعد إدخال كلمة المرور الصحيحة) -->
+  <!-- المحتوى الرئيسي -->
   <div class="main-wrapper" id="mainContentArea" style="display: none;">
     <div class="card no-print" id="entryCard">
-      <h4 class="card-title">🔒 نموذج إدخال وترحيل الإحصائيات القضائية</h4>
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h4 class="card-title m-0">🔒 نموذج إدخال وترحيل الإحصائيات القضائية (سحابي حسب الشهر)</h4>
+        <!-- زر ترحيل الإحصائية السابقة يظهر ديناميكياً -->
+        <button type="button" id="migratePrevMonthBtn" onclick="migratePreviousMonthData()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-bold cursor-pointer hidden shadow-md">
+          📥 ترحيل الإحصائية السابقة إلى مرحل تلقائي
+        </button>
+      </div>
+
       <form id="entryForm" class="form-grid">
         <div>
           <label>اختيار القاضي</label>
-          <select id="judgeSelect" required onchange="syncJudgeWithView()">
-            <option value="القاضي ماجد الزمر">القاضي ماجد الزمر</option>
-            <option value="القاضي فاروق">القاضي فاروق</option>
-            <option value="القاضي زكريا">القاضي زكريا</option>
-            <option value="القاضي هشام">القاضي هشام</option>
-            <option value="القاضي حمزة">القاضي حمزة</option>
+          <select id="judgeSelect" required onchange="onJudgeChangeHandler()">
+            <!-- يتم تعبئة قائمة القضاة ديناميكياً -->
+          </select>
+        </div>
+
+        <div>
+          <label>الشهر الهجري (مفتاح أساسي)</label>
+          <select id="hijriMonthSelect" required onchange="onMonthChangeHandler()">
+            <!-- يتم تعبئة الأشهر ديناميكياً من 1 إلى 12 -->
           </select>
         </div>
 
         <div>
           <label>نوع القضية</label>
-          <select id="caseType" required>
-            <option value="إثبات">إثبات</option>
-            <option value="التنفيذ">التنفيذ</option>
-            <option value="اوامر ولائية">اوامر ولائية</option>
-            <option value="جزائي جسيم">جزائي جسيم</option>
-            <option value="جزائي غير جسيم">جزائي غير جسيم</option>
-            <option value="شخصية">شخصية</option>
-            <option value="طلبات رد قضاه">طلبات رد قضاه</option>
-            <option value="مدنية">مدنية</option>
-            <option value="مستعجلة">مستعجلة</option>
-            <option value="منازعات التنفيذ">منازعات التنفيذ</option>
+          <select id="caseType" required onchange="populateSubStatusOptions(); onCriteriaChange();">
+            <option value="جنائيه ج ج">جنائيه ج ج</option>
+            <option value="جنائيه غ ج">جنائيه غ ج</option>
+            <option value="شخصيه">شخصيه</option>
+            <option value="مدنيه">مدنيه</option>
+            <option value="مدني مستعجل">مدني مستعجل</option>
+            <option value="الاثبات">الاثبات</option>
+            <option value="طلبات رد القضاة">طلبات رد القضاة</option>
+            <option value="أوامر ولاية">أوامر ولاية</option>
+            <option value="منازعات تنفيذيه">منازعات تنفيذيه</option>
+            <option value="اجراءات تنفيذيه">اجراءات تنفيذيه</option>
+          </select>
+        </div>
+
+        <div style="display: none;">
+          <label>القطاع الرئيسي</label>
+          <select id="mainCategory">
+            <option value="عام" selected>عام</option>
           </select>
         </div>
 
         <div>
-          <label>القطاع / التصنيف</label>
-          <select id="mainCategory" onchange="updateSubStatus()" required>
-            <option value="المُرحّل والمعروض">المُرحّل والقضايا المعروضة</option>
-            <option value="المنتهية">القضايا المنتهية (بحسب نوع الإنهاء)</option>
-            <option value="المتبقية">القضايا المتبقية ومستويات السلسلة</option>
+          <label>تفصيل الحقل / العمود (المفتاح الأساسي)</label>
+          <select id="subStatus" required onchange="onSubStatusChangeHandler()">
+            <!-- يتم تعبئتها ديناميكياً -->
           </select>
-        </div>
-
-        <div>
-          <label>تفصيل الحالة / نوع الإنهاء</label>
-          <select id="subStatus" required></select>
         </div>
 
         <div>
           <label>العدد المراد إضافته</label>
-          <input type="number" id="caseCount" min="0" value="1" required>
+          <input type="number" id="caseCount" min="1" value="1" required oninput="onCriteriaChange()">
         </div>
 
         <div>
           <button type="submit" class="btn-submit" id="submitBtnText">ترحيل للجدول</button>
         </div>
       </form>
+
+      <!-- تبويب تفاصيل القضايا الفردية (مخفي افتراضياً ويظهر عند اختيار الحقل) -->
+      <div id="caseDetailsContainer" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg" style="display: none;">
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <h5 class="text-xs font-bold text-blue-900">📋 تفاصيل السجلات والأسطر (إضافة وحذف ديناميكي بدون تكرار للسنوات):</h5>
+          <div class="flex items-center gap-2">
+            <label class="text-[11px] text-gray-700 m-0">إضافة سنة هجرية عامة:</label>
+            <input type="text" id="newHijriYearInput" placeholder="مثلاً 1449" class="p-1 border rounded w-24 text-xs bg-white">
+            <button type="button" onclick="addNewHijriYearOption()" class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs cursor-pointer">إضافة للقائمة</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-right bg-white border border-gray-300">
+            <thead>
+              <tr class="bg-indigo-900 text-white">
+                <th class="p-2 border">م</th>
+                <th class="p-2 border">العدد</th>
+                <th class="p-2 border">رقم القضية (اختياري)</th>
+                <th class="p-2 border">العام (هجري)</th>
+                <th class="p-2 border">اسم القاضي</th>
+                <th class="p-2 border text-center">إجراء (إضافة/حذف)</th>
+              </tr>
+            </thead>
+            <tbody id="caseDetailsRowsBody">
+              <!-- الصفوف تتولد ديناميكياً -->
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-2 text-xs font-bold text-gray-700 flex justify-between items-center" id="currentRowsSumNotice">
+          <span>المجموع الحالي للأسطر: <span id="sumDisplay">0</span></span>
+          <span id="balanceStatusText" class="text-gray-500 text-xs"></span>
+        </div>
+      </div>
+
     </div>
 
     <div class="filter-bar no-print">
       <div class="filter-group">
         <label for="viewJudgeSelect">عرض إحصائيات القاضي:</label>
         <select id="viewJudgeSelect" onchange="renderTableForJudge()">
-          <option value="القاضي ماجد الزمر">القاضي ماجد الزمر</option>
-          <option value="القاضي فاروق">القاضي فاروق</option>
-          <option value="القاضي زكريا">القاضي زكريا</option>
-          <option value="القاضي هشام">القاضي هشام</option>
-          <option value="القاضي حمزة">القاضي حمزة</option>
+          <!-- قائمة القضاة للعرض -->
+        </select>
+        <label for="viewMonthSelect" class="mr-3">الشهر:</label>
+        <select id="viewMonthSelect" onchange="renderTableForJudge()" style="min-width: 120px; font-weight: bold;">
+          <!-- قائمة أشهر العرض مرتبة من محرم إلى ذو الحجة -->
         </select>
       </div>
       
       <div class="btn-action-group">
-        <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير الشامل</button>
+        <button type="button" class="btn-print" onclick="prepareAndPrint()">🖨️ طباعة التقرير الشامل مع التفاصيل</button>
       </div>
     </div>
 
@@ -412,62 +474,53 @@
       <table id="matrixTable">
         <thead>
           <tr>
-            <th rowspan="3" class="bg-blue-dark">نوع القضية</th>
-            <th colspan="7" class="bg-blue-dark">القضايا المعروضة (المرحل والمحال)</th>
-            <th colspan="12" class="bg-green-dark">القضايا المنتهية (بحسب نوع الإنهاء والقرار)</th>
-            <th colspan="8" class="bg-sub-brown">القضايا المتبقية - حسب المرحلة</th>
-            <th rowspan="3" class="bg-gold">إجمالي الحركة</th>
+            <th rowspan="2" class="bg-blue-dark">نوع القضية</th>
+            <th colspan="5" class="bg-blue-dark">القضايا المنظورة</th>
+            <th colspan="5" class="bg-green-dark">القضايا المنتهية</th>
           </tr>
           <tr>
-            <th colspan="4" class="bg-blue-light">المرحل (حتى الشهر السابق)</th>
-            <th rowspan="2" class="bg-blue-light">وارد هذا الشهر</th>
-            <th colspan="2" class="bg-blue-light">محال منه</th>
-
-            <th colspan="2" class="bg-green-light">منتهي - حكم</th>
-            <th colspan="2" class="bg-green-light">منتهي - صلح</th>
-            <th colspan="2" class="bg-green-light">منتهي - شطب</th>
-            <th colspan="2" class="bg-green-light">منتهي - تنازل</th>
-            <th colspan="2" class="bg-green-light">منتهي - أخرى</th>
-            <th colspan="2" class="bg-green-light">إجمالي المنتهي</th>
-
-            <th colspan="2" class="bg-sub-brown">منظورة</th>
-            <th colspan="2" class="bg-sub-brown">محجوزة / محيطة</th>
-            <th colspan="2" class="bg-sub-brown">مستأنفة</th>
-            <th colspan="2" class="bg-sub-brown">إجمالي المتبقي</th>
-          </tr>
-          <tr>
-            <th>1445 وما قبل</th>
-            <th>1446</th>
-            <th>1447</th>
-            <th>1448</th>
-            <th>وارد هذا الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
-            <th>1445 وما قبل</th>
-            <th>الشهر</th>
+            <th class="bg-blue-light">مرحل (تلقائي)</th>
+            <th class="bg-blue-light">وارد</th>
+            <th class="bg-blue-light">محال من</th>
+            <th class="bg-blue-light">محال الى</th>
+            <th class="bg-blue-light">الإجمالي</th>
+            
+            <th class="bg-green-light">بحكم</th>
+            <th class="bg-green-light">مافي حكم شطب</th>
+            <th class="bg-green-light">مستبعده</th>
+            <th class="bg-green-light">الإجمالي</th>
+            <th class="bg-gold">المجموع الكلي</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
         <tfoot id="tableFoot"></tfoot>
       </table>
     </div>
+
+    <!-- قسم التقرير التفصيلي للطباعة -->
+    <div class="print-details-section">
+      <div style="font-size: 12px; font-weight: bold; color: #1a237e; margin-bottom: 6px; border-bottom: 2px solid #1a237e; padding-bottom: 3px;">
+        📄 كشف تفاصيل وقيد القضايا المسجلة للقاضي: <span id="printJudgeNameSpan"></span> - الشهر: <span id="printMonthNameSpan"></span>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 9px;" id="printDetailsTable">
+        <thead>
+          <tr style="background-color: #1a237e; color: white;">
+            <th style="border: 1px solid #000; padding: 4px;">م</th>
+            <th style="border: 1px solid #000; padding: 4px;">نوع القضية</th>
+            <th style="border: 1px solid #000; padding: 4px;">تفصيل الحقل / العمود</th>
+            <th style="border: 1px solid #000; padding: 4px;">رقم القضية</th>
+            <th style="border: 1px solid #000; padding: 4px;">العدد</th>
+            <th style="border: 1px solid #000; padding: 4px;">السنة (هجري)</th>
+            <th style="border: 1px solid #000; padding: 4px;">الشهر</th>
+            <th style="border: 1px solid #000; padding: 4px;">اسم القاضي</th>
+          </tr>
+        </thead>
+        <tbody id="printDetailsTableBody">
+          <!-- محتوى الجدول التفصيلي للطباعة -->
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
   <!-- شريط التذييل الثابت أسفل الشاشة -->
@@ -496,17 +549,207 @@
   <script>
     const SECRET_PASSWORD = "2010";
 
+    const judgesList = [
+      "القاضي ماجد الزمر",
+      "القاضي فاروق",
+      "القاضي زكريا",
+      "القاضي هشام",
+      "القاضي حمزة"
+    ];
+
+    const hijriMonthsList = [
+      "محرم", "صفر", "ربيع أول", "ربيع ثان", 
+      "جمادى أول", "جمادى ثان", "رجب", "شعبان", 
+      "رمضان", "شوال", "ذو القعدة", "ذو الحجة"
+    ];
+
+    let hijriYearsList = ["1440", "1441", "1442", "1443", "1444", "1445", "1446", "1447", "1448", "1449"];
+    let allSavedDetailsCache = {};
+    let isProgrammaticChange = false;
+
+    const allSubStatusOptions = [
+      { key: 'mandate_incoming', name: 'وارد' },
+      { key: 'mandate_from', name: 'محال من' },
+      { key: 'mandate_to', name: 'محال الى' },
+      { key: 'ended_by_judgment', name: 'بحكم' },
+      { key: 'ended_as_judgment_strike', name: 'مافي حكم شطب' },
+      { key: 'ended_excluded', name: 'مستبعده' }
+    ];
+
+    function getCurrentHijriMonthName() {
+      return "محرم";
+    }
+
+    function initializeDropdowns() {
+      const judgeSelect = document.getElementById('judgeSelect');
+      const viewJudgeSelect = document.getElementById('viewJudgeSelect');
+      const hijriMonthSelect = document.getElementById('hijriMonthSelect');
+      const viewMonthSelect = document.getElementById('viewMonthSelect');
+      
+      const currentSelectedJudge = judgeSelect.value || judgesList[0];
+      const currentViewJudge = viewJudgeSelect.value || judgesList[0];
+      
+      const currentMonthVal = hijriMonthSelect.value || hijriMonthsList[0];
+      const currentViewMonthVal = viewMonthSelect.value || currentMonthVal;
+
+      judgeSelect.innerHTML = '';
+      viewJudgeSelect.innerHTML = '';
+      hijriMonthSelect.innerHTML = '';
+      viewMonthSelect.innerHTML = '';
+
+      judgesList.forEach(judge => {
+        const opt1 = document.createElement('option');
+        opt1.value = judge;
+        opt1.textContent = judge;
+        judgeSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = judge;
+        opt2.textContent = judge;
+        viewJudgeSelect.appendChild(opt2);
+      });
+
+      hijriMonthsList.forEach((month, idx) => {
+        const optM1 = document.createElement('option');
+        optM1.value = month;
+        optM1.textContent = (idx + 1) + ". " + month;
+        hijriMonthSelect.appendChild(optM1);
+
+        const optM2 = document.createElement('option');
+        optM2.value = month;
+        optM2.textContent = (idx + 1) + ". " + month;
+        viewMonthSelect.appendChild(optM2);
+      });
+
+      if(judgesList.includes(currentSelectedJudge)) judgeSelect.value = currentSelectedJudge;
+      if(judgesList.includes(currentViewJudge)) viewJudgeSelect.value = currentViewJudge;
+      if(hijriMonthsList.includes(currentMonthVal)) hijriMonthSelect.value = currentMonthVal;
+      if(hijriMonthsList.includes(currentViewMonthVal)) viewMonthSelect.value = currentViewMonthVal;
+      
+      checkPreviousMonthAvailability();
+    }
+
+    function checkPreviousMonthAvailability() {
+      const judge = document.getElementById('judgeSelect').value;
+      const currentMonth = document.getElementById('hijriMonthSelect').value;
+      const monthIndex = hijriMonthsList.indexOf(currentMonth);
+      const migrateBtn = document.getElementById('migratePrevMonthBtn');
+      
+      if (monthIndex > 0 && judgesData[judge]) {
+        const prevMonth = hijriMonthsList[monthIndex - 1];
+        const prevData = judgesData[judge][prevMonth];
+        
+        let hasPrevData = false;
+        if (prevData) {
+          caseTypes.forEach(type => {
+            if (prevData[type]) {
+              const hasVal = Object.values(prevData[type]).some(v => Number(v) > 0);
+              if (hasVal) hasPrevData = true;
+            }
+          });
+        }
+        
+        if (hasPrevData) {
+          migrateBtn.style.display = 'inline-block';
+          migrateBtn.textContent = `📥 ترحيل المجموع الكلي من (${prevMonth}) إلى مرحل تلقائي`;
+        } else {
+          migrateBtn.style.display = 'none';
+        }
+      } else {
+        migrateBtn.style.display = 'none';
+      }
+    }
+
+    async function migratePreviousMonthData() {
+      const judge = document.getElementById('judgeSelect').value;
+      const currentMonth = document.getElementById('hijriMonthSelect').value;
+      const monthIndex = hijriMonthsList.indexOf(currentMonth);
+      
+      if (monthIndex <= 0) return;
+      const prevMonth = hijriMonthsList[monthIndex - 1];
+      const prevData = judgesData[judge] && judgesData[judge][prevMonth] ? judgesData[judge][prevMonth] : {};
+
+      const confirmMigrate = confirm(`هل أنت متأكد من ترحيل أرقام "المجموع الكلي" لشهر (${prevMonth}) لتكون قيمة في حقل "مرحل (تلقائي)" للشهر الحالي (${currentMonth}) للقاضي (${judge})؟`);
+      if (!confirmMigrate) return;
+
+      try {
+        const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
+        const safeMonth = currentMonth.replace(/[.#$\/\[\]]/g, "_");
+
+        for (const type of caseTypes) {
+          const typeData = prevData[type] || {};
+          const mandateTotal = (Number(typeData['mandate_carried']) || 0) + 
+                               (Number(typeData['mandate_incoming']) || 0) + 
+                               (Number(typeData['mandate_from']) || 0) + 
+                               (Number(typeData['mandate_to']) || 0);
+                               
+          const endedTotal = (Number(typeData['ended_by_judgment']) || 0) + 
+                             (Number(typeData['ended_as_judgment_strike']) || 0) + 
+                             (Number(typeData['ended_excluded']) || 0);
+                             
+          const rowGrandTotal = mandateTotal + endedTotal;
+
+          if (rowGrandTotal > 0) {
+            const safeCaseType = type.replace(/[.#$\/\[\]]/g, "_");
+            await dbRef.child(`statistics_v9/${safeJudge}/${safeMonth}/${safeCaseType}/mandate_carried`).set(rowGrandTotal);
+          }
+        }
+
+        judgesData = await loadStatisticsFromDB();
+        renderTableForJudge();
+        populateSubStatusOptions();
+        alert(`✅ تم بنجاح ترحيل المجموع الكلي لشهر (${prevMonth}) إلى حقل "مرحل (تلقائي)" لشهر (${currentMonth}).`);
+      } catch (err) {
+        console.error(err);
+        alert("❌ حدث خطأ أثناء عملية ترحيل البيانات السابقة.");
+      }
+    }
+
+    function addNewHijriYearOption() {
+      const input = document.getElementById('newHijriYearInput');
+      const val = input.value.trim();
+      if(!val) {
+        alert("يرجى إدخال السنة الهجرية أولاً.");
+        return;
+      }
+      if(hijriYearsList.includes(val)) {
+        alert("هذه السنة موجودة مسبقاً في القائمة.");
+        return;
+      }
+      hijriYearsList.push(val);
+      hijriYearsList.sort((a, b) => parseInt(a) - parseInt(b));
+      input.value = '';
+      generateCaseDetailsRows();
+      alert(`تمت إضافة السنة الهجرية (${val}) بنجاح وتحديث القوائم.`);
+    }
+
     function verifySystemPassword() {
       const passInput = document.getElementById('systemPasswordInput').value;
+      const rememberCheck = document.getElementById('rememberMeCheck');
       const errorMsg = document.getElementById('passwordErrorMsg');
 
       if (passInput === SECRET_PASSWORD || passInput === "2010") {
+        if (rememberCheck && rememberCheck.checked) {
+          localStorage.setItem("court_system_remembered_pass", passInput);
+        } else {
+          localStorage.removeItem("court_system_remembered_pass");
+        }
+
         document.getElementById('passwordModal').classList.add('hidden');
         document.getElementById('mainContentArea').style.display = 'block';
         document.body.style.overflow = '';
         
-        syncJudgeWithView();
-        renderTableForJudge();
+        initializeDropdowns();
+        syncJudgeAndMonthWithView();
+        
+        loadAllDetailsFromDB().then(() => {
+          loadStatisticsFromDB().then(data => {
+            judgesData = data;
+            renderTableForJudge();
+            populateSubStatusOptions();
+            checkPreviousMonthAvailability();
+          });
+        });
       } else {
         errorMsg.classList.remove('hidden');
         document.getElementById('systemPasswordInput').focus();
@@ -515,201 +758,537 @@
     }
 
     const caseTypes = [
-      "إثبات", "التنفيذ", "اوامر ولائية", "جزائي جسيم", 
-      "جزائي غير جسيم", "شخصية", "طلبات رد قضاه", 
-      "مدنية", "مستعجلة", "منازعات التنفيذ"
+      "جنائيه ج ج", "جنائيه غ ج", "شخصيه", "مدنيه", 
+      "مدني مستعجل", "الاثبات", "طلبات رد القضاة", 
+      "أوامر ولاية", "منازعات تنفيذيه", "اجراءات تنفيذيه"
     ];
 
     const columnKeys = [
-      'offered_prev_1445', 'offered_prev_1446', 'offered_prev_1447', 'offered_prev_1448',
-      'incoming_curr', 'trans_incoming_curr', 'trans_prev_1445',
-      'ended_judg_prev', 'ended_judg_curr',
-      'ended_reconc_prev', 'ended_reconc_curr',
-      'ended_strike_prev', 'ended_strike_curr',
-      'ended_waiver_prev', 'ended_waiver_curr',
-      'ended_other_prev', 'ended_other_curr',
-      'ended_total_prev', 'ended_total_curr',
-      'rem_pending_prev', 'rem_pending_curr',
-      'rem_reserved_prev', 'rem_reserved_curr',
-      'rem_appealed_prev', 'rem_appealed_curr',
-      'rem_total_prev', 'rem_total_curr'
+      'mandate_carried', 'mandate_incoming', 'mandate_from', 'mandate_to', 'mandate_total',
+      'ended_by_judgment', 'ended_as_judgment_strike', 'ended_excluded', 'ended_total'
     ];
 
-    const subStatuses = {
-      'المُرحّل والمعروض': [
-        { label: 'المرحل (1445 وما قبل)', key: 'offered_prev_1445' },
-        { label: 'المرحل (1446)', key: 'offered_prev_1446' },
-        { label: 'المرحل (1447)', key: 'offered_prev_1447' },
-        { label: 'المرحل (1448)', key: 'offered_prev_1448' },
-        { label: 'وارد هذا الشهر', key: 'incoming_curr' },
-        { label: 'محال منه - وارد هذا الشهر', key: 'trans_incoming_curr' },
-        { label: 'محال منه - 1445 وما قبل', key: 'trans_prev_1445' }
-      ],
-      'المنتهية': [
-        { label: 'منتهي - حكم (1445 وما قبل)', key: 'ended_judg_prev' },
-        { label: 'منتهي - حكم (الشهر)', key: 'ended_judg_curr' },
-        { label: 'منتهي - صلح (1445 وما قبل)', key: 'ended_reconc_prev' },
-        { label: 'منتهي - صلح (الشهر)', key: 'ended_reconc_curr' },
-        { label: 'منتهي - شطب (1445 وما قبل)', key: 'ended_strike_prev' },
-        { label: 'منتهي - شطب (الشهر)', key: 'ended_strike_curr' },
-        { label: 'منتهي - تنازل (1445 وما قبل)', key: 'ended_waiver_prev' },
-        { label: 'منتهي - تنازل (الشهر)', key: 'ended_waiver_curr' },
-        { label: 'منتهي - أخرى (1445 وما قبل)', key: 'ended_other_prev' },
-        { label: 'منتهي - أخرى (الشهر)', key: 'ended_other_curr' }
-      ],
-      'المتبقية': [
-        { label: 'منظورة (1445 وما قبل)', key: 'rem_pending_prev' },
-        { label: 'منظورة (الشهر)', key: 'rem_pending_curr' },
-        { label: 'محجوزة / محيطة (1445 وما قبل)', key: 'rem_reserved_prev' },
-        { label: 'محجوزة / محيطة (الشهر)', key: 'rem_reserved_curr' },
-        { label: 'مستأنفة (1445 وما قبل)', key: 'rem_appealed_prev' },
-        { label: 'مستأنفة (الشهر)', key: 'rem_appealed_curr' },
-        { label: 'إجمالي المتبقي (1445 وما قبل)', key: 'rem_total_prev' },
-        { label: 'إجمالي المتبقي (الشهر)', key: 'rem_total_curr' }
-      ]
+    const firebaseConfig = {
+      databaseURL: "https://chat-fat-free-default-rtdb.firebaseio.com/"
     };
+    
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const dbRef = firebase.database().ref();
 
-    function getMainCategoryByKey(key) {
-      for (const [cat, items] of Object.entries(subStatuses)) {
-        if (items.some(item => item.key === key)) return cat;
-      }
-      return 'المُرحّل والمعروض';
+    let judgesData = {};
+
+    async function loadAllDetailsFromDB() {
+      return new Promise((resolve) => {
+        dbRef.child('case_details_v9').once('value', (snapshot) => {
+          allSavedDetailsCache = snapshot.val() || {};
+          resolve(allSavedDetailsCache);
+        });
+      });
     }
 
-    const DB_NAME = "CourtStatisticsDB";
-    const STORE_NAME = "احصائيات_التجار";
-    let db = null;
+    function onCriteriaChange() {
+      // لا نقوم بإعادة توليد الصفوف عشوائياً هنا حتى لا نفقد تعديلات المستخدم، التوليد يتم عند اختيار تفصيل الحقل
+    }
 
-    function initDatabase() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
-        request.onerror = (e) => reject(e.target.error);
-        request.onsuccess = (e) => { db = e.target.result; resolve(db); };
-        request.onupgradeneeded = (e) => {
-          const database = e.target.result;
-          if (!database.objectStoreNames.contains(STORE_NAME)) {
-            const store = database.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
-            store.createIndex("judge_idx", "judge", { unique: false });
+    function populateSubStatusOptions() {
+      const judge = document.getElementById('judgeSelect').value;
+      const month = document.getElementById('hijriMonthSelect').value;
+      const caseType = document.getElementById('caseType').value;
+      const subStatusSelect = document.getElementById('subStatus');
+      
+      const currentSelectedSub = subStatusSelect.value;
+      subStatusSelect.innerHTML = '';
+
+      const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
+      const safeMonth = month.replace(/[.#$\/\[\]]/g, "_");
+      const unmigrated = [];
+      const migrated = [];
+
+      allSubStatusOptions.forEach(opt => {
+        let hasData = false;
+        if (allSavedDetailsCache[safeJudge] && allSavedDetailsCache[safeJudge][safeMonth]) {
+          const safeCaseTypeKey = caseType.replace(/[.#$\/\[\]]/g, "_");
+          const safeSubKey = opt.key.replace(/[.#$\/\[\]]/g, "_");
+          if (allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey] && allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey][safeSubKey]) {
+            hasData = true;
           }
-        };
+        }
+        
+        if (!hasData && judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && (judgesData[judge][month][caseType][opt.key] || 0) > 0) {
+          hasData = true;
+        }
+
+        if (hasData) {
+          migrated.push(opt);
+        } else {
+          unmigrated.push(opt);
+        }
+      });
+
+      const orderedOptions = [...unmigrated, ...migrated];
+
+      orderedOptions.forEach(opt => {
+        const optionEl = document.createElement('option');
+        optionEl.value = opt.key;
+        optionEl.textContent = opt.name + (migrated.includes(opt) ? " (تم الترحيل مسبقاً)" : "");
+        subStatusSelect.appendChild(optionEl);
+      });
+
+      if (orderedOptions.some(o => o.key === currentSelectedSub)) {
+        subStatusSelect.value = currentSelectedSub;
+      } else if (orderedOptions.length > 0) {
+        subStatusSelect.value = orderedOptions[0].key;
+      }
+
+      onSubStatusChangeHandler(true);
+    }
+
+    function onJudgeChangeHandler() {
+      syncJudgeAndMonthWithView();
+      populateSubStatusOptions();
+      checkPreviousMonthAvailability();
+    }
+
+    function onMonthChangeHandler() {
+      syncJudgeAndMonthWithView();
+      populateSubStatusOptions();
+      checkPreviousMonthAvailability();
+    }
+
+    function onSubStatusChangeHandler(isAutomatic = false) {
+      if (isProgrammaticChange) return;
+
+      const judge = document.getElementById('judgeSelect').value;
+      const month = document.getElementById('hijriMonthSelect').value;
+      const caseType = document.getElementById('caseType').value;
+      const subStatus = document.getElementById('subStatus').value;
+
+      const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
+      const safeMonth = month.replace(/[.#$\/\[\]]/g, "_");
+      const safeCaseTypeKey = caseType.replace(/[.#$\/\[\]]/g, "_");
+      const safeSubKey = subStatus.replace(/[.#$\/\[\]]/g, "_");
+
+      let existingDetails = [];
+      let hasDataBefore = false;
+
+      if (allSavedDetailsCache[safeJudge] && allSavedDetailsCache[safeJudge][safeMonth] && allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey] && allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey][safeSubKey]) {
+        const entryVal = allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey][safeSubKey];
+        if (Array.isArray(entryVal)) {
+          existingDetails = entryVal;
+        } else if (entryVal && typeof entryVal === 'object') {
+          existingDetails = Object.values(entryVal);
+        }
+        if (existingDetails.length > 0) {
+          hasDataBefore = true;
+        }
+      }
+
+      let totalCount = 0;
+      if (hasDataBefore) {
+        existingDetails.forEach(item => totalCount += (parseInt(item.rowCount) || 0));
+      } else if (judgesData[judge] && judgesData[judge][month] && judgesData[judge][month][caseType] && (judgesData[judge][month][caseType][subStatus] || 0) > 0) {
+        totalCount = judgesData[judge][month][caseType][subStatus];
+        hasDataBefore = true;
+      }
+
+      if (hasDataBefore && totalCount > 0) {
+        document.getElementById('caseCount').value = totalCount;
+        document.getElementById('submitBtnText').textContent = "تحديث وتعديل الإحصائية";
+      } else {
+        document.getElementById('caseCount').value = "1";
+        document.getElementById('submitBtnText').textContent = "ترحيل للجدول";
+      }
+
+      // إظهار نافذة السجلات التفصيلية وعرض السجلات المحفوظة (أو سجل واحد جديد في حال الإضافة)
+      generateCaseDetailsRows(hasDataBefore ? existingDetails : null);
+    }
+
+    function getSubStatusArabicName(key) {
+      const found = allSubStatusOptions.find(o => o.key === key);
+      return found ? found.name : key;
+    }
+
+    function generateCaseDetailsRows(customExistingDetails = null) {
+      const container = document.getElementById('caseDetailsContainer');
+      const tbody = document.getElementById('caseDetailsRowsBody');
+      const currentJudge = document.getElementById('judgeSelect').value;
+      const currentMonth = document.getElementById('hijriMonthSelect').value;
+      const currentCaseType = document.getElementById('caseType').value;
+      const currentSubStatus = document.getElementById('subStatus').value;
+
+      // إظهار النافذة عند اختيار وتغيير الحقل الفرعي
+      container.style.display = 'block';
+
+      let existingDetails = customExistingDetails || [];
+      if (!customExistingDetails) {
+        const safeJudge = currentJudge.replace(/[.#$\/\[\]]/g, "_");
+        const safeMonth = currentMonth.replace(/[.#$\/\[\]]/g, "_");
+        const safeCaseTypeKey = currentCaseType.replace(/[.#$\/\[\]]/g, "_");
+        const safeSubKey = currentSubStatus.replace(/[.#$\/\[\]]/g, "_");
+
+        if (allSavedDetailsCache[safeJudge] && allSavedDetailsCache[safeJudge][safeMonth] && allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey] && allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey][safeSubKey]) {
+          const entryVal = allSavedDetailsCache[safeJudge][safeMonth][safeCaseTypeKey][safeSubKey];
+          if (Array.isArray(entryVal)) {
+            existingDetails = entryVal;
+          } else if (entryVal && typeof entryVal === 'object') {
+            existingDetails = Object.values(entryVal);
+          }
+        }
+      }
+
+      tbody.innerHTML = '';
+      
+      // إذا كانت هناك سجلات محفوظة مسبقاً (تعديل)، اعرضها. وإذا لم تكن هناك (إضافية جديدة)، اعرض سجل واحد فقط.
+      let rowCountToRender = existingDetails.length > 0 ? existingDetails.length : 1;
+      
+      for (let i = 0; i < rowCountToRender; i++) {
+        appendDetailRow(existingDetails[i] || null);
+      }
+
+      updateRowsSum();
+    }
+
+    function getSelectedYearsInOtherRows(currentRowElement) {
+      const selectedYears = [];
+      document.querySelectorAll('.case-year-input').forEach(sel => {
+        if (!currentRowElement || sel !== currentRowElement.querySelector('.case-year-input')) {
+          if (sel.value) selectedYears.push(sel.value);
+        }
+      });
+      return selectedYears;
+    }
+
+    function updateAllYearDropdowns() {
+      const allYearSelects = document.querySelectorAll('.case-year-input');
+      allYearSelects.forEach(selectEl => {
+        const currentVal = selectEl.value;
+        const otherSelectedYears = [];
+        
+        allYearSelects.forEach(otherSel => {
+          if (otherSel !== selectEl && otherSel.value) {
+            otherSelectedYears.push(otherSel.value);
+          }
+        });
+
+        selectEl.innerHTML = '';
+        hijriYearsList.forEach(yr => {
+          if (!otherSelectedYears.includes(yr) || yr === currentVal) {
+            const opt = document.createElement('option');
+            opt.value = yr;
+            opt.textContent = yr + " هـ";
+            if (yr === currentVal) opt.selected = true;
+            selectEl.appendChild(opt);
+          }
+        });
+        if (!selectEl.value && selectEl.options.length > 0) {
+          selectEl.selectedIndex = 0;
+        }
       });
     }
 
-    async function setStatisticsInDB(judge, caseType, targetKey, newCount) {
-      if (!db) await initDatabase();
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], "readwrite");
-        const store = transaction.objectStore(STORE_NAME);
-        const requestAll = store.getAll();
-        
-        requestAll.onsuccess = () => {
-          const records = requestAll.result;
-          const deletePromises = [];
-          records.forEach(rec => {
-            if (rec.judge === judge && rec.caseType === caseType && rec.targetKey === targetKey) {
-              deletePromises.push(store.delete(rec.id));
-            }
-          });
+    function appendDetailRow(dataObj = null) {
+      const tbody = document.getElementById('caseDetailsRowsBody');
+      const rowIdx = tbody.children.length;
+      const currentJudge = document.getElementById('judgeSelect').value;
 
-          Promise.all(deletePromises).then(() => {
-            const newRecord = { judge, caseType, targetKey, count: newCount, timestamp: new Date().toISOString() };
-            const addReq = store.add(newRecord);
-            addReq.onsuccess = () => resolve(addReq.result);
-            addReq.onerror = (e) => reject(e.target.error);
-          }).catch(err => reject(err));
-        };
-        requestAll.onerror = (e) => reject(e.target.error);
+      const tr = document.createElement('tr');
+      
+      const defaultRowCnt = dataObj ? dataObj.rowCount : 1;
+      const defaultCaseNum = dataObj ? dataObj.caseNumber : "";
+      const defaultYear = dataObj ? dataObj.caseYear : "";
+
+      tr.innerHTML = `
+        <td class="p-1.5 border text-center font-bold row-index">${rowIdx + 1}</td>
+        <td class="p-1.5 border"><input type="number" min="1" class="row-count-input p-1 border rounded w-full text-xs text-center font-bold" value="${defaultRowCnt}" oninput="updateRowsSum()" required></td>
+        <td class="p-1.5 border"><input type="text" class="case-number-input p-1 border rounded w-full text-xs" placeholder="رقم القضية (اختياري)" value="${defaultCaseNum}"></td>
+        <td class="p-1.5 border">
+          <select class="case-year-input p-1 border rounded w-full text-xs bg-white" onchange="updateAllYearDropdowns()">
+            <!-- يتم تعبئتها ديناميكياً -->
+          </select>
+        </td>
+        <td class="p-1.5 border"><input type="text" class="case-judge-input p-1 border rounded w-full text-xs" value="${currentJudge}" readonly style="background-color: #f3f4f6;"></td>
+        <td class="p-1.5 border text-center action-cell">
+          <!-- زر إضافة وحذف ديناميكي -->
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+
+      const yearSelect = tr.querySelector('.case-year-input');
+      yearSelect.innerHTML = '';
+      const otherYears = getSelectedYearsInOtherRows(tr);
+      
+      hijriYearsList.forEach(yr => {
+        if (!otherYears.includes(yr) || yr === defaultYear) {
+          const opt = document.createElement('option');
+          opt.value = yr;
+          opt.textContent = yr + " هـ";
+          if (yr === defaultYear) opt.selected = true;
+          yearSelect.appendChild(opt);
+        }
       });
+      if (!yearSelect.value && yearSelect.options.length > 0) {
+        yearSelect.selectedIndex = 0;
+      }
+
+      updateActionButtonsState();
+      updateRowsSum();
+    }
+
+    function updateActionButtonsState() {
+      const tbody = document.getElementById('caseDetailsRowsBody');
+      const rows = tbody.querySelectorAll('tr');
+
+      rows.forEach((tr, index) => {
+        const actionCell = tr.querySelector('.action-cell');
+        actionCell.innerHTML = '';
+
+        if (index === rows.length - 1) {
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-[11px] font-bold cursor-pointer';
+          addBtn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+          addBtn.onclick = () => {
+            appendDetailRow();
+          };
+          actionCell.appendChild(addBtn);
+        }
+
+        if (rows.length > 1) {
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-[11px] font-bold cursor-pointer mr-1';
+          delBtn.innerHTML = '<i class="fas fa-trash"></i> حذف';
+          delBtn.onclick = () => {
+            tr.remove();
+            reindexRows();
+            updateAllYearDropdowns();
+            updateRowsSum();
+            updateActionButtonsState();
+          };
+          actionCell.appendChild(delBtn);
+        }
+      });
+    }
+
+    function reindexRows() {
+      const rows = document.querySelectorAll('#caseDetailsRowsBody tr');
+      rows.forEach((tr, idx) => {
+        tr.querySelector('.row-index').textContent = idx + 1;
+      });
+    }
+
+    function updateRowsSum() {
+      const rowInputs = document.querySelectorAll('.row-count-input');
+      let sum = 0;
+      rowInputs.updateCount = 0;
+      rowInputs.forEach(input => {
+        sum += parseInt(input.value) || 0;
+      });
+
+      document.getElementById('caseCount').value = sum;
+      document.getElementById('sumDisplay').textContent = sum;
+      const statusText = document.getElementById('balanceStatusText');
+
+      statusText.textContent = `✅ إجمالي الأعداد المحسوبة من السجلات (${sum})`;
+      statusText.style.color = "green";
+
+      updateActionButtonsState();
+      return sum;
+    }
+
+    async function setStatisticsInDB(judge, month, caseType, targetKey, newCount) {
+      const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
+      const safeMonth = month.replace(/[.#$\/\[\]]/g, "_");
+      const safeCaseType = caseType.replace(/[.#$\/\[\]]/g, "_");
+      await dbRef.child(`statistics_v9/${safeJudge}/${safeMonth}/${safeCaseType}/${targetKey}`).set(newCount);
+    }
+
+    async function saveCaseDetailsToDB(judge, month, caseType, subStatus) {
+      const rows = document.querySelectorAll('#caseDetailsRowsBody tr');
+      if (rows.length === 0) return;
+
+      const detailsList = [];
+      rows.forEach(row => {
+        const rowCnt = parseInt(row.querySelector('.row-count-input').value) || 1;
+        const num = row.querySelector('.case-number-input').value.trim();
+        const yr = row.querySelector('.case-year-input').value;
+        const jdg = row.querySelector('.case-judge-input').value.trim();
+        
+        detailsList.push({
+          rowCount: rowCnt,
+          caseNumber: num || "بدون رقم",
+          caseYear: yr,
+          hijriMonth: month,
+          judgeName: jdg,
+          caseType: caseType,
+          subStatus: subStatus,
+          timestamp: Date.now()
+        });
+      });
+
+      if(detailsList.length > 0) {
+        const safeJudge = judge.replace(/[.#$\/\[\]]/g, "_");
+        const safeMonth = month.replace(/[.#$\/\[\]]/g, "_");
+        const safeCaseTypeKey = caseType.replace(/[.#$\/\[\]]/g, "_");
+        const safeSubKey = subStatus.replace(/[.#$\/\[\]]/g, "_");
+
+        await dbRef.child(`case_details_v9/${safeJudge}/${safeMonth}/${safeCaseTypeKey}/${safeSubKey}`).set(detailsList);
+        await loadAllDetailsFromDB();
+      }
     }
 
     async function loadStatisticsFromDB() {
-      if (!db) await initDatabase();
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], "readonly");
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.getAll();
-
-        request.onsuccess = (event) => {
-          const records = event.target.result;
+      return new Promise((resolve) => {
+        dbRef.child('statistics_v9').once('value', async (snapshot) => {
+          const rawData = snapshot.val() || {};
           const loadedData = {};
-          records.forEach(rec => {
-            if (!loadedData[rec.judge]) {
-              loadedData[rec.judge] = {};
+
+          judgesList.forEach(judge => {
+            loadedData[judge] = {};
+            hijriMonthsList.forEach(month => {
+              loadedData[judge][month] = {};
               caseTypes.forEach(type => {
-                loadedData[rec.judge][type] = {};
-                columnKeys.forEach(key => loadedData[rec.judge][type][key] = 0);
+                loadedData[judge][month][type] = {};
+                columnKeys.forEach(key => loadedData[judge][month][type][key] = 0);
               });
-            }
-            if (loadedData[rec.judge][rec.caseType] && loadedData[rec.judge][rec.caseType][rec.targetKey] !== undefined) {
-              loadedData[rec.judge][rec.caseType][rec.targetKey] += rec.count;
-            }
+            });
           });
+
+          Object.keys(rawData).forEach(safeJudge => {
+            const matchingJudge = judgesList.find(j => j.replace(/[.#$\/\[\]]/g, "_") === safeJudge) || safeJudge;
+            if (!loadedData[matchingJudge]) loadedData[matchingJudge] = {};
+
+            Object.keys(rawData[safeJudge]).forEach(safeMonth => {
+              const matchingMonth = hijriMonthsList.find(m => m.replace(/[.#$\/\[\]]/g, "_") === safeMonth) || safeMonth;
+              if (!loadedData[matchingJudge][matchingMonth]) loadedData[matchingJudge][matchingMonth] = {};
+
+              Object.keys(rawData[safeJudge][safeMonth]).forEach(safeType => {
+                const matchingType = caseTypes.find(t => t.replace(/[.#$\/\[\]]/g, "_") === safeType) || safeType;
+                if (!loadedData[matchingJudge][matchingMonth][matchingType]) {
+                  loadedData[matchingJudge][matchingMonth][matchingType] = {};
+                  columnKeys.forEach(key => loadedData[matchingJudge][matchingMonth][matchingType][key] = 0);
+                }
+
+                Object.keys(rawData[safeJudge][safeMonth][safeType]).forEach(key => {
+                  loadedData[matchingJudge][matchingMonth][matchingType][key] = Number(rawData[safeJudge][safeMonth][safeType][key]) || 0;
+                });
+              });
+            });
+          });
+
           resolve(loadedData);
-        };
-        request.onerror = (event) => reject(event.target.error);
+        });
       });
     }
 
-    const judgesData = {};
+    function updatePrintDetailsTable(selectedJudge, selectedMonth) {
+      const printJudgeSpan = document.getElementById('printJudgeNameSpan');
+      const printMonthSpan = document.getElementById('printMonthNameSpan');
+      const printTbody = document.getElementById('printDetailsTableBody');
+      printJudgeSpan.textContent = selectedJudge;
+      printMonthSpan.textContent = selectedMonth;
+      printTbody.innerHTML = '';
 
-    function updateSubStatus() {
-      const mainCat = document.getElementById('mainCategory').value;
-      const subSelect = document.getElementById('subStatus');
-      subSelect.innerHTML = '';
-      subStatuses[mainCat].forEach(status => {
-        const option = document.createElement('option');
-        option.value = status.key;
-        option.textContent = status.label;
-        subSelect.appendChild(option);
-      });
+      let counter = 1;
+      const safeJudgeTarget = selectedJudge.replace(/[.#$\/\[\]]/g, "_");
+      const safeMonthTarget = selectedMonth.replace(/[.#$\/\[\]]/g, "_");
+
+      if (allSavedDetailsCache && allSavedDetailsCache[safeJudgeTarget] && allSavedDetailsCache[safeJudgeTarget][safeMonthTarget]) {
+        const judgeMonthNode = allSavedDetailsCache[safeJudgeTarget][safeMonthTarget];
+        Object.keys(judgeMonthNode).forEach(safeCaseTypeKey => {
+          const subStatusesNode = judgeMonthNode[safeCaseTypeKey];
+          if (subStatusesNode && typeof subStatusesNode === 'object') {
+            Object.keys(subStatusesNode).forEach(safeSubKey => {
+              const entryVal = subStatusesNode[safeSubKey];
+              let list = [];
+              if (Array.isArray(entryVal)) {
+                list = entryVal;
+              } else if (entryVal && typeof entryVal === 'object') {
+                list = Object.values(entryVal);
+              }
+
+              list.forEach(item => {
+                if (item && typeof item === 'object') {
+                  const tr = document.createElement('tr');
+                  tr.innerHTML = `
+                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">${counter++}</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: right;">${item.caseType || '-'}</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: right;">${getSubStatusArabicName(item.subStatus)}</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: center; font-weight: bold;">${item.caseNumber || '-'}</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.rowCount || 1}</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.caseYear || '-'} هـ</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.hijriMonth || selectedMonth}</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">${item.judgeName || selectedJudge}</td>
+                  `;
+                  printTbody.appendChild(tr);
+                }
+              });
+            });
+          }
+        });
+      }
+
+      if (printTbody.children.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="8" style="border: 1px solid #000; padding: 6px; text-align: center; color: #555;">لا توجد تفاصيل قضايا مسجلة لهذا القاضي خلال شهر (${selectedMonth}) حتى الآن.</td>`;
+        printTbody.appendChild(tr);
+      }
+    }
+
+    async function prepareAndPrint() {
+      await loadAllDetailsFromDB();
+      const selectedJudge = document.getElementById('viewJudgeSelect').value;
+      const selectedMonth = document.getElementById('viewMonthSelect').value;
+      updatePrintDetailsTable(selectedJudge, selectedMonth);
+      window.print();
     }
 
     function renderTableForJudge(highlightKey = null, highlightCaseType = null) {
       const selectedJudge = document.getElementById('viewJudgeSelect').value;
+      const selectedMonth = document.getElementById('viewMonthSelect').value;
       const tbody = document.getElementById('tableBody');
       const tfoot = document.getElementById('tableFoot');
       
-      document.getElementById('printHeaderTitle').textContent = `التقرير الإحصائي القضائي الكامل - ${selectedJudge} - محكمة ذي السفال الابتدائية`;
+      document.getElementById('printHeaderTitle').textContent = `التقرير الإحصائي القضائي لشهر (${selectedMonth}) - ${selectedJudge} - محكمة ذي السفال الابتدائية`;
+      
+      updatePrintDetailsTable(selectedJudge, selectedMonth);
+
       tbody.innerHTML = '';
       tfoot.innerHTML = '';
 
-      if (!judgesData[selectedJudge]) {
-        judgesData[selectedJudge] = {};
+      if (!judgesData[selectedJudge]) judgesData[selectedJudge] = {};
+      if (!judgesData[selectedJudge][selectedMonth]) {
+        judgesData[selectedJudge][selectedMonth] = {};
         caseTypes.forEach(type => {
-          judgesData[selectedJudge][type] = {};
-          columnKeys.forEach(key => judgesData[selectedJudge][type][key] = 0);
+          judgesData[selectedJudge][selectedMonth][type] = {};
+          columnKeys.forEach(key => judgesData[selectedJudge][selectedMonth][type][key] = 0);
         });
       }
 
-      const currentJudgeData = judgesData[selectedJudge];
+      const currentMonthData = judgesData[selectedJudge][selectedMonth];
       const colTotals = {};
       columnKeys.forEach(key => colTotals[key] = 0);
-      let grandTotal = 0;
+      let grandTotalOverall = 0;
 
       caseTypes.forEach(type => {
-        currentJudgeData[type]['ended_total_prev'] = 
-          (currentJudgeData[type]['ended_judg_prev'] || 0) +
-          (currentJudgeData[type]['ended_reconc_prev'] || 0) +
-          (currentJudgeData[type]['ended_strike_prev'] || 0) +
-          (currentJudgeData[type]['ended_waiver_prev'] || 0) +
-          (currentJudgeData[type]['ended_other_prev'] || 0);
+        if (!currentMonthData[type]) {
+          currentMonthData[type] = {};
+          columnKeys.forEach(key => currentMonthData[type][key] = 0);
+        }
 
-        currentJudgeData[type]['ended_total_curr'] = 
-          (currentJudgeData[type]['ended_judg_curr'] || 0) +
-          (currentJudgeData[type]['ended_reconc_curr'] || 0) +
-          (currentJudgeData[type]['ended_strike_curr'] || 0) +
-          (currentJudgeData[type]['ended_waiver_curr'] || 0) +
-          (currentJudgeData[type]['ended_other_curr'] || 0);
+        currentMonthData[type]['mandate_total'] = 
+          (currentMonthData[type]['mandate_carried'] || 0) + 
+          (currentMonthData[type]['mandate_incoming'] || 0) +
+          (currentMonthData[type]['mandate_from'] || 0) +
+          (currentMonthData[type]['mandate_to'] || 0);
 
-        currentJudgeData[type]['rem_total_prev'] = 
-          (currentJudgeData[type]['rem_pending_prev'] || 0) +
-          (currentJudgeData[type]['rem_reserved_prev'] || 0) +
-          (currentJudgeData[type]['rem_appealed_prev'] || 0);
-
-        currentJudgeData[type]['rem_total_curr'] = 
-          (currentJudgeData[type]['rem_pending_curr'] || 0) +
-          (currentJudgeData[type]['rem_reserved_curr'] || 0) +
-          (currentJudgeData[type]['rem_appealed_curr'] || 0);
+        currentMonthData[type]['ended_total'] = 
+          (currentMonthData[type]['ended_by_judgment'] || 0) + 
+          (currentMonthData[type]['ended_as_judgment_strike'] || 0) +
+          (currentMonthData[type]['ended_excluded'] || 0);
 
         const tr = document.createElement('tr');
         const tdTitle = document.createElement('td');
@@ -717,52 +1296,48 @@
         tdTitle.textContent = type;
         tr.appendChild(tdTitle);
 
-        let rowTotal = 0;
-
         columnKeys.forEach(key => {
-          const val = currentJudgeData[type][key] || 0;
-          if (!key.startsWith('ended_total_') && !key.startsWith('rem_total_')) {
-            rowTotal += val;
-          }
+          const val = currentMonthData[type][key] || 0;
           colTotals[key] += val;
 
           const td = document.createElement('td');
           td.textContent = val;
-          if (key.startsWith('ended_total_') || key.startsWith('rem_total_')) {
+          if (key === 'mandate_total' || key === 'ended_total') {
             td.className = 'ended-total-cell';
           }
           if (highlightKey === key && highlightCaseType === type) {
             td.classList.add('updated-cell');
           }
 
-          td.style.cursor = "pointer";
-          td.title = "انقر نقرتين للتعديل";
-          td.addEventListener('dblclick', function() {
-            if (val > 0) {
-              const confirmEdit = confirm(`هل ترغب بالتعديل على إحصائية (${type}) للقاضي (${selectedJudge}) بقيمة (${val})؟`);
+          if (key !== 'mandate_carried') {
+            td.style.cursor = "pointer";
+            td.title = "انقر نقرتين للتعديل";
+            td.addEventListener('dblclick', function() {
+              const confirmEdit = confirm(`هل ترغب بالتعديل على إحصائية (${type}) لشهر (${selectedMonth}) للقاضي (${selectedJudge})؟`);
               if (confirmEdit) {
                 document.getElementById('judgeSelect').value = selectedJudge;
-                syncJudgeWithView();
+                document.getElementById('hijriMonthSelect').value = selectedMonth;
+                syncJudgeAndMonthWithView();
                 document.getElementById('caseType').value = type;
-                document.getElementById('mainCategory').value = getMainCategoryByKey(key);
-                updateSubStatus();
+                populateSubStatusOptions();
                 document.getElementById('subStatus').value = key;
-                document.getElementById('caseCount').value = val;
+                onSubStatusChangeHandler(); // لتعبئة السجلات وعرض النافذة
                 document.getElementById('submitBtnText').textContent = "تحديث وتعديل الإحصائية";
                 document.getElementById('entryCard').scrollIntoView({ behavior: 'smooth' });
               }
-            }
-          });
+            });
+          }
 
           tr.appendChild(td);
         });
 
-        const tdRowTotal = document.createElement('td');
-        tdRowTotal.className = 'total-cell';
-        tdRowTotal.textContent = rowTotal;
-        tr.appendChild(tdRowTotal);
+        const rowGrandTotal = (currentMonthData[type]['mandate_total'] || 0) + (currentMonthData[type]['ended_total'] || 0);
+        const tdRowGrandTotal = document.createElement('td');
+        tdRowGrandTotal.className = 'grand-total';
+        tdRowGrandTotal.textContent = rowGrandTotal;
+        tr.appendChild(tdRowGrandTotal);
 
-        grandTotal += rowTotal;
+        grandTotalOverall += rowGrandTotal;
         tbody.appendChild(tr);
       });
 
@@ -773,58 +1348,132 @@
       trFoot.appendChild(tdFootTitle);
 
       columnKeys.forEach(key => {
+        const val = colTotals[key];
         const td = document.createElement('td');
-        td.className = (key.startsWith('ended_total_') || key.startsWith('rem_total_')) ? 'ended-total-cell' : 'total-cell';
-        td.textContent = colTotals[key];
+        td.className = (key === 'mandate_total' || key === 'ended_total') ? 'ended-total-cell' : 'total-cell';
+        td.textContent = val;
         trFoot.appendChild(td);
       });
 
       const tdGrandTotal = document.createElement('td');
       tdGrandTotal.className = 'grand-total';
-      tdGrandTotal.textContent = grandTotal;
+      tdGrandTotal.textContent = grandTotalOverall;
       trFoot.appendChild(tdGrandTotal);
       tfoot.appendChild(trFoot);
     }
 
-    function syncJudgeWithView() {
+    function syncJudgeAndMonthWithView() {
       const judgeVal = document.getElementById('judgeSelect').value;
+      const monthVal = document.getElementById('hijriMonthSelect').value;
+      
       document.getElementById('viewJudgeSelect').value = judgeVal;
+      document.getElementById('viewMonthSelect').value = monthVal;
+      
       renderTableForJudge();
+      
+      const judgeInputs = document.querySelectorAll('.case-judge-input');
+      judgeInputs.forEach(input => input.value = judgeVal);
     }
 
     document.getElementById('entryForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const judge = document.getElementById('judgeSelect').value;
+      const month = document.getElementById('hijriMonthSelect').value;
       const caseType = document.getElementById('caseType').value;
       const targetKey = document.getElementById('subStatus').value;
-      const count = parseInt(document.getElementById('caseCount').value) || 0;
+
+      const calculatedSum = updateRowsSum();
 
       try {
-        await setStatisticsInDB(judge, caseType, targetKey, count);
-        const dbData = await loadStatisticsFromDB();
-        Object.keys(dbData).forEach(j => { judgesData[j] = dbData[j]; });
+        await setStatisticsInDB(judge, month, caseType, targetKey, calculatedSum);
+        await saveCaseDetailsToDB(judge, month, caseType, targetKey);
+        
+        await loadAllDetailsFromDB();
+        judgesData = await loadStatisticsFromDB();
 
         document.getElementById('viewJudgeSelect').value = judge;
+        document.getElementById('viewMonthSelect').value = month;
         renderTableForJudge(targetKey, caseType);
         
+        populateSubStatusOptions();
+        checkPreviousMonthAvailability();
+        
+        // إخفاء نافذة السجلات التفصيلية بعد الحفظ بنجاح
+        document.getElementById('caseDetailsContainer').style.display = 'none';
+
         document.getElementById('submitBtnText').textContent = "ترحيل للجدول";
         document.getElementById('caseCount').value = "1";
-        alert("✅ تم حفظ وتحديث الإحصائية في قاعدة البيانات بنجاح.");
+        
+        alert(`✅ تم حفظ وتحديث الإحصائية لشهر (${month}) وتفاصيل السجلات المرتبطة بنجاح على قاعدة البيانات السحابية.`);
       } catch (error) {
-        alert("❌ حدث خطأ أثناء حفظ البيانات.");
+        console.error(error);
+        alert("❌ حدث خطأ أثناء حفظ البيانات على السحابة.");
       }
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
-      try {
-        await initDatabase();
-        const dbData = await loadStatisticsFromDB();
-        Object.keys(dbData).forEach(j => { judgesData[j] = dbData[j]; });
-      } catch (e) {
-        console.log("جارٍ تهيئة التخزين المحلي...");
+      initializeDropdowns();
+      
+      const passInput = document.getElementById('systemPasswordInput');
+      const rememberCheck = document.getElementById('rememberMeCheck');
+
+      const savedPass = localStorage.getItem("court_system_remembered_pass");
+      if (savedPass && (savedPass === SECRET_PASSWORD || savedPass === "2010")) {
+        if (passInput) passInput.value = savedPass;
+        if (rememberCheck) rememberCheck.checked = true;
+
+        document.getElementById('passwordModal').classList.add('hidden');
+        document.getElementById('mainContentArea').style.display = 'block';
+        document.body.style.overflow = '';
+        
+        initializeDropdowns();
+        syncJudgeAndMonthWithView();
+        
+        loadAllDetailsFromDB().then(() => {
+          loadStatisticsFromDB().then(data => {
+            judgesData = data;
+            renderTableForJudge();
+            populateSubStatusOptions();
+            checkPreviousMonthAvailability();
+          });
+        });
       }
-      updateSubStatus();
-      document.getElementById('systemPasswordInput').focus();
+
+      const loginBtn = document.getElementById('loginBtn');
+      if (loginBtn) {
+        loginBtn.addEventListener('click', verifySystemPassword);
+      }
+      
+      if (passInput) {
+        passInput.addEventListener('keydown', function(event) {
+          if (event.key === 'Enter') {
+            verifySystemPassword();
+          }
+        });
+      }
+
+      try {
+        await loadAllDetailsFromDB();
+        judgesData = await loadStatisticsFromDB();
+      } catch (e) {
+        console.log("جارٍ الاتصال بقاعدة البيانات السحابية...");
+      }
+      
+      if (passInput && !passInput.value) {
+        passInput.focus();
+      }
+
+      dbRef.child('statistics_v9').on('value', async (snapshot) => {
+        judgesData = await loadStatisticsFromDB();
+        renderTableForJudge();
+        checkPreviousMonthAvailability();
+      });
+
+      dbRef.child('case_details_v9').on('value', async (snapshot) => {
+        allSavedDetailsCache = snapshot.val() || {};
+        renderTableForJudge();
+        populateSubStatusOptions();
+      });
     });
   </script>
 </body>
